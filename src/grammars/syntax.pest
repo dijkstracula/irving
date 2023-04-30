@@ -1,0 +1,9 @@
+langver = ${ "ivy" ~ number ~ ("." ~ number)? }
+hashlang = _{ "#lang" ~ langver }
+
+file = {
+    SOI
+    ~ hashlang ~ NEWLINE
+    //~ decl*
+    ~ EOI
+}

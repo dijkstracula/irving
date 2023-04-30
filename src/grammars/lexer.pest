@@ -1,0 +1,35 @@
+// From ivy/ivy_lexer.py
+COMMA = { "," }
+LPAREN = { "(" }
+RPAREN = { ")" }
+PLUS = { "+" }
+TIMES = { "*" }
+DIV = { "/" }
+TILDE = { "~" }
+AND = { "&" }
+OR = { "|" }
+EQ = { "=" }
+TILDEEQ = { "~=" }
+SEMI = { ";" }
+ASSIGN = { ":=" }
+DOT = { "." }
+LCB = { "{" }
+RCB = { "}" }
+ARROW = { "->" }
+IFF = { "<->" }
+COLON = { ":" }
+DOTS = { ".." }
+DOTDOTDOT = { "..." }
+DOLLAR = { "$" }
+CARET = { "^" }
+LB = { "[" }
+RB = { "]" }
+
+WHITESPACE = _{ " " | "\t" | "\r" }
+
+variable = @{ ASCII_ALPHA ~ ASCII_ALPHANUMERIC* }
+
+nativechar = { !">>>" ~ ANY }
+NATIVEQUOTE = { "<<<" ~ nativechar* ~ ">>>" }
+
+number = { ASCII_DIGIT+ }
