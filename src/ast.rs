@@ -3,9 +3,9 @@
 /// Corresponds to a file/line pairing, and possibly additionally docstrings to
 /// be reconstructed in the extracted code.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Annotation<'a> {
+pub struct Annotation {
     docstring: Vec<String>,
-    file: &'a str,
+    file: String,
     line: u32,
 }
 
@@ -13,7 +13,7 @@ pub struct Annotation<'a> {
 pub enum Ident {
     /// Used for all symbols occurring in the source, including operators like
     /// `+` and `&`.
-    Str {
+    Sub {
         val: String,
         subscripts: Vec<Ident>
     },
@@ -25,13 +25,13 @@ pub enum Ident {
 
     /// Represents members of a namespace.
     Dot {
-        namesp: Box<Ident>,
-        member: Box<Ident>
+        ns: String,
+        subscripts: Vec<Ident>
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-enum Verb {
+pub enum Verb {
     Iff, Or, And, Lt, Leq, Gt, Gtq, Equals, Notequals,
     Plus, Minus, Times, Div,
     Empty, True, False, 
@@ -40,29 +40,39 @@ enum Verb {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(clippy::large_enum_variant)]
-pub enum Expr<'a> {
+pub enum Expr {
     App {
-        func: Box<Expr<'a>>,
-        args: Vec<Expr<'a>>,
-        ann: Annotation<'a>
+        func: Box<Expr>,
+        args: Vec<Expr>,
+    },
+
+    BinOp {
+        lhs: Box<Expr>,
+        op: Verb,
+        rhs: Box<Expr>
+    },
+
+    Number {
+        val: i64
     },
 
     Pi {
-        vars: Vec<Expr<'a>>,
-        body: Box<Expr<'a>>,
-        ann: Annotation<'a>
+        vars: Vec<Expr>,
+        body: Box<Expr>,
+    },
+
+    Subscript {
+        val: Box<Expr>,
+        subscripts: Vec<Expr>
     },
 
     Symbol {
-        name: Ident,
-        vrb: Verb,
-        ann: Annotation<'a>
+        name: String,
     },
 
     /// Used internally only as placeholders
     Variable {
         idx: u64,
-        ann: Annotation<'a>
     }
 }
 
@@ -82,89 +92,76 @@ pub enum Stmt {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(clippy::large_enum_variant)]
-pub enum Decl<'a> {
+pub enum Decl {
     Action {
         name: String,
         kind: ActionKind,
-        inputs: Vec<Expr<'a>>,
-        outputs: Vec<Expr<'a>>,
+        inputs: Vec<Expr>,
+        outputs: Vec<Expr>,
         body: Option<Stmt>,
-
-        ann: Annotation<'a>,
     },
 
     Header {
-        file: &'a str,
-        ann: Annotation<'a>, 
+        file: String,
     },
 
     Group {
-        decls: Vec<Decl<'a>>,
-
-        ann: Annotation<'a>
+        decls: Vec<Decl>,
     },
 
     Include {
-        file: Expr<'a>,
-        ann: Annotation<'a>,
+        file: Expr,
     },
 
     Init {
         body: Stmt,
-        ann: Annotation<'a>,
     },
 
     Instance {
-        objname: Expr<'a>,
-        modname: Expr<'a>,
-        prms: Vec<Expr<'a>>,
+        objname: Expr,
+        modname: Expr,
+        prms: Vec<Expr>,
     },
 
     Instantiate {
-        name: Expr<'a>,
-        prms: Vec<Expr<'a>>,
-        ann: Annotation<'a>, 
+        name: Expr,
+        prms: Vec<Expr>,
     },
 
     Interpretation {
-        itype: Expr<'a>,
-        ctype: Expr<'a>,
-        ann: Annotation<'a>,
+        itype: Expr,
+        ctype: Expr,
     },
 
     Module {
-        name: Expr<'a>,
-        prms: Vec<Expr<'a>>,
-        body: Box<Decl<'a>>,
-        ann: Annotation<'a>
+        name: Expr,
+        prms: Vec<Expr>,
+        body: Box<Decl>,
     },
 
     Object {
-        name: Expr<'a>,
-        body: Box<Decl<'a>>,
-        ann: Annotation<'a>
+        name: Expr,
+        body: Box<Decl>,
     },
 
     Type {
-        sort: Expr<'a>,
-        supr: Option<Expr<'a>>,
+        sort: Expr,
+        supr: Option<Expr>,
         /* spec: TypeSpec */
-        ann: Annotation<'a>
     },
 
     Var {
-        typing: Expr<'a>,
+        typing: Expr,
         is_destructor: bool,
-        def: Option<Expr<'a>>,
-        ann: Annotation<'a>
+        def: Option<Expr>,
     }
 
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Prog<'a> {
-    major_version: u8,
-    minor_version: u8,
+pub struct Prog {
+    pub major_version: u8,
+    pub minor_version: u8,
 
-    decls: Vec<Decl<'a>>
+    pub decls: Vec<Decl>
 }

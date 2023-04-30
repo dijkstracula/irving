@@ -1,9 +1,32 @@
-langver = ${ "ivy" ~ number ~ ("." ~ number)? }
-hashlang = _{ "#lang" ~ langver }
+hashlang    = _{ "#lang" ~ langver }
+    langver = ${ "ivy" ~ number ~ ("." ~ number)? }
 
-file = {
+// Expressions
+
+ident =  { symbol ~ ("[" ~ ident ~ ("," ~ ident)* ~ "]")? }
+    //dot_ident =  { symbol ~ ("." ~ ident)+ } // TODO: subsumed by expr
+    //num_ident = { number } //TODO: unclear if we'll ever need this.
+
+// https://pest.rs/book/precedence.html
+expr                =  { unary_expr ~ (bin_op ~ unary_expr)* }
+    unary_expr      =  { prefix_op? ~ primary }
+        prefix_op   = _{ MINUS | NOT }
+        bin_op      = _{ PLUS | MINUS | TIMES | DIV |
+                         LT | LE | GT | GE | EQ| NEQ |
+                         AND | OR | IFF | ISA | DOT }
+    primary         = _{ symbol | number | LPAREN ~ expr ~ RPAREN }
+    // TODO: I don't know what the right thing to do with idents are:
+    // they should be where "symbol" is used in the "primary" rule, but
+    // that requires bouncing in and out of the Pratt parser.
+
+// Statements and decls
+
+decl             = { include_decl }
+    include_decl = { "include" ~ symbol }
+
+prog = {
     SOI
-    ~ hashlang ~ NEWLINE
-    //~ decl*
+    ~ hashlang
+    //~ (decl ~ NEWLINE)*
     ~ EOI
 }

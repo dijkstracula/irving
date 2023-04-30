@@ -1,15 +1,17 @@
 // From ivy/ivy_lexer.py
 COMMA = { "," }
+ISA = { "isa" }
 LPAREN = { "(" }
 RPAREN = { ")" }
 PLUS = { "+" }
+MINUS = { "-" }
 TIMES = { "*" }
 DIV = { "/" }
-TILDE = { "~" }
+NOT = { "~" }
 AND = { "&" }
 OR = { "|" }
 EQ = { "=" }
-TILDEEQ = { "~=" }
+NEQ = { "~=" }
 SEMI = { ";" }
 ASSIGN = { ":=" }
 DOT = { "." }
@@ -24,12 +26,16 @@ DOLLAR = { "$" }
 CARET = { "^" }
 LB = { "[" }
 RB = { "]" }
+LT = { "<" }
+LE = { "<=" }
+GT = { ">" }
+GE = { ">=" }
 
-WHITESPACE = _{ " " | "\t" | "\r" }
+WHITESPACE = _{ " " | "\t" | "\r" | NEWLINE }
 
-variable = @{ ASCII_ALPHA ~ ASCII_ALPHANUMERIC* }
+symbol = @{ ASCII_ALPHA ~ ASCII_ALPHANUMERIC* }
 
 nativechar = { !">>>" ~ ANY }
 NATIVEQUOTE = { "<<<" ~ nativechar* ~ ">>>" }
 
-number = { ASCII_DIGIT+ }
+number = @{ (ASCII_NONZERO_DIGIT ~ ASCII_DIGIT+ | ASCII_DIGIT) }
