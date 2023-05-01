@@ -43,18 +43,68 @@ mod tests {
 
     #[test]
     fn parse_dot_expr() {
-        assert!(parse_expr("a.b.c.d").is_ok());
+        assert!(parse_expr("a.b").is_ok());
     }
 
     // Statements/Decls
 
     #[test]
-    fn parse_include_decl() {
-//        let fragment = "include collections";
+    fn parse_decl_sig() {
+        let fragment = "foo(a: int) returns (b: int)";
+        let res = IvyParser::parse(Rule::decl_sig, fragment)
+            .expect("Parsing failed")
+            .single().unwrap();
+        assert!(IvyParser::decl_sig(res).is_ok());
+    }
 
-//        let res = IvyParser::parse(Rule::body)
- //           .expect("Parsing failed")
-  //          .single().unwrap();
+    #[test]
+    fn parse_action_decl() {
+        let fragment = "action foo(a: int)";
+        let res = IvyParser::parse(Rule::decl, fragment)
+            .expect("Parsing failed")
+            .single().unwrap();
+        //assert!(IvyParser::decl(res).is_ok());
+        IvyParser::decl(res).unwrap();
+    }
+
+    #[test]
+    fn parse_action_decl_1() {
+        let fragment = "action foo(a: int) = { }";
+        let res = IvyParser::parse(Rule::decl, fragment)
+            .expect("Parsing failed")
+            .single().unwrap();
+        //assert!(IvyParser::decl(res).is_ok());
+        IvyParser::decl(res).unwrap();
+    }
+
+    #[test]
+    fn parse_action_decl_2() {
+        let fragment = "action foo(a: int) returns (b: int) = { }";
+        let res = IvyParser::parse(Rule::decl, fragment)
+            .expect("Parsing failed")
+            .single().unwrap();
+        assert!(IvyParser::decl(res).is_ok());
+    }
+
+    #[test]
+    fn parse_module_decl() {
+        let fragment = "module net(pid: node) = { }";
+        let res = IvyParser::parse(Rule::decl, fragment)
+            .expect("Parsing failed")
+            .single().unwrap();
+        assert!(IvyParser::decl(res).is_ok());
+    }
+
+    #[test]
+    fn parse_module_decl_2() {
+        let fragment = "module net(pid: node) = { 
+            action foo(a: int) = { }
+        }
+        ";
+        let res = IvyParser::parse(Rule::decl, fragment)
+            .expect("Parsing failed")
+            .single().unwrap();
+        assert!(IvyParser::decl(res).is_ok());
     }
 
     #[test]

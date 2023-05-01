@@ -47,11 +47,11 @@ fn parse_expr(pairs: Pairs<Rule>) -> Result<ast::Expr> {
     .map_primary(|primary| match primary.as_rule() {
         Rule::symbol => {
             let name = primary.as_str();
-            Ok(ast::Expr::Symbol { name: name.to_owned() })
+            Ok(ast::Expr::Symbol(name.to_owned()))
         },
         Rule::number => {
             let val: i64 = primary.as_str().parse::<>().unwrap();
-            Ok(ast::Expr::Number { val: val })
+            Ok(ast::Expr::Number(val))
         }
 
         Rule::unary_expr => {
@@ -111,6 +111,75 @@ impl IvyParser {
 
     // Decls
 
+    pub fn param(input: Node) -> Result<ast::Param> {
+        match_nodes!(
+        input.into_children();
+        [symbol(name), symbol(typ)] => {
+            Ok(ast::Param {name, typ})
+        })
+    }
+
+    pub fn paramlist(input: Node) -> Result<Vec<ast::Param>> {
+        match_nodes!(
+        input.into_children();
+        [param(params)..] => {
+            Ok(params.collect())
+        })
+    }
+
+    pub fn decl_ret(input: Node) -> Result<Option<ast::Param>> {
+        match_nodes!(
+        input.into_children();
+        [param(ret)] => Ok(Some(ret)) )
+    }
+
+    pub fn decl_sig(input: Node) -> Result<ast::DeclSig> {
+        match_nodes!(
+        input.into_children();
+        [symbol(name), paramlist(params)] => {
+            Ok(ast::DeclSig { name, params})
+        })
+    }
+
+
+    pub fn block(input: Node) -> Result<Vec<ast::Decl>> {
+        match_nodes!(
+        input.into_children();
+        [decl(decls)..] => {
+            Ok(decls.collect())
+        })
+    }
+
+    pub fn action_decl(input: Node) -> Result<ast::Action> {
+        match_nodes!(
+        input.into_children();
+            [decl_sig(ast::DeclSig{name, params}), decl_ret(ret), block(body)] => Ok(
+                ast::Action{name, kind: ast::ActionKind::Internal, params, ret, body: Some(body)}
+            ),
+            [decl_sig(ast::DeclSig{name, params}), block(body)] => Ok(
+                ast::Action{name, kind: ast::ActionKind::Internal, params, ret: None, body: Some(body)}
+            ),
+            [decl_sig(ast::DeclSig{name, params})] => Ok(
+                ast::Action{name, kind: ast::ActionKind::Internal, params, ret: None, body: None}
+            ),
+        )
+    }
+
+    pub fn module_decl(input: Node) -> Result<ast::Module> {
+        match_nodes!(
+        input.into_children();
+        [decl_sig(ast::DeclSig{name, params}), block(body)] => Ok(
+            ast::Module{name, params, body}
+        ))
+    }
+
+    pub fn decl(input: Node) -> Result<ast::Decl> {
+        match_nodes!(
+        input.into_children();
+        [action_decl(decl)] => Ok(ast::Decl::Action(decl)),
+        [module_decl(decl)] => Ok(ast::Decl::Module(decl))
+        )
+    }
 
     pub fn langver(input: Node) -> Result<(u8, u8)> {
         match_nodes!(

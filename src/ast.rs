@@ -38,6 +38,8 @@ pub enum Verb {
     Colon, Comma, Dot
 }
 
+pub type Symbol = String;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(clippy::large_enum_variant)]
 pub enum Expr {
@@ -52,9 +54,7 @@ pub enum Expr {
         rhs: Box<Expr>
     },
 
-    Number {
-        val: i64
-    },
+    Number(i64),
 
     Pi {
         vars: Vec<Expr>,
@@ -66,9 +66,7 @@ pub enum Expr {
         subscripts: Vec<Expr>
     },
 
-    Symbol {
-        name: String,
-    },
+    Symbol(Symbol),
 
     /// Used internally only as placeholders
     Variable {
@@ -91,15 +89,40 @@ pub enum Stmt {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Param {
+    pub name: Symbol,
+    pub typ: Symbol
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DeclSig {
+    pub name: Symbol,
+    pub params: Vec<Param>,
+}
+
+pub type DeclRet = Option<Param>;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Action {
+    pub name: String,
+    pub kind: ActionKind,
+    pub params: Vec<Param>,
+    pub ret: Option<Param>,
+    pub body: Option<Vec<Decl>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Module {
+    pub name: Symbol,
+    pub params: Vec<Param>,
+    pub body: Vec<Decl>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(clippy::large_enum_variant)]
 pub enum Decl {
-    Action {
-        name: String,
-        kind: ActionKind,
-        inputs: Vec<Expr>,
-        outputs: Vec<Expr>,
-        body: Option<Stmt>,
-    },
+
+    Action(Action),
 
     Header {
         file: String,
@@ -133,11 +156,7 @@ pub enum Decl {
         ctype: Expr,
     },
 
-    Module {
-        name: Expr,
-        prms: Vec<Expr>,
-        body: Box<Decl>,
-    },
+    Module(Module),
 
     Object {
         name: Expr,

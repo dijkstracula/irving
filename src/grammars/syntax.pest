@@ -14,15 +14,63 @@ expr                =  { unary_expr ~ (bin_op ~ unary_expr)* }
         bin_op      = _{ PLUS | MINUS | TIMES | DIV |
                          LT | LE | GT | GE | EQ| NEQ |
                          AND | OR | IFF | ISA | DOT }
-    primary         = _{ symbol | number | LPAREN ~ expr ~ RPAREN }
+    primary         = _{ symbol | number | "(" ~ expr ~ ")" }
     // TODO: I don't know what the right thing to do with idents are:
     // they should be where "symbol" is used in the "primary" rule, but
     // that requires bouncing in and out of the Pratt parser.
 
+
 // Statements and decls
 
-decl             = { include_decl }
-    include_decl = { "include" ~ symbol }
+param     = { symbol ~ ":" ~ symbol }
+paramlist = { param  ~ ("," ~ param)* }
+decl_ret   = { "returns" ~ "(" ~ param ~ ")" }
+
+decl_sig =  { symbol ~ ("(" ~ paramlist ~ ")")? }
+
+block = { "{" ~ decl* ~ "}" }
+
+include_decl      = { INCLUDE ~ symbol }
+var_decl          = { VAR ~ symbol }
+
+init_decl         = { INIT ~ symbol }
+after_decl        = { AFTER ~ symbol }
+before_decl       = { BEFORE ~ symbol }
+
+module_decl       = { MODULE ~ decl_sig ~ "=" ~ block}
+object_decl       = { OBJECT ~ decl_sig ~ "=" ~ block}
+extract_decl      = { EXTRACT ~ decl_sig ~ "=" ~ block}
+action_decl       = { ACTION ~ decl_sig ~ decl_ret? ~ ("=" ~ block)? }
+
+// TODO: not sure exactly about these ones yet.
+header_decl       = { HEADER ~ symbol }
+interpret_decl    = { INTERPRET ~ symbol }
+instantiate_decl  = { INSTANTIATE ~ symbol }
+instance_decl     = { INSTANCE ~ decl_sig }
+autoinstance_decl = { AUTOINSTANCE ~ decl_sig }
+import_decl       = { IMPORT ~ symbol }
+export_decl       = { EXPORT ~ symbol }
+
+
+
+decl = {
+      action_decl
+    | include_decl
+    | var_decl
+    | header_decl
+    | interpret_decl
+    | module_decl
+    | instantiate_decl
+    | object_decl
+    | instance_decl
+    | autoinstance_decl
+    | import_decl
+    | export_decl
+    | init_decl
+    | after_decl
+    | before_decl
+    | extract_decl
+}
 
 prog = {
     SOI

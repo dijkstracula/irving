@@ -1,20 +1,20 @@
 // From ivy/ivy_lexer.py
-COMMA = { "," }
-ISA = { "isa" }
-LPAREN = { "(" }
-RPAREN = { ")" }
-PLUS = { "+" }
-MINUS = { "-" }
-TIMES = { "*" }
-DIV = { "/" }
-NOT = { "~" }
-AND = { "&" }
-OR = { "|" }
-EQ = { "=" }
-NEQ = { "~=" }
-SEMI = { ";" }
-ASSIGN = { ":=" }
-DOT = { "." }
+COMMA       = { "," }
+ISA         = { "isa" }
+LPAREN      = { "(" }
+RPAREN      = { ")" }
+PLUS        = { "+" }
+MINUS       = { "-" }
+TIMES       = { "*" }
+DIV         = { "/" }
+NOT         = { "~" }
+AND         = { "&" }
+OR          = { "|" }
+EQ          = { "=" }
+NEQ         = { "~=" }
+SEMI        = { ";" }
+ASSIGN      = { ":=" }
+DOT         = { "." }
 LCB = { "{" }
 RCB = { "}" }
 ARROW = { "->" }
@@ -39,3 +39,25 @@ nativechar = { !">>>" ~ ANY }
 NATIVEQUOTE = { "<<<" ~ nativechar* ~ ">>>" }
 
 number = @{ (ASCII_NONZERO_DIGIT ~ ASCII_DIGIT+ | ASCII_DIGIT) }
+
+// Declaration kinds: from ivy2/ivylang.ivy's `decl.parse()`.
+
+ACTION       = _{ "action" }
+INCLUDE      = _{ "include" }
+VAR          = _{ "var" | "destructor" | "function" }
+HEADER       = _{ "header" }
+INTERPRET    = _{ "interpret" }
+MODULE       = _{ "module" }
+INSTANTIATE  = _{ "instantiate" }
+OBJECT       = _{ "object" }
+INSTANCE     = _{ "instance" }
+AUTOINSTANCE = _{ "autoinstance" }
+IMPORT       = _{ "import" }
+EXPORT       = _{ "export" }
+INIT         = _{ "init" }
+AFTER        = _{ "after" }
+
+// These are not explicitly in ivy2's `decl.parse()` but I don't know how we
+// avoid having them
+BEFORE       = _{ "before" }
+EXTRACT      = _{ "extract" | "process" }
