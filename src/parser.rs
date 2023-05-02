@@ -65,6 +65,8 @@ fn parse_expr(pairs: Pairs<Rule>) -> Result<ast::Expr> {
     .map_infix(|lhs, op, rhs| {
         let verb = match op.as_rule() {
             Rule::DOT => ast::Verb::Dot,
+            Rule::LT => ast::Verb::Lt,
+            Rule::PLUS => ast::Verb::Plus,
             _ => unimplemented!()
         };
 
@@ -138,11 +140,14 @@ impl IvyParser {
         input.into_children();
         [symbol(name), paramlist(params)] => {
             Ok(ast::DeclSig { name, params})
+        },
+        [symbol(name)] => {
+            Ok(ast::DeclSig { name, params: vec!()})
         })
     }
 
 
-    pub fn block(input: Node) -> Result<Vec<ast::Decl>> {
+    pub fn decl_block(input: Node) -> Result<Vec<ast::Decl>> {
         match_nodes!(
         input.into_children();
         [decl(decls)..] => {
@@ -153,10 +158,10 @@ impl IvyParser {
     pub fn action_decl(input: Node) -> Result<ast::Action> {
         match_nodes!(
         input.into_children();
-            [decl_sig(ast::DeclSig{name, params}), decl_ret(ret), block(body)] => Ok(
+            [decl_sig(ast::DeclSig{name, params}), decl_ret(ret), decl_block(body)] => Ok(
                 ast::Action{name, kind: ast::ActionKind::Internal, params, ret, body: Some(body)}
             ),
-            [decl_sig(ast::DeclSig{name, params}), block(body)] => Ok(
+            [decl_sig(ast::DeclSig{name, params}), decl_block(body)] => Ok(
                 ast::Action{name, kind: ast::ActionKind::Internal, params, ret: None, body: Some(body)}
             ),
             [decl_sig(ast::DeclSig{name, params})] => Ok(
@@ -168,7 +173,7 @@ impl IvyParser {
     pub fn module_decl(input: Node) -> Result<ast::Module> {
         match_nodes!(
         input.into_children();
-        [decl_sig(ast::DeclSig{name, params}), block(body)] => Ok(
+        [decl_sig(ast::DeclSig{name, params}), decl_block(body)] => Ok(
             ast::Module{name, params, body}
         ))
     }
@@ -177,9 +182,64 @@ impl IvyParser {
         match_nodes!(
         input.into_children();
         [action_decl(decl)] => Ok(ast::Decl::Action(decl)),
-        [module_decl(decl)] => Ok(ast::Decl::Module(decl))
+        [module_decl(decl)] => Ok(ast::Decl::Module(decl)),
+        [stmt(stmt)]        => Ok(ast::Decl::Stmt(stmt))
         )
     }
+
+    // Statements
+    pub fn stmt_block(input: Node) -> Result<Vec<ast::Stmt>> {
+        match_nodes!(
+        input.into_children();
+        [stmt(stmts)..] => Ok(stmts.collect())
+        )
+    }
+
+    pub fn assign_stmt(input: Node) -> Result<ast::Assign> {
+        match_nodes!(
+        input.into_children();
+        [param(ast::Param{name, typ:_}), expr(rhs)] => Ok(
+            ast::Assign{lhs: ast::Expr::Symbol(name), rhs}
+        ),
+        [expr(lhs), expr(rhs)] => Ok(
+            // TODO: need a ::new() function that returns
+            // some sort of error if lhs isn't a valid lval.
+            ast::Assign{lhs, rhs}
+        ),
+        )
+    }
+
+    pub fn if_stmt(input: Node) -> Result<ast::If> {
+        match_nodes!(
+        input.into_children();
+        [expr(tst), stmt_block(thens)] => Ok(
+            ast::If{tst, thn: thens, els: None}
+        ),
+        [expr(tst), stmt_block(thens), stmt_block(elses)] => Ok(
+            ast::If{tst, thn: thens, els: Some(elses)}
+        ),
+        )
+    }
+
+    pub fn while_stmt(input: Node) -> Result<ast::While> {
+        match_nodes!(
+        input.into_children();
+        [expr(test), stmt_block(stmts)] => Ok(
+            ast::While{test, doit: stmts}
+        ),
+        )
+    }
+
+    pub fn stmt(input: Node) -> Result<ast::Stmt> {
+        match_nodes!(
+        input.into_children();
+        [assign_stmt(stmt)] => Ok(ast::Stmt::Assign(stmt)),
+        [if_stmt(stmt)]     => Ok(ast::Stmt::If(stmt)),
+        [while_stmt(stmt)]  => Ok(ast::Stmt::While(stmt)),
+        )
+    }
+
+    // Toplevels
 
     pub fn langver(input: Node) -> Result<(u8, u8)> {
         match_nodes!(
@@ -205,8 +265,11 @@ impl IvyParser {
     pub fn prog(input: Node) -> Result<ast::Prog> {
         match_nodes!(
         input.into_children();
-        [langver((major, minor)) /* Todo: decl */, EOI(())] => {
-            Ok(ast::Prog { major_version: major, minor_version: minor, decls: vec!() })
+        [langver((major, minor)), decl(decls).., EOI(())] => {
+            Ok(ast::Prog { 
+                major_version: major, 
+                minor_version: minor,
+                decls: decls.collect() })
         })
     }
 }

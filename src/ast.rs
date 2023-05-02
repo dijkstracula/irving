@@ -83,16 +83,11 @@ pub enum ActionKind {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-#[allow(clippy::large_enum_variant)]
-pub enum Stmt {
-
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Param {
     pub name: Symbol,
     pub typ: Symbol
 }
+
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DeclSig {
@@ -163,6 +158,8 @@ pub enum Decl {
         body: Box<Decl>,
     },
 
+    Stmt(Stmt),
+
     Type {
         sort: Expr,
         supr: Option<Expr>,
@@ -176,6 +173,37 @@ pub enum Decl {
     }
 
 }
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[allow(clippy::large_enum_variant)]
+pub struct Assign {
+    pub lhs: Expr,
+    pub rhs: Expr
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[allow(clippy::large_enum_variant)]
+pub struct If {
+    pub tst: Expr,
+    pub thn: Vec<Stmt>,
+    pub els: Option<Vec<Stmt>>
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[allow(clippy::large_enum_variant)]
+pub struct While {
+    pub test: Expr,
+    pub doit: Vec<Stmt>
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[allow(clippy::large_enum_variant)]
+pub enum Stmt {
+    Assign(Assign),
+    If(If),
+    While(While)
+}
+
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Prog {

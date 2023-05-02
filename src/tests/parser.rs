@@ -107,6 +107,56 @@ mod tests {
         assert!(IvyParser::decl(res).is_ok());
     }
 
+    // Statements
+
+    #[test]
+    fn parse_assign() {
+        let fragment = "a := b;";
+        let res = IvyParser::parse(Rule::stmt, fragment)
+            .expect("Parsing failed")
+            .single().unwrap();
+        assert!(IvyParser::stmt(res).is_ok());
+    }
+
+
+    #[test]
+    fn parse_assign_annot() {
+        let fragment = "a:int := b;";
+        let res = IvyParser::parse(Rule::stmt, fragment)
+            .expect("Parsing failed")
+            .single().unwrap();
+        assert!(IvyParser::stmt(res).is_ok());
+    }
+
+    #[test]
+    fn parse_if_stmt() {
+        let fragment = "if 1 < 2 { a := 42; }";
+        let res = IvyParser::parse(Rule::stmt, fragment)
+            .expect("Parsing failed")
+            .single().unwrap();
+        assert!(IvyParser::stmt(res).is_ok());
+    }
+
+    #[test]
+    fn parse_if_stmt_with_else() {
+        let fragment = "if 1 < 2 { a := 42; } else { a := 43; }";
+        let res = IvyParser::parse(Rule::stmt, fragment)
+            .expect("Parsing failed")
+            .single().unwrap();
+        assert!(IvyParser::stmt(res).is_ok());
+    }
+
+    #[test]
+    fn parse_while() {
+        let fragment = "while 1 < 2 { a := a + 1; }";
+        let res = IvyParser::parse(Rule::stmt, fragment)
+            .expect("Parsing failed")
+            .single().unwrap();
+        assert!(IvyParser::stmt(res).is_ok());
+    }
+
+    // Toplevels
+
     #[test]
     fn parse_trivial_prog() {
         let body = "#lang ivy2";
@@ -119,4 +169,24 @@ mod tests {
         assert!(prog.major_version == 2);
         assert!(prog.minor_version == 0);
     }
+
+
+    #[test]
+    fn parse_less_trivial_prog() {
+        let body = "#lang ivy2
+module net(pid: node) = { 
+    action send(msg: msg_t) = {
+        a := 42;
+    }
+}";
+
+        let res = IvyParser::parse(Rule::prog, body)
+            .expect("Parsing failed")
+            .single().unwrap();
+
+        let prog = IvyParser::prog(res).unwrap();
+        assert!(prog.major_version == 2);
+        assert!(prog.minor_version == 0);
+    }
+
 }

@@ -33,7 +33,7 @@ GE = { ">=" }
 
 WHITESPACE = _{ " " | "\t" | "\r" | NEWLINE }
 
-symbol = @{ ASCII_ALPHA ~ ASCII_ALPHANUMERIC* }
+symbol = @{ ASCII_ALPHA ~ ("_" | ASCII_ALPHANUMERIC)* }
 
 nativechar = { !">>>" ~ ANY }
 NATIVEQUOTE = { "<<<" ~ nativechar* ~ ">>>" }

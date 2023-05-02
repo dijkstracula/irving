@@ -20,7 +20,8 @@ expr                =  { unary_expr ~ (bin_op ~ unary_expr)* }
     // that requires bouncing in and out of the Pratt parser.
 
 
-// Statements and decls
+// Decls
+
 
 param     = { symbol ~ ":" ~ symbol }
 paramlist = { param  ~ ("," ~ param)* }
@@ -28,7 +29,7 @@ decl_ret   = { "returns" ~ "(" ~ param ~ ")" }
 
 decl_sig =  { symbol ~ ("(" ~ paramlist ~ ")")? }
 
-block = { "{" ~ decl* ~ "}" }
+decl_block = { "{" ~ decl* ~ "}" }
 
 include_decl      = { INCLUDE ~ symbol }
 var_decl          = { VAR ~ symbol }
@@ -37,10 +38,10 @@ init_decl         = { INIT ~ symbol }
 after_decl        = { AFTER ~ symbol }
 before_decl       = { BEFORE ~ symbol }
 
-module_decl       = { MODULE ~ decl_sig ~ "=" ~ block}
-object_decl       = { OBJECT ~ decl_sig ~ "=" ~ block}
-extract_decl      = { EXTRACT ~ decl_sig ~ "=" ~ block}
-action_decl       = { ACTION ~ decl_sig ~ decl_ret? ~ ("=" ~ block)? }
+module_decl       = { MODULE ~ decl_sig ~ "=" ~ decl_block }
+object_decl       = { OBJECT ~ decl_sig ~ "=" ~ decl_block }
+extract_decl      = { EXTRACT ~ decl_sig ~ "=" ~ decl_block }
+action_decl       = { ACTION ~ decl_sig ~ decl_ret? ~ ("=" ~ decl_block)? }
 
 // TODO: not sure exactly about these ones yet.
 header_decl       = { HEADER ~ symbol }
@@ -50,8 +51,6 @@ instance_decl     = { INSTANCE ~ decl_sig }
 autoinstance_decl = { AUTOINSTANCE ~ decl_sig }
 import_decl       = { IMPORT ~ symbol }
 export_decl       = { EXPORT ~ symbol }
-
-
 
 decl = {
       action_decl
@@ -70,11 +69,29 @@ decl = {
     | after_decl
     | before_decl
     | extract_decl
+    | stmt
 }
+
+// Statements
+
+stmt_block = { "{" ~ stmt* ~ "}" }
+
+assign_stmt = { (param | expr) ~ ":=" ~ expr ~ ";"}
+return_stmt = { "return" ~ expr ~ ";" }
+if_stmt     = { "if"    ~ expr ~ stmt_block ~ ("else" ~ stmt_block)? }
+while_stmt  = { "while" ~ expr ~ stmt_block }
+
+stmt = {
+      assign_stmt
+    | if_stmt
+    | return_stmt
+    | while_stmt
+}
+
 
 prog = {
     SOI
     ~ hashlang
-    //~ (decl ~ NEWLINE)*
+    ~ decl*
     ~ EOI
 }
