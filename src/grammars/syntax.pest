@@ -7,7 +7,7 @@ ident =  { symbol ~ ("[" ~ ident ~ ("," ~ ident)* ~ "]")? }
     //num_ident = { number } //TODO: unclear if we'll ever need this.
 
 // https://pest.rs/book/precedence.html
-simple_expr                =  { unary_expr ~ (bin_op ~ unary_expr)* }
+simple_expr         =  { unary_expr ~ (bin_op ~ unary_expr)* }
     unary_expr      =  { prefix_op? ~ primary }
         prefix_op   = _{ MINUS | NOT }
         bin_op      = _{ PLUS | MINUS | TIMES | DIV |
@@ -20,6 +20,7 @@ simple_expr                =  { unary_expr ~ (bin_op ~ unary_expr)* }
 
 var = { symbol | (symbol ~ ":" ~ symbol)}
 
+//TODO: contemplate renamining this as just "fnapp"?
 expr = { simple_expr ~ fnapp_args? }
 fnapp_args = { "(" ~ (expr ~ ("," ~ expr)* )? ~ ")" }
 

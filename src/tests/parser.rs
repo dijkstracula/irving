@@ -184,7 +184,7 @@ mod tests {
         let res = IvyParser::parse(Rule::stmt, fragment)
             .expect("Parsing failed")
             .single().unwrap();
-        assert!(IvyParser::stmt(res).is_ok());
+        IvyParser::stmt(res).expect("generate ast");
     }
 
 

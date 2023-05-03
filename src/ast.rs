@@ -41,12 +41,15 @@ pub enum Verb {
 pub type Symbol = String;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AppExpr {
+    pub func: Box<Expr>,
+    pub args: Vec<Expr>
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(clippy::large_enum_variant)]
 pub enum Expr {
-    App {
-        func: Box<Expr>,
-        args: Vec<Expr>,
-    },
+    App(AppExpr),
 
     BinOp {
         lhs: Box<Expr>,

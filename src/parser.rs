@@ -66,6 +66,7 @@ fn parse_expr(pairs: Pairs<Rule>) -> Result<ast::Expr> {
         let verb = match op.as_rule() {
             Rule::DOT => ast::Verb::Dot,
             Rule::LT => ast::Verb::Lt,
+            Rule::EQ => ast::Verb::Equals,
             Rule::PLUS => ast::Verb::Plus,
             _ => unimplemented!()
         };
@@ -106,9 +107,26 @@ impl IvyParser {
 
     // Exprs
 
-    pub fn expr(input: Node) -> Result<ast::Expr> {
+    pub fn simple_expr(input: Node) -> Result<ast::Expr> {
         let pairs = input.as_pair().to_owned().into_inner();
         parse_expr(pairs)
+    }
+
+    pub fn expr(input: Node) -> Result<ast::Expr> {
+        match_nodes!(
+        input.into_children();
+        // Ergonomically this is weird.  I feel like there has to be a better way of
+        // bridging the world of the Pratt parser and the PEG parser...
+        [expr(func), fnapp_args(args)] => {
+           Ok(ast::Expr::App(
+            ast::AppExpr{func: Box::new(func), args}))
+        },
+        [simple_expr(func), fnapp_args(args)] => {
+           Ok(ast::Expr::App(
+            ast::AppExpr{func: Box::new(func), args}))
+        },
+        [simple_expr(e)] => Ok(e),
+        [expr(e)] => Ok(e))
     }
 
     pub fn fnapp_args(input: Node) -> Result<Vec<ast::Expr>> {
