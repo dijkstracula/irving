@@ -57,7 +57,7 @@ fn parse_expr(pairs: Pairs<Rule>) -> Result<ast::Expr> {
         Rule::unary_expr => {
             parse_expr(primary.into_inner())
         }
-        Rule::expr => {
+        Rule::simple_expr => {
             parse_expr(primary.into_inner())
         }
         _ => unreachable!("parse_expr expected primary, found {:?}", primary),
@@ -111,6 +111,13 @@ impl IvyParser {
         parse_expr(pairs)
     }
 
+    pub fn fnapp_args(input: Node) -> Result<Vec<ast::Expr>> {
+        match_nodes!(
+        input.into_children();
+        [expr(args)..] => {
+            Ok(args.collect())
+        })
+    }
     // Decls
 
     pub fn param(input: Node) -> Result<ast::Param> {
@@ -146,7 +153,6 @@ impl IvyParser {
         })
     }
 
-
     pub fn decl_block(input: Node) -> Result<Vec<ast::Decl>> {
         match_nodes!(
         input.into_children();
@@ -155,17 +161,26 @@ impl IvyParser {
         })
     }
 
-    pub fn action_decl(input: Node) -> Result<ast::Action> {
+    pub fn action_decl(input: Node) -> Result<ast::ActionDecl> {
         match_nodes!(
         input.into_children();
             [decl_sig(ast::DeclSig{name, params}), decl_ret(ret), decl_block(body)] => Ok(
-                ast::Action{name, kind: ast::ActionKind::Internal, params, ret, body: Some(body)}
+                ast::ActionDecl{name, kind: ast::ActionKind::Internal, params, ret, body: Some(body)}
             ),
             [decl_sig(ast::DeclSig{name, params}), decl_block(body)] => Ok(
-                ast::Action{name, kind: ast::ActionKind::Internal, params, ret: None, body: Some(body)}
+                ast::ActionDecl{name, kind: ast::ActionKind::Internal, params, ret: None, body: Some(body)}
             ),
             [decl_sig(ast::DeclSig{name, params})] => Ok(
-                ast::Action{name, kind: ast::ActionKind::Internal, params, ret: None, body: None}
+                ast::ActionDecl{name, kind: ast::ActionKind::Internal, params, ret: None, body: None}
+            ),
+        )
+    }
+
+    pub fn function_decl(input: Node) -> Result<ast::Function> {
+        match_nodes!(
+        input.into_children();
+            [decl_sig(ast::DeclSig{name, params}), symbol(ret)] => Ok(
+                ast::Function{name, params, ret}
             ),
         )
     }
@@ -178,12 +193,76 @@ impl IvyParser {
         ))
     }
 
+    pub fn relation_decl(input: Node) -> Result<ast::Relation> {
+        match_nodes!(
+        input.into_children();
+            [decl_sig(ast::DeclSig{name, params})] => Ok(
+                ast::Relation{name, params}
+            ),
+        )
+    }
+
+    pub fn type_decl(input: Node) -> Result<ast::Type> {
+        match_nodes!(
+        input.into_children();
+        [symbol(sort), symbol(supr)] => Ok(
+            ast::Type {sort: sort, supr: Some(supr) }
+        ),
+        [symbol(sort)] => Ok(
+            ast::Type {sort: sort, supr: None }
+        ))
+    }
+
+
+    pub fn var_decl(input: Node) -> Result<ast::Var> {
+        match_nodes!(
+        input.into_children();
+        [symbol(name), symbol(typ)] => Ok(
+            ast::Var {name, typ: Some(typ)}
+        ),
+        [symbol(name)] => Ok(
+            ast::Var {name, typ: None}
+        ))
+    }
+
     pub fn decl(input: Node) -> Result<ast::Decl> {
         match_nodes!(
         input.into_children();
-        [action_decl(decl)] => Ok(ast::Decl::Action(decl)),
-        [module_decl(decl)] => Ok(ast::Decl::Module(decl)),
-        [stmt(stmt)]        => Ok(ast::Decl::Stmt(stmt))
+        [action_decl(decl)]   => Ok(ast::Decl::Action(decl)),
+        [function_decl(decl)] => Ok(ast::Decl::Function(decl)),
+        [module_decl(decl)]   => Ok(ast::Decl::Module(decl)),
+        [relation_decl(decl)] => Ok(ast::Decl::Relation(decl)),
+        [type_decl(decl)]     => Ok(ast::Decl::Type(decl)),
+        [var_decl(decl)]      => Ok(ast::Decl::Var(decl)),
+        [stmt(stmt)]          => Ok(ast::Decl::Stmt(stmt))
+        )
+    }
+
+    // Actions
+
+    pub fn action(input: Node) -> Result<ast::Action> {
+        match_nodes!(
+        input.into_children();
+        [assign_action(action)] => Ok(ast::Action::Assign(action)))
+    }
+
+    pub fn actions(input: Node) -> Result<Vec<ast::Action>> {
+        match_nodes!(
+        input.into_children();
+        [action(actions)..] => Ok(actions.collect()))
+    }
+
+    pub fn assign_action(input: Node) -> Result<ast::AssignAction> {
+        match_nodes!(
+        input.into_children();
+        [param(ast::Param{name, typ:_}), expr(rhs)] => Ok(
+            ast::AssignAction{lhs: ast::Expr::Symbol(name), rhs}
+        ),
+        [expr(lhs), expr(rhs)] => Ok(
+            // TODO: need a ::new() function that returns
+            // some sort of error if lhs isn't a valid lval.
+            ast::AssignAction{lhs, rhs}
+        ),
         )
     }
 
@@ -192,20 +271,6 @@ impl IvyParser {
         match_nodes!(
         input.into_children();
         [stmt(stmts)..] => Ok(stmts.collect())
-        )
-    }
-
-    pub fn assign_stmt(input: Node) -> Result<ast::Assign> {
-        match_nodes!(
-        input.into_children();
-        [param(ast::Param{name, typ:_}), expr(rhs)] => Ok(
-            ast::Assign{lhs: ast::Expr::Symbol(name), rhs}
-        ),
-        [expr(lhs), expr(rhs)] => Ok(
-            // TODO: need a ::new() function that returns
-            // some sort of error if lhs isn't a valid lval.
-            ast::Assign{lhs, rhs}
-        ),
         )
     }
 
@@ -233,7 +298,7 @@ impl IvyParser {
     pub fn stmt(input: Node) -> Result<ast::Stmt> {
         match_nodes!(
         input.into_children();
-        [assign_stmt(stmt)] => Ok(ast::Stmt::Assign(stmt)),
+        [actions(actions)] => Ok(ast::Stmt::CompoundActions(actions)),
         [if_stmt(stmt)]     => Ok(ast::Stmt::If(stmt)),
         [while_stmt(stmt)]  => Ok(ast::Stmt::While(stmt)),
         )

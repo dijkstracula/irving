@@ -1,5 +1,4 @@
-hashlang    = _{ "#lang" ~ langver }
-    langver = ${ "ivy" ~ number ~ ("." ~ number)? }
+COMMENT = _{ !SOI ~ "#" ~ !"lang " ~ (!"\n" ~ ANY)* }
 
 // Expressions
 
@@ -8,40 +7,50 @@ ident =  { symbol ~ ("[" ~ ident ~ ("," ~ ident)* ~ "]")? }
     //num_ident = { number } //TODO: unclear if we'll ever need this.
 
 // https://pest.rs/book/precedence.html
-expr                =  { unary_expr ~ (bin_op ~ unary_expr)* }
+simple_expr                =  { unary_expr ~ (bin_op ~ unary_expr)* }
     unary_expr      =  { prefix_op? ~ primary }
         prefix_op   = _{ MINUS | NOT }
         bin_op      = _{ PLUS | MINUS | TIMES | DIV |
                          LT | LE | GT | GE | EQ| NEQ |
                          AND | OR | IFF | ISA | DOT }
-    primary         = _{ symbol | number | "(" ~ expr ~ ")" }
+    primary         = _{ symbol | number | "(" ~ simple_expr ~ ")" }
     // TODO: I don't know what the right thing to do with idents are:
     // they should be where "symbol" is used in the "primary" rule, but
     // that requires bouncing in and out of the Pratt parser.
 
+var = { symbol | (symbol ~ ":" ~ symbol)}
+
+expr = { simple_expr ~ fnapp_args? }
+fnapp_args = { "(" ~ (expr ~ ("," ~ expr)* )? ~ ")" }
 
 // Decls
 
 
 param     = { symbol ~ ":" ~ symbol }
 paramlist = { param  ~ ("," ~ param)* }
-decl_ret   = { "returns" ~ "(" ~ param ~ ")" }
+decl_ret   = { "returns" ~ "(" ~ param ~ ")" } //TODO: needs to be a paramlist
 
 decl_sig =  { symbol ~ ("(" ~ paramlist ~ ")")? }
 
-decl_block = { "{" ~ decl* ~ "}" }
+decl_block = { "{" ~ decl* ~ ";"? ~ "}" }
 
 include_decl      = { INCLUDE ~ symbol }
-var_decl          = { VAR ~ symbol }
+var_decl          = { VAR ~ symbol ~ (":" ~ symbol)? }
 
 init_decl         = { INIT ~ symbol }
 after_decl        = { AFTER ~ symbol }
 before_decl       = { BEFORE ~ symbol }
 
+function_decl     = { FUNCTION ~ decl_sig ~ ":" ~ symbol }
+relation_decl     = { RELATION ~ decl_sig }
+
 module_decl       = { MODULE ~ decl_sig ~ "=" ~ decl_block }
 object_decl       = { OBJECT ~ decl_sig ~ "=" ~ decl_block }
 extract_decl      = { EXTRACT ~ decl_sig ~ "=" ~ decl_block }
 action_decl       = { ACTION ~ decl_sig ~ decl_ret? ~ ("=" ~ decl_block)? }
+export_decl       = { EXPORT ~ symbol }
+
+type_decl         = { TYPE ~ symbol ~ ("of" ~ symbol)?} //superclass might have to be more than a symbol
 
 // TODO: not sure exactly about these ones yet.
 header_decl       = { HEADER ~ symbol }
@@ -50,10 +59,11 @@ instantiate_decl  = { INSTANTIATE ~ symbol }
 instance_decl     = { INSTANCE ~ decl_sig }
 autoinstance_decl = { AUTOINSTANCE ~ decl_sig }
 import_decl       = { IMPORT ~ symbol }
-export_decl       = { EXPORT ~ symbol }
 
 decl = {
       action_decl
+    | function_decl
+    | relation_decl
     | include_decl
     | var_decl
     | header_decl
@@ -69,29 +79,42 @@ decl = {
     | after_decl
     | before_decl
     | extract_decl
+    | type_decl
     | stmt
 }
 
+// Actions
+
+assign_action = { (param | expr) ~ ":=" ~ expr} //TODO
+
+action = {
+    assign_action
+}
+
+actions = { action ~ (";" ~ action)* }
+
 // Statements
 
-stmt_block = { "{" ~ stmt* ~ "}" }
+stmt_block = { "{" ~ stmt* ~ ";"? ~ "}" }
 
-assign_stmt = { (param | expr) ~ ":=" ~ expr ~ ";"}
-return_stmt = { "return" ~ expr ~ ";" }
+return_stmt = { "return" ~ expr}
 if_stmt     = { "if"    ~ expr ~ stmt_block ~ ("else" ~ stmt_block)? }
 while_stmt  = { "while" ~ expr ~ stmt_block }
 
 stmt = {
-      assign_stmt
-    | if_stmt
+      if_stmt
     | return_stmt
     | while_stmt
+    | var_decl // or something??  Feels weird to mix a decl into a stmt like this.
+    | actions
 }
 
+// Toplevels 
+hashlang    = _{ SOI ~ "#lang" ~ langver }
+    langver = ${ "ivy" ~ number ~ ("." ~ number)? }
 
 prog = {
-    SOI
-    ~ hashlang
+      hashlang
     ~ decl*
     ~ EOI
 }

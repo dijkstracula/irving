@@ -98,12 +98,19 @@ pub struct DeclSig {
 pub type DeclRet = Option<Param>;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Action {
+pub struct ActionDecl {
     pub name: String,
     pub kind: ActionKind,
     pub params: Vec<Param>,
     pub ret: Option<Param>,
     pub body: Option<Vec<Decl>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Function {
+    pub name: Symbol,
+    pub params: Vec<Param>,
+    pub ret: Symbol
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -114,10 +121,32 @@ pub struct Module {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Relation {
+    pub name: Symbol,
+    pub params: Vec<Param>
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Type {
+    pub sort: Symbol,
+    pub supr: Option<Symbol>,
+    /* spec: TypeSpec */
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Var {
+    pub name: Symbol,
+    pub typ: Option<Symbol>,
+    //is_destructor: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(clippy::large_enum_variant)]
 pub enum Decl {
 
-    Action(Action),
+    Action(ActionDecl),
+
+    Function(Function),
 
     Header {
         file: String,
@@ -158,27 +187,14 @@ pub enum Decl {
         body: Box<Decl>,
     },
 
+    Relation(Relation),
+
     Stmt(Stmt),
 
-    Type {
-        sort: Expr,
-        supr: Option<Expr>,
-        /* spec: TypeSpec */
-    },
+    Type(Type),
 
-    Var {
-        typing: Expr,
-        is_destructor: bool,
-        def: Option<Expr>,
-    }
+    Var(Var),
 
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-#[allow(clippy::large_enum_variant)]
-pub struct Assign {
-    pub lhs: Expr,
-    pub rhs: Expr
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -199,10 +215,27 @@ pub struct While {
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(clippy::large_enum_variant)]
 pub enum Stmt {
-    Assign(Assign),
+    CompoundActions(Vec<Action>),
     If(If),
     While(While)
 }
+
+// Actions
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[allow(clippy::large_enum_variant)]
+pub struct AssignAction {
+    pub lhs: Expr,
+    pub rhs: Expr
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Action {
+    Assign(AssignAction),
+}
+
+
+// Top levels
 
 
 #[derive(Debug, Clone, PartialEq, Eq)]

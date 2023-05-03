@@ -41,10 +41,13 @@ NATIVEQUOTE = { "<<<" ~ nativechar* ~ ">>>" }
 number = @{ (ASCII_NONZERO_DIGIT ~ ASCII_DIGIT+ | ASCII_DIGIT) }
 
 // Declaration kinds: from ivy2/ivylang.ivy's `decl.parse()`.
+// Also from ivy/ivy_lexer.py.
 
 ACTION       = _{ "action" }
+FUNCTION     = _{ "function" }
+RELATION     = _{ "relation" }
 INCLUDE      = _{ "include" }
-VAR          = _{ "var" | "destructor" | "function" }
+VAR          = _{ "individual" | "var" }
 HEADER       = _{ "header" }
 INTERPRET    = _{ "interpret" }
 MODULE       = _{ "module" }
@@ -56,6 +59,7 @@ IMPORT       = _{ "import" }
 EXPORT       = _{ "export" }
 INIT         = _{ "init" }
 AFTER        = _{ "after" }
+TYPE         = _{ "type" }
 
 // These are not explicitly in ivy2's `decl.parse()` but I don't know how we
 // avoid having them
