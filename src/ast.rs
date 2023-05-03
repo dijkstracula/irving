@@ -48,6 +48,19 @@ pub struct AppExpr {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(clippy::large_enum_variant)]
+pub enum Formula {
+    Forall {
+        vars: Vec<Symbol>,
+        expr: Box<Expr>
+    },
+    Exists {
+        vars: Vec<Symbol>,
+        expr: Box<Expr>
+    },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[allow(clippy::large_enum_variant)]
 pub enum Expr {
     App(AppExpr),
 
@@ -56,6 +69,8 @@ pub enum Expr {
         op: Verb,
         rhs: Box<Expr>
     },
+
+    Formula(Formula),
 
     Number(i64),
 
@@ -110,7 +125,7 @@ pub struct ActionDecl {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Function {
+pub struct FunctionDecl {
     pub name: Symbol,
     pub params: Vec<Param>,
     pub ret: Symbol
@@ -149,7 +164,9 @@ pub enum Decl {
 
     Action(ActionDecl),
 
-    Function(Function),
+    Axiom(Expr),
+
+    Function(FunctionDecl),
 
     Header {
         file: String,

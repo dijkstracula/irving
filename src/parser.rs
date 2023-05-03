@@ -1,6 +1,6 @@
 use pest::{pratt_parser::{Assoc, Op, PrattParser}, iterators::Pairs};
 use pest_consume::{Parser, Error, match_nodes};
-use crate::ast;
+use crate::ast::{self};
 
 // include the grammar file so that Cargo knows to rebuild this file on grammar
 // changes (c.f. the Calyx frontend compiler)
@@ -39,7 +39,11 @@ lazy_static::lazy_static! {
         .op(Op::infix(Rule::OR, Assoc::Left))
         .op(Op::infix(Rule::AND, Assoc::Left))
 
-        .op(Op::infix(Rule::COMMA, Assoc::Left));
+        .op(Op::infix(Rule::COMMA, Assoc::Left))
+
+        // Postfix
+        // TODO: array indexing
+        .op(Op::postfix(Rule::fnapp_args));
 }
 
 fn parse_expr(pairs: Pairs<Rule>) -> Result<ast::Expr> {
@@ -60,13 +64,30 @@ fn parse_expr(pairs: Pairs<Rule>) -> Result<ast::Expr> {
         Rule::simple_expr => {
             parse_expr(primary.into_inner())
         }
+        Rule::forall => {
+            let mut qualvars: Vec<ast::Symbol> = Vec::new();
+            //let mut expr: Option<ast::Expr> = None;
+
+            for inner_pair in primary.into_inner() {
+                match inner_pair.as_rule() {
+                    Rule::symbol => qualvars.push(inner_pair.as_str().to_owned()),
+                    _ => unreachable!("expected subformula, got {:?}", inner_pair)
+                }
+            }
+
+            //let expr = it.next().unwrap().into_inner();
+            Ok(ast::Expr::Formula(ast::Formula::Forall { vars: qualvars, expr: Box::new(ast::Expr::Number(42)) }))
+        }
         _ => unreachable!("parse_expr expected primary, found {:?}", primary),
     })
     .map_infix(|lhs, op, rhs| {
         let verb = match op.as_rule() {
             Rule::DOT => ast::Verb::Dot,
+            Rule::AND => ast::Verb::And,
             Rule::LT => ast::Verb::Lt,
+            Rule::LE => ast::Verb::Leq,
             Rule::EQ => ast::Verb::Equals,
+
             Rule::PLUS => ast::Verb::Plus,
             _ => unimplemented!()
         };
@@ -75,6 +96,17 @@ fn parse_expr(pairs: Pairs<Rule>) -> Result<ast::Expr> {
             lhs: Box::new(lhs?), 
             op: verb, 
             rhs: Box::new(rhs?) })
+    })
+    .map_postfix(|lhs, op| match op.as_rule() {
+        Rule::fnapp_args => {
+            let results = op.into_inner()
+                .map(|e| parse_expr(e.into_inner()))
+                .collect::<Vec<Result<_>>>();
+            let args = results.into_iter()
+                .collect::<Result<Vec<_>>>()?;
+            Ok(ast::Expr::App(ast::AppExpr { func: Box::new(lhs?), args }))
+        },
+        _ => unimplemented!()
     })
     .parse(pairs)
 }
@@ -115,18 +147,10 @@ impl IvyParser {
     pub fn expr(input: Node) -> Result<ast::Expr> {
         match_nodes!(
         input.into_children();
-        // Ergonomically this is weird.  I feel like there has to be a better way of
-        // bridging the world of the Pratt parser and the PEG parser...
-        [expr(func), fnapp_args(args)] => {
-           Ok(ast::Expr::App(
-            ast::AppExpr{func: Box::new(func), args}))
-        },
-        [simple_expr(func), fnapp_args(args)] => {
-           Ok(ast::Expr::App(
-            ast::AppExpr{func: Box::new(func), args}))
-        },
         [simple_expr(e)] => Ok(e),
-        [expr(e)] => Ok(e))
+        [exists(e)] => Ok(ast::Expr::Formula(e)),
+        [forall(e)] => Ok(ast::Expr::Formula(e)),
+        )
     }
 
     pub fn fnapp_args(input: Node) -> Result<Vec<ast::Expr>> {
@@ -136,6 +160,23 @@ impl IvyParser {
             Ok(args.collect())
         })
     }
+
+    pub fn forall(input: Node) -> Result<ast::Formula> {
+        match_nodes!(
+        input.into_children();
+        [symbol(vars).., expr(e)] => {
+            Ok(ast::Formula::Forall { vars: vars.collect(), expr: Box::new(e)})
+        })
+    }
+
+    pub fn exists(input: Node) -> Result<ast::Formula> {
+        match_nodes!(
+        input.into_children();
+        [symbol(vars).., expr(e)] => {
+            Ok(ast::Formula::Exists { vars: vars.collect(), expr: Box::new(e)})
+        })
+    }
+
     // Decls
 
     pub fn param(input: Node) -> Result<ast::Param> {
@@ -194,11 +235,18 @@ impl IvyParser {
         )
     }
 
-    pub fn function_decl(input: Node) -> Result<ast::Function> {
+    pub fn axiom_decl(input: Node) -> Result<ast::Expr> {
+        match_nodes!(
+        input.into_children();
+        [expr(e)] => Ok(e)
+        )
+    }
+
+    pub fn function_decl(input: Node) -> Result<ast::FunctionDecl> {
         match_nodes!(
         input.into_children();
             [decl_sig(ast::DeclSig{name, params}), symbol(ret)] => Ok(
-                ast::Function{name, params, ret}
+                ast::FunctionDecl{name, params, ret}
             ),
         )
     }
@@ -247,6 +295,7 @@ impl IvyParser {
         match_nodes!(
         input.into_children();
         [action_decl(decl)]   => Ok(ast::Decl::Action(decl)),
+        [axiom_decl(fmla)]    => Ok(ast::Decl::Axiom(fmla)),
         [function_decl(decl)] => Ok(ast::Decl::Function(decl)),
         [module_decl(decl)]   => Ok(ast::Decl::Module(decl)),
         [relation_decl(decl)] => Ok(ast::Decl::Relation(decl)),

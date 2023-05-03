@@ -6,14 +6,24 @@ ident =  { symbol ~ ("[" ~ ident ~ ("," ~ ident)* ~ "]")? }
     //dot_ident =  { symbol ~ ("." ~ ident)+ } // TODO: subsumed by expr
     //num_ident = { number } //TODO: unclear if we'll ever need this.
 
+
 // https://pest.rs/book/precedence.html
-simple_expr         =  { unary_expr ~ (bin_op ~ unary_expr)* }
-    unary_expr      =  { prefix_op? ~ primary }
-        prefix_op   = _{ MINUS | NOT }
-        bin_op      = _{ PLUS | MINUS | TIMES | DIV |
-                         LT | LE | GT | GE | EQ| NEQ |
-                         AND | OR | IFF | ISA | DOT }
-    primary         = _{ symbol | number | "(" ~ simple_expr ~ ")" }
+expr         =  { 
+      exists 
+    | forall 
+    | simple_expr
+}
+exists          =  { "exists" ~ symbol ~ ("," ~ symbol)* ~ "." ~ expr }
+forall          =  { "forall" ~ symbol ~ ("," ~ symbol)* ~ "." ~ expr }
+
+simple_expr     =  { unary_expr ~ (bin_op ~ unary_expr)* ~ postfix_op* }
+unary_expr      =  { prefix_op? ~ primary }
+    prefix_op   = _{ MINUS | NOT }
+    bin_op      = _{ PLUS | MINUS | TIMES | DIV |
+                     LT | LE | GT | GE | EQ| NEQ |
+                     AND | OR | IFF | ISA | DOT | ARROW | IFF }
+    postfix_op  = _{ fnapp_args }
+primary         = _{ symbol | number | boollit | "(" ~ simple_expr ~ ")" }
     // TODO: I don't know what the right thing to do with idents are:
     // they should be where "symbol" is used in the "primary" rule, but
     // that requires bouncing in and out of the Pratt parser.
@@ -21,8 +31,9 @@ simple_expr         =  { unary_expr ~ (bin_op ~ unary_expr)* }
 var = { symbol | (symbol ~ ":" ~ symbol)}
 
 //TODO: contemplate renamining this as just "fnapp"?
-expr = { simple_expr ~ fnapp_args? }
+//TODO: square bracket notation too
 fnapp_args = { "(" ~ (expr ~ ("," ~ expr)* )? ~ ")" }
+
 
 // Decls
 
@@ -41,6 +52,8 @@ var_decl          = { VAR ~ symbol ~ (":" ~ symbol)? }
 init_decl         = { INIT ~ symbol }
 after_decl        = { AFTER ~ symbol }
 before_decl       = { BEFORE ~ symbol }
+
+axiom_decl        = { AXIOM ~ expr }
 
 function_decl     = { FUNCTION ~ decl_sig ~ ":" ~ symbol }
 relation_decl     = { RELATION ~ decl_sig }

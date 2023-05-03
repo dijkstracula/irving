@@ -30,6 +30,8 @@ LT = { "<" }
 LE = { "<=" }
 GT = { ">" }
 GE = { ">=" }
+EXISTS = { "exists" }
+FORALL = { "forall" }
 
 WHITESPACE = _{ " " | "\t" | "\r" | NEWLINE }
 
@@ -44,6 +46,7 @@ number = @{ (ASCII_NONZERO_DIGIT ~ ASCII_DIGIT+ | ASCII_DIGIT) }
 // Also from ivy/ivy_lexer.py.
 
 ACTION       = _{ "action" }
+AXIOM        = _{ "axiom" }
 FUNCTION     = _{ "function" }
 RELATION     = _{ "relation" }
 INCLUDE      = _{ "include" }
@@ -65,3 +68,5 @@ TYPE         = _{ "type" }
 // avoid having them
 BEFORE       = _{ "before" }
 EXTRACT      = _{ "extract" | "process" }
+
+boollit = { "true" | "false" }
