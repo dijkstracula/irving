@@ -14,6 +14,15 @@ mod tests {
         IvyParser::stmt(res).expect("generate ast");
     }
 
+    #[test]
+    fn parse_assign_to_relation() {
+        let fragment = "r(X) := false";
+        let res = IvyParser::parse(Rule::stmt, fragment)
+            .expect("Parsing failed")
+            .single().unwrap();
+        IvyParser::stmt(res).expect("generate ast");
+    }
+
 
     #[test]
     fn parse_assign_annot() {
@@ -48,6 +57,6 @@ mod tests {
         let res = IvyParser::parse(Rule::stmt, fragment)
             .expect("Parsing failed")
             .single().unwrap();
-        assert!(IvyParser::stmt(res).is_ok());
+        IvyParser::stmt(res).unwrap();
     }
 }

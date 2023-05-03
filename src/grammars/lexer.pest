@@ -35,8 +35,6 @@ FORALL = { "forall" }
 
 WHITESPACE = _{ " " | "\t" | "\r" | NEWLINE }
 
-symbol = @{ ASCII_ALPHA ~ ("_" | ASCII_ALPHANUMERIC)* }
-
 nativechar = { !">>>" ~ ANY }
 NATIVEQUOTE = { "<<<" ~ nativechar* ~ ">>>" }
 
@@ -70,3 +68,29 @@ BEFORE       = _{ "before" }
 EXTRACT      = _{ "extract" | "process" }
 
 boollit = { "true" | "false" }
+
+reserved = {
+  ACTION       
+| AXIOM
+| FUNCTION
+| RELATION
+| INCLUDE
+| VAR
+| HEADER
+| INTERPRET
+| MODULE
+| INSTANTIATE
+| OBJECT
+| INSTANCE
+| AUTOINSTANCE
+| IMPORT
+| EXPORT
+| INIT
+| AFTER
+| TYPE
+| BEFORE
+| EXTRACT
+| FORALL
+| EXISTS
+}
+symbol = @{ !reserved ~ ASCII_ALPHA ~ ("_" | ASCII_ALPHANUMERIC)* }

@@ -13,8 +13,8 @@ expr         =  {
     | forall 
     | simple_expr
 }
-exists          =  { "exists" ~ symbol ~ ("," ~ symbol)* ~ "." ~ expr }
-forall          =  { "forall" ~ symbol ~ ("," ~ symbol)* ~ "." ~ expr }
+exists          =  { "exists" ~ var ~ ("," ~ var)* ~ "." ~ expr }
+forall          =  { "forall" ~ var ~ ("," ~ var)* ~ "." ~ expr }
 
 simple_expr     =  { unary_expr ~ (bin_op ~ unary_expr)* ~ postfix_op* }
 unary_expr      =  { prefix_op? ~ primary }
@@ -23,12 +23,12 @@ unary_expr      =  { prefix_op? ~ primary }
                      LT | LE | GT | GE | EQ| NEQ |
                      AND | OR | IFF | ISA | DOT | ARROW | IFF }
     postfix_op  = _{ fnapp_args }
-primary         = _{ symbol | number | boollit | "(" ~ simple_expr ~ ")" }
+primary         = _{ var | number | boollit | "(" ~ simple_expr ~ ")" }
     // TODO: I don't know what the right thing to do with idents are:
     // they should be where "symbol" is used in the "primary" rule, but
     // that requires bouncing in and out of the Pratt parser.
 
-var = { symbol | (symbol ~ ":" ~ symbol)}
+var = { symbol ~ ( ":" ~ symbol)? }
 
 //TODO: contemplate renamining this as just "fnapp"?
 //TODO: square bracket notation too
@@ -47,7 +47,7 @@ decl_sig =  { symbol ~ ("(" ~ paramlist ~ ")")? }
 decl_block = { "{" ~ decl* ~ ";"? ~ "}" }
 
 include_decl      = { INCLUDE ~ symbol }
-var_decl          = { VAR ~ symbol ~ (":" ~ symbol)? }
+var_decl          = { VAR ~ var }
 
 init_decl         = { INIT ~ symbol }
 after_decl        = { AFTER ~ symbol }
@@ -99,7 +99,7 @@ decl = {
 
 // Actions
 
-assign_action = { (param | expr) ~ ":=" ~ expr} //TODO
+assign_action = { expr ~ ":=" ~ expr} //TODO
 
 action = {
     assign_action
@@ -116,11 +116,11 @@ if_stmt     = { "if"    ~ expr ~ stmt_block ~ ("else" ~ stmt_block)? }
 while_stmt  = { "while" ~ expr ~ stmt_block }
 
 stmt = {
-      if_stmt
+      actions
+    | if_stmt
     | return_stmt
     | while_stmt
     | var_decl // or something??  Feels weird to mix a decl into a stmt like this.
-    | actions
 }
 
 // Toplevels 

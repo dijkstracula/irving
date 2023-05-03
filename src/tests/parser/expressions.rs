@@ -28,9 +28,13 @@ mod tests {
     }
 
     #[test]
+    fn parse_annotated_var() {
+        let _ast = parse_expr("a : int").expect("Parsing failed");
+    }
+
+    #[test]
     fn parse_unary_fnapp() {
         let _ast = parse_expr("foo(a)").expect("Parsing failed");
-        println!("{:?}", _ast);
     }
 
     #[test]
@@ -51,6 +55,12 @@ mod tests {
     #[test]
     fn parse_universal_quant2() {
         assert!(parse_expr("forall x,y,z . x = y & y = z -> x = z").is_ok());
+    }
+
+    #[test]
+    fn parse_universal_quant3() {
+        let _ast = parse_expr("forall X:node,Y,Z. X=Y & Y=Z -> X=Y").expect("parse");
+        println!("{:?}", _ast);
     }
 
     #[test]

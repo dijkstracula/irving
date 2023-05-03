@@ -50,11 +50,11 @@ pub struct AppExpr {
 #[allow(clippy::large_enum_variant)]
 pub enum Formula {
     Forall {
-        vars: Vec<Symbol>,
+        vars: Vec<Var>,
         expr: Box<Expr>
     },
     Exists {
-        vars: Vec<Symbol>,
+        vars: Vec<Var>,
         expr: Box<Expr>
     },
 }
@@ -84,12 +84,7 @@ pub enum Expr {
         subscripts: Vec<Expr>
     },
 
-    Symbol(Symbol),
-
-    /// Used internally only as placeholders
-    Variable {
-        idx: u64,
-    }
+    Var(Var)
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -100,48 +95,42 @@ pub enum ActionKind {
     Exported
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Param {
-    pub name: Symbol,
-    pub typ: Symbol
-}
-
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DeclSig {
     pub name: Symbol,
-    pub params: Vec<Param>,
+    pub params: Vec<Var>,
 }
 
-pub type DeclRet = Option<Param>;
+pub type DeclRet = Option<Var>;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ActionDecl {
     pub name: String,
     pub kind: ActionKind,
-    pub params: Vec<Param>,
-    pub ret: Option<Param>,
+    pub params: Vec<Var>,
+    pub ret: Option<Var>,
     pub body: Option<Vec<Decl>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FunctionDecl {
     pub name: Symbol,
-    pub params: Vec<Param>,
+    pub params: Vec<Var>,
     pub ret: Symbol
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Module {
     pub name: Symbol,
-    pub params: Vec<Param>,
+    pub params: Vec<Var>,
     pub body: Vec<Decl>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Relation {
     pub name: Symbol,
-    pub params: Vec<Param>
+    pub params: Vec<Var>
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

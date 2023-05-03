@@ -49,9 +49,17 @@ lazy_static::lazy_static! {
 fn parse_expr(pairs: Pairs<Rule>) -> Result<ast::Expr> {
     PRATT
     .map_primary(|primary| match primary.as_rule() {
-        Rule::symbol => {
-            let name = primary.as_str();
-            Ok(ast::Expr::Symbol(name.to_owned()))
+        Rule::var => {
+            let mut pairs = primary.into_inner();
+            let name = pairs.next().map(|p| match p.as_rule() {
+                Rule::symbol => p.as_str().to_owned(),
+                _ => unreachable!()
+            }).unwrap();
+            let typ = pairs.next().map(|p| match p.as_rule() {
+                Rule::symbol => p.as_str().to_owned(),
+                _ => unreachable!()
+            });
+            Ok(ast::Expr::Var(ast::Var{ name, typ}))
         },
         Rule::number => {
             let val: i64 = primary.as_str().parse::<>().unwrap();
@@ -64,20 +72,7 @@ fn parse_expr(pairs: Pairs<Rule>) -> Result<ast::Expr> {
         Rule::simple_expr => {
             parse_expr(primary.into_inner())
         }
-        Rule::forall => {
-            let mut qualvars: Vec<ast::Symbol> = Vec::new();
-            //let mut expr: Option<ast::Expr> = None;
 
-            for inner_pair in primary.into_inner() {
-                match inner_pair.as_rule() {
-                    Rule::symbol => qualvars.push(inner_pair.as_str().to_owned()),
-                    _ => unreachable!("expected subformula, got {:?}", inner_pair)
-                }
-            }
-
-            //let expr = it.next().unwrap().into_inner();
-            Ok(ast::Expr::Formula(ast::Formula::Forall { vars: qualvars, expr: Box::new(ast::Expr::Number(42)) }))
-        }
         _ => unreachable!("parse_expr expected primary, found {:?}", primary),
     })
     .map_infix(|lhs, op, rhs| {
@@ -135,6 +130,17 @@ impl IvyParser {
         Ok(input.as_str().to_owned())
     }
 
+    fn var(input: Node) -> Result<ast::Var> {
+        match_nodes!(
+        input.into_children();
+        [symbol(name), symbol(typ)] => Ok(
+            ast::Var {name, typ: Some(typ)}
+        ),
+        [symbol(name)] => Ok(
+            ast::Var {name, typ: None}
+        ))
+    }
+
     // Utils
 
     // Exprs
@@ -148,6 +154,7 @@ impl IvyParser {
         match_nodes!(
         input.into_children();
         [simple_expr(e)] => Ok(e),
+        [var(e)] =>    Ok(ast::Expr::Var(e)),
         [exists(e)] => Ok(ast::Expr::Formula(e)),
         [forall(e)] => Ok(ast::Expr::Formula(e)),
         )
@@ -164,7 +171,7 @@ impl IvyParser {
     pub fn forall(input: Node) -> Result<ast::Formula> {
         match_nodes!(
         input.into_children();
-        [symbol(vars).., expr(e)] => {
+        [var(vars).., expr(e)] => {
             Ok(ast::Formula::Forall { vars: vars.collect(), expr: Box::new(e)})
         })
     }
@@ -172,22 +179,22 @@ impl IvyParser {
     pub fn exists(input: Node) -> Result<ast::Formula> {
         match_nodes!(
         input.into_children();
-        [symbol(vars).., expr(e)] => {
+        [var(vars).., expr(e)] => {
             Ok(ast::Formula::Exists { vars: vars.collect(), expr: Box::new(e)})
         })
     }
 
     // Decls
 
-    pub fn param(input: Node) -> Result<ast::Param> {
+    pub fn param(input: Node) -> Result<ast::Var> {
         match_nodes!(
         input.into_children();
         [symbol(name), symbol(typ)] => {
-            Ok(ast::Param {name, typ})
+            Ok(ast::Var {name, typ: Some(typ)})
         })
     }
 
-    pub fn paramlist(input: Node) -> Result<Vec<ast::Param>> {
+    pub fn paramlist(input: Node) -> Result<Vec<ast::Var>> {
         match_nodes!(
         input.into_children();
         [param(params)..] => {
@@ -195,7 +202,7 @@ impl IvyParser {
         })
     }
 
-    pub fn decl_ret(input: Node) -> Result<Option<ast::Param>> {
+    pub fn decl_ret(input: Node) -> Result<Option<ast::Var>> {
         match_nodes!(
         input.into_children();
         [param(ret)] => Ok(Some(ret)) )
@@ -283,12 +290,7 @@ impl IvyParser {
     pub fn var_decl(input: Node) -> Result<ast::Var> {
         match_nodes!(
         input.into_children();
-        [symbol(name), symbol(typ)] => Ok(
-            ast::Var {name, typ: Some(typ)}
-        ),
-        [symbol(name)] => Ok(
-            ast::Var {name, typ: None}
-        ))
+        [var(var)] => Ok(var))
     }
 
     pub fn decl(input: Node) -> Result<ast::Decl> {
@@ -322,8 +324,8 @@ impl IvyParser {
     pub fn assign_action(input: Node) -> Result<ast::AssignAction> {
         match_nodes!(
         input.into_children();
-        [param(ast::Param{name, typ:_}), expr(rhs)] => Ok(
-            ast::AssignAction{lhs: ast::Expr::Symbol(name), rhs}
+        [var(ast::Var{name, typ}), expr(rhs)] => Ok(
+            ast::AssignAction{lhs: ast::Expr::Var(ast::Var{name, typ}), rhs}
         ),
         [expr(lhs), expr(rhs)] => Ok(
             // TODO: need a ::new() function that returns
