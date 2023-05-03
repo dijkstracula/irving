@@ -1,0 +1,30 @@
+#lang ivy1.7
+
+# taken from http://microsoft.github.io/ivy/language.html
+
+type id
+type node
+# type color = {red,green,blue}
+
+relation link_as_rel(X: node, Y: node)
+function link_as_fn(X: node, Y: node): bool
+function node_id(X:node) : id
+
+individual root: node
+
+action connect(x:node, y:node) = {
+    link_as_rel(x,y) := true
+}
+
+action clear(x:node) = {
+    link_as_rel(x,Y) := false
+}
+
+action connect_unique(x:node, y:node) = {
+    link(x,Y) := false;
+    link(x,y) := true
+}
+
+action connect_unique_2(x:node, y:node) = {
+    link(x,Y) := Y = y
+}
