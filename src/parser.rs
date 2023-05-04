@@ -264,6 +264,35 @@ impl IvyParser {
         )
     }
 
+    pub fn after_decl(input: Node) -> Result<ast::AfterDecl> {
+        match_nodes!(
+        input.into_children();
+        [symbol(name), paramlist(params), decl_block(body)] => Ok(
+            ast::AfterDecl { name, params: Some(params), body}
+        ),
+        [symbol(name), decl_block(body)] => Ok(
+            ast::AfterDecl { name, params: None, body}
+        ),
+        [decl_block(body)] => Ok(
+            // Slightly obtuse: the name of the mixin can either be a symbol or
+            // the constant "init", in which case it's missing from the children
+            // list.
+            ast::AfterDecl { name: "init".into(), params: None, body}
+        )
+        )
+    }
+
+    pub fn export_decl(input: Node) -> Result<ast::ExportDecl> {
+        match_nodes!(
+        input.into_children();
+            [symbol(name)] => Ok(
+                ast::ExportDecl::ForwardRef(name)
+            ),
+            [action_decl(decl)] => Ok(
+                ast::ExportDecl::Action(decl)
+            ),
+        )
+    }
     pub fn function_decl(input: Node) -> Result<ast::FunctionDecl> {
         match_nodes!(
         input.into_children();
@@ -312,7 +341,9 @@ impl IvyParser {
         match_nodes!(
         input.into_children();
         [action_decl(decl)]   => Ok(ast::Decl::Action(decl)),
+        [after_decl(decl)]    => Ok(ast::Decl::AfterAction(decl)),
         [axiom_decl(fmla)]    => Ok(ast::Decl::Axiom(fmla)),
+        [export_decl(fmla)]   => Ok(ast::Decl::Export(fmla)),
         [function_decl(decl)] => Ok(ast::Decl::Function(decl)),
         [module_decl(decl)]   => Ok(ast::Decl::Module(decl)),
         [relation_decl(decl)] => Ok(ast::Decl::Relation(decl)),

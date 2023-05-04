@@ -116,10 +116,30 @@ pub struct ActionDecl {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AfterDecl {
+    pub name: String,
+    pub params: Option<Vec<Var>>,
+    pub body: Vec<Decl>
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BeforeDecl {
+    pub name: String,
+    pub params: Option<Vec<Var>>,
+    pub body: Vec<Decl>
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FunctionDecl {
     pub name: Symbol,
     pub params: Vec<Var>,
     pub ret: Symbol
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ExportDecl {
+    Action(ActionDecl),
+    ForwardRef(Symbol),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -155,7 +175,13 @@ pub enum Decl {
 
     Action(ActionDecl),
 
+    AfterAction(AfterDecl),
+
     Axiom(Expr),
+
+    BeforeAction(BeforeDecl),
+
+    Export(ExportDecl),
 
     Function(FunctionDecl),
 
@@ -169,10 +195,6 @@ pub enum Decl {
 
     Include {
         file: Expr,
-    },
-
-    Init {
-        body: Stmt,
     },
 
     Instance {

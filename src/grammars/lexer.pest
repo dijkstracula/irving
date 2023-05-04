@@ -97,4 +97,6 @@ reserved = {
 | FORALL
 | EXISTS
 }
+
 symbol = @{ !reserved ~ ASCII_ALPHA ~ ("_" | ASCII_ALPHANUMERIC)* }
+

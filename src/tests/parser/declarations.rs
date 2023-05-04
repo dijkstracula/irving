@@ -16,6 +16,33 @@ mod tests {
     }
 
     #[test]
+    fn parse_action_forward_ref() {
+        let fragment = "action foo";
+        let res = IvyParser::parse(Rule::decl, fragment)
+            .expect("Parsing failed")
+            .single().unwrap();
+        IvyParser::decl(res).unwrap();
+    }
+
+    #[test]
+    fn parse_export_forward_ref() {
+        let fragment = "export foo";
+        let res = IvyParser::parse(Rule::decl, fragment)
+            .expect("Parsing failed")
+            .single().unwrap();
+        IvyParser::decl(res).unwrap();
+    }
+
+    #[test]
+    fn parse_export_action() {
+        let fragment = "export action foo(a: int) = { }";
+        let res = IvyParser::parse(Rule::decl, fragment)
+            .expect("Parsing failed")
+            .single().unwrap();
+        IvyParser::decl(res).unwrap();
+    }
+
+    #[test]
     fn parse_action_decl() {
         let fragment = "action foo(a: int)";
         let res = IvyParser::parse(Rule::decl, fragment)
@@ -43,6 +70,26 @@ mod tests {
             .single().unwrap();
         assert!(IvyParser::decl(res).is_ok());
     }
+
+    #[test]
+    fn parse_after_init() {
+        let fragment = "after init { i := 0; }";
+        let res = IvyParser::parse(Rule::decl, fragment)
+            .expect("Parsing failed")
+            .single().unwrap();
+        assert!(IvyParser::decl(res).is_ok());
+    }
+
+/* TODO: action name needs to be able to be qualified
+    #[test]
+    fn parse_after_mixin() {
+        let fragment = "after sock.recv { i := 0; }";
+        let res = IvyParser::parse(Rule::decl, fragment)
+            .expect("Parsing failed")
+            .single().unwrap();
+        assert!(IvyParser::decl(res).is_ok());
+    }
+    */
 
     #[test]
     fn parse_function_decl() {

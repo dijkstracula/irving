@@ -49,9 +49,8 @@ decl_block = { "{" ~ decl* ~ ";"? ~ "}" }
 include_decl      = { INCLUDE ~ symbol }
 var_decl          = { VAR ~ var }
 
-init_decl         = { INIT ~ symbol }
-after_decl        = { AFTER ~ symbol }
-before_decl       = { BEFORE ~ symbol }
+after_decl        = { AFTER  ~ (symbol | INIT) ~ decl_sig? ~ decl_block }
+before_decl       = { BEFORE ~ (symbol | INIT) ~ decl_sig? ~ decl_block }
 
 axiom_decl        = { AXIOM ~ expr }
 
@@ -62,7 +61,7 @@ module_decl       = { MODULE ~ decl_sig ~ "=" ~ decl_block }
 object_decl       = { OBJECT ~ decl_sig ~ "=" ~ decl_block }
 extract_decl      = { EXTRACT ~ decl_sig ~ "=" ~ decl_block }
 action_decl       = { ACTION ~ decl_sig ~ decl_ret? ~ ("=" ~ decl_block)? }
-export_decl       = { EXPORT ~ symbol }
+export_decl       = { EXPORT ~ (symbol | action_decl) }
 
 type_decl         = { TYPE ~ symbol ~ ("of" ~ symbol)?} //superclass might have to be more than a symbol
 
@@ -89,7 +88,6 @@ decl = {
     | autoinstance_decl
     | import_decl
     | export_decl
-    | init_decl
     | after_decl
     | before_decl
     | extract_decl
