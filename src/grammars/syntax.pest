@@ -8,8 +8,8 @@ ident =  { symbol ~ ("[" ~ ident ~ ("," ~ ident)* ~ "]")? }
 
 
 // https://pest.rs/book/precedence.html
-expr         =  { 
-      exists 
+expr =  { 
+      exists
     | forall 
     | simple_expr
 }
@@ -17,10 +17,10 @@ exists          =  { "exists" ~ var ~ ("," ~ var)* ~ "." ~ expr }
 forall          =  { "forall" ~ var ~ ("," ~ var)* ~ "." ~ expr }
 
 simple_expr     =  { unary_expr ~ (bin_op ~ unary_expr)* ~ postfix_op* }
-unary_expr      =  { prefix_op? ~ primary }
+unary_expr      = _{ prefix_op? ~ primary }
     prefix_op   = _{ MINUS | NOT }
     bin_op      = _{ PLUS | MINUS | TIMES | DIV |
-                     LT | LE | GT | GE | EQ| NEQ |
+                     LT | LE | GT | GE | EQ | NEQ |
                      AND | OR | IFF | ISA | DOT | ARROW | IFF }
     postfix_op  = _{ fnapp_args }
 primary         = _{ var | number | boollit | "(" ~ simple_expr ~ ")" }
@@ -100,9 +100,17 @@ decl = {
 // Actions
 
 assign_action = { expr ~ ":=" ~ expr} //TODO
+assert_action = { ASSERT ~ expr}
+assume_action = { ASSUME ~ expr}
+ensure_action = { ENSURE ~ expr}
+requires_action = { REQUIRE ~ expr}
 
 action = {
-    assign_action
+      assign_action
+    | assert_action
+    | assume_action
+    | ensure_action
+    | requires_action
 }
 
 actions = { action ~ (";" ~ action)* }

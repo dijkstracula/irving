@@ -14,7 +14,22 @@ mod tests {
 
     #[test]
     fn parse_symbol_expr() {
-        assert!(parse_expr("a").is_ok());
+        let _ast = parse_expr("a").unwrap();
+    }
+    
+    #[test]
+    fn parse_negation_expr() {
+        let _ast = parse_expr("~a").unwrap();
+    }
+
+    #[test]
+    fn parse_number_expr() {
+        let _ast = parse_expr("42").unwrap();
+    }
+
+    #[test]
+    fn parse_negative_number_expr() {
+        let _ast = parse_expr("-42").unwrap();
     }
 
     #[test]
@@ -35,6 +50,11 @@ mod tests {
     #[test]
     fn parse_unary_fnapp() {
         let _ast = parse_expr("foo(a)").expect("Parsing failed");
+    }
+    
+    #[test]
+    fn parse_unary_fnapp_and_negation() {
+        let _ast = parse_expr("~foo(a)").expect("Parsing failed");
     }
 
     #[test]

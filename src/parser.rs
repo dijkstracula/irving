@@ -41,6 +41,10 @@ lazy_static::lazy_static! {
 
         .op(Op::infix(Rule::COMMA, Assoc::Left))
 
+        .op(Op::prefix(Rule::MINUS))
+        .op(Op::prefix(Rule::NOT))
+
+
         // Postfix
         // TODO: array indexing
         .op(Op::postfix(Rule::fnapp_args));
@@ -59,39 +63,51 @@ fn parse_expr(pairs: Pairs<Rule>) -> Result<ast::Expr> {
                 Rule::symbol => p.as_str().to_owned(),
                 _ => unreachable!()
             });
-            Ok(ast::Expr::Var(ast::Var{ name, typ}))
+            Ok(ast::Expr::Var(ast::Var{ name, typ }))
         },
         Rule::number => {
             let val: i64 = primary.as_str().parse::<>().unwrap();
             Ok(ast::Expr::Number(val))
         }
-
-        Rule::unary_expr => {
-            parse_expr(primary.into_inner())
-        }
         Rule::simple_expr => {
             parse_expr(primary.into_inner())
         }
-
         _ => unreachable!("parse_expr expected primary, found {:?}", primary),
     })
+
+    .map_prefix(|op, rhs| {
+        let verb = match op.as_rule() {
+            Rule::MINUS => ast::Verb::Minus,
+            Rule::NOT   => ast::Verb::Not,
+            _ => unreachable!("Unexpected unary op")
+        };
+        Ok(ast::Expr::UnaryOp { op: verb, expr: Box::new(rhs?) })
+    })
+
     .map_infix(|lhs, op, rhs| {
         let verb = match op.as_rule() {
             Rule::DOT => ast::Verb::Dot,
             Rule::AND => ast::Verb::And,
+            Rule::OR => ast::Verb::Or,
+            Rule::GT => ast::Verb::Gt,
+            Rule::GE => ast::Verb::Ge,
             Rule::LT => ast::Verb::Lt,
-            Rule::LE => ast::Verb::Leq,
+            Rule::LE => ast::Verb::Le,
             Rule::EQ => ast::Verb::Equals,
+            Rule::NEQ => ast::Verb::Notequals,
 
             Rule::PLUS => ast::Verb::Plus,
+            Rule::MINUS => ast::Verb::Minus,
             _ => unimplemented!()
         };
 
         Ok(ast::Expr::BinOp { 
             lhs: Box::new(lhs?), 
             op: verb, 
-            rhs: Box::new(rhs?) })
+            rhs: Box::new(rhs?) 
+        })
     })
+
     .map_postfix(|lhs, op| match op.as_rule() {
         Rule::fnapp_args => {
             let results = op.into_inner()
@@ -154,7 +170,6 @@ impl IvyParser {
         match_nodes!(
         input.into_children();
         [simple_expr(e)] => Ok(e),
-        [var(e)] =>    Ok(ast::Expr::Var(e)),
         [exists(e)] => Ok(ast::Expr::Formula(e)),
         [forall(e)] => Ok(ast::Expr::Formula(e)),
         )
@@ -312,7 +327,12 @@ impl IvyParser {
     pub fn action(input: Node) -> Result<ast::Action> {
         match_nodes!(
         input.into_children();
-        [assign_action(action)] => Ok(ast::Action::Assign(action)))
+        [assert_action(action)] => Ok(ast::Action::Assert(action)),
+        [assign_action(action)] => Ok(ast::Action::Assign(action)),
+        [assume_action(action)] => Ok(ast::Action::Assume(action)),
+        [ensure_action(action)] => Ok(ast::Action::Ensure(action)),
+        [requires_action(action)] => Ok(ast::Action::Requires(action))
+        )
     }
 
     pub fn actions(input: Node) -> Result<Vec<ast::Action>> {
@@ -335,7 +355,37 @@ impl IvyParser {
         )
     }
 
+    pub fn assert_action(input: Node) -> Result<ast::AssertAction> {
+        match_nodes!(
+        input.into_children();
+        [expr(pred)] => Ok(ast::AssertAction{pred}),
+        )
+    }
+
+    pub fn assume_action(input: Node) -> Result<ast::AssumeAction> {
+        match_nodes!(
+        input.into_children();
+        [expr(pred)] => Ok(ast::AssumeAction{pred}),
+        )
+    }
+
+    pub fn ensure_action(input: Node) -> Result<ast::EnsureAction> {
+        match_nodes!(
+        input.into_children();
+        [expr(pred)] => Ok(ast::EnsureAction{pred}),
+        )
+    }
+
+    pub fn requires_action(input: Node) -> Result<ast::RequiresAction> {
+        match_nodes!(
+        input.into_children();
+        [expr(pred)] => Ok(ast::RequiresAction{pred}),
+        )
+    }
+
     // Statements
+
+
     pub fn stmt_block(input: Node) -> Result<Vec<ast::Stmt>> {
         match_nodes!(
         input.into_children();

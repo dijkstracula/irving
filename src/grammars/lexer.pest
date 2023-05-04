@@ -44,6 +44,10 @@ number = @{ (ASCII_NONZERO_DIGIT ~ ASCII_DIGIT+ | ASCII_DIGIT) }
 // Also from ivy/ivy_lexer.py.
 
 ACTION       = _{ "action" }
+ASSERT       = _{ "assert" }
+ASSUME       = _{ "assume" }
+ENSURE       = _{ "ensure" }
+REQUIRE      = _{ "require" }
 AXIOM        = _{ "axiom" }
 FUNCTION     = _{ "function" }
 RELATION     = _{ "relation" }

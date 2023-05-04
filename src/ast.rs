@@ -32,7 +32,7 @@ pub enum Ident {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Verb {
-    Iff, Or, And, Lt, Leq, Gt, Gtq, Equals, Notequals,
+    Iff, Or, And, Lt, Le, Gt, Ge, Equals, Notequals, Not,
     Plus, Minus, Times, Div,
     Empty, True, False, 
     Colon, Comma, Dot
@@ -83,6 +83,8 @@ pub enum Expr {
         val: Box<Expr>,
         subscripts: Vec<Expr>
     },
+
+    UnaryOp{op: Verb, expr: Box<Expr>},
 
     Var(Var)
 }
@@ -239,8 +241,33 @@ pub struct AssignAction {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[allow(clippy::large_enum_variant)]
+pub struct AssertAction{
+    pub pred: Expr,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AssumeAction{
+    pub pred: Expr,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct EnsureAction{
+    pub pred: Expr,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RequiresAction{
+    pub pred: Expr,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Action {
+    Assert(AssertAction),
     Assign(AssignAction),
+    Assume(AssumeAction),
+    Ensure(EnsureAction),
+    Requires(RequiresAction),
 }
 
 
