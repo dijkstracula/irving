@@ -16,19 +16,18 @@ expr =  {
 exists          =  { "exists" ~ var ~ ("," ~ var)* ~ "." ~ expr }
 forall          =  { "forall" ~ var ~ ("," ~ var)* ~ "." ~ expr }
 
-simple_expr     =  { unary_expr ~ (bin_op ~ unary_expr)* ~ postfix_op* }
-unary_expr      = _{ prefix_op? ~ primary }
-    prefix_op   = _{ MINUS | NOT }
-    bin_op      = _{ PLUS | MINUS | TIMES | DIV |
+simple_expr     =  { atom ~ (infix_op ~ atom)* }
+atom            = _{ prefix_op? ~ primary ~ postfix_op? }
+    prefix_op   = _{ UMINUS | NOT }
+    infix_op    = _{ IFF | ARROW | 
+                     PLUS | MINUS | TIMES | DIV |
                      LT | LE | GT | GE | EQ | NEQ |
-                     AND | OR | IFF | ISA | DOT | ARROW | IFF }
+                     AND | OR | ISA | DOT }
     postfix_op  = _{ fnapp_args }
 primary         = _{ var | number | boollit | "(" ~ simple_expr ~ ")" }
     // TODO: I don't know what the right thing to do with idents are:
     // they should be where "symbol" is used in the "primary" rule, but
     // that requires bouncing in and out of the Pratt parser.
-
-var = { symbol ~ ( ":" ~ symbol)? }
 
 //TODO: contemplate renamining this as just "fnapp"?
 //TODO: square bracket notation too
@@ -37,12 +36,11 @@ fnapp_args = { "(" ~ (expr ~ ("," ~ expr)* )? ~ ")" }
 
 // Decls
 
+var = { symbol ~ ( ":" ~ symbol)? }
+varlist = { var  ~ ("," ~ var)* }
+decl_ret   = { "returns" ~ "(" ~ var ~ ")" } //TODO: needs to be a varlist
 
-param     = { symbol ~ ":" ~ symbol }
-paramlist = { param  ~ ("," ~ param)* }
-decl_ret   = { "returns" ~ "(" ~ param ~ ")" } //TODO: needs to be a paramlist
-
-decl_sig =  { symbol ~ ("(" ~ paramlist ~ ")")? }
+decl_sig =  { symbol ~ ("(" ~ varlist ~ ")")? }
 
 decl_block = { "{" ~ decl* ~ ";"? ~ "}" }
 
@@ -63,24 +61,29 @@ extract_decl      = { EXTRACT ~ decl_sig ~ "=" ~ decl_block }
 action_decl       = { ACTION ~ decl_sig ~ decl_ret? ~ ("=" ~ decl_block)? }
 export_decl       = { EXPORT ~ (symbol | action_decl) }
 
+instance_decl     = { INSTANCE ~ symbol ~ ":" ~ decl_sig }
+
 type_decl         = { TYPE ~ symbol ~ ("of" ~ symbol)?} //superclass might have to be more than a symbol
+
+invariant_decl    = { INVARIANT ~ expr }
 
 // TODO: not sure exactly about these ones yet.
 header_decl       = { HEADER ~ symbol }
 interpret_decl    = { INTERPRET ~ symbol }
 instantiate_decl  = { INSTANTIATE ~ symbol }
-instance_decl     = { INSTANCE ~ decl_sig }
 autoinstance_decl = { AUTOINSTANCE ~ decl_sig }
 import_decl       = { IMPORT ~ symbol }
 
 decl = {
       action_decl
+    | axiom_decl
     | function_decl
     | relation_decl
     | include_decl
     | var_decl
     | header_decl
     | interpret_decl
+    | invariant_decl
     | module_decl
     | instantiate_decl
     | object_decl

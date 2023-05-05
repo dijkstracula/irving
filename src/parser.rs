@@ -41,7 +41,7 @@ lazy_static::lazy_static! {
 
         .op(Op::infix(Rule::COMMA, Assoc::Left))
 
-        .op(Op::prefix(Rule::MINUS))
+        .op(Op::prefix(Rule::UMINUS))
         .op(Op::prefix(Rule::NOT))
 
 
@@ -77,8 +77,8 @@ fn parse_expr(pairs: Pairs<Rule>) -> Result<ast::Expr> {
 
     .map_prefix(|op, rhs| {
         let verb = match op.as_rule() {
-            Rule::MINUS => ast::Verb::Minus,
-            Rule::NOT   => ast::Verb::Not,
+            Rule::UMINUS => ast::Verb::Minus,
+            Rule::NOT    => ast::Verb::Not,
             _ => unreachable!("Unexpected unary op")
         };
         Ok(ast::Expr::UnaryOp { op: verb, expr: Box::new(rhs?) })
@@ -89,6 +89,7 @@ fn parse_expr(pairs: Pairs<Rule>) -> Result<ast::Expr> {
             Rule::DOT => ast::Verb::Dot,
             Rule::AND => ast::Verb::And,
             Rule::OR => ast::Verb::Or,
+            Rule::ARROW => ast::Verb::Arrow,
             Rule::GT => ast::Verb::Gt,
             Rule::GE => ast::Verb::Ge,
             Rule::LT => ast::Verb::Lt,
@@ -157,6 +158,15 @@ impl IvyParser {
         ))
     }
 
+    pub fn varlist(input: Node) -> Result<Vec<ast::Var>> {
+        match_nodes!(
+        input.into_children();
+        [var(vars)..] => {
+            Ok(vars.collect())
+        })
+    }
+
+
     // Utils
 
     // Exprs
@@ -201,36 +211,20 @@ impl IvyParser {
 
     // Decls
 
-    pub fn param(input: Node) -> Result<ast::Var> {
-        match_nodes!(
-        input.into_children();
-        [symbol(name), symbol(typ)] => {
-            Ok(ast::Var {name, typ: Some(typ)})
-        })
-    }
-
-    pub fn paramlist(input: Node) -> Result<Vec<ast::Var>> {
-        match_nodes!(
-        input.into_children();
-        [param(params)..] => {
-            Ok(params.collect())
-        })
-    }
-
     pub fn decl_ret(input: Node) -> Result<Option<ast::Var>> {
         match_nodes!(
         input.into_children();
-        [param(ret)] => Ok(Some(ret)) )
+        [var(ret)] => Ok(Some(ret)) )
     }
 
     pub fn decl_sig(input: Node) -> Result<ast::DeclSig> {
         match_nodes!(
         input.into_children();
-        [symbol(name), paramlist(params)] => {
-            Ok(ast::DeclSig { name, params})
+        [symbol(name), varlist(vars)] => {
+            Ok(ast::DeclSig { name, vars})
         },
         [symbol(name)] => {
-            Ok(ast::DeclSig { name, params: vec!()})
+            Ok(ast::DeclSig { name, vars: vec!()})
         })
     }
 
@@ -245,14 +239,14 @@ impl IvyParser {
     pub fn action_decl(input: Node) -> Result<ast::ActionDecl> {
         match_nodes!(
         input.into_children();
-            [decl_sig(ast::DeclSig{name, params}), decl_ret(ret), decl_block(body)] => Ok(
-                ast::ActionDecl{name, kind: ast::ActionKind::Internal, params, ret, body: Some(body)}
+            [decl_sig(ast::DeclSig{name, vars}), decl_ret(ret), decl_block(body)] => Ok(
+                ast::ActionDecl{name, kind: ast::ActionKind::Internal, vars, ret, body: Some(body)}
             ),
-            [decl_sig(ast::DeclSig{name, params}), decl_block(body)] => Ok(
-                ast::ActionDecl{name, kind: ast::ActionKind::Internal, params, ret: None, body: Some(body)}
+            [decl_sig(ast::DeclSig{name, vars}), decl_block(body)] => Ok(
+                ast::ActionDecl{name, kind: ast::ActionKind::Internal, vars, ret: None, body: Some(body)}
             ),
-            [decl_sig(ast::DeclSig{name, params})] => Ok(
-                ast::ActionDecl{name, kind: ast::ActionKind::Internal, params, ret: None, body: None}
+            [decl_sig(ast::DeclSig{name, vars})] => Ok(
+                ast::ActionDecl{name, kind: ast::ActionKind::Internal, vars, ret: None, body: None}
             ),
         )
     }
@@ -267,17 +261,17 @@ impl IvyParser {
     pub fn after_decl(input: Node) -> Result<ast::AfterDecl> {
         match_nodes!(
         input.into_children();
-        [symbol(name), paramlist(params), decl_block(body)] => Ok(
-            ast::AfterDecl { name, params: Some(params), body}
+        [symbol(name), varlist(vars), decl_block(body)] => Ok(
+            ast::AfterDecl { name, vars: Some(vars), body}
         ),
         [symbol(name), decl_block(body)] => Ok(
-            ast::AfterDecl { name, params: None, body}
+            ast::AfterDecl { name, vars: None, body}
         ),
         [decl_block(body)] => Ok(
             // Slightly obtuse: the name of the mixin can either be a symbol or
             // the constant "init", in which case it's missing from the children
             // list.
-            ast::AfterDecl { name: "init".into(), params: None, body}
+            ast::AfterDecl { name: "init".into(), vars: None, body}
         )
         )
     }
@@ -296,25 +290,48 @@ impl IvyParser {
     pub fn function_decl(input: Node) -> Result<ast::FunctionDecl> {
         match_nodes!(
         input.into_children();
-            [decl_sig(ast::DeclSig{name, params}), symbol(ret)] => Ok(
-                ast::FunctionDecl{name, params, ret}
+            [decl_sig(ast::DeclSig{name, vars}), symbol(ret)] => Ok(
+                ast::FunctionDecl{name, vars, ret}
             ),
         )
     }
 
-    pub fn module_decl(input: Node) -> Result<ast::Module> {
+    pub fn invariant_decl(input: Node) -> Result<ast::Expr> {
         match_nodes!(
         input.into_children();
-        [decl_sig(ast::DeclSig{name, params}), decl_block(body)] => Ok(
-            ast::Module{name, params, body}
+        [expr(e)] => Ok(e)
+        )
+    }
+
+    pub fn instance_decl(input: Node) -> Result<ast::InstanceDecl> {
+        match_nodes!(
+        input.into_children();
+        [symbol(name), decl_sig(ast::DeclSig{name:sort, vars})] => Ok(ast::InstanceDecl{name, sort, args: vars})
+        )
+    }
+
+
+    pub fn module_decl(input: Node) -> Result<ast::ModuleDecl> {
+        match_nodes!(
+        input.into_children();
+        [decl_sig(ast::DeclSig{name, vars}), decl_block(body)] => Ok(
+            ast::ModuleDecl{name, vars, body}
+        ))
+    }
+
+    pub fn object_decl(input: Node) -> Result<ast::ObjectDecl> {
+        match_nodes!(
+        input.into_children();
+        [decl_sig(ast::DeclSig{name, vars}), decl_block(body)] => Ok(
+            ast::ObjectDecl{name, vars, body}
         ))
     }
 
     pub fn relation_decl(input: Node) -> Result<ast::Relation> {
         match_nodes!(
         input.into_children();
-            [decl_sig(ast::DeclSig{name, params})] => Ok(
-                ast::Relation{name, params}
+            [decl_sig(ast::DeclSig{name, vars})] => Ok(
+                ast::Relation{name, vars}
             ),
         )
     }
@@ -345,7 +362,10 @@ impl IvyParser {
         [axiom_decl(fmla)]    => Ok(ast::Decl::Axiom(fmla)),
         [export_decl(fmla)]   => Ok(ast::Decl::Export(fmla)),
         [function_decl(decl)] => Ok(ast::Decl::Function(decl)),
+        [invariant_decl(fmla)] => Ok(ast::Decl::Invariant(fmla)),
+        [instance_decl(decl)] => Ok(ast::Decl::Instance(decl)),
         [module_decl(decl)]   => Ok(ast::Decl::Module(decl)),
+        [object_decl(decl)]   => Ok(ast::Decl::Object(decl)),
         [relation_decl(decl)] => Ok(ast::Decl::Relation(decl)),
         [type_decl(decl)]     => Ok(ast::Decl::Type(decl)),
         [var_decl(decl)]      => Ok(ast::Decl::Var(decl)),

@@ -33,6 +33,11 @@ mod tests {
     }
 
     #[test]
+    fn parse_sub() {
+        let _ast = parse_expr("42 - 1").unwrap();
+    }
+
+    #[test]
     fn parse_symbol_with_underscore() {
         assert!(parse_expr("hello_world").is_ok());
     }
@@ -63,8 +68,13 @@ mod tests {
     }
 
     #[test]
+    fn parse_fnapp_in_conj() {
+        println!("{:?}", parse_expr("foo(a,b) & b").expect("Parsing failed"));
+    }
+
+    #[test]
     fn parse_logical_implication() {
-        assert!(parse_expr("x = y & y = z -> x = z").is_ok());
+        println!("{:?}", parse_expr("x = y & y = z -> x = z").unwrap());
     }
 
     #[test]

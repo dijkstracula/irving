@@ -32,7 +32,7 @@ pub enum Ident {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Verb {
-    Iff, Or, And, Lt, Le, Gt, Ge, Equals, Notequals, Not,
+    Iff, Or, And, Lt, Le, Gt, Ge, Equals, Notequals, Not, Arrow,
     Plus, Minus, Times, Div,
     Empty, True, False, 
     Colon, Comma, Dot
@@ -101,7 +101,7 @@ pub enum ActionKind {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DeclSig {
     pub name: Symbol,
-    pub params: Vec<Var>,
+    pub vars: Vec<Var>,
 }
 
 pub type DeclRet = Option<Var>;
@@ -110,7 +110,7 @@ pub type DeclRet = Option<Var>;
 pub struct ActionDecl {
     pub name: String,
     pub kind: ActionKind,
-    pub params: Vec<Var>,
+    pub vars: Vec<Var>,
     pub ret: Option<Var>,
     pub body: Option<Vec<Decl>>,
 }
@@ -118,21 +118,21 @@ pub struct ActionDecl {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AfterDecl {
     pub name: String,
-    pub params: Option<Vec<Var>>,
+    pub vars: Option<Vec<Var>>,
     pub body: Vec<Decl>
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BeforeDecl {
     pub name: String,
-    pub params: Option<Vec<Var>>,
+    pub vars: Option<Vec<Var>>,
     pub body: Vec<Decl>
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FunctionDecl {
     pub name: Symbol,
-    pub params: Vec<Var>,
+    pub vars: Vec<Var>,
     pub ret: Symbol
 }
 
@@ -143,16 +143,30 @@ pub enum ExportDecl {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Module {
+pub struct InstanceDecl {
     pub name: Symbol,
-    pub params: Vec<Var>,
+    pub sort: Symbol,
+    pub args: Vec<Var>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ModuleDecl {
+    pub name: Symbol,
+    pub vars: Vec<Var>,
+    pub body: Vec<Decl>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ObjectDecl {
+    pub name: Symbol,
+    pub vars: Vec<Var>,
     pub body: Vec<Decl>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Relation {
     pub name: Symbol,
-    pub params: Vec<Var>
+    pub vars: Vec<Var>
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -197,11 +211,7 @@ pub enum Decl {
         file: Expr,
     },
 
-    Instance {
-        objname: Expr,
-        modname: Expr,
-        prms: Vec<Expr>,
-    },
+    Instance(InstanceDecl),
 
     Instantiate {
         name: Expr,
@@ -212,13 +222,12 @@ pub enum Decl {
         itype: Expr,
         ctype: Expr,
     },
+    
+    Invariant(Expr),
 
-    Module(Module),
+    Module(ModuleDecl),
 
-    Object {
-        name: Expr,
-        body: Box<Decl>,
-    },
+    Object(ObjectDecl),
 
     Relation(Relation),
 
