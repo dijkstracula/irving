@@ -91,7 +91,7 @@ reserved = {
 | AUTOINSTANCE
 | IMPORT
 | EXPORT
-| INIT
+/* | INIT */
 | AFTER
 | TYPE
 | BEFORE

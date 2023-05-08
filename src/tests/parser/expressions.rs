@@ -2,7 +2,9 @@
 mod tests {
     use pest_consume::Parser;
     use crate::ast;
+    use crate::ast::Expr::*;
     use crate::parser::{IvyParser, Result, Rule};
+    use crate::ast::Verb::*;
 
     // Expressions
 
@@ -15,6 +17,7 @@ mod tests {
     #[test]
     fn parse_symbol_expr() {
         let _ast = parse_expr("a").unwrap();
+        assert_eq!(_ast, Identifier(vec!("a".into())));
     }
     
     #[test]
@@ -35,6 +38,21 @@ mod tests {
     #[test]
     fn parse_sub() {
         let _ast = parse_expr("42 - 1").unwrap();
+        assert_eq!(_ast, BinOp {
+            lhs: Box::new(Number(42)),
+            op: Minus,
+            rhs: Box::new(Number(1)),
+        });
+    }
+
+    #[test]
+    fn parse_pred() {
+        let _ast = parse_expr("i > 0").unwrap();
+        assert_eq!(_ast, BinOp {
+            lhs: Box::new(Identifier(vec!("i".into()))),
+            op: Gt,
+            rhs: Box::new(Number(0)),
+        });
     }
 
     #[test]
@@ -44,12 +62,14 @@ mod tests {
 
     #[test]
     fn parse_dot_expr() {
-        assert!(parse_expr("a.b").is_ok());
+        let _ast = parse_expr("a.b").unwrap();
+        assert_eq!(_ast, Identifier(vec!("a".into(), "b".into())));
     }
 
     #[test]
     fn parse_annotated_var() {
         let _ast = parse_expr("a : int").expect("Parsing failed");
+        assert_eq!(_ast, Term(ast::Term{id: vec!("a".into()), sort: Some(vec!("int".into()))}));
     }
 
     #[test]

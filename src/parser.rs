@@ -53,18 +53,28 @@ lazy_static::lazy_static! {
 fn parse_expr(pairs: Pairs<Rule>) -> Result<ast::Expr> {
     PRATT
     .map_primary(|primary| match primary.as_rule() {
-        Rule::var => {
+        Rule::term => {
             let mut pairs = primary.into_inner();
-            let name = pairs.next().map(|p| match p.as_rule() {
-                Rule::symbol => p.as_str().to_owned(),
-                _ => unreachable!()
-            }).unwrap();
-            let typ = pairs.next().map(|p| match p.as_rule() {
-                Rule::symbol => p.as_str().to_owned(),
-                _ => unreachable!()
-            });
-            Ok(ast::Expr::Var(ast::Var{ name, typ }))
-        },
+            let id = pairs.next()
+                .map(|p| p.into_inner()
+                    .map(|s| s.as_str().to_owned()).collect::<Vec<_>>())
+                .unwrap();
+            let sort = pairs.next()
+                .map(|p| p.into_inner()
+                    .map(|s| s.as_str().to_owned()).collect::<Vec<_>>());
+            match sort {
+                // TODO: wondering if either return path should just be a Term.
+                None    => Ok(ast::Expr::Identifier(id)),
+                Some(_) => Ok(ast::Expr::Term(ast::Term{ id, sort }))
+            }
+        }
+        Rule::ident => {
+            let results = primary
+                .into_inner()
+                .map(|p| p.as_str().to_owned())
+                .collect::<Vec<_>>();
+            Ok(ast::Expr::Identifier(results))
+        }
         Rule::number => {
             let val: i64 = primary.as_str().parse::<>().unwrap();
             Ok(ast::Expr::Number(val))
@@ -146,23 +156,43 @@ impl IvyParser {
     fn symbol(input: Node) -> Result<String> {
         Ok(input.as_str().to_owned())
     }
-
-    fn var(input: Node) -> Result<ast::Var> {
+    
+    fn param(input: Node) -> Result<ast::Param> {
         match_nodes!(
         input.into_children();
-        [symbol(name), symbol(typ)] => Ok(
-            ast::Var {name, typ: Some(typ)}
-        ),
-        [symbol(name)] => Ok(
-            ast::Var {name, typ: None}
-        ))
+        [symbol(id), symbol(sort)] => Ok(ast::Param {id, sort: Some(sort) }),
+        [symbol(id)] => Ok(ast::Param {id, sort: None })
+        )
     }
 
-    pub fn varlist(input: Node) -> Result<Vec<ast::Var>> {
+    pub fn paramlist(input: Node) -> Result<Vec<ast::Param>> {
         match_nodes!(
         input.into_children();
-        [var(vars)..] => {
-            Ok(vars.collect())
+        [param(params)..] => {
+            Ok(params.collect())
+        })
+    }
+
+    fn ident(input: Node) -> Result<Vec<String>> {
+        match_nodes!(
+        input.into_children();
+        [symbol(qualifiers)..] => Ok(qualifiers.collect()),
+        )
+    }
+
+    fn term(input: Node) -> Result<ast::Term> {
+        match_nodes!(
+        input.into_children();
+        [ident(id), ident(sort)] => Ok(ast::Term {id, sort: Some(sort) }),
+        [ident(id)] => Ok(ast::Term {id, sort: None })
+        )
+    }
+
+    pub fn termlist(input: Node) -> Result<Vec<ast::Term>> {
+        match_nodes!(
+        input.into_children();
+        [term(terms)..] => {
+            Ok(terms.collect())
         })
     }
 
@@ -196,35 +226,35 @@ impl IvyParser {
     pub fn forall(input: Node) -> Result<ast::Formula> {
         match_nodes!(
         input.into_children();
-        [var(vars).., expr(e)] => {
-            Ok(ast::Formula::Forall { vars: vars.collect(), expr: Box::new(e)})
+        [paramlist(params), expr(e)] => {
+            Ok(ast::Formula::Forall { params, expr: Box::new(e)})
         })
     }
 
     pub fn exists(input: Node) -> Result<ast::Formula> {
         match_nodes!(
         input.into_children();
-        [var(vars).., expr(e)] => {
-            Ok(ast::Formula::Exists { vars: vars.collect(), expr: Box::new(e)})
+        [paramlist(params), expr(e)] => {
+            Ok(ast::Formula::Exists { params, expr: Box::new(e)})
         })
     }
 
     // Decls
 
-    pub fn decl_ret(input: Node) -> Result<Option<ast::Var>> {
+    pub fn decl_ret(input: Node) -> Result<Option<ast::Param>> {
         match_nodes!(
         input.into_children();
-        [var(ret)] => Ok(Some(ret)) )
+        [param(ret)] => Ok(Some(ret)))
     }
 
     pub fn decl_sig(input: Node) -> Result<ast::DeclSig> {
         match_nodes!(
         input.into_children();
-        [symbol(name), varlist(vars)] => {
-            Ok(ast::DeclSig { name, vars})
+        [ident(name), paramlist(params)] => {
+            Ok(ast::DeclSig { name, params})
         },
-        [symbol(name)] => {
-            Ok(ast::DeclSig { name, vars: vec!()})
+        [ident(name)] => {
+            Ok(ast::DeclSig { name, params: vec!()})
         })
     }
 
@@ -239,14 +269,14 @@ impl IvyParser {
     pub fn action_decl(input: Node) -> Result<ast::ActionDecl> {
         match_nodes!(
         input.into_children();
-            [decl_sig(ast::DeclSig{name, vars}), decl_ret(ret), decl_block(body)] => Ok(
-                ast::ActionDecl{name, kind: ast::ActionKind::Internal, vars, ret, body: Some(body)}
+            [decl_sig(ast::DeclSig{name, params}), decl_ret(ret), decl_block(body)] => Ok(
+                ast::ActionDecl{name, kind: ast::ActionKind::Internal, params, ret, body: Some(body)}
             ),
-            [decl_sig(ast::DeclSig{name, vars}), decl_block(body)] => Ok(
-                ast::ActionDecl{name, kind: ast::ActionKind::Internal, vars, ret: None, body: Some(body)}
+            [decl_sig(ast::DeclSig{name, params}), decl_block(body)] => Ok(
+                ast::ActionDecl{name, kind: ast::ActionKind::Internal, params, ret: None, body: Some(body)}
             ),
-            [decl_sig(ast::DeclSig{name, vars})] => Ok(
-                ast::ActionDecl{name, kind: ast::ActionKind::Internal, vars, ret: None, body: None}
+            [decl_sig(ast::DeclSig{name, params})] => Ok(
+                ast::ActionDecl{name, kind: ast::ActionKind::Internal, params, ret: None, body: None}
             ),
         )
     }
@@ -261,25 +291,22 @@ impl IvyParser {
     pub fn after_decl(input: Node) -> Result<ast::AfterDecl> {
         match_nodes!(
         input.into_children();
-        [symbol(name), varlist(vars), decl_block(body)] => Ok(
-            ast::AfterDecl { name, vars: Some(vars), body}
+        [decl_sig(ast::DeclSig{name, params}), decl_ret(ret), decl_block(body)] => Ok(
+            ast::AfterDecl { name, params: Some(params), ret: ret, body}
         ),
-        [symbol(name), decl_block(body)] => Ok(
-            ast::AfterDecl { name, vars: None, body}
+        [decl_sig(ast::DeclSig{name, params}), decl_block(body)] => Ok(
+            ast::AfterDecl { name, params: Some(params), ret: None, body}
         ),
-        [decl_block(body)] => Ok(
-            // Slightly obtuse: the name of the mixin can either be a symbol or
-            // the constant "init", in which case it's missing from the children
-            // list.
-            ast::AfterDecl { name: "init".into(), vars: None, body}
-        )
+        [ident(name), decl_block(body)] => Ok(
+            ast::AfterDecl { name, params: None, ret: None, body}
+        ),
         )
     }
 
     pub fn export_decl(input: Node) -> Result<ast::ExportDecl> {
         match_nodes!(
         input.into_children();
-            [symbol(name)] => Ok(
+            [ident(name)] => Ok(
                 ast::ExportDecl::ForwardRef(name)
             ),
             [action_decl(decl)] => Ok(
@@ -290,8 +317,8 @@ impl IvyParser {
     pub fn function_decl(input: Node) -> Result<ast::FunctionDecl> {
         match_nodes!(
         input.into_children();
-            [decl_sig(ast::DeclSig{name, vars}), symbol(ret)] => Ok(
-                ast::FunctionDecl{name, vars, ret}
+            [decl_sig(ast::DeclSig{name, params}), symbol(ret)] => Ok(
+                ast::FunctionDecl{name, params, ret}
             ),
         )
     }
@@ -306,7 +333,8 @@ impl IvyParser {
     pub fn instance_decl(input: Node) -> Result<ast::InstanceDecl> {
         match_nodes!(
         input.into_children();
-        [symbol(name), decl_sig(ast::DeclSig{name:sort, vars})] => Ok(ast::InstanceDecl{name, sort, args: vars})
+        [ident(name), decl_sig(ast::DeclSig{name: sort, params: sort_args})] => 
+            Ok(ast::InstanceDecl{name, sort, args: sort_args})
         )
     }
 
@@ -314,24 +342,24 @@ impl IvyParser {
     pub fn module_decl(input: Node) -> Result<ast::ModuleDecl> {
         match_nodes!(
         input.into_children();
-        [decl_sig(ast::DeclSig{name, vars}), decl_block(body)] => Ok(
-            ast::ModuleDecl{name, vars, body}
+        [decl_sig(ast::DeclSig{name, params}), decl_block(body)] => Ok(
+            ast::ModuleDecl{name, params, body}
         ))
     }
 
     pub fn object_decl(input: Node) -> Result<ast::ObjectDecl> {
         match_nodes!(
         input.into_children();
-        [decl_sig(ast::DeclSig{name, vars}), decl_block(body)] => Ok(
-            ast::ObjectDecl{name, vars, body}
+        [decl_sig(ast::DeclSig{name, params}), decl_block(body)] => Ok(
+            ast::ObjectDecl{name, params, body}
         ))
     }
 
     pub fn relation_decl(input: Node) -> Result<ast::Relation> {
         match_nodes!(
         input.into_children();
-            [decl_sig(ast::DeclSig{name, vars})] => Ok(
-                ast::Relation{name, vars}
+            [decl_sig(ast::DeclSig{name, params})] => Ok(
+                ast::Relation{name, params}
             ),
         )
     }
@@ -348,10 +376,10 @@ impl IvyParser {
     }
 
 
-    pub fn var_decl(input: Node) -> Result<ast::Var> {
+    pub fn var_decl(input: Node) -> Result<ast::Term> {
         match_nodes!(
         input.into_children();
-        [var(var)] => Ok(var))
+        [term(term)] => Ok(term))
     }
 
     pub fn decl(input: Node) -> Result<ast::Decl> {
@@ -369,7 +397,7 @@ impl IvyParser {
         [relation_decl(decl)] => Ok(ast::Decl::Relation(decl)),
         [type_decl(decl)]     => Ok(ast::Decl::Type(decl)),
         [var_decl(decl)]      => Ok(ast::Decl::Var(decl)),
-        [stmt(stmt)]          => Ok(ast::Decl::Stmt(stmt))
+        [stmt(stmts)..]       => Ok(ast::Decl::Stmts(stmts.collect()))
         )
     }
 
@@ -395,8 +423,8 @@ impl IvyParser {
     pub fn assign_action(input: Node) -> Result<ast::AssignAction> {
         match_nodes!(
         input.into_children();
-        [var(ast::Var{name, typ}), expr(rhs)] => Ok(
-            ast::AssignAction{lhs: ast::Expr::Var(ast::Var{name, typ}), rhs}
+        [var_decl(ast::Term{id, sort}), expr(rhs)] => Ok(
+            ast::AssignAction{lhs: ast::Expr::Term(ast::Term{id, sort}), rhs}
         ),
         [expr(lhs), expr(rhs)] => Ok(
             // TODO: need a ::new() function that returns

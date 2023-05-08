@@ -2,35 +2,16 @@
 
 /// Corresponds to a file/line pairing, and possibly additionally docstrings to
 /// be reconstructed in the extracted code.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Annotation {
     docstring: Vec<String>,
     file: String,
     line: u32,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Ident {
-    /// Used for all symbols occurring in the source, including operators like
-    /// `+` and `&`.
-    Sub {
-        val: String,
-        subscripts: Vec<Ident>
-    },
+type Ident = Vec<Symbol>;
 
-    /// Numerical identifiers are used as temporaries internally.    
-    Num {
-        val: u64
-    },
-
-    /// Represents members of a namespace.
-    Dot {
-        ns: String,
-        subscripts: Vec<Ident>
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Verb {
     Iff, Or, And, Lt, Le, Gt, Ge, Equals, Notequals, Not, Arrow,
     Plus, Minus, Times, Div,
@@ -40,26 +21,26 @@ pub enum Verb {
 
 pub type Symbol = String;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct AppExpr {
     pub func: Box<Expr>,
     pub args: Vec<Expr>
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[allow(clippy::large_enum_variant)]
 pub enum Formula {
     Forall {
-        vars: Vec<Var>,
+        params: Vec<Param>,
         expr: Box<Expr>
     },
     Exists {
-        vars: Vec<Var>,
+        params: Vec<Param>,
         expr: Box<Expr>
     },
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[allow(clippy::large_enum_variant)]
 pub enum Expr {
     App(AppExpr),
@@ -72,10 +53,12 @@ pub enum Expr {
 
     Formula(Formula),
 
+    Identifier(Ident),
+
     Number(i64),
 
     Pi {
-        vars: Vec<Expr>,
+        terms: Vec<Expr>,
         body: Box<Expr>,
     },
 
@@ -86,10 +69,10 @@ pub enum Expr {
 
     UnaryOp{op: Verb, expr: Box<Expr>},
 
-    Var(Var)
+    Term(Term)
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ActionKind {
     Internal,
     External,
@@ -98,92 +81,99 @@ pub enum ActionKind {
 }
 
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct DeclSig {
-    pub name: Symbol,
-    pub vars: Vec<Var>,
+    pub name: Vec<Symbol>,
+    pub params: Vec<Param>,
 }
 
-pub type DeclRet = Option<Var>;
+pub type DeclRet = Option<Term>;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ActionDecl {
-    pub name: String,
+    pub name: Vec<String>,
     pub kind: ActionKind,
-    pub vars: Vec<Var>,
-    pub ret: Option<Var>,
+    pub params: Vec<Param>,
+    pub ret: Option<Param>,
     pub body: Option<Vec<Decl>>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct AfterDecl {
-    pub name: String,
-    pub vars: Option<Vec<Var>>,
+    pub name: Vec<String>,
+    pub params: Option<Vec<Param>>,
+    pub ret:  Option<Param>,
     pub body: Vec<Decl>
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct BeforeDecl {
-    pub name: String,
-    pub vars: Option<Vec<Var>>,
+    pub name: Vec<String>,
+    pub params: Option<Vec<Param>>,
     pub body: Vec<Decl>
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct FunctionDecl {
-    pub name: Symbol,
-    pub vars: Vec<Var>,
+    pub name: Vec<String>,
+    pub params: Vec<Param>,
     pub ret: Symbol
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ExportDecl {
     Action(ActionDecl),
-    ForwardRef(Symbol),
+    ForwardRef(Vec<Symbol>),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct InstanceDecl {
-    pub name: Symbol,
-    pub sort: Symbol,
-    pub args: Vec<Var>,
+    pub name: Vec<Symbol>,
+    pub sort: Vec<Symbol>,
+    pub args: Vec<Param>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ModuleDecl {
-    pub name: Symbol,
-    pub vars: Vec<Var>,
+    pub name: Vec<String>,
+    pub params: Vec<Param>,
     pub body: Vec<Decl>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ObjectDecl {
-    pub name: Symbol,
-    pub vars: Vec<Var>,
+    pub name: Vec<String>,
+    pub params: Vec<Param>,
     pub body: Vec<Decl>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Relation {
-    pub name: Symbol,
-    pub vars: Vec<Var>
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct Param {
+    pub id: Symbol,
+    pub sort: Option<Symbol>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct Relation {
+    pub name: Vec<String>,
+    pub params: Vec<Param>
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Type {
     pub sort: Symbol,
     pub supr: Option<Symbol>,
     /* spec: TypeSpec */
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Var {
-    pub name: Symbol,
-    pub typ: Option<Symbol>,
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct Term {
+    pub id: Ident,
+    pub sort: Option<Ident>,
     //is_destructor: bool,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[allow(clippy::large_enum_variant)]
 pub enum Decl {
 
@@ -231,15 +221,14 @@ pub enum Decl {
 
     Relation(Relation),
 
-    Stmt(Stmt),
+    Stmts(Vec<Stmt>),
+
+    Var(Term),
 
     Type(Type),
-
-    Var(Var),
-
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[allow(clippy::large_enum_variant)]
 pub struct If {
     pub tst: Expr,
@@ -247,14 +236,14 @@ pub struct If {
     pub els: Option<Vec<Stmt>>
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[allow(clippy::large_enum_variant)]
 pub struct While {
     pub test: Expr,
     pub doit: Vec<Stmt>
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[allow(clippy::large_enum_variant)]
 pub enum Stmt {
     CompoundActions(Vec<Action>),
@@ -264,35 +253,35 @@ pub enum Stmt {
 
 // Actions
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[allow(clippy::large_enum_variant)]
 pub struct AssignAction {
     pub lhs: Expr,
     pub rhs: Expr
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[allow(clippy::large_enum_variant)]
 pub struct AssertAction{
     pub pred: Expr,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct AssumeAction{
     pub pred: Expr,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct EnsureAction{
     pub pred: Expr,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct RequiresAction{
     pub pred: Expr,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Action {
     Assert(AssertAction),
     Assign(AssignAction),
@@ -305,7 +294,7 @@ pub enum Action {
 // Top levels
 
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Prog {
     pub major_version: u8,
     pub minor_version: u8,

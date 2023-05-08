@@ -31,9 +31,36 @@ module po(t,lt) = {
 object foo = {
     relation bit
     after init {
-        bit := false
+        this.bit := false
     }
     action flip = {
-        bit := ~bit
+        this.bit := ~bit
+    }
+}
+
+object num = {
+    type this
+    action plus(x:this,y:this) returns (z:this) = {
+        z := x + y;
+    }
+}
+
+module counter_prop(c) = {
+
+    relation was_up
+    after init {
+        was_up := false
+    }
+
+    after c.up {
+        was_up := true
+    }
+
+    after c.down {
+        was_up := false
+    }
+
+    after c.is_zero returns (z:bool) {
+        ensure was_up -> ~z
     }
 }

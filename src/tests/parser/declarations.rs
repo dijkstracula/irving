@@ -78,20 +78,26 @@ mod tests {
         let res = IvyParser::parse(Rule::decl, fragment)
             .expect("Parsing failed")
             .single().unwrap();
-        assert!(IvyParser::decl(res).is_ok());
+        IvyParser::decl(res).unwrap();
     }
 
-/* TODO: action name needs to be able to be qualified
     #[test]
     fn parse_after_mixin() {
         let fragment = "after sock.recv { i := 0; }";
         let res = IvyParser::parse(Rule::decl, fragment)
             .expect("Parsing failed")
             .single().unwrap();
-        assert!(IvyParser::decl(res).is_ok());
+        IvyParser::decl(res).unwrap();
     }
-    */
 
+    #[test]
+    fn parse_after_mixin_with_declret() {
+        let fragment = "after sock.recv returns (i: int) { i := 0; }";
+        let res = IvyParser::parse(Rule::decl, fragment)
+            .expect("Parsing failed")
+            .single().unwrap();
+        IvyParser::decl(res).unwrap();
+    }
 
     #[test]
     fn parse_axiom() {
