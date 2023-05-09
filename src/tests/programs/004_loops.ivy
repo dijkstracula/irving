@@ -1,0 +1,9 @@
+#lang ivy1.8
+
+sum := 0;
+i := x;
+while i > 0
+{
+    sum := sum + f(i);
+    i := i - 1
+}

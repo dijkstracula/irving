@@ -1,0 +1,183 @@
+#![allow(dead_code)]
+
+/* Structures that we need to extract */
+
+use std::{collections::HashMap};
+
+use crate::ast::*;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum IsolateError {
+    DuplicateDecl(Decl),
+    MixinMismatch,
+    MissingSubmodule(String)
+}
+
+type Result<T> = std::result::Result<T, IsolateError>;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Mixin {
+    pub name: Symbol,
+    pub params: Option<Vec<Param>>,
+    pub ret: Option<Param>,
+
+    pub pre: Option<Vec<Decl>>,
+    pub body: Option<Vec<Decl>>,
+    pub post: Option<Vec<Decl>>,
+}
+
+impl Mixin {
+    pub fn new(name: String) -> Self {
+        Mixin {
+            name: name,
+            params: None,
+            ret: None,
+
+            pre: None,
+            body: None,
+            post: None,
+        }
+    }
+
+    pub fn from_decl(decl: Decl) -> Self {
+        match decl {
+            Decl::Action(actiondecl) => Self::from_action(actiondecl),
+            Decl::BeforeAction(pre) => Self::from_before(pre),
+            Decl::AfterAction(post) => Self::from_after(post),
+            _ => unreachable!()
+        }
+    }
+
+    pub fn from_action(action: ActionDecl) -> Self {
+        Mixin {
+            name: action.name.last().unwrap().to_owned(),
+            params: Some(action.params),
+            ret: action.ret,
+
+            pre: None,
+            body: action.body,
+            post: None,
+        }
+    }
+
+    pub fn from_after(action: AfterDecl) -> Self {
+        Mixin {
+            name: action.name.last().unwrap().to_owned(),
+            params: action.params,
+            ret: action.ret,
+
+            pre: None,
+            body: None,
+            post: Some(action.body),
+        }
+    }
+
+    pub fn from_before(action: BeforeDecl) -> Self {
+        Mixin {
+            name: action.name.last().unwrap().to_owned(),
+            params: action.params,
+            ret: None,
+
+            pre: Some(action.body),
+            body: None,
+            post: None,
+        }
+    }
+
+    pub fn check_name(&self, n: &str) -> Result<()> {
+        if self.name == n {
+            Ok(())
+        } else {
+            Err(IsolateError::MixinMismatch)
+        }
+    }
+
+    pub fn mix_action(&mut self, action: ActionDecl) -> Result<()> {
+        self.params = Self::mix(std::mem::take(&mut self.params), Some(action.params))?;
+        self.ret    = Self::mix(std::mem::take(&mut self.ret), action.ret)?;
+        self.body   = Self::mix(std::mem::take(&mut self.body), action.body)?;
+        Ok(())
+    }
+
+    pub fn mix_after(&mut self, action: AfterDecl) -> Result<()> {
+        self.params = Self::mix(std::mem::take(&mut self.params), action.params)?;
+        self.ret    = Self::mix(std::mem::take(&mut self.ret), action.ret)?;
+        self.post   = Self::mix(std::mem::take(&mut self.post), Some(action.body))?;
+        Ok(())
+    }
+
+    pub fn mix_before(&mut self, action: BeforeDecl) -> Result<()> {
+        self.params = Self::mix(std::mem::take(&mut self.params), action.params)?;
+        self.pre    = Self::mix(std::mem::take(&mut self.pre), Some(action.body))?;
+        Ok(())
+    }
+
+    fn mix<'a, T>(o1: Option<T>, o2: Option<T>) -> Result<Option<T>> 
+    where
+        T: Clone + Eq,
+    {
+        match (o1, o2) {
+            (None, None)     => Ok(None),
+            (Some(t1), None) => Ok(Some(t1)),
+            (None, Some(t2)) => Ok(Some(t2)),
+            (Some(t1), Some(t2)) if t1 == t2 => Ok(Some(t2)),
+            _ => Err(IsolateError::MixinMismatch)
+        } 
+    }
+
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Module {
+    name: String,
+    globals: Vec<Decl>,
+    actions: HashMap<String, Mixin>,
+
+    submodules: HashMap<String, Module>,
+}
+
+impl Module {
+    pub fn new(name: String) -> Self {
+        Module {
+            name: name,
+            globals: Vec::new(),
+            actions: HashMap::new(),
+            submodules: HashMap::new(),
+        }
+    } 
+
+    pub fn handle_action_decl(&mut self, action: ActionDecl) -> Result<()> {
+        match action.name.as_slice() {
+            [] => panic!("Malformed AST: mod={:?}, act={:?}", self, action),
+            [name] => {
+                match self.actions.get_mut(name) {
+                    None => { self.actions.insert(name.to_owned(), Mixin::from_action(action)); },
+                    Some(mixin) => { mixin.mix_action(action)?; },
+                }
+                Ok(()) // TODO
+            }
+            // If the action name is qualified, then we'll need to hand it off 
+            // to the appropriate submodule.
+            [qualifier, ..] => {
+                match self.submodules.get_mut(qualifier) {
+                    None      => Err(IsolateError::MissingSubmodule(qualifier.to_owned())),
+                    Some(sub) => sub.handle_action_decl(action),
+                }
+            }
+        }
+    }
+
+    pub fn handle_decl(&mut self, decl: Decl) -> Result<()> {
+        match decl {
+            Decl::Action(decl) => self.handle_action_decl(decl),
+            _ => unimplemented!()
+        }
+    }
+
+    pub fn handle_prog(&mut self, prog: Prog) -> Result<()> {
+        prog.decls.into_iter()
+            .map(|decl| self.handle_decl(decl))
+            .collect::<Result<()>>()
+    }
+
+}
