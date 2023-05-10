@@ -1,6 +1,11 @@
 use pest::{pratt_parser::{Assoc, Op, PrattParser}, iterators::Pairs, error::ErrorVariant};
 use pest_consume::{Parser, Error, match_nodes};
-use crate::ast::{self, Symbol, ImportDecl};
+
+use crate::ast::actions::*;
+use crate::ast::declarations::*;
+use crate::ast::expressions::*;
+use crate::ast::statements::*;
+use crate::ast::toplevels::*;
 
 // include the grammar file so that Cargo knows to rebuild this file on grammar
 // changes (c.f. the Calyx frontend compiler)
@@ -50,7 +55,7 @@ lazy_static::lazy_static! {
         .op(Op::postfix(Rule::index));
 }
 
-fn parse_expr(pairs: Pairs<Rule>) -> Result<ast::Expr> {
+fn parse_expr(pairs: Pairs<Rule>) -> Result<Expr> {
     PRATT
     .map_primary(|primary| match primary.as_rule() {
         Rule::term => {
@@ -64,8 +69,8 @@ fn parse_expr(pairs: Pairs<Rule>) -> Result<ast::Expr> {
                     .map(|s| s.as_str().to_owned()).collect::<Vec<_>>());
             match sort {
                 // TODO: wondering if either return path should just be a Term.
-                None    => Ok(ast::Expr::Identifier(id)),
-                Some(_) => Ok(ast::Expr::Term(ast::Term{ id, sort }))
+                None    => Ok(Expr::Identifier(id)),
+                Some(_) => Ok(Expr::Term(Term{ id, sort }))
             }
         }
         Rule::ident => {
@@ -73,11 +78,11 @@ fn parse_expr(pairs: Pairs<Rule>) -> Result<ast::Expr> {
                 .into_inner()
                 .map(|p| p.as_str().to_owned())
                 .collect::<Vec<_>>();
-            Ok(ast::Expr::Identifier(results))
+            Ok(Expr::Identifier(results))
         }
         Rule::number => {
             let val: i64 = primary.as_str().parse::<>().unwrap();
-            Ok(ast::Expr::Number(val))
+            Ok(Expr::Number(val))
         }
         Rule::simple_expr => {
             parse_expr(primary.into_inner())
@@ -87,32 +92,32 @@ fn parse_expr(pairs: Pairs<Rule>) -> Result<ast::Expr> {
 
     .map_prefix(|op, rhs| {
         let verb = match op.as_rule() {
-            Rule::UMINUS => ast::Verb::Minus,
-            Rule::NOT    => ast::Verb::Not,
+            Rule::UMINUS => Verb::Minus,
+            Rule::NOT    => Verb::Not,
             _ => unreachable!("Unexpected unary op")
         };
-        Ok(ast::Expr::UnaryOp { op: verb, expr: Box::new(rhs?) })
+        Ok(Expr::UnaryOp { op: verb, expr: Box::new(rhs?) })
     })
 
     .map_infix(|lhs, op, rhs| {
         let verb = match op.as_rule() {
-            Rule::DOT => ast::Verb::Dot,
-            Rule::AND => ast::Verb::And,
-            Rule::OR => ast::Verb::Or,
-            Rule::ARROW => ast::Verb::Arrow,
-            Rule::GT => ast::Verb::Gt,
-            Rule::GE => ast::Verb::Ge,
-            Rule::LT => ast::Verb::Lt,
-            Rule::LE => ast::Verb::Le,
-            Rule::EQ => ast::Verb::Equals,
-            Rule::NEQ => ast::Verb::Notequals,
+            Rule::DOT => Verb::Dot,
+            Rule::AND => Verb::And,
+            Rule::OR => Verb::Or,
+            Rule::ARROW => Verb::Arrow,
+            Rule::GT => Verb::Gt,
+            Rule::GE => Verb::Ge,
+            Rule::LT => Verb::Lt,
+            Rule::LE => Verb::Le,
+            Rule::EQ => Verb::Equals,
+            Rule::NEQ => Verb::Notequals,
 
-            Rule::PLUS => ast::Verb::Plus,
-            Rule::MINUS => ast::Verb::Minus,
+            Rule::PLUS => Verb::Plus,
+            Rule::MINUS => Verb::Minus,
             _ => unimplemented!()
         };
 
-        Ok(ast::Expr::BinOp { 
+        Ok(Expr::BinOp { 
             lhs: Box::new(lhs?), 
             op: verb, 
             rhs: Box::new(rhs?) 
@@ -126,11 +131,11 @@ fn parse_expr(pairs: Pairs<Rule>) -> Result<ast::Expr> {
                 .collect::<Vec<Result<_>>>();
             let args = results.into_iter()
                 .collect::<Result<Vec<_>>>()?;
-            Ok(ast::Expr::App(ast::AppExpr { func: Box::new(lhs?), args }))
+            Ok(Expr::App(AppExpr { func: Box::new(lhs?), args }))
         },
         Rule::index => {
             let idx = parse_expr(op.into_inner());
-            Ok(ast::Expr::Index(ast::IndexExpr { lhs: Box::new(lhs?), idx: Box::new(idx?) }))
+            Ok(Expr::Index(IndexExpr { lhs: Box::new(lhs?), idx: Box::new(idx?) }))
         }
         _ => unimplemented!()
     })
@@ -161,15 +166,15 @@ impl IvyParser {
         Ok(input.as_str().to_owned())
     }
     
-    fn param(input: Node) -> Result<ast::Param> {
+    fn param(input: Node) -> Result<Param> {
         match_nodes!(
         input.into_children();
-        [symbol(id), ident(sort)] => Ok(ast::Param {id, sort: Some(sort) }),
-        [symbol(id)] => Ok(ast::Param {id, sort: None })
+        [symbol(id), ident(sort)] => Ok(Param {id, sort: Some(sort) }),
+        [symbol(id)] => Ok(Param {id, sort: None })
         )
     }
 
-    pub fn paramlist(input: Node) -> Result<Vec<ast::Param>> {
+    pub fn paramlist(input: Node) -> Result<Vec<Param>> {
         match_nodes!(
         input.into_children();
         [param(params)..] => {
@@ -184,15 +189,15 @@ impl IvyParser {
         )
     }
 
-    fn term(input: Node) -> Result<ast::Term> {
+    fn term(input: Node) -> Result<Term> {
         match_nodes!(
         input.into_children();
-        [ident(id), ident(sort)] => Ok(ast::Term {id, sort: Some(sort) }),
-        [ident(id)] => Ok(ast::Term {id, sort: None })
+        [ident(id), ident(sort)] => Ok(Term {id, sort: Some(sort) }),
+        [ident(id)] => Ok(Term {id, sort: None })
         )
     }
 
-    pub fn termlist(input: Node) -> Result<Vec<ast::Term>> {
+    pub fn termlist(input: Node) -> Result<Vec<Term>> {
         match_nodes!(
         input.into_children();
         [term(terms)..] => {
@@ -205,21 +210,21 @@ impl IvyParser {
 
     // Exprs
 
-    pub fn simple_expr(input: Node) -> Result<ast::Expr> {
+    pub fn simple_expr(input: Node) -> Result<Expr> {
         let pairs = input.as_pair().to_owned().into_inner();
         parse_expr(pairs)
     }
 
-    pub fn expr(input: Node) -> Result<ast::Expr> {
+    pub fn expr(input: Node) -> Result<Expr> {
         match_nodes!(
         input.into_children();
         [simple_expr(e)] => Ok(e),
-        [exists(e)] => Ok(ast::Expr::Formula(e)),
-        [forall(e)] => Ok(ast::Expr::Formula(e)),
+        [exists(e)] => Ok(Expr::Formula(e)),
+        [forall(e)] => Ok(Expr::Formula(e)),
         )
     }
 
-    pub fn fnapp_args(input: Node) -> Result<Vec<ast::Expr>> {
+    pub fn fnapp_args(input: Node) -> Result<Vec<Expr>> {
         match_nodes!(
         input.into_children();
         [expr(args)..] => {
@@ -227,42 +232,42 @@ impl IvyParser {
         })
     }
 
-    pub fn forall(input: Node) -> Result<ast::Formula> {
+    pub fn forall(input: Node) -> Result<Formula> {
         match_nodes!(
         input.into_children();
         [paramlist(params), expr(e)] => {
-            Ok(ast::Formula::Forall { params, expr: Box::new(e)})
+            Ok(Formula::Forall { params, expr: Box::new(e)})
         })
     }
 
-    pub fn exists(input: Node) -> Result<ast::Formula> {
+    pub fn exists(input: Node) -> Result<Formula> {
         match_nodes!(
         input.into_children();
         [paramlist(params), expr(e)] => {
-            Ok(ast::Formula::Exists { params, expr: Box::new(e)})
+            Ok(Formula::Exists { params, expr: Box::new(e)})
         })
     }
 
     // Decls
 
-    pub fn decl_ret(input: Node) -> Result<Option<ast::Param>> {
+    pub fn decl_ret(input: Node) -> Result<DeclRet> {
         match_nodes!(
         input.into_children();
         [param(ret)] => Ok(Some(ret)))
     }
 
-    pub fn decl_sig(input: Node) -> Result<ast::DeclSig> {
+    pub fn decl_sig(input: Node) -> Result<DeclSig> {
         match_nodes!(
         input.into_children();
         [ident(name), paramlist(params)] => {
-            Ok(ast::DeclSig { name, params})
+            Ok(DeclSig { name, params})
         },
         [ident(name)] => {
-            Ok(ast::DeclSig { name, params: vec!()})
+            Ok(DeclSig { name, params: vec!()})
         })
     }
 
-    pub fn decl_block(input: Node) -> Result<Vec<ast::Decl>> {
+    pub fn decl_block(input: Node) -> Result<Vec<Decl>> {
         match_nodes!(
         input.into_children();
         [decl(decls)..] => {
@@ -270,45 +275,45 @@ impl IvyParser {
         })
     }
 
-    pub fn action_decl(input: Node) -> Result<ast::ActionDecl> {
+    pub fn action_decl(input: Node) -> Result<ActionDecl> {
         match_nodes!(
         input.into_children();
-            [decl_sig(ast::DeclSig{name, params}), decl_ret(ret), decl_block(body)] => Ok(
-                ast::ActionDecl{name, kind: ast::ActionKind::Internal, params, ret, body: Some(body)}
+            [decl_sig(DeclSig{name, params}), decl_ret(ret), decl_block(body)] => Ok(
+                ActionDecl{name, params, ret, body: Some(body)}
             ),
-            [decl_sig(ast::DeclSig{name, params}), decl_block(body)] => Ok(
-                ast::ActionDecl{name, kind: ast::ActionKind::Internal, params, ret: None, body: Some(body)}
+            [decl_sig(DeclSig{name, params}), decl_block(body)] => Ok(
+                ActionDecl{name, params, ret: None, body: Some(body)}
             ),
-            [decl_sig(ast::DeclSig{name, params})] => Ok(
-                ast::ActionDecl{name, kind: ast::ActionKind::Internal, params, ret: None, body: None}
+            [decl_sig(DeclSig{name, params})] => Ok(
+                ActionDecl{name, params, ret: None, body: None}
             ),
         )
     }
 
-    pub fn alias_decl(input: Node) -> Result<(ast::Symbol, ast::Expr)> {
+    pub fn alias_decl(input: Node) -> Result<(Symbol, Expr)> {
         match_nodes!(
         input.into_children();
         [symbol(lhs), expr(rhs)] => Ok((lhs, rhs)))
     }
 
-    pub fn axiom_decl(input: Node) -> Result<ast::Expr> {
+    pub fn axiom_decl(input: Node) -> Result<Expr> {
         match_nodes!(
         input.into_children();
         [expr(e)] => Ok(e)
         )
     }
 
-    pub fn after_decl(input: Node) -> Result<ast::AfterDecl> {
+    pub fn after_decl(input: Node) -> Result<AfterDecl> {
         match_nodes!(
         input.into_children();
-        [decl_sig(ast::DeclSig{name, params}), decl_ret(ret), decl_block(body)] => Ok(
-            ast::AfterDecl { name, params: Some(params), ret: ret, body}
+        [decl_sig(DeclSig{name, params}), decl_ret(ret), decl_block(body)] => Ok(
+            AfterDecl { name, params: Some(params), ret: ret, body}
         ),
-        [decl_sig(ast::DeclSig{name, params}), decl_block(body)] => Ok(
-            ast::AfterDecl { name, params: Some(params), ret: None, body}
+        [decl_sig(DeclSig{name, params}), decl_block(body)] => Ok(
+            AfterDecl { name, params: Some(params), ret: None, body}
         ),
         [ident(name), decl_block(body)] => Ok(
-            ast::AfterDecl { name, params: None, ret: None, body}
+            AfterDecl { name, params: None, ret: None, body}
         ),
         )
     }
@@ -320,44 +325,44 @@ impl IvyParser {
         )
     }
 
-    pub fn export_decl(input: Node) -> Result<ast::ExportDecl> {
+    pub fn export_decl(input: Node) -> Result<ExportDecl> {
         match_nodes!(
         input.into_children();
             [ident(name)] => Ok(
-                ast::ExportDecl::ForwardRef(name)
+                ExportDecl::ForwardRef(name)
             ),
             [action_decl(decl)] => Ok(
-                ast::ExportDecl::Action(decl)
+                ExportDecl::Action(decl)
             ),
         )
     }
 
-    pub fn function_decl(input: Node) -> Result<ast::FunctionDecl> {
+    pub fn function_decl(input: Node) -> Result<FunctionDecl> {
         match_nodes!(
         input.into_children();
-            [decl_sig(ast::DeclSig{name, params}), symbol(ret)] => Ok(
-                ast::FunctionDecl{name, params, ret}
+            [decl_sig(DeclSig{name, params}), symbol(ret)] => Ok(
+                FunctionDecl{name, params, ret}
             ),
         )
     }
 
-    pub fn global_decl(input: Node) -> Result<Vec<ast::Decl>> {
+    pub fn global_decl(input: Node) -> Result<Vec<Decl>> {
         match_nodes!(
         input.into_children();
             [decl_block(decls)] => Ok(decls)
         )
     }
 
-    pub fn implement_decl(input: Node) -> Result<ast::ActionDecl> {
+    pub fn implement_decl(input: Node) -> Result<ActionDecl> {
         // XXX: Looks like `handle_before_after` in ivy_parser.py just treats
         // implement like defining an action, modulo internal name mangling.
         match_nodes!(
         input.into_children();
-            [decl_sig(ast::DeclSig{name, params}), decl_ret(ret), decl_block(body)] => Ok(
-                ast::ActionDecl{name, kind: ast::ActionKind::Internal, params, ret, body: Some(body)}
+            [decl_sig(DeclSig{name, params}), decl_ret(ret), decl_block(body)] => Ok(
+                ActionDecl{name, params, ret, body: Some(body)}
             ),
-            [decl_sig(ast::DeclSig{name, params}), decl_block(body)] => Ok(
-                ast::ActionDecl{name, kind: ast::ActionKind::Internal, params, ret: None, body: Some(body)}
+            [decl_sig(DeclSig{name, params}), decl_block(body)] => Ok(
+                ActionDecl{name, params, ret: None, body: Some(body)}
             ),
         )
     }
@@ -367,13 +372,13 @@ impl IvyParser {
 
         match_nodes!(
         input.into_children();
-            [decl_sig(ast::DeclSig{mut name, params})] => {
+            [decl_sig(DeclSig{mut name, params})] => {
                 if name.len() > 1 {
                     Err(Error::new_from_span(
                         ErrorVariant::<Rule>::CustomError { message: "Need an unqualified isolate name".into() }, 
                         span))
                 } else { 
-                    Ok(ast::ImportDecl{name: name.pop().unwrap(), params})
+                    Ok(ImportDecl{name: name.pop().unwrap(), params})
                 }
             }
         )
@@ -386,216 +391,216 @@ impl IvyParser {
         )
     }
 
-    pub fn invariant_decl(input: Node) -> Result<ast::Expr> {
+    pub fn invariant_decl(input: Node) -> Result<Expr> {
         match_nodes!(
         input.into_children();
         [expr(e)] => Ok(e)
         )
     }
 
-    pub fn instance_decl(input: Node) -> Result<ast::InstanceDecl> {
+    pub fn instance_decl(input: Node) -> Result<InstanceDecl> {
         match_nodes!(
         input.into_children();
-        [ident(name), decl_sig(ast::DeclSig{name: sort, params: sort_args})] => 
-            Ok(ast::InstanceDecl{name, sort, args: sort_args})
+        [ident(name), decl_sig(DeclSig{name: sort, params: sort_args})] => 
+            Ok(InstanceDecl{name, sort, args: sort_args})
         )
     }
 
-    pub fn extract_decl(input: Node) -> Result<ast::IsolateDecl> {
+    pub fn extract_decl(input: Node) -> Result<IsolateDecl> {
         let span = input.as_pair().as_span(); // Irritating!
 
         match_nodes!(
         input.into_children();
-        [decl_sig(ast::DeclSig{mut name, params}), decl_block(body)] => {
+        [decl_sig(DeclSig{mut name, params}), decl_block(body)] => {
             if name.len() > 1 {
                 Err(Error::new_from_span(
                     ErrorVariant::<Rule>::CustomError { message: "Need an unqualified isolate name".into() }, 
                     span))
             } else { 
-                Ok(ast::IsolateDecl{name: name.pop().unwrap(), params, body})
+                Ok(IsolateDecl{name: name.pop().unwrap(), params, body})
             }
         })
     }
 
-    pub fn module_decl(input: Node) -> Result<ast::ModuleDecl> {
+    pub fn module_decl(input: Node) -> Result<ModuleDecl> {
         match_nodes!(
         input.into_children();
-        [decl_sig(ast::DeclSig{name, params}), decl_block(body)] => Ok(
-            ast::ModuleDecl{name, params, body}
+        [decl_sig(DeclSig{name, params}), decl_block(body)] => Ok(
+            ModuleDecl{name, params, body}
         ))
     }
 
-    pub fn object_decl(input: Node) -> Result<ast::ObjectDecl> {
+    pub fn object_decl(input: Node) -> Result<ObjectDecl> {
         match_nodes!(
         input.into_children();
-        [decl_sig(ast::DeclSig{name, params}), decl_block(body)] => Ok(
-            ast::ObjectDecl{name, params, body}
+        [decl_sig(DeclSig{name, params}), decl_block(body)] => Ok(
+            ObjectDecl{name, params, body}
         ))
     }
 
-    pub fn range_decl(input: Node) -> Result<(ast::Expr, ast::Expr)> {
+    pub fn range_decl(input: Node) -> Result<(Expr, Expr)> {
         match_nodes!(
         input.into_children();
             [expr(lo), expr(hi)] => Ok((lo, hi)),
         )
     }
 
-    pub fn relation_decl(input: Node) -> Result<ast::Relation> {
+    pub fn relation_decl(input: Node) -> Result<Relation> {
         match_nodes!(
         input.into_children();
-            [decl_sig(ast::DeclSig{name, params})] => Ok(
-                ast::Relation{name, params}
+            [decl_sig(DeclSig{name, params})] => Ok(
+                Relation{name, params}
             ),
         )
     }
 
-    pub fn type_decl(input: Node) -> Result<ast::Type> {
+    pub fn type_decl(input: Node) -> Result<Type> {
         match_nodes!(
         input.into_children();
         [symbol(name), enum_decl(cstrs)] => Ok(
-            ast::Type {name, sort: ast::Sort::Enum(cstrs) }
+            Type {name, sort: Sort::Enum(cstrs) }
         ),
         [symbol(name), range_decl((lo, hi))] => Ok(
-            ast::Type {name, sort: ast::Sort::Range(Box::new(lo), Box::new(hi)) }
+            Type {name, sort: Sort::Range(Box::new(lo), Box::new(hi)) }
         ),
         [symbol(name), symbol(supr)] => Ok(
-            ast::Type {name, sort: ast::Sort::Subclass(supr) }
+            Type {name, sort: Sort::Subclass(supr) }
         ),
         [symbol(name)] => Ok(
-            ast::Type {name, sort: ast::Sort::Uninterpreted }
+            Type {name, sort: Sort::Uninterpreted }
         ))
     }
 
-    pub fn var_decl(input: Node) -> Result<ast::Term> {
+    pub fn var_decl(input: Node) -> Result<Term> {
         match_nodes!(
         input.into_children();
         [term(term)] => Ok(term))
     }
 
-    pub fn decl(input: Node) -> Result<ast::Decl> {
+    pub fn decl(input: Node) -> Result<Decl> {
         match_nodes!(
         input.into_children();
-        [action_decl(decl)]   => Ok(ast::Decl::Action(decl)),
-        [after_decl(decl)]    => Ok(ast::Decl::AfterAction(decl)),
-        [alias_decl((l,r))]   => Ok(ast::Decl::Alias(l, r)),
-        [axiom_decl(fmla)]    => Ok(ast::Decl::Axiom(fmla)),
-        [export_decl(fmla)]   => Ok(ast::Decl::Export(fmla)),
-        [extract_decl(decl)]  => Ok(ast::Decl::Isolate(decl)),
-        [global_decl(decls)]  => Ok(ast::Decl::Globals(decls)),
-        [function_decl(decl)] => Ok(ast::Decl::Function(decl)),
-        [implement_decl(decl)] => Ok(ast::Decl::Action(decl)),
-        [import_decl(decl)]   => Ok(ast::Decl::Import(decl)),
-        [include_decl(module)] => Ok(ast::Decl::Include(module)),
-        [invariant_decl(fmla)] => Ok(ast::Decl::Invariant(fmla)),
-        [instance_decl(decl)] => Ok(ast::Decl::Instance(decl)),
-        [module_decl(decl)]   => Ok(ast::Decl::Module(decl)),
-        [object_decl(decl)]   => Ok(ast::Decl::Object(decl)),
-        [relation_decl(decl)] => Ok(ast::Decl::Relation(decl)),
-        [type_decl(decl)]     => Ok(ast::Decl::Type(decl)),
-        [var_decl(decl)]      => Ok(ast::Decl::Var(decl)),
-        [stmt(stmts)..]       => Ok(ast::Decl::Stmts(stmts.collect()))
+        [action_decl(decl)]   => Ok(Decl::Action(decl)),
+        [after_decl(decl)]    => Ok(Decl::AfterAction(decl)),
+        [alias_decl((l,r))]   => Ok(Decl::Alias(l, r)),
+        [axiom_decl(fmla)]    => Ok(Decl::Axiom(fmla)),
+        [export_decl(fmla)]   => Ok(Decl::Export(fmla)),
+        [extract_decl(decl)]  => Ok(Decl::Isolate(decl)),
+        [global_decl(decls)]  => Ok(Decl::Globals(decls)),
+        [function_decl(decl)] => Ok(Decl::Function(decl)),
+        [implement_decl(decl)] => Ok(Decl::Action(decl)),
+        [import_decl(decl)]   => Ok(Decl::Import(decl)),
+        [include_decl(module)] => Ok(Decl::Include(module)),
+        [invariant_decl(fmla)] => Ok(Decl::Invariant(fmla)),
+        [instance_decl(decl)] => Ok(Decl::Instance(decl)),
+        [module_decl(decl)]   => Ok(Decl::Module(decl)),
+        [object_decl(decl)]   => Ok(Decl::Object(decl)),
+        [relation_decl(decl)] => Ok(Decl::Relation(decl)),
+        [type_decl(decl)]     => Ok(Decl::Type(decl)),
+        [var_decl(decl)]      => Ok(Decl::Var(decl)),
+        [stmt(stmts)..]       => Ok(Decl::Stmts(stmts.collect()))
         )
     }
 
     // Actions
 
-    pub fn action(input: Node) -> Result<ast::Action> {
+    pub fn action(input: Node) -> Result<Action> {
         match_nodes!(
         input.into_children();
-        [assert_action(action)] => Ok(ast::Action::Assert(action)),
-        [assign_action(action)] => Ok(ast::Action::Assign(action)),
-        [assume_action(action)] => Ok(ast::Action::Assume(action)),
-        [ensure_action(action)] => Ok(ast::Action::Ensure(action)),
-        [requires_action(action)] => Ok(ast::Action::Requires(action))
+        [assert_action(action)] => Ok(Action::Assert(action)),
+        [assign_action(action)] => Ok(Action::Assign(action)),
+        [assume_action(action)] => Ok(Action::Assume(action)),
+        [ensure_action(action)] => Ok(Action::Ensure(action)),
+        [requires_action(action)] => Ok(Action::Requires(action))
         )
     }
 
-    pub fn actions(input: Node) -> Result<Vec<ast::Action>> {
+    pub fn actions(input: Node) -> Result<Vec<Action>> {
         match_nodes!(
         input.into_children();
         [action(actions)..] => Ok(actions.collect()))
     }
 
-    pub fn assign_action(input: Node) -> Result<ast::AssignAction> {
+    pub fn assign_action(input: Node) -> Result<AssignAction> {
         match_nodes!(
         input.into_children();
-        [var_decl(ast::Term{id, sort}), expr(rhs)] => Ok(
-            ast::AssignAction{lhs: ast::Expr::Term(ast::Term{id, sort}), rhs}
+        [var_decl(Term{id, sort}), expr(rhs)] => Ok(
+            AssignAction{lhs: Expr::Term(Term{id, sort}), rhs}
         ),
         [expr(lhs), expr(rhs)] => Ok(
             // TODO: need a ::new() function that returns
             // some sort of error if lhs isn't a valid lval.
-            ast::AssignAction{lhs, rhs}
+            AssignAction{lhs, rhs}
         ),
         )
     }
 
-    pub fn assert_action(input: Node) -> Result<ast::AssertAction> {
+    pub fn assert_action(input: Node) -> Result<AssertAction> {
         match_nodes!(
         input.into_children();
-        [expr(pred)] => Ok(ast::AssertAction{pred}),
+        [expr(pred)] => Ok(AssertAction{pred}),
         )
     }
 
-    pub fn assume_action(input: Node) -> Result<ast::AssumeAction> {
+    pub fn assume_action(input: Node) -> Result<AssumeAction> {
         match_nodes!(
         input.into_children();
-        [expr(pred)] => Ok(ast::AssumeAction{pred}),
+        [expr(pred)] => Ok(AssumeAction{pred}),
         )
     }
 
-    pub fn ensure_action(input: Node) -> Result<ast::EnsureAction> {
+    pub fn ensure_action(input: Node) -> Result<EnsureAction> {
         match_nodes!(
         input.into_children();
-        [expr(pred)] => Ok(ast::EnsureAction{pred}),
+        [expr(pred)] => Ok(EnsureAction{pred}),
         )
     }
 
-    pub fn requires_action(input: Node) -> Result<ast::RequiresAction> {
+    pub fn requires_action(input: Node) -> Result<RequiresAction> {
         match_nodes!(
         input.into_children();
-        [expr(pred)] => Ok(ast::RequiresAction{pred}),
+        [expr(pred)] => Ok(RequiresAction{pred}),
         )
     }
 
     // Statements
 
 
-    pub fn stmt_block(input: Node) -> Result<Vec<ast::Stmt>> {
+    pub fn stmt_block(input: Node) -> Result<Vec<Stmt>> {
         match_nodes!(
         input.into_children();
         [stmt(stmts)..] => Ok(stmts.collect())
         )
     }
 
-    pub fn if_stmt(input: Node) -> Result<ast::If> {
+    pub fn if_stmt(input: Node) -> Result<If> {
         match_nodes!(
         input.into_children();
         [expr(tst), stmt_block(thens)] => Ok(
-            ast::If{tst, thn: thens, els: None}
+            If{tst, thn: thens, els: None}
         ),
         [expr(tst), stmt_block(thens), stmt_block(elses)] => Ok(
-            ast::If{tst, thn: thens, els: Some(elses)}
+            If{tst, thn: thens, els: Some(elses)}
         ),
         )
     }
 
-    pub fn while_stmt(input: Node) -> Result<ast::While> {
+    pub fn while_stmt(input: Node) -> Result<While> {
         match_nodes!(
         input.into_children();
         [expr(test), stmt_block(stmts)] => Ok(
-            ast::While{test, doit: stmts}
+            While{test, doit: stmts}
         ),
         )
     }
 
-    pub fn stmt(input: Node) -> Result<ast::Stmt> {
+    pub fn stmt(input: Node) -> Result<Stmt> {
         match_nodes!(
         input.into_children();
-        [actions(actions)]  => Ok(ast::Stmt::CompoundActions(actions)),
-        [if_stmt(stmt)]     => Ok(ast::Stmt::If(stmt)),
-        [while_stmt(stmt)]  => Ok(ast::Stmt::While(stmt)),
-        [expr(expr)]        => Ok(ast::Stmt::Expr(expr)),
+        [actions(actions)]  => Ok(Stmt::CompoundActions(actions)),
+        [if_stmt(stmt)]     => Ok(Stmt::If(stmt)),
+        [while_stmt(stmt)]  => Ok(Stmt::While(stmt)),
+        [expr(expr)]        => Ok(Stmt::Expr(expr)),
         )
     }
 
@@ -622,14 +627,14 @@ impl IvyParser {
         })
     }
 
-    pub fn prog(input: Node) -> Result<ast::Prog> {
+    pub fn prog(input: Node) -> Result<Prog> {
         match_nodes!(
         input.into_children();
         [langver((major, minor)), decl(decls).., EOI(())] => {
-            Ok(ast::Prog { 
+            Ok(Prog { 
                 major_version: major, 
                 minor_version: minor,
-                top: ast::IsolateDecl{
+                top: IsolateDecl{
                     name: "top".into(),
                     params: vec!(),
                     body: decls.collect() 

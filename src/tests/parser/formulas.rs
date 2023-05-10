@@ -1,10 +1,10 @@
 #[cfg(test)]
 mod tests {
     use pest_consume::Parser;
-    use crate::ast;
+    use crate::ast::expressions::*;
     use crate::parser::{IvyParser, Result, Rule};
 
-    fn parse_expr(fragment: &str) -> Result<ast::Expr> {
+    fn parse_expr(fragment: &str) -> Result<Expr> {
         let res = IvyParser::parse(Rule::expr, fragment)
             .expect("Parsing failed").single().unwrap();
         IvyParser::expr(res)
