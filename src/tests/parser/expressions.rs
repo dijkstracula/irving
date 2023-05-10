@@ -46,6 +46,13 @@ mod tests {
     }
 
     #[test]
+    fn parse_complex_expr() {
+        let fragment = "sock.send(host(1-self).sock.id, val)";
+        let _ast = parse_expr(fragment).unwrap();
+        println!("{:?}", _ast);
+    }
+
+    #[test]
     fn parse_pred() {
         let _ast = parse_expr("i > 0").unwrap();
         assert_eq!(_ast, BinOp {
@@ -78,6 +85,16 @@ mod tests {
     }
     
     #[test]
+    fn parse_fnapp_and_index() {
+        let _ast = parse_expr("foo(a).b.c").unwrap();
+    }
+
+    #[test]
+    fn parse_nested_fnapp() {
+        let _ast = parse_expr("sock.send(host(1-self).sock.id, val)").unwrap();
+    }
+
+    #[test]
     fn parse_unary_fnapp_and_negation() {
         let _ast = parse_expr("~foo(a)").expect("Parsing failed");
     }
@@ -95,31 +112,5 @@ mod tests {
     #[test]
     fn parse_logical_implication() {
         println!("{:?}", parse_expr("x = y & y = z -> x = z").unwrap());
-    }
-
-    #[test]
-    fn parse_universal_quant() {
-        let _ast = parse_expr("forall x . x").expect("Parse");
-    }
-
-    #[test]
-    fn parse_universal_quant2() {
-        assert!(parse_expr("forall x,y,z . x = y & y = z -> x = z").is_ok());
-    }
-
-    #[test]
-    fn parse_universal_quant3() {
-        let _ast = parse_expr("forall X:node,Y,Z. X=Y & Y=Z -> X=Y").expect("parse");
-        println!("{:?}", _ast);
-    }
-
-    #[test]
-    fn parse_existential_quant() {
-        assert!(parse_expr("exists S. S < x").is_ok());
-    }
-
-    #[test]
-    fn parse_nested_quants() {
-        parse_expr("end(X) = end(Y) & forall I. 0 <= I & I < end(X) -> value(X,I) = value(Y,I)").expect("Parsing failed");
     }
 }

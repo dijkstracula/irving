@@ -44,29 +44,32 @@ number = @{ (ASCII_NONZERO_DIGIT ~ ASCII_DIGIT+ | ASCII_DIGIT) }
 // Declaration kinds: from ivy2/ivylang.ivy's `decl.parse()`.
 // Also from ivy/ivy_lexer.py.
 
-ACTION       = _{ "action" }
-ASSERT       = _{ "assert" }
-ASSUME       = _{ "assume" }
-ENSURE       = _{ "ensure" }
-REQUIRE      = _{ "require" }
-AXIOM        = _{ "axiom" }
-FUNCTION     = _{ "function" }
-RELATION     = _{ "relation" }
-INCLUDE      = _{ "include" }
+ACTION       = _{ "action"    }
+ALIAS        = _{ "alias"     }
+ASSERT       = _{ "assert"    }
+ASSUME       = _{ "assume"    }
+ENSURE       = _{ "ensure"    }
+REQUIRE      = _{ "require"   }
+AXIOM        = _{ "axiom"     }
+FUNCTION     = _{ "function"  }
+RELATION     = _{ "relation"  }
+INCLUDE      = _{ "include "  }
 VAR          = _{ "individual" | "var" }
-HEADER       = _{ "header" }
+GLOBAL       = _{ "global"    }
+HEADER       = _{ "header"    }
+IMPLEMENT    = _{ "implement" }
 INTERPRET    = _{ "interpret" }
 INVARIANT    = _{ "invariant" }
-MODULE       = _{ "module" }
+MODULE       = _{ "module"    }
 INSTANTIATE  = _{ "instantiate" }
-OBJECT       = _{ "object" }
+OBJECT       = _{ "object"   }
 INSTANCE     = _{ "instance" }
 AUTOINSTANCE = _{ "autoinstance" }
 IMPORT       = _{ "import" }
 EXPORT       = _{ "export" }
-INIT         = _{ "init" }
-AFTER        = _{ "after" }
-TYPE         = _{ "type" }
+INIT         = _{ "init"   }
+AFTER        = _{ "after"  }
+TYPE         = _{ "type"   }
 
 // These are not explicitly in ivy2's `decl.parse()` but I don't know how we
 // avoid having them
@@ -77,6 +80,7 @@ boollit = { "true" | "false" }
 
 reserved = {
   ACTION       
+| ALIAS
 | AXIOM
 | FUNCTION
 | RELATION
@@ -85,6 +89,7 @@ reserved = {
 | HEADER
 | INTERPRET
 | MODULE
+| IMPLEMENT
 | INSTANTIATE
 | OBJECT
 | INSTANCE

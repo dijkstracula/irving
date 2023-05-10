@@ -9,10 +9,10 @@ mod tests {
 
     const ACTION_FOO: &'static str = "action foo(a: int) returns (b: int) = { }";
 
-    const BEFORE_FOO_NO_FUNCDECL: &'static str = "before foo { }";
-    const BEFORE_FOO: &'static str = "before foo(a: int) { }";
+    //const BEFORE_FOO_NO_FUNCDECL: &'static str = "before foo { }";
+    //const BEFORE_FOO: &'static str = "before foo(a: int) { }";
 
-    const AFTER_FOO_NO_FUNCDECL: &'static str = "after foo(a: int) { }";
+    //const AFTER_FOO_NO_FUNCDECL: &'static str = "after foo(a: int) { }";
     const AFTER_FOO: &'static str = "after foo(a: int) returns (b: int) { }";
 
     fn ast_to_decls(decls: Vec<&str>) -> Result<Vec<ast::Decl>> {
@@ -40,8 +40,8 @@ mod tests {
             ast::ActionDecl {
                 name: vec!("foo".to_owned()),
                 kind: ast::ActionKind::Internal,
-                params: vec!(ast::Param{ id: "a".to_owned(), sort: Some("int".to_owned())}),
-                ret: Some(ast::Param{id: "b".to_owned(), sort: Some("int".to_owned())}),
+                params: vec!(ast::Param{ id: "a".to_owned(), sort: Some(vec!("int".to_owned()))}),
+                ret: Some(ast::Param{id: "b".to_owned(), sort: Some(vec!("int".to_owned()))}),
                 body: Some(vec!())
             }
         );
@@ -50,8 +50,8 @@ mod tests {
         assert_eq!(mixin,
             rewriter::Mixin {
                 name: "foo".to_owned(),
-                params: Some(vec!(ast::Param{ id: "a".to_owned(), sort: Some("int".to_owned())})),
-                ret: Some(ast::Param{id: "b".to_owned(), sort: Some("int".to_owned())}),
+                params: Some(vec!(ast::Param{ id: "a".to_owned(), sort: Some(vec!("int".to_owned()))})),
+                ret: Some(ast::Param{id: "b".to_owned(), sort: Some(vec!("int".to_owned()))}),
                 pre: None,
                 body: Some(vec!()),
                 post: None,
@@ -76,8 +76,8 @@ mod tests {
         assert_eq!(mixin,
             rewriter::Mixin {
                 name: "foo".to_owned(),
-                params: Some(vec!(ast::Param{ id: "a".to_owned(), sort: Some("int".to_owned())})),
-                ret: Some(ast::Param{id: "b".to_owned(), sort: Some("int".to_owned())}),
+                params: Some(vec!(ast::Param{ id: "a".to_owned(), sort: Some(vec!("int".to_owned()))})),
+                ret: Some(ast::Param{id: "b".to_owned(), sort: Some(vec!("int".to_owned()))}),
                 pre: None,
                 body: Some(vec!()),
                 post: Some(vec!()),

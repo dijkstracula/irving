@@ -1,6 +1,6 @@
-use pest::{pratt_parser::{Assoc, Op, PrattParser}, iterators::Pairs};
+use pest::{pratt_parser::{Assoc, Op, PrattParser}, iterators::Pairs, error::ErrorVariant};
 use pest_consume::{Parser, Error, match_nodes};
-use crate::ast::{self};
+use crate::ast::{self, Symbol, ImportDecl};
 
 // include the grammar file so that Cargo knows to rebuild this file on grammar
 // changes (c.f. the Calyx frontend compiler)
@@ -46,8 +46,8 @@ lazy_static::lazy_static! {
 
 
         // Postfix
-        // TODO: array indexing
-        .op(Op::postfix(Rule::fnapp_args));
+        .op(Op::postfix(Rule::fnapp_args))
+        .op(Op::postfix(Rule::index));
 }
 
 fn parse_expr(pairs: Pairs<Rule>) -> Result<ast::Expr> {
@@ -128,6 +128,10 @@ fn parse_expr(pairs: Pairs<Rule>) -> Result<ast::Expr> {
                 .collect::<Result<Vec<_>>>()?;
             Ok(ast::Expr::App(ast::AppExpr { func: Box::new(lhs?), args }))
         },
+        Rule::index => {
+            let idx = parse_expr(op.into_inner());
+            Ok(ast::Expr::Index(ast::IndexExpr { lhs: Box::new(lhs?), idx: Box::new(idx?) }))
+        }
         _ => unimplemented!()
     })
     .parse(pairs)
@@ -160,7 +164,7 @@ impl IvyParser {
     fn param(input: Node) -> Result<ast::Param> {
         match_nodes!(
         input.into_children();
-        [symbol(id), symbol(sort)] => Ok(ast::Param {id, sort: Some(sort) }),
+        [symbol(id), ident(sort)] => Ok(ast::Param {id, sort: Some(sort) }),
         [symbol(id)] => Ok(ast::Param {id, sort: None })
         )
     }
@@ -281,6 +285,12 @@ impl IvyParser {
         )
     }
 
+    pub fn alias_decl(input: Node) -> Result<(ast::Symbol, ast::Expr)> {
+        match_nodes!(
+        input.into_children();
+        [symbol(lhs), expr(rhs)] => Ok((lhs, rhs)))
+    }
+
     pub fn axiom_decl(input: Node) -> Result<ast::Expr> {
         match_nodes!(
         input.into_children();
@@ -303,6 +313,13 @@ impl IvyParser {
         )
     }
 
+    pub fn enum_decl(input: Node) -> Result<Vec<Symbol>> {
+        match_nodes!(
+        input.into_children();
+            [symbol(cstrs)..] => Ok(cstrs.collect())
+        )
+    }
+
     pub fn export_decl(input: Node) -> Result<ast::ExportDecl> {
         match_nodes!(
         input.into_children();
@@ -314,12 +331,58 @@ impl IvyParser {
             ),
         )
     }
+
     pub fn function_decl(input: Node) -> Result<ast::FunctionDecl> {
         match_nodes!(
         input.into_children();
             [decl_sig(ast::DeclSig{name, params}), symbol(ret)] => Ok(
                 ast::FunctionDecl{name, params, ret}
             ),
+        )
+    }
+
+    pub fn global_decl(input: Node) -> Result<Vec<ast::Decl>> {
+        match_nodes!(
+        input.into_children();
+            [decl_block(decls)] => Ok(decls)
+        )
+    }
+
+    pub fn implement_decl(input: Node) -> Result<ast::ActionDecl> {
+        // XXX: Looks like `handle_before_after` in ivy_parser.py just treats
+        // implement like defining an action, modulo internal name mangling.
+        match_nodes!(
+        input.into_children();
+            [decl_sig(ast::DeclSig{name, params}), decl_ret(ret), decl_block(body)] => Ok(
+                ast::ActionDecl{name, kind: ast::ActionKind::Internal, params, ret, body: Some(body)}
+            ),
+            [decl_sig(ast::DeclSig{name, params}), decl_block(body)] => Ok(
+                ast::ActionDecl{name, kind: ast::ActionKind::Internal, params, ret: None, body: Some(body)}
+            ),
+        )
+    }
+
+    pub fn import_decl(input: Node) -> Result<ImportDecl> {
+        let span = input.as_pair().as_span(); // Irritating!
+
+        match_nodes!(
+        input.into_children();
+            [decl_sig(ast::DeclSig{mut name, params})] => {
+                if name.len() > 1 {
+                    Err(Error::new_from_span(
+                        ErrorVariant::<Rule>::CustomError { message: "Need an unqualified isolate name".into() }, 
+                        span))
+                } else { 
+                    Ok(ast::ImportDecl{name: name.pop().unwrap(), params})
+                }
+            }
+        )
+    }
+
+    pub fn include_decl(input: Node) -> Result<Symbol> {
+        match_nodes!(
+        input.into_children();
+            [symbol(module)] => Ok(module)
         )
     }
 
@@ -338,6 +401,21 @@ impl IvyParser {
         )
     }
 
+    pub fn extract_decl(input: Node) -> Result<ast::IsolateDecl> {
+        let span = input.as_pair().as_span(); // Irritating!
+
+        match_nodes!(
+        input.into_children();
+        [decl_sig(ast::DeclSig{mut name, params}), decl_block(body)] => {
+            if name.len() > 1 {
+                Err(Error::new_from_span(
+                    ErrorVariant::<Rule>::CustomError { message: "Need an unqualified isolate name".into() }, 
+                    span))
+            } else { 
+                Ok(ast::IsolateDecl{name: name.pop().unwrap(), params, body})
+            }
+        })
+    }
 
     pub fn module_decl(input: Node) -> Result<ast::ModuleDecl> {
         match_nodes!(
@@ -355,6 +433,13 @@ impl IvyParser {
         ))
     }
 
+    pub fn range_decl(input: Node) -> Result<(ast::Expr, ast::Expr)> {
+        match_nodes!(
+        input.into_children();
+            [expr(lo), expr(hi)] => Ok((lo, hi)),
+        )
+    }
+
     pub fn relation_decl(input: Node) -> Result<ast::Relation> {
         match_nodes!(
         input.into_children();
@@ -367,14 +452,19 @@ impl IvyParser {
     pub fn type_decl(input: Node) -> Result<ast::Type> {
         match_nodes!(
         input.into_children();
-        [symbol(sort), symbol(supr)] => Ok(
-            ast::Type {sort: sort, supr: Some(supr) }
+        [symbol(name), enum_decl(cstrs)] => Ok(
+            ast::Type {name, sort: ast::Sort::Enum(cstrs) }
         ),
-        [symbol(sort)] => Ok(
-            ast::Type {sort: sort, supr: None }
+        [symbol(name), range_decl((lo, hi))] => Ok(
+            ast::Type {name, sort: ast::Sort::Range(Box::new(lo), Box::new(hi)) }
+        ),
+        [symbol(name), symbol(supr)] => Ok(
+            ast::Type {name, sort: ast::Sort::Subclass(supr) }
+        ),
+        [symbol(name)] => Ok(
+            ast::Type {name, sort: ast::Sort::Uninterpreted }
         ))
     }
-
 
     pub fn var_decl(input: Node) -> Result<ast::Term> {
         match_nodes!(
@@ -387,9 +477,15 @@ impl IvyParser {
         input.into_children();
         [action_decl(decl)]   => Ok(ast::Decl::Action(decl)),
         [after_decl(decl)]    => Ok(ast::Decl::AfterAction(decl)),
+        [alias_decl((l,r))]   => Ok(ast::Decl::Alias(l, r)),
         [axiom_decl(fmla)]    => Ok(ast::Decl::Axiom(fmla)),
         [export_decl(fmla)]   => Ok(ast::Decl::Export(fmla)),
+        [extract_decl(decl)]  => Ok(ast::Decl::Isolate(decl)),
+        [global_decl(decls)]  => Ok(ast::Decl::Globals(decls)),
         [function_decl(decl)] => Ok(ast::Decl::Function(decl)),
+        [implement_decl(decl)] => Ok(ast::Decl::Action(decl)),
+        [import_decl(decl)]   => Ok(ast::Decl::Import(decl)),
+        [include_decl(module)] => Ok(ast::Decl::Include(module)),
         [invariant_decl(fmla)] => Ok(ast::Decl::Invariant(fmla)),
         [instance_decl(decl)] => Ok(ast::Decl::Instance(decl)),
         [module_decl(decl)]   => Ok(ast::Decl::Module(decl)),
@@ -496,9 +592,10 @@ impl IvyParser {
     pub fn stmt(input: Node) -> Result<ast::Stmt> {
         match_nodes!(
         input.into_children();
-        [actions(actions)] => Ok(ast::Stmt::CompoundActions(actions)),
+        [actions(actions)]  => Ok(ast::Stmt::CompoundActions(actions)),
         [if_stmt(stmt)]     => Ok(ast::Stmt::If(stmt)),
         [while_stmt(stmt)]  => Ok(ast::Stmt::While(stmt)),
+        [expr(expr)]        => Ok(ast::Stmt::Expr(expr)),
         )
     }
 
@@ -532,7 +629,11 @@ impl IvyParser {
             Ok(ast::Prog { 
                 major_version: major, 
                 minor_version: minor,
-                decls: decls.collect() })
+                top: ast::IsolateDecl{
+                    name: "top".into(),
+                    params: vec!(),
+                    body: decls.collect() 
+                }})
         })
     }
 }

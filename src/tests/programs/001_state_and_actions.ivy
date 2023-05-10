@@ -4,7 +4,7 @@
 
 type id
 type node
-# type color = {red,green,blue}
+type color = {red,green,blue}
 
 relation link_as_rel(X: node, Y: node)
 function link_as_fn(X: node, Y: node): bool

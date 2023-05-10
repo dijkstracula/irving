@@ -175,7 +175,7 @@ impl Module {
     }
 
     pub fn handle_prog(&mut self, prog: Prog) -> Result<()> {
-        prog.decls.into_iter()
+        prog.top.body.into_iter()
             .map(|decl| self.handle_decl(decl))
             .collect::<Result<()>>()
     }

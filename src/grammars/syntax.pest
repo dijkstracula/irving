@@ -2,12 +2,13 @@ COMMENT = _{ !SOI ~ "#" ~ !"lang " ~ (!"\n" ~ ANY)* }
 
 // Expressions
 
+ident = { symbol ~ ("." ~ symbol)* }
+
 // A param is a token with an optional type annotation.  These are for things
 // like quantifier and fn argument lists.
-param = { symbol ~ ( ":" ~ symbol)? }
+param = { symbol ~ ( ":" ~ ident)? }
 paramlist = { param ~ ("," ~ param)* }
 
-ident = { symbol ~ ("." ~ symbol)* }
 
 // A term is a fully-qualified identifier with an optional type annotation.
 term = { ident ~ ( ":" ~ ident)? }
@@ -28,21 +29,25 @@ atom            = _{ prefix_op? ~ primary ~ postfix_op? }
     infix_op    = _{ IFF | ARROW | 
                      PLUS | MINUS | TIMES | DIV |
                      LT | LE | GT | GE | EQ | NEQ |
-                     AND | OR | ISA }
-    postfix_op  = _{ fnapp_args }
+                     AND | OR | ISA | DOT }
+    postfix_op  = _{ fnapp_args | index }
 primary         = _{ term | number | boollit | "(" ~ simple_expr ~ ")" }
 
 //TODO: contemplate renamining this as just "fnapp"?
-//TODO: square bracket notation too
+//TODO: should these be simple_exprs?
 fnapp_args = { "(" ~ (expr ~ ("," ~ expr)* )? ~ ")" }
+//TODO: only one dimension of indexing, right?
+index      = { "[" ~ simple_expr ~ "]" }
 
+// Types
+
+enum_decl  = { "{" ~ symbol ~ ("," ~ symbol)* ~ "}" }
+range_decl = { "{" ~ expr ~ ".." ~ expr ~ "}" }
 
 // Decls
 
 decl_ret   = { "returns" ~ "(" ~ param ~ ")" } //TODO: needs to be a paramlist
-
 decl_sig =  { ident ~ ("(" ~ paramlist ~ ")")? }
-
 decl_block = { "{" ~ decl* ~ ";"? ~ "}" }
 
 include_decl      = { INCLUDE ~ symbol }
@@ -51,20 +56,25 @@ var_decl          = { VAR ~ term }
 after_decl        = { AFTER  ~ (decl_sig ~ decl_ret?)? ~ decl_block }
 before_decl       = { BEFORE ~ (decl_sig ~ decl_ret?)? ~ decl_block }
 
+alias_decl        = { ALIAS ~ symbol ~ "=" ~ expr }
 axiom_decl        = { AXIOM ~ expr }
 
 function_decl     = { FUNCTION ~ decl_sig ~ ":" ~ symbol }
 relation_decl     = { RELATION ~ decl_sig }
 
+global_decl       = { GLOBAL ~ decl_block }
 module_decl       = { MODULE ~ decl_sig ~ "=" ~ decl_block }
 object_decl       = { OBJECT ~ decl_sig ~ "=" ~ decl_block }
 extract_decl      = { EXTRACT ~ decl_sig ~ "=" ~ decl_block }
+
 action_decl       = { ACTION ~ decl_sig ~ decl_ret? ~ ("=" ~ decl_block)? }
+import_decl       = { IMPORT ~ ACTION ~ decl_sig }
 export_decl       = { EXPORT ~ (ident | action_decl) }
+implement_decl    = { IMPLEMENT ~ decl_sig ~ decl_ret? ~ decl_block }
 
 instance_decl     = { INSTANCE ~ ident ~ ":" ~ decl_sig }
 
-type_decl         = { TYPE ~ symbol ~ ("of" ~ symbol)?} //superclass might have to be more than a symbol
+type_decl         = { TYPE ~ symbol ~ (("=" ~ (range_decl | enum_decl)) | ("of" ~ symbol))? } // superclass might have to be more than a symbol
 
 invariant_decl    = { INVARIANT ~ expr }
 
@@ -73,16 +83,19 @@ header_decl       = { HEADER ~ symbol }
 interpret_decl    = { INTERPRET ~ symbol }
 instantiate_decl  = { INSTANTIATE ~ symbol }
 autoinstance_decl = { AUTOINSTANCE ~ decl_sig }
-import_decl       = { IMPORT ~ symbol }
 
 decl = {
       action_decl
+    | alias_decl
     | axiom_decl
     | function_decl
     | relation_decl
     | include_decl
     | var_decl
     | header_decl
+    | global_decl
+    | implement_decl
+    | instance_decl
     | interpret_decl
     | invariant_decl
     | module_decl
@@ -131,6 +144,7 @@ stmt = {
     | return_stmt
     | while_stmt
     | var_decl // or something??  Feels weird to mix a decl into a stmt like this.
+    | expr
 }
 
 // Toplevels 

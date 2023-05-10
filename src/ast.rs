@@ -28,6 +28,12 @@ pub struct AppExpr {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct IndexExpr {
+    pub lhs: Box<Expr>,
+    pub idx: Box<Expr>
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[allow(clippy::large_enum_variant)]
 pub enum Formula {
     Forall {
@@ -54,6 +60,8 @@ pub enum Expr {
     Formula(Formula),
 
     Identifier(Ident),
+
+    Index(IndexExpr),
 
     Number(i64),
 
@@ -127,10 +135,23 @@ pub enum ExportDecl {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct ImportDecl {
+    pub name: Symbol,
+    pub params: Vec<Param>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct InstanceDecl {
     pub name: Vec<Symbol>,
     pub sort: Vec<Symbol>,
     pub args: Vec<Param>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct IsolateDecl {
+    pub name: Symbol,
+    pub params: Vec<Param>,
+    pub body: Vec<Decl>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -150,7 +171,7 @@ pub struct ObjectDecl {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Param {
     pub id: Symbol,
-    pub sort: Option<Symbol>,
+    pub sort: Option<Ident>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -160,9 +181,17 @@ pub struct Relation {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum Sort {
+    Range(Box<Expr>, Box<Expr>),
+    Enum(Vec<Symbol>),
+    Subclass(Symbol),
+    Uninterpreted,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Type {
-    pub sort: Symbol,
-    pub supr: Option<Symbol>,
+    pub name: Symbol,
+    pub sort: Sort
     /* spec: TypeSpec */
 }
 
@@ -181,11 +210,17 @@ pub enum Decl {
 
     AfterAction(AfterDecl),
 
+    Alias(Symbol, Expr),
+
     Axiom(Expr),
 
     BeforeAction(BeforeDecl),
 
     Export(ExportDecl),
+
+    Import(ImportDecl),
+
+    Isolate(IsolateDecl),
 
     Function(FunctionDecl),
 
@@ -193,13 +228,13 @@ pub enum Decl {
         file: String,
     },
 
+    Globals(Vec<Decl>),
+
     Group {
         decls: Vec<Decl>,
     },
 
-    Include {
-        file: Expr,
-    },
+    Include(Symbol),
 
     Instance(InstanceDecl),
 
@@ -248,7 +283,8 @@ pub struct While {
 pub enum Stmt {
     CompoundActions(Vec<Action>),
     If(If),
-    While(While)
+    While(While),
+    Expr(Expr),
 }
 
 // Actions
@@ -299,5 +335,5 @@ pub struct Prog {
     pub major_version: u8,
     pub minor_version: u8,
 
-    pub decls: Vec<Decl>
+    pub top: IsolateDecl,
 }

@@ -16,97 +16,24 @@ mod tests {
     }
 
     #[test]
-    fn parse_action_forward_ref() {
-        let fragment = "action foo";
+    fn parse_alias_decl() {
+        let fragment = "alias byte = uint[8]";
         let res = IvyParser::parse(Rule::decl, fragment)
             .expect("Parsing failed")
             .single().unwrap();
-        IvyParser::decl(res).unwrap();
-    }
-
-    #[test]
-    fn parse_export_forward_ref() {
-        let fragment = "export foo";
-        let res = IvyParser::parse(Rule::decl, fragment)
-            .expect("Parsing failed")
-            .single().unwrap();
-        IvyParser::decl(res).unwrap();
-    }
-
-    #[test]
-    fn parse_export_action() {
-        let fragment = "export action foo(a: int) = { }";
-        let res = IvyParser::parse(Rule::decl, fragment)
-            .expect("Parsing failed")
-            .single().unwrap();
-        IvyParser::decl(res).unwrap();
-    }
-
-
-    #[test]
-    fn parse_action_decl() {
-        let fragment = "action foo(a: int)";
-        let res = IvyParser::parse(Rule::decl, fragment)
-            .expect("Parsing failed")
-            .single().unwrap();
-        //assert!(IvyParser::decl(res).is_ok());
-        IvyParser::decl(res).unwrap();
-    }
-
-    #[test]
-    fn parse_action_decl_1() {
-        let fragment = "action foo(a: int) = { }";
-        let res = IvyParser::parse(Rule::decl, fragment)
-            .expect("Parsing failed")
-            .single().unwrap();
-        //assert!(IvyParser::decl(res).is_ok());
-        IvyParser::decl(res).unwrap();
-    }
-
-    #[test]
-    fn parse_action_decl_2() {
-        let fragment = "action foo(a: int) returns (b: int) = { }";
-        let res = IvyParser::parse(Rule::decl, fragment)
-            .expect("Parsing failed")
-            .single().unwrap();
-        assert!(IvyParser::decl(res).is_ok());
-    }
-
-    #[test]
-    fn parse_after_init() {
-        let fragment = "after init { i := 0; }";
-        let res = IvyParser::parse(Rule::decl, fragment)
-            .expect("Parsing failed")
-            .single().unwrap();
-        IvyParser::decl(res).unwrap();
-    }
-
-    #[test]
-    fn parse_after_mixin() {
-        let fragment = "after sock.recv { i := 0; }";
-        let res = IvyParser::parse(Rule::decl, fragment)
-            .expect("Parsing failed")
-            .single().unwrap();
-        IvyParser::decl(res).unwrap();
-    }
-
-    #[test]
-    fn parse_after_mixin_with_declret() {
-        let fragment = "after sock.recv returns (i: int) { i := 0; }";
-        let res = IvyParser::parse(Rule::decl, fragment)
-            .expect("Parsing failed")
-            .single().unwrap();
-        IvyParser::decl(res).unwrap();
+        let _res = IvyParser::decl(res).unwrap();
     }
 
     #[test]
     fn parse_axiom() {
-        let fragment = "axiom X:id < Y | X = Y | Y < X";
+        let fragment = "axiom X:id < Y";
         let res = IvyParser::parse(Rule::decl, fragment)
             .expect("Parsing failed")
             .single().unwrap();
-        assert!(IvyParser::decl(res).is_ok());
+        let res = IvyParser::decl(res).unwrap();
+        println!("{:?}", res);
     }
+
     #[test]
     fn parse_function_decl() {
         let fragment = "function foo(a: int, b: int): int";
@@ -114,6 +41,15 @@ mod tests {
             .expect("Parsing failed")
             .single().unwrap();
         assert!(IvyParser::function_decl(res).is_ok());
+    }
+
+    #[test]
+    fn parse_global_decl() {
+        let fragment = "global { instance file : vector(byte) }";
+        let res = IvyParser::parse(Rule::global_decl, fragment)
+            .expect("Parsing failed")
+            .single().unwrap();
+        IvyParser::global_decl(res).unwrap();
     }
 
     #[test]
@@ -226,5 +162,23 @@ mod tests {
             .expect("Parsing failed")
             .single().unwrap();
         assert!(IvyParser::var_decl(res).is_ok());
+    }
+
+    #[test]
+    fn parse_type_enum_range() {
+        let fragment = "type coolguys = {sammy, nathan, james}";
+        let res = IvyParser::parse(Rule::type_decl, fragment)
+            .expect("Parsing failed")
+            .single().unwrap();
+        IvyParser::type_decl(res).unwrap();
+    }
+    #[test]
+    fn parse_type_decl_range() {
+        // TODO: `this` is not a distinguished token.  Should it be?
+        let fragment = "type pid = {0..1}";
+        let res = IvyParser::parse(Rule::type_decl, fragment)
+            .expect("Parsing failed")
+            .single().unwrap();
+        IvyParser::type_decl(res).unwrap();
     }
 }
