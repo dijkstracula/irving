@@ -71,6 +71,10 @@ INIT         = _{ "init"   }
 AFTER        = _{ "after"  }
 TYPE         = _{ "type"   }
 
+IF =     _{ "if" }
+WHILE =  _{ "while" }
+RETURN = _{" return "}
+
 // These are not explicitly in ivy2's `decl.parse()` but I don't know how we
 // avoid having them
 BEFORE       = _{ "before" }
@@ -79,17 +83,23 @@ EXTRACT      = _{ "extract" | "process" }
 boollit = { "true" | "false" }
 
 reserved = {
-  ACTION       
+  ACTION
 | ALIAS
+| ASSERT
+| ASSUME
+| ENSURE
+| REQUIRE
 | AXIOM
 | FUNCTION
 | RELATION
 | INCLUDE
 | VAR
+| GLOBAL
 | HEADER
-| INTERPRET
-| MODULE
 | IMPLEMENT
+| INTERPRET
+| INVARIANT
+| MODULE
 | INSTANTIATE
 | OBJECT
 | INSTANCE
@@ -99,10 +109,12 @@ reserved = {
 /* | INIT */
 | AFTER
 | TYPE
+| IF
+| WHILE
+| RETURN
 | BEFORE
 | EXTRACT
-| FORALL
-| EXISTS
+| boollit
 }
 
 symbol = @{ !reserved ~ ASCII_ALPHA ~ ("_" | ASCII_ALPHANUMERIC)* }

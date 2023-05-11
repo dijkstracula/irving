@@ -117,6 +117,7 @@ decl = {
 assign_action = { (var_decl | expr) ~ ":=" ~ expr} //TODO
 assert_action = { ASSERT ~ expr}
 assume_action = { ASSUME ~ expr}
+call_action =   { expr }
 ensure_action = { ENSURE ~ expr}
 requires_action = { REQUIRE ~ expr}
 
@@ -124,6 +125,7 @@ action = {
       assign_action
     | assert_action
     | assume_action
+    | call_action
     | ensure_action
     | requires_action
 }

@@ -80,6 +80,14 @@ fn parse_expr(pairs: Pairs<Rule>) -> Result<Expr> {
                 .collect::<Vec<_>>();
             Ok(Expr::Identifier(results))
         }
+        Rule::boollit => {
+            let val = match primary.as_str() {
+                "true" => true,
+                "false" => false,
+                _ => unreachable!()
+            };
+            Ok(Expr::Boolean(val))
+        }
         Rule::number => {
             let val: i64 = primary.as_str().parse::<>().unwrap();
             Ok(Expr::Number(val))
@@ -510,6 +518,7 @@ impl IvyParser {
         [assert_action(action)] => Ok(Action::Assert(action)),
         [assign_action(action)] => Ok(Action::Assign(action)),
         [assume_action(action)] => Ok(Action::Assume(action)),
+        [call_action(expr)]     => Ok(Action::Call(expr)),
         [ensure_action(action)] => Ok(Action::Ensure(action)),
         [requires_action(action)] => Ok(Action::Requires(action))
         )
@@ -547,6 +556,17 @@ impl IvyParser {
         input.into_children();
         [expr(pred)] => Ok(AssumeAction{pred}),
         )
+    }
+
+    pub fn call_action(input: Node) -> Result<AppExpr> {
+        let span = input.as_pair().as_span(); // Irritating!
+
+        match_nodes!(
+        input.into_children();
+        [expr(call)] => match call {
+            Expr::App(call) => Ok(call),
+            _ => Err(Error::new_from_span(ErrorVariant::<Rule>::CustomError { message: format!("Expected function call, got {:?}", call) }, span))
+        })
     }
 
     pub fn ensure_action(input: Node) -> Result<EnsureAction> {
@@ -597,7 +617,7 @@ impl IvyParser {
     pub fn stmt(input: Node) -> Result<Stmt> {
         match_nodes!(
         input.into_children();
-        [actions(actions)]  => Ok(Stmt::CompoundActions(actions)),
+        [actions(actions)]  => Ok(Stmt::ActionSequence(actions)),
         [if_stmt(stmt)]     => Ok(Stmt::If(stmt)),
         [while_stmt(stmt)]  => Ok(Stmt::While(stmt)),
         [expr(expr)]        => Ok(Stmt::Expr(expr)),
