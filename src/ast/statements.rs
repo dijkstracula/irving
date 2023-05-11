@@ -21,7 +21,7 @@ pub struct While {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[allow(clippy::large_enum_variant)]
 pub enum Stmt {
-    CompoundActions(Vec<Action>),
+    ActionSequence(Vec<Action>),
     If(If),
     While(While),
     Expr(Expr),

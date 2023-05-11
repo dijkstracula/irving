@@ -33,6 +33,7 @@ pub enum Action {
     Assert(AssertAction),
     Assign(AssignAction),
     Assume(AssumeAction),
+    Call(AppExpr),
     Ensure(EnsureAction),
     Requires(RequiresAction),
 }

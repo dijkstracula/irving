@@ -9,13 +9,13 @@ use crate::ast::expressions::*;
 use crate::ast::toplevels::*;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum IsolateError {
+pub enum ModuleError {
     DuplicateDecl(Decl),
     MixinMismatch,
     MissingSubmodule(String)
 }
 
-type Result<T> = std::result::Result<T, IsolateError>;
+type Result<T> = std::result::Result<T, ModuleError>;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Mixin {
@@ -90,7 +90,7 @@ impl Mixin {
         if self.name == n {
             Ok(())
         } else {
-            Err(IsolateError::MixinMismatch)
+            Err(ModuleError::MixinMismatch)
         }
     }
 
@@ -123,16 +123,19 @@ impl Mixin {
             (Some(t1), None) => Ok(Some(t1)),
             (None, Some(t2)) => Ok(Some(t2)),
             (Some(t1), Some(t2)) if t1 == t2 => Ok(Some(t2)),
-            _ => Err(IsolateError::MixinMismatch)
+            _ => Err(ModuleError::MixinMismatch)
         } 
     }
 
 }
 
+/// A module in the sense of the top level ivy_module.Module object.
+/// It feels like this is not the same thing as a `module` declaration
+/// so we should come up with a different name here.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Module {
     name: String,
-    globals: Vec<Decl>,
+    decls: Vec<Decl>,
     actions: HashMap<String, Mixin>,
 
     submodules: HashMap<String, Module>,
@@ -142,11 +145,12 @@ impl Module {
     pub fn new(name: String) -> Self {
         Module {
             name: name,
-            globals: Vec::new(),
+            decls: Vec::new(),
             actions: HashMap::new(),
             submodules: HashMap::new(),
         }
     } 
+
 
     pub fn handle_action_decl(&mut self, action: ActionDecl) -> Result<()> {
         match action.name.as_slice() {
@@ -162,7 +166,7 @@ impl Module {
             // to the appropriate submodule.
             [qualifier, ..] => {
                 match self.submodules.get_mut(qualifier) {
-                    None      => Err(IsolateError::MissingSubmodule(qualifier.to_owned())),
+                    None      => Err(ModuleError::MissingSubmodule(qualifier.to_owned())),
                     Some(sub) => sub.handle_action_decl(action),
                 }
             }

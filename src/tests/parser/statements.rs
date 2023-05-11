@@ -73,7 +73,7 @@ mod tests {
         let res = IvyParser::parse(Rule::stmt, fragment)
             .expect("Parsing failed")
             .single().unwrap();
-        assert!(IvyParser::stmt(res).is_ok());
+        IvyParser::stmt(res).unwrap();
     }
 
     #[test]
@@ -101,5 +101,19 @@ mod tests {
             .expect("Parsing failed")
             .single().unwrap();
         IvyParser::stmt(res).unwrap();
+    }
+
+    #[test]
+    fn parse_multi_stmt_while() {
+        let fragment = "while i > 0 {
+            sum := sum + f(i);
+            i := i - 1
+        }";
+
+        let res = IvyParser::parse(Rule::stmt, fragment)
+            .expect("Parsing failed")
+            .single().unwrap();
+        let res = IvyParser::stmt(res).unwrap();
+        println!("{:?}", res);
     }
 }

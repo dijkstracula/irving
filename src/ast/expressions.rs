@@ -73,6 +73,8 @@ pub enum Expr {
         rhs: Box<Expr>
     },
 
+    Boolean(bool),
+
     Formula(Formula),
 
     Identifier(Ident),
@@ -80,16 +82,6 @@ pub enum Expr {
     Index(IndexExpr),
 
     Number(i64),
-
-    Pi {
-        terms: Vec<Expr>,
-        body: Box<Expr>,
-    },
-
-    Subscript {
-        val: Box<Expr>,
-        subscripts: Vec<Expr>
-    },
 
     UnaryOp{op: Verb, expr: Box<Expr>},
 

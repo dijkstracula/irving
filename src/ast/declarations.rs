@@ -117,21 +117,13 @@ pub enum Decl {
 
     Export(ExportDecl),
 
-    Import(ImportDecl),
-
-    Isolate(IsolateDecl),
-
     Function(FunctionDecl),
-
-    Header {
-        file: String,
-    },
 
     Globals(Vec<Decl>),
 
-    Group {
-        decls: Vec<Decl>,
-    },
+    Import(ImportDecl),
+
+    Isolate(IsolateDecl),
 
     Include(Symbol),
 
