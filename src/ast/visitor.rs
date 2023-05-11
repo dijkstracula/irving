@@ -39,8 +39,6 @@ pub trait StatementVisitor<T> {
     fn visit_vardecl(&mut self, term: &Term) -> T;
     fn visit_typedecl(&mut self, name: &Symbol, sort: &Sort) -> T;
 
-    fn visit_expr<U> (&mut self, e: &Expr) -> U;
-
     // auto-visitation for intermediary AST nodes
 
 
@@ -49,7 +47,6 @@ pub trait StatementVisitor<T> {
             Stmt::ActionSequence(aa) => self.visit_action_sequence(aa),
             Stmt::If(i) => self.visit_if(i),
             Stmt::While(w) => self.visit_while(w),
-            Stmt::Expr(e) => self.visit_expr(e),
         }
     }
 

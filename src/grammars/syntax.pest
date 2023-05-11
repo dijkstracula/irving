@@ -146,7 +146,6 @@ stmt = {
     | return_stmt
     | while_stmt
     | var_decl // or something??  Feels weird to mix a decl into a stmt like this.
-    | expr
 }
 
 // Toplevels 

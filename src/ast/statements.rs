@@ -23,6 +23,5 @@ pub struct While {
 pub enum Stmt {
     ActionSequence(Vec<Action>),
     If(If),
-    While(While),
-    Expr(Expr),
+    While(While)
 }
