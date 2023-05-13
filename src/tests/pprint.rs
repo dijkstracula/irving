@@ -1,0 +1,54 @@
+#[cfg(test)]
+mod tests {
+    use pest_consume::Parser;
+    use crate::{parser::{Result, Rule, IvyParser}, ast::{expressions::Expr, pprint::PrettyPrinter, visitor::ExpressionVisitor}};
+
+    fn parse_expr(fragment: &str) -> Result<Expr> {
+        let res = IvyParser::parse(Rule::expr, fragment)
+            .expect("Parsing failed").single().unwrap();
+        IvyParser::expr(res)
+    }
+
+    #[test]
+    fn pprint_fnapp() {
+        let mut pp = PrettyPrinter::<String>::new();
+
+        let fragment = "foo(a, b, c)";
+        let _ast = parse_expr(fragment).expect("Parsing failed");
+
+        pp.visit_expr(&_ast).expect("traversal failed");
+        assert_eq!(fragment, pp.out);
+    }
+
+    #[test]
+    fn pprint_arith() {
+        let mut pp = PrettyPrinter::<String>::new();
+
+        let fragment = "43 - 1";
+        let _ast = parse_expr(fragment).expect("Parsing failed");
+        pp.visit_expr(&_ast).expect("traversal failed");
+        assert_eq!(fragment, pp.out);
+    }
+
+
+    #[test]
+    fn pprint_complex_expr() {
+        let mut pp = PrettyPrinter::<String>::new();
+
+        let fragment = "sock.send(host(1 - self).sock.id, val)";
+        let _ast = parse_expr(fragment).expect("Parsing failed");
+        pp.visit_expr(&_ast).expect("traversal failed");
+        assert_eq!(fragment, pp.out);
+    }
+
+    #[test]
+    fn pprint_formula() {
+        let mut pp = PrettyPrinter::<String>::new();
+
+        let fragment = "forall X:node, Y, Z . X = Y & Y = Z -> X = Y";
+        let _ast = parse_expr(fragment).expect("Parsing failed");
+        pp.visit_expr(&_ast).expect("traversal failed");
+        assert_eq!(fragment, pp.out);
+    }
+
+}
