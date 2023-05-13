@@ -1,44 +1,26 @@
 COMMENT = _{ !SOI ~ "#" ~ !"lang " ~ (!"\n" ~ ANY)* }
 
-// Expressions
-
-ident = { symbol ~ ("." ~ symbol)* }
-
 // A param is a token with an optional type annotation.  These are for things
-// like quantifier and fn argument lists.
+// like function argument lists.
 param = { symbol ~ ( ":" ~ ident)? }
 paramlist = { param ~ ("," ~ param)* }
 
-
-// A term is a fully-qualified identifier with an optional type annotation.
-term = { ident ~ ( ":" ~ ident)? }
-termlist = { term ~ ("," ~ term)* }
+// Expressions
 
 // https://pest.rs/book/precedence.html
-
-expr =  { 
-      exists
-    | forall 
-    | simple_expr
-}
-exists          =  { "exists" ~ paramlist ~ "." ~ expr }
-forall          =  { "forall" ~ paramlist ~ "." ~ expr }
-
-simple_expr     =  { atom ~ (infix_op ~ atom)* }
+expr            =  { atom ~ (infix_op ~ atom)* }
 atom            = _{ prefix_op? ~ primary ~ postfix_op? }
     prefix_op   = _{ UMINUS | NOT }
-    infix_op    = _{ IFF | ARROW | 
-                     PLUS | MINUS | TIMES | DIV |
+    infix_op    = _{ PLUS | MINUS | TIMES | DIV |
                      LT | LE | GT | GE | EQ | NEQ |
-                     AND | OR | ISA | DOT }
+                     AND | OR | DOT }
     postfix_op  = _{ fnapp_args | index }
-primary         = _{ term | number | boollit | "(" ~ simple_expr ~ ")" }
+primary         = _{ term | number | boollit | "(" ~ expr ~ ")" }
 
 //TODO: contemplate renamining this as just "fnapp"?
-//TODO: should these be simple_exprs?
 fnapp_args = { "(" ~ (expr ~ ("," ~ expr)* )? ~ ")" }
 //TODO: only one dimension of indexing, right?
-index      = { "[" ~ simple_expr ~ "]" }
+index      = { "[" ~ expr ~ "]" }
 
 // Types
 

@@ -5,7 +5,7 @@ mod tests {
     use crate::ast::declarations::*;
     use crate::ast::expressions::Param;
     use crate::rewriter;
-    use crate::parser::{IvyParser, Rule};
+    use crate::parser::ivy::{IvyParser, Rule};
 
     pub type Result<T> = std::result::Result<T, Error<Rule>>;
 

@@ -1,0 +1,22 @@
+// Grammar for first-order logic rules.
+
+LOGICVAR = @{ !reserved ~ ASCII_ALPHA_UPPER ~ ("_" | ASCII_ALPHANUMERIC)* }
+
+// aka simplevar in ivy_logic_utils
+logicvar         = { LOGICVAR ~ (":" ~ symbol)? }
+
+exists           =  { EXISTS ~ logicvar ~ ("," ~ logicvar)? ~ "." ~ fmla }
+forall           =  { FORALL ~ logicvar ~ ("," ~ logicvar)? ~ "." ~ fmla }
+
+logicsubscr      =  { symbol ("." symbol)* | THIS }
+
+logicterm        =  { atom ~ (infix_op ~ atom)* }
+logic_atom       = _{ prefix_op? ~ primary ~ postfix_op? }
+    lprefix_op   = _{ NOT }
+    linfix_op    = _{ IFF | ARROW |
+                     LT | LE | GT | GE | EQ | NEQ |
+                     AND | OR | DOT }
+    lpostfix_op  = _{ logicapp_args | index }
+primary          = _{ term | boollit | "(" ~ logicterm ~ ")" }
+
+logicapp_args    = { "(" ~ (term ~ ("," ~ term)* )? ~ ")" }

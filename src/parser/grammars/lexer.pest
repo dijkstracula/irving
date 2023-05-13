@@ -115,7 +115,16 @@ reserved = {
 | BEFORE
 | EXTRACT
 | boollit
+| EXISTS
+| FORALL
 }
 
-symbol = @{ !reserved ~ ASCII_ALPHA ~ ("_" | ASCII_ALPHANUMERIC)* }
+symbol   = @{ !reserved ~ ASCII_ALPHA       ~ ("_" | ASCII_ALPHANUMERIC)* }
 
+// An identifier is a program variable, possibly qualified with a module
+// prefix.
+ident = { symbol ~ ("." ~ symbol)* }
+
+// A term is a fully-qualified identifier with an optional type annotation.
+term = { ident ~ ( ":" ~ ident)? }
+termlist = { term ~ ("," ~ term)* }

@@ -2,7 +2,7 @@
 mod tests {
     use pest_consume::Parser;
     use crate::ast::expressions::*;
-    use crate::parser::{IvyParser, Result, Rule};
+    use crate::parser::ivy::{IvyParser, Result, Rule};
 
     // Expressions
 
@@ -105,10 +105,5 @@ mod tests {
     #[test]
     fn parse_fnapp_in_conj() {
         println!("{:?}", parse_expr("foo(a,b) & b").expect("Parsing failed"));
-    }
-
-    #[test]
-    fn parse_logical_implication() {
-        println!("{:?}", parse_expr("x = y & y = z -> x = z").unwrap());
     }
 }

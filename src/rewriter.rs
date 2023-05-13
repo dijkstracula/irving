@@ -6,7 +6,6 @@ use std::{collections::HashMap};
 
 use crate::ast::declarations::*;
 use crate::ast::expressions::*;
-use crate::ast::toplevels::*;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ModuleError {

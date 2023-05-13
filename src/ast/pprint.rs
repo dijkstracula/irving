@@ -1,7 +1,8 @@
+#![allow(dead_code)]
+#![allow(unused_variables)]
+
 use std::fmt::{Error, Write};
 
-use super::actions::*;
-use super::declarations::*;
 use super::expressions::*;
 use super::visitor::{ExpressionVisitor, StatementVisitor};
 

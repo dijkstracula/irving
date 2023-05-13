@@ -2,7 +2,7 @@
 mod tests {
     use pest_consume::Parser;
     use crate::ast::expressions::*;
-    use crate::parser::{IvyParser, Result, Rule};
+    use crate::parser::ivy::{IvyParser, Result, Rule};
 
     fn parse_expr(fragment: &str) -> Result<Expr> {
         let res = IvyParser::parse(Rule::expr, fragment)
@@ -18,6 +18,7 @@ mod tests {
     #[test]
     fn parse_universal_quant() {
         let _ast = parse_expr("forall x . x").expect("Parse");
+        println!("{:?}", _ast);
     }
 
     #[test]

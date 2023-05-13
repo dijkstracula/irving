@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
     use pest_consume::Parser;
-    use crate::parser::{IvyParser, Rule};
+    use crate::parser::ivy::{IvyParser, Rule};
 
     // Statements
 

@@ -1,3 +1,5 @@
+#![allow(unused_variables)]
+
 use super::actions::*;
 use super::declarations::*;
 use super::expressions::*;
