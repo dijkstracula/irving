@@ -4,45 +4,49 @@ use super::expressions::*;
 use super::statements::*;
 use super::toplevels::*;
 
-pub trait StatementVisitor<T> {
-    fn visit_prog(&mut self, p: &Prog) -> T;
+// TODO: Is the standard double-dispatch approach idiomatic for rust?
+// TODO: Feels like nodes need to control recursing into children.
+
+pub trait StatementVisitor<T, E> {
+    fn visit_prog(&mut self, p: &Prog) -> Result<T, E>;
 
     // Statements
-    fn visit_if(&mut self, p: &If) -> T;
-    fn visit_while(&mut self, p: &While) -> T;
-    fn visit_action_sequence(&mut self, actions: &Vec<Action>) -> T;
+    fn visit_if(&mut self, p: &If) -> Result<T, E>;
+    fn visit_while(&mut self, p: &While) -> Result<T, E>;
+    fn visit_action_sequence(&mut self, actions: &Vec<Action>) -> Result<T, E>;
 
     // Actions
-    fn visit_assert(&mut self, a: &AssertAction) -> T;
-    fn visit_assign(&mut self, a: &AssignAction) -> T;
-    fn visit_assume(&mut self, a: &AssumeAction) -> T;
-    fn visit_call(&mut self, e: &AppExpr) -> T;
-    fn visit_ensure(&mut self, e: &EnsureAction) -> T;
-    fn visit_requires(&mut self, e: &RequiresAction) -> T;
+    fn visit_assert(&mut self, a: &AssertAction) -> Result<T, E>;
+    fn visit_assign(&mut self, a: &AssignAction) -> Result<T, E>;
+    fn visit_assume(&mut self, a: &AssumeAction) -> Result<T, E>;
+    fn visit_call(&mut self, e: &AppExpr) -> Result<T, E>;
+    fn visit_ensure(&mut self, e: &EnsureAction) -> Result<T, E>;
+    fn visit_requires(&mut self, e: &RequiresAction) -> Result<T, E>;
 
     // Declarations
-    fn visit_action_decl(&mut self, action: &ActionDecl) -> T;
-    fn visit_after(&mut self, action: &AfterDecl) -> T;
-    fn visit_alias(&mut self, name: &Symbol, val: &Expr) -> T;
-    fn visit_axiom(&mut self, axiom: &Expr) -> T;
-    fn visit_before(&mut self, action: &BeforeDecl) -> T;
-    fn visit_export(&mut self, action: &ExportDecl) -> T;
-    fn visit_function(&mut self, fun: &FunctionDecl) -> T;
-    fn visit_globals(&mut self, defs: &Vec<Decl>) -> T;
-    fn visit_import(&mut self, action: &ImportDecl) -> T;
-    fn visit_include(&mut self, module: &Symbol) -> T;
-    fn visit_instance(&mut self, inst: &InstanceDecl) -> T;
-    fn visit_invariant(&mut self, inv: &Expr) -> T;
-    fn visit_module(&mut self, module: &ModuleDecl) -> T;
-    fn visit_object(&mut self, obj: &ObjectDecl) -> T;
-    fn visit_relation(&mut self, obj: &Relation) -> T;
-    fn visit_vardecl(&mut self, term: &Term) -> T;
-    fn visit_typedecl(&mut self, name: &Symbol, sort: &Sort) -> T;
+    fn visit_action_decl(&mut self, action: &ActionDecl) -> Result<T, E>;
+    fn visit_after(&mut self, action: &AfterDecl) -> Result<T, E>;
+    fn visit_alias(&mut self, name: &Symbol, val: &Expr) -> Result<T, E>;
+    fn visit_axiom(&mut self, axiom: &Expr) -> Result<T, E>;
+    fn visit_before(&mut self, action: &BeforeDecl) -> Result<T, E>;
+    fn visit_export(&mut self, action: &ExportDecl) -> Result<T, E>;
+    fn visit_function(&mut self, fun: &FunctionDecl) -> Result<T, E>;
+    fn visit_globals(&mut self, defs: &Vec<Decl>) -> Result<T, E>;
+    fn visit_import(&mut self, action: &ImportDecl) -> Result<T, E>;
+    fn visit_isolate(&mut self, action: &IsolateDecl) -> Result<T, E>;
+    fn visit_include(&mut self, module: &Symbol) -> Result<T, E>;
+    fn visit_instance(&mut self, inst: &InstanceDecl) -> Result<T, E>;
+    fn visit_invariant(&mut self, inv: &Expr) -> Result<T, E>;
+    fn visit_module(&mut self, module: &ModuleDecl) -> Result<T, E>;
+    fn visit_object(&mut self, obj: &ObjectDecl) -> Result<T, E>;
+    fn visit_relation(&mut self, obj: &Relation) -> Result<T, E>;
+    fn visit_vardecl(&mut self, term: &Term) -> Result<T, E>;
+    fn visit_typedecl(&mut self, name: &Symbol, sort: &Sort) -> Result<T, E>;
 
     // auto-visitation for intermediary AST nodes
 
 
-    fn visit_stmt(&mut self, s: &Stmt) -> T {
+    fn visit_stmt(&mut self, s: &Stmt) -> Result<T, E> {
         match s {
             Stmt::ActionSequence(aa) => self.visit_action_sequence(aa),
             Stmt::If(i) => self.visit_if(i),
@@ -50,7 +54,7 @@ pub trait StatementVisitor<T> {
         }
     }
 
-    fn visit_action(&mut self, a: &Action) -> T {
+    fn visit_action(&mut self, a: &Action) -> Result<T, E> {
         match a {
             Action::Assert(a) => self.visit_assert(a),
             Action::Assign(a) => self.visit_assign(a),
@@ -61,23 +65,57 @@ pub trait StatementVisitor<T> {
         }
     }
 
+    fn visit_decl(&mut self, decl: &Decl) -> Result<T, E> {
+        match decl {
+            Decl::Action(a) => self.visit_action_decl(a),
+            Decl::AfterAction(a) => self.visit_after(a),
+            Decl::Alias(name, val) => self.visit_alias(name, val),
+            Decl::Axiom(x) => self.visit_axiom(x),
+            Decl::BeforeAction(a) => self.visit_before(a),
+            Decl::Export(e) => self.visit_export(e),
+            Decl::Function(f) => self.visit_function(f),
+            Decl::Globals(g) => self.visit_globals(g),
+            Decl::Import(i) => self.visit_import(i),
+            Decl::Isolate(i) => self.visit_isolate(i),
+            Decl::Include(i) => self.visit_include(i),
+            Decl::Instance(i) => self.visit_instance(i),
+            Decl::Instantiate { name, prms } => todo!(),
+            Decl::Interpretation { itype, ctype } => todo!(),
+            Decl::Invariant(i) => self.visit_invariant(i),
+            Decl::Module(m) => self.visit_module(m),
+            Decl::Object(o) => self.visit_object(o),
+            Decl::Relation(r) => self.visit_relation(r),
+            Decl::Stmts(stmts) => {
+                // This will panic if there are no statements in the block.
+                // TODO: check the grammar to ensure this isn't actually possible.
+                let mut t: Option<T> = None;
+                for stmt in stmts {
+                    t = Some(self.visit_stmt(stmt)?);
+                }
+                Ok(t.unwrap())
+            }
+            Decl::Var(v) => self.visit_vardecl(v),
+            Decl::Type(t) => self.visit_typedecl(&t.name, &t.sort),
+        }
+    }
+
 
 }
 
-pub trait ExpressionVisitor<T> {
+pub trait ExpressionVisitor<T, E> {
     // Expressions
-    fn visit_app(&mut self, a: &AppExpr) -> T;
-    fn visit_binop(&mut self, lhs: &Expr, op: &Verb, rhs: &Expr) -> T;
-    fn visit_boolean(&mut self, b: &bool) -> T;
-    fn visit_formula(&mut self, fmla: &Formula) -> T;
-    fn visit_identifier(&mut self, ident: &Ident) -> T;
-    fn visit_index(&mut self, idx: &IndexExpr) -> T;
-    fn visit_number(&mut self, n: &i64) -> T;
-    fn visit_subscript(&mut self, n: &i64) -> T;
-    fn visit_unaryop(&mut self, op: &Verb, expr: &Expr) -> T;
-    fn visit_term(&mut self, term: &Term) -> T;
+    fn visit_app(&mut self, a: &AppExpr) -> Result<T, E>;
+    fn visit_binop(&mut self, lhs: &Expr, op: &Verb, rhs: &Expr) -> Result<T, E>;
+    fn visit_boolean(&mut self, b: &bool) -> Result<T, E>;
+    fn visit_formula(&mut self, fmla: &Formula) -> Result<T, E>;
+    fn visit_identifier(&mut self, ident: &Ident) -> Result<T, E>;
+    fn visit_index(&mut self, idx: &IndexExpr) -> Result<T, E>;
+    fn visit_number(&mut self, n: &i64) -> Result<T, E>;
+    fn visit_param(&mut self, p: &Param) -> Result<T, E>;
+    fn visit_unaryop(&mut self, op: &Verb, expr: &Expr) -> Result<T, E>;
+    fn visit_term(&mut self, term: &Term) -> Result<T, E>;
 
-    fn visit_expr(&mut self, e: &Expr) -> T {
+    fn visit_expr(&mut self, e: &Expr) -> Result<T, E> {
         match e {
             Expr::App(app) => self.visit_app(app),
             Expr::BinOp{lhs, op, rhs} => self.visit_binop(&lhs, op, &rhs),

@@ -152,6 +152,7 @@ impl Module {
     } 
 
 
+/* 
     pub fn handle_action_decl(&mut self, action: ActionDecl) -> Result<()> {
         match action.name.as_slice() {
             [] => panic!("Malformed AST: mod={:?}, act={:?}", self, action),
@@ -181,9 +182,10 @@ impl Module {
     }
 
     pub fn handle_prog(&mut self, prog: Prog) -> Result<()> {
-        prog.top.body.into_iter()
+        prog.tops.into_iter()
             .map(|decl| self.handle_decl(decl))
-            .collect::<Result<()>>()
+            .collect::<Result<_>>()
     }
+    */
 
 }

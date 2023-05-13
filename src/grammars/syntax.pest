@@ -15,6 +15,7 @@ term = { ident ~ ( ":" ~ ident)? }
 termlist = { term ~ ("," ~ term)* }
 
 // https://pest.rs/book/precedence.html
+
 expr =  { 
       exists
     | forall 

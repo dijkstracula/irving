@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use super::declarations::{Sort, Param};
+use super::declarations::{Sort};
 
 /// Corresponds to a file/line pairing, and possibly additionally docstrings to
 /// be reconstructed in the extracted code.
@@ -46,6 +46,12 @@ pub enum Formula {
         params: Vec<Param>,
         expr: Box<Expr>
     },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct Param {
+    pub id: Symbol,
+    pub sort: Option<Ident>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]

@@ -3,6 +3,7 @@ mod tests {
     use pest_consume::{Parser, Error};
     use crate::ast;
     use crate::ast::declarations::*;
+    use crate::ast::expressions::Param;
     use crate::rewriter;
     use crate::parser::{IvyParser, Rule};
 

@@ -654,7 +654,7 @@ impl IvyParser {
                 major_version: major, 
                 minor_version: minor,
                 top: IsolateDecl{
-                    name: "top".into(),
+                    name: "this".into(),
                     params: vec!(),
                     body: decls.collect() 
                 }})

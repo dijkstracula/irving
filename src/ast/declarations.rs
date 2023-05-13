@@ -82,12 +82,6 @@ pub struct ObjectDecl {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Param {
-    pub id: Symbol,
-    pub sort: Option<Ident>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Relation {
     pub name: Vec<String>,
     pub params: Vec<Param>
