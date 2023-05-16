@@ -78,6 +78,12 @@ mod tests {
     }
 
     #[test]
+    fn parse_annotated_this() {
+        let _ast = parse_expr("a : this").expect("Parsing failed");
+        assert_eq!(_ast, Expr::Term(Term{id: vec!("a".into()), sort: Some(vec!("this".into()))}));
+    }
+
+    #[test]
     fn parse_unary_fnapp() {
         let _ast = parse_expr("foo(a)").expect("Parsing failed");
     }

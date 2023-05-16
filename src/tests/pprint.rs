@@ -1,12 +1,18 @@
 #[cfg(test)]
 mod tests {
     use pest_consume::Parser;
-    use crate::{parser::ivy::{Result, Rule, IvyParser}, ast::{expressions::Expr, pprint::PrettyPrinter, visitor::ExpressionVisitor}};
+    use crate::{parser::ivy::{Result, Rule, IvyParser}, ast::{expressions::Expr, pprint::PrettyPrinter, visitor::ExpressionVisitor, logic::Fmla}};
 
     fn parse_expr(fragment: &str) -> Result<Expr> {
         let res = IvyParser::parse(Rule::expr, fragment)
             .expect("Parsing failed").single().unwrap();
         IvyParser::expr(res)
+    }
+
+    fn parse_fmla(fragment: &str) -> Result<Fmla> {
+        let res = IvyParser::parse(Rule::fmla, fragment)
+            .expect("Parsing failed").single().unwrap();
+        IvyParser::fmla(res)
     }
 
     #[test]
@@ -46,8 +52,8 @@ mod tests {
         let mut pp = PrettyPrinter::<String>::new();
 
         let fragment = "forall X:node, Y, Z . X = Y & Y = Z -> X = Y";
-        let _ast = parse_expr(fragment).expect("Parsing failed");
-        pp.visit_expr(&_ast).expect("traversal failed");
+        let _ast = parse_fmla(fragment).expect("Parsing failed");
+        pp.visit_formula(&_ast).expect("traversal failed");
         assert_eq!(fragment, pp.out);
     }
 

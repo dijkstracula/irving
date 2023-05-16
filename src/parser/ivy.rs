@@ -4,19 +4,24 @@ use pest_consume::{Parser, Error, match_nodes};
 use crate::ast::actions::*;
 use crate::ast::declarations::*;
 use crate::ast::expressions::*;
+use crate::ast::logic::*;
 use crate::ast::statements::*;
 use crate::ast::toplevels::*;
 
 use crate::parser::expressions::parse_expr;
 
+use super::logic::parse_log_term;
+
 // include the grammar file so that Cargo knows to rebuild this file on grammar
 // changes (c.f. the Calyx frontend compiler)
 const _LEXER: &str = include_str!("./grammars/lexer.pest");
 const _GRAMMAR: &str = include_str!("grammars/syntax.pest");
+const _LOGIC: &str = include_str!("grammars/logic.pest");
 
 #[derive(Parser)]
 #[grammar = "parser/grammars/lexer.pest"]
 #[grammar = "parser/grammars/syntax.pest"]
+#[grammar = "parser/grammars/logic.pest"]
 pub struct IvyParser;
 
 
@@ -43,6 +48,10 @@ impl IvyParser {
     fn symbol(input: Node) -> Result<String> {
         Ok(input.as_str().to_owned())
     }
+
+    fn LOGICVAR(input: Node) -> Result<String> {
+        Ok(input.as_str().to_owned())
+    }
     
     fn param(input: Node) -> Result<Param> {
         match_nodes!(
@@ -64,6 +73,7 @@ impl IvyParser {
         match_nodes!(
         input.into_children();
         [symbol(qualifiers)..] => Ok(qualifiers.collect()),
+        [THIS(_)] => Ok(vec!("this".into())),
         )
     }
 
@@ -83,8 +93,52 @@ impl IvyParser {
         })
     }
 
+    fn THIS(input: Node) -> Result<Expr> {
+        Ok(Expr::This)
+    }
+
 
     // Utils
+
+    // Formulas
+
+    fn logicvar(input: Node) -> Result<Param> {
+        match_nodes!(
+        input.into_children();
+        [LOGICVAR(id), symbol(sort)] => Ok(Param {id, sort: Some(vec!(sort)) }),
+        [LOGICVAR(id)]               => Ok(Param {id, sort: None })
+        )
+    }
+
+    pub fn log_term(input: Node) -> Result<Expr> {
+        let pairs = input.as_pair().to_owned().into_inner();
+        parse_log_term(pairs)
+    }
+
+    pub fn forall(input: Node) -> Result<Forall> {
+        match_nodes!(
+        input.into_children();
+        [logicvar(vars).., fmla(f)] => {
+            Ok(Forall { vars: vars.collect(), fmla: Box::new(f)})
+        })
+    }
+
+    pub fn exists(input: Node) -> Result<Exists> {
+        match_nodes!(
+        input.into_children();
+        [logicvar(vars).., fmla(f)] => {
+            Ok(Exists { vars: vars.collect(), fmla: Box::new(f)})
+        })
+    }
+
+    pub fn fmla(input: Node) -> Result<Fmla> {
+        match_nodes!(
+        input.into_children();
+        [exists(e)]     => Ok(Fmla::Exists(e)),
+        [forall(e)]     => Ok(Fmla::Forall(e)),
+        [log_term(e)]   => Ok(Fmla::Pred(e)),
+        )
+    }
 
     // Exprs
 
@@ -93,17 +147,6 @@ impl IvyParser {
         parse_expr(pairs)
     }
 
-    /* 
-    pub fn expr(input: Node) -> Result<Expr> {
-        match_nodes!(
-        input.into_children();
-        [simple_expr(e)] => Ok(e),
-        [exists(e)] => Ok(Expr::Formula(e)),
-        [forall(e)] => Ok(Expr::Formula(e)),
-        )
-    }
-    */
-
     pub fn fnapp_args(input: Node) -> Result<Vec<Expr>> {
         match_nodes!(
         input.into_children();
@@ -111,24 +154,6 @@ impl IvyParser {
             Ok(args.collect())
         })
     }
-
-    /*
-    pub fn forall(input: Node) -> Result<Formula> {
-        match_nodes!(
-        input.into_children();
-        [paramlist(params), expr(e)] => {
-            Ok(Formula::Forall { params, expr: Box::new(e)})
-        })
-    }
-
-    pub fn exists(input: Node) -> Result<Formula> {
-        match_nodes!(
-        input.into_children();
-        [paramlist(params), expr(e)] => {
-            Ok(Formula::Exists { params, expr: Box::new(e)})
-        })
-    }
-    */
 
     // Decls
 
@@ -178,10 +203,10 @@ impl IvyParser {
         [symbol(lhs), expr(rhs)] => Ok((lhs, rhs)))
     }
 
-    pub fn axiom_decl(input: Node) -> Result<Expr> {
+    pub fn axiom_decl(input: Node) -> Result<Fmla> {
         match_nodes!(
         input.into_children();
-        [expr(e)] => Ok(e)
+        [fmla(e)] => Ok(e)
         )
     }
 
@@ -273,10 +298,10 @@ impl IvyParser {
         )
     }
 
-    pub fn invariant_decl(input: Node) -> Result<Expr> {
+    pub fn invariant_decl(input: Node) -> Result<Fmla> {
         match_nodes!(
         input.into_children();
-        [expr(e)] => Ok(e)
+        [fmla(e)] => Ok(e)
         )
     }
 
@@ -339,18 +364,26 @@ impl IvyParser {
     pub fn type_decl(input: Node) -> Result<Type> {
         match_nodes!(
         input.into_children();
-        [symbol(name), enum_decl(cstrs)] => Ok(
-            Type {name, sort: Sort::Enum(cstrs) }
+        [type_name(ident), enum_decl(cstrs)] => Ok(
+            Type {ident, sort: Sort::Enum(cstrs) }
         ),
-        [symbol(name), range_decl((lo, hi))] => Ok(
-            Type {name, sort: Sort::Range(Box::new(lo), Box::new(hi)) }
+        [type_name(ident), range_decl((lo, hi))] => Ok(
+            Type {ident, sort: Sort::Range(Box::new(lo), Box::new(hi)) }
         ),
-        [symbol(name), symbol(supr)] => Ok(
-            Type {name, sort: Sort::Subclass(supr) }
+        [type_name(ident), symbol(supr)] => Ok(
+            Type {ident, sort: Sort::Subclass(supr) }
         ),
-        [symbol(name)] => Ok(
-            Type {name, sort: Sort::Uninterpreted }
+        [type_name(ident)] => Ok(
+            Type {ident, sort: Sort::Uninterpreted }
         ))
+    }
+
+    pub fn type_name(input: Node) -> Result<TypeName> {
+        match_nodes!(
+        input.into_children();
+        [symbol(sym)] => Ok(TypeName::Name(sym)),
+        [THIS(_)] => Ok(TypeName::This),
+        )
     }
 
     pub fn var_decl(input: Node) -> Result<Term> {
@@ -446,14 +479,14 @@ impl IvyParser {
     pub fn ensure_action(input: Node) -> Result<EnsureAction> {
         match_nodes!(
         input.into_children();
-        [expr(pred)] => Ok(EnsureAction{pred}),
+        [fmla(pred)] => Ok(EnsureAction{pred}),
         )
     }
 
     pub fn requires_action(input: Node) -> Result<RequiresAction> {
         match_nodes!(
         input.into_children();
-        [expr(pred)] => Ok(RequiresAction{pred}),
+        [fmla(pred)] => Ok(RequiresAction{pred}),
         )
     }
 

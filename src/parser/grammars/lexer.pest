@@ -31,8 +31,9 @@ LT = { "<" }
 LE = { "<=" }
 GT = { ">" }
 GE = { ">=" }
-EXISTS = { "exists" }
-FORALL = { "forall" }
+EXISTS = _{ "exists" }
+FORALL = _{ "forall" }
+THIS   = { "this" }
 
 WHITESPACE = _{ " " | "\t" | "\r" | NEWLINE }
 
@@ -117,13 +118,14 @@ reserved = {
 | boollit
 | EXISTS
 | FORALL
+| THIS
 }
 
 symbol   = @{ !reserved ~ ASCII_ALPHA       ~ ("_" | ASCII_ALPHANUMERIC)* }
 
 // An identifier is a program variable, possibly qualified with a module
 // prefix.
-ident = { symbol ~ ("." ~ symbol)* }
+ident = { THIS | (symbol ~ ("." ~ symbol)*) }
 
 // A term is a fully-qualified identifier with an optional type annotation.
 term = { ident ~ ( ":" ~ ident)? }

@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 
 use super::expressions::*;
+use super::logic::Fmla;
 use super::statements::*;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -105,7 +106,7 @@ pub enum Decl {
 
     Alias(Symbol, Expr),
 
-    Axiom(Expr),
+    Axiom(Fmla),
 
     BeforeAction(BeforeDecl),
 
@@ -133,7 +134,7 @@ pub enum Decl {
         ctype: Expr,
     },
     
-    Invariant(Expr),
+    Invariant(Fmla),
 
     Module(ModuleDecl),
 

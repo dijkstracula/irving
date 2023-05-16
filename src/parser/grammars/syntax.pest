@@ -40,7 +40,7 @@ after_decl        = { AFTER  ~ (decl_sig ~ decl_ret?)? ~ decl_block }
 before_decl       = { BEFORE ~ (decl_sig ~ decl_ret?)? ~ decl_block }
 
 alias_decl        = { ALIAS ~ symbol ~ "=" ~ expr }
-axiom_decl        = { AXIOM ~ expr }
+axiom_decl        = { AXIOM ~ fmla }
 
 function_decl     = { FUNCTION ~ decl_sig ~ ":" ~ symbol }
 relation_decl     = { RELATION ~ decl_sig }
@@ -57,9 +57,11 @@ implement_decl    = { IMPLEMENT ~ decl_sig ~ decl_ret? ~ decl_block }
 
 instance_decl     = { INSTANCE ~ ident ~ ":" ~ decl_sig }
 
-type_decl         = { TYPE ~ symbol ~ (("=" ~ (range_decl | enum_decl)) | ("of" ~ symbol))? } // superclass might have to be more than a symbol
+// TODO: struct decl
+type_name         = { symbol | THIS }
+type_decl         = { TYPE ~ type_name ~ (("=" ~ (range_decl | enum_decl)) | ("of" ~ symbol))? } // superclass might have to be more than a symbol
 
-invariant_decl    = { INVARIANT ~ expr }
+invariant_decl    = { INVARIANT ~ fmla }
 
 // TODO: not sure exactly about these ones yet.
 header_decl       = { HEADER ~ symbol }
@@ -101,8 +103,8 @@ assign_action = { (var_decl | expr) ~ ":=" ~ expr} //TODO
 assert_action = { ASSERT ~ expr}
 assume_action = { ASSUME ~ expr}
 call_action =   { expr }
-ensure_action = { ENSURE ~ expr}
-requires_action = { REQUIRE ~ expr}
+ensure_action = { ENSURE ~ fmla }
+requires_action = { REQUIRE ~ fmla }
 
 action = {
       assign_action

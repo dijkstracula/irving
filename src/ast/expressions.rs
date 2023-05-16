@@ -36,27 +36,20 @@ pub struct IndexExpr {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-#[allow(clippy::large_enum_variant)]
-pub enum Formula {
-    Forall {
-        params: Vec<Param>,
-        expr: Box<Expr>
-    },
-    Exists {
-        params: Vec<Param>,
-        expr: Box<Expr>
-    },
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Param {
     pub id: Symbol,
     pub sort: Option<Ident>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum TypeName {
+    Name(Symbol),
+    This
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Type {
-    pub name: Symbol,
+    pub ident: TypeName,
     pub sort: Sort
     /* spec: TypeSpec */
 }
@@ -81,8 +74,6 @@ pub enum Expr {
 
     Boolean(bool),
 
-    Formula(Formula),
-
     Identifier(Ident),
 
     Index(IndexExpr),
@@ -91,5 +82,7 @@ pub enum Expr {
 
     UnaryOp{op: Verb, expr: Box<Expr>},
 
-    Term(Term)
+    Term(Term),
+
+    This,
 }

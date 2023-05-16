@@ -3,6 +3,7 @@
 use super::actions::*;
 use super::declarations::*;
 use super::expressions::*;
+use super::logic::Fmla;
 use super::statements::*;
 use super::toplevels::*;
 
@@ -29,7 +30,7 @@ pub trait StatementVisitor<T, E> {
     fn visit_action_decl(&mut self, action: &ActionDecl) -> Result<T, E>;
     fn visit_after(&mut self, action: &AfterDecl) -> Result<T, E>;
     fn visit_alias(&mut self, name: &Symbol, val: &Expr) -> Result<T, E>;
-    fn visit_axiom(&mut self, axiom: &Expr) -> Result<T, E>;
+    fn visit_axiom(&mut self, axiom: &Fmla) -> Result<T, E>;
     fn visit_before(&mut self, action: &BeforeDecl) -> Result<T, E>;
     fn visit_export(&mut self, action: &ExportDecl) -> Result<T, E>;
     fn visit_function(&mut self, fun: &FunctionDecl) -> Result<T, E>;
@@ -38,12 +39,12 @@ pub trait StatementVisitor<T, E> {
     fn visit_isolate(&mut self, action: &IsolateDecl) -> Result<T, E>;
     fn visit_include(&mut self, module: &Symbol) -> Result<T, E>;
     fn visit_instance(&mut self, inst: &InstanceDecl) -> Result<T, E>;
-    fn visit_invariant(&mut self, inv: &Expr) -> Result<T, E>;
+    fn visit_invariant(&mut self, inv: &Fmla) -> Result<T, E>;
     fn visit_module(&mut self, module: &ModuleDecl) -> Result<T, E>;
     fn visit_object(&mut self, obj: &ObjectDecl) -> Result<T, E>;
     fn visit_relation(&mut self, obj: &Relation) -> Result<T, E>;
     fn visit_vardecl(&mut self, term: &Term) -> Result<T, E>;
-    fn visit_typedecl(&mut self, name: &Symbol, sort: &Sort) -> Result<T, E>;
+    fn visit_typedecl(&mut self, ident: &TypeName, sort: &Sort) -> Result<T, E>;
 
     // auto-visitation for intermediary AST nodes
 
@@ -83,7 +84,7 @@ pub trait StatementVisitor<T, E> {
             Decl::Instance(i) => self.visit_instance(i),
             Decl::Instantiate { name, prms } => todo!(),
             Decl::Interpretation { itype, ctype } => todo!(),
-            Decl::Invariant(i) => self.visit_invariant(i),
+                Decl::Invariant(i) => self.visit_invariant(i),
             Decl::Module(m) => self.visit_module(m),
             Decl::Object(o) => self.visit_object(o),
             Decl::Relation(r) => self.visit_relation(r),
@@ -97,7 +98,7 @@ pub trait StatementVisitor<T, E> {
                 Ok(t.unwrap())
             }
             Decl::Var(v) => self.visit_vardecl(v),
-            Decl::Type(t) => self.visit_typedecl(&t.name, &t.sort),
+            Decl::Type(t) => self.visit_typedecl(&t.ident, &t.sort),
         }
     }
 
@@ -109,25 +110,27 @@ pub trait ExpressionVisitor<T, E> {
     fn visit_app(&mut self, a: &AppExpr) -> Result<T, E>;
     fn visit_binop(&mut self, lhs: &Expr, op: &Verb, rhs: &Expr) -> Result<T, E>;
     fn visit_boolean(&mut self, b: &bool) -> Result<T, E>;
-    fn visit_formula(&mut self, fmla: &Formula) -> Result<T, E>;
+    fn visit_formula(&mut self, fmla: &Fmla) -> Result<T, E>;
     fn visit_identifier(&mut self, ident: &Ident) -> Result<T, E>;
     fn visit_index(&mut self, idx: &IndexExpr) -> Result<T, E>;
     fn visit_number(&mut self, n: &i64) -> Result<T, E>;
     fn visit_param(&mut self, p: &Param) -> Result<T, E>;
     fn visit_unaryop(&mut self, op: &Verb, expr: &Expr) -> Result<T, E>;
     fn visit_term(&mut self, term: &Term) -> Result<T, E>;
+    fn visit_this(&mut self) -> Result<T, E>;
 
     fn visit_expr(&mut self, e: &Expr) -> Result<T, E> {
         match e {
             Expr::App(app) => self.visit_app(app),
             Expr::BinOp{lhs, op, rhs} => self.visit_binop(&lhs, op, &rhs),
             Expr::Boolean(b) => self.visit_boolean(b),
-            Expr::Formula(fmla) => self.visit_formula(fmla),
+//            Expr::Formula(fmla) => self.visit_formula(fmla),
             Expr::Identifier(ident) => self.visit_identifier(ident),
             Expr::Index(idx) => self.visit_index(idx),
             Expr::Number(i) => self.visit_number(i),
             Expr::UnaryOp { op, expr } => self.visit_unaryop(op, expr),
-            Expr::Term(t) => self.visit_term(t)
+            Expr::Term(t) => self.visit_term(t),
+            Expr::This => self.visit_this(),
         }
     }
 }

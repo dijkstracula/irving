@@ -4,6 +4,7 @@
 use std::fmt::{Error, Write};
 
 use super::expressions::*;
+use super::logic::*;
 use super::visitor::{ExpressionVisitor, StatementVisitor};
 
 pub struct PrettyPrinter<W> where W: Write {
@@ -70,7 +71,7 @@ impl <W: Write> StatementVisitor<(), Error> for PrettyPrinter<W> {
         todo!()
     }
 
-    fn visit_axiom(&mut self, axiom: &Expr) -> Result<(), Error> {
+    fn visit_axiom(&mut self, axiom: &Fmla) -> Result<(), Error> {
         todo!()
     }
 
@@ -117,7 +118,7 @@ impl <W: Write> StatementVisitor<(), Error> for PrettyPrinter<W> {
         self.out.write_str("}")
     }
 
-    fn visit_invariant(&mut self, inv: &Expr) -> Result<(), Error> {
+    fn visit_invariant(&mut self, inv: &Fmla) -> Result<(), Error> {
         todo!()
     }
 
@@ -137,7 +138,7 @@ impl <W: Write> StatementVisitor<(), Error> for PrettyPrinter<W> {
         todo!()
     }
 
-    fn visit_typedecl(&mut self, name: &Symbol, sort: &super::declarations::Sort) -> Result<(), Error> {
+    fn visit_typedecl(&mut self, name: &TypeName, sort: &super::declarations::Sort) -> Result<(), Error> {
         todo!()
     }
 }
@@ -190,25 +191,29 @@ impl <W: Write> ExpressionVisitor<(), Error> for PrettyPrinter<W> {
         todo!()
     }
 
-    fn visit_formula(&mut self, fmla: &Formula) -> Result<(), Error> {
-        let (quant, params, expr) = match fmla {
-            Formula::Exists { params, expr } => ("exists ", params, expr),
-            Formula::Forall { params, expr } => ("forall ", params, expr),
+    fn visit_formula(&mut self, fmla: &Fmla) -> Result<(), Error> {
+        let (quant, vars, fmla) = match fmla {
+            Fmla::Exists(Exists { vars, fmla }) =>
+                ("exists ", vars, fmla),
+            Fmla::Forall(Forall { vars, fmla}) => 
+                ("forall ", vars, fmla),
+            Fmla::Pred(e) => return self.visit_expr(e),
         };
 
-        self.out.write_str(quant)?;
+
+        self.out.write_fmt(format_args!("{}", quant))?;
         let mut sep = false;
-        for param in params {
+        for v in vars {
             if sep {
                 self.out.write_str(", ")?;
             } else {
                 sep = true;
             }
-            self.visit_param(param)?;
+            self.visit_param(v)?;
         }
 
         self.out.write_str(" . ")?;
-        self.visit_expr(expr)
+        self.visit_formula(&fmla)
     }
 
     fn visit_identifier(&mut self, ident: &Ident) -> Result<(), Error> {
@@ -254,5 +259,9 @@ impl <W: Write> ExpressionVisitor<(), Error> for PrettyPrinter<W> {
             None => Ok(()),
             Some(sort) => self.visit_identifier(&sort)
         }
+    }
+
+    fn visit_this(&mut self) -> Result<(), Error> {
+        self.out.write_str("this")
     }
 }

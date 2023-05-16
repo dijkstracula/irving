@@ -138,12 +138,11 @@ mod tests {
 
     #[test]
     fn parse_type_decl_this() {
-        // TODO: `this` is not a distinguished token.  Should it be?
         let fragment = "type this";
         let res = IvyParser::parse(Rule::type_decl, fragment)
             .expect("Parsing failed")
             .single().unwrap();
-        assert!(IvyParser::type_decl(res).is_ok());
+        IvyParser::type_decl(res).unwrap();
     }
 
     #[test]
@@ -174,11 +173,19 @@ mod tests {
     }
     #[test]
     fn parse_type_decl_range() {
-        // TODO: `this` is not a distinguished token.  Should it be?
         let fragment = "type pid = {0..1}";
         let res = IvyParser::parse(Rule::type_decl, fragment)
             .expect("Parsing failed")
             .single().unwrap();
         IvyParser::type_decl(res).unwrap();
+    }
+
+    #[test]
+    fn parse_ensure_with_fmla() {
+        let fragment = "ensure X -> Y";
+        let res = IvyParser::parse(Rule::ensure_action, fragment)
+            .expect("Parsing failed")
+            .single().unwrap();
+        IvyParser::ensure_action(res).unwrap();
     }
 }

@@ -1,4 +1,4 @@
-use super::expressions::*;
+use super::{expressions::*, logic::Fmla};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[allow(clippy::large_enum_variant)]
@@ -20,12 +20,12 @@ pub struct AssumeAction{
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct EnsureAction{
-    pub pred: Expr,
+    pub pred: Fmla,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct RequiresAction{
-    pub pred: Expr,
+    pub pred: Fmla,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
