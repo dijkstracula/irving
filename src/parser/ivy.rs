@@ -72,6 +72,7 @@ impl IvyParser {
     fn ident(input: Node) -> Result<Vec<String>> {
         match_nodes!(
         input.into_children();
+        // TODO: This is wrong: we need Ident to be an enum of qualifiers or the "this" keyword.
         [symbol(qualifiers)..] => Ok(qualifiers.collect()),
         [THIS(_)] => Ok(vec!("this".into())),
         )

@@ -3,47 +3,79 @@
 
 use std::fmt::{Error, Write};
 
-use super::expressions::*;
-use super::logic::*;
+use crate::ast::actions::*;
+use crate::ast::declarations::*;
+use crate::ast::expressions::*;
+use crate::ast::logic::*;
+use crate::ast::statements::*;
+use crate::ast::toplevels::*;
 use super::visitor::{ExpressionVisitor, StatementVisitor};
 
 pub struct PrettyPrinter<W> where W: Write {
     pub out: W,
+    indent: usize,
+    curr_line_is_indented: bool
 }
 
 impl PrettyPrinter<String> {
     pub fn new() -> Self {
-        PrettyPrinter { out: String::new() }
+        PrettyPrinter { out: String::new(), indent: 0, curr_line_is_indented: false}
+    }
+}
+
+impl <W: Write> Write for PrettyPrinter<W> {
+    fn write_str(&mut self, s: &str) -> std::fmt::Result {
+        // TODO: can I do this without allocation?
+        let lines = s.lines().enumerate().collect::<Vec<_>>();
+
+        for (i, line) in &lines {
+            if !self.curr_line_is_indented {
+                let indent = std::iter::repeat(" ").take(self.indent).collect::<String>();
+                self.out.write_str(&indent)?;
+                self.curr_line_is_indented = true;
+            }
+            self.out.write_str(line)?;
+
+            self.indent += line.matches("{").count();
+            self.indent += line.matches("(").count();
+            self.indent -= line.matches("}").count();
+            self.indent -= line.matches(")").count();
+            if *i < lines.len() - 1 {
+                self.out.write_str("\n")?;
+                self.curr_line_is_indented = false;
+            }
+        }
+        Ok(())
     }
 }
 
 impl <W: Write> StatementVisitor<(), Error> for PrettyPrinter<W> {
-    fn visit_prog(&mut self, p: &super::toplevels::Prog) -> Result<(), Error> {
+    fn visit_prog(&mut self, p: &Prog) -> Result<(), Error> {
         self.out.write_fmt(format_args!("#lang {}.{}", p.major_version, p.minor_version))?;
         self.visit_isolate(&p.top)
     }
 
-    fn visit_if(&mut self, p: &super::statements::If) -> Result<(), Error> {
+    fn visit_if(&mut self, p: &If) -> Result<(), Error> {
         todo!()
     }
 
-    fn visit_while(&mut self, p: &super::statements::While) -> Result<(), Error> {
+    fn visit_while(&mut self, p: &While) -> Result<(), Error> {
         todo!()
     }
 
-    fn visit_action_sequence(&mut self, actions: &Vec<super::actions::Action>) -> Result<(), Error> {
+    fn visit_action_sequence(&mut self, actions: &Vec<Action>) -> Result<(), Error> {
         todo!()
     }
 
-    fn visit_assert(&mut self, a: &super::actions::AssertAction) -> Result<(), Error> {
+    fn visit_assert(&mut self, a: &AssertAction) -> Result<(), Error> {
         todo!()
     }
 
-    fn visit_assign(&mut self, a: &super::actions::AssignAction) -> Result<(), Error> {
+    fn visit_assign(&mut self, a: &AssignAction) -> Result<(), Error> {
         todo!()
     }
 
-    fn visit_assume(&mut self, a: &super::actions::AssumeAction) -> Result<(), Error> {
+    fn visit_assume(&mut self, a: &AssumeAction) -> Result<(), Error> {
         todo!()
     }
 
@@ -51,19 +83,19 @@ impl <W: Write> StatementVisitor<(), Error> for PrettyPrinter<W> {
         todo!()
     }
 
-    fn visit_ensure(&mut self, e: &super::actions::EnsureAction) -> Result<(), Error> {
+    fn visit_ensure(&mut self, e: &EnsureAction) -> Result<(), Error> {
         todo!()
     }
 
-    fn visit_requires(&mut self, e: &super::actions::RequiresAction) -> Result<(), Error> {
+    fn visit_requires(&mut self, e: &RequiresAction) -> Result<(), Error> {
         todo!()
     }
 
-    fn visit_action_decl(&mut self, action: &super::declarations::ActionDecl) -> Result<(), Error> {
+    fn visit_action_decl(&mut self, action: &ActionDecl) -> Result<(), Error> {
         todo!()
     }
 
-    fn visit_after(&mut self, action: &super::declarations::AfterDecl) -> Result<(), Error> {
+    fn visit_after(&mut self, action: &AfterDecl) -> Result<(), Error> {
         todo!()
     }
 
@@ -75,23 +107,23 @@ impl <W: Write> StatementVisitor<(), Error> for PrettyPrinter<W> {
         todo!()
     }
 
-    fn visit_before(&mut self, action: &super::declarations::BeforeDecl) -> Result<(), Error> {
+    fn visit_before(&mut self, action: &BeforeDecl) -> Result<(), Error> {
         todo!()
     }
 
-    fn visit_export(&mut self, action: &super::declarations::ExportDecl) -> Result<(), Error> {
+    fn visit_export(&mut self, action: &ExportDecl) -> Result<(), Error> {
         todo!()
     }
 
-    fn visit_function(&mut self, fun: &super::declarations::FunctionDecl) -> Result<(), Error> {
+    fn visit_function(&mut self, fun: &FunctionDecl) -> Result<(), Error> {
         todo!()
     }
 
-    fn visit_globals(&mut self, defs: &Vec<super::declarations::Decl>) -> Result<(), Error> {
+    fn visit_globals(&mut self, defs: &Vec<Decl>) -> Result<(), Error> {
         todo!()
     }
 
-    fn visit_import(&mut self, action: &super::declarations::ImportDecl) -> Result<(), Error> {
+    fn visit_import(&mut self, action: &ImportDecl) -> Result<(), Error> {
         todo!()
     }
 
@@ -99,38 +131,44 @@ impl <W: Write> StatementVisitor<(), Error> for PrettyPrinter<W> {
         todo!()
     }
 
-    fn visit_instance(&mut self, inst: &super::declarations::InstanceDecl) -> Result<(), Error> {
+    fn visit_instance(&mut self, inst: &InstanceDecl) -> Result<(), Error> {
         todo!()
     }
 
-    fn visit_isolate(&mut self, inst: &super::declarations::IsolateDecl) -> Result<(), Error> {
+    fn visit_isolate(&mut self, inst: &IsolateDecl) -> Result<(), Error> {
         self.out.write_fmt(format_args!("isolate {}", inst.name))?;
         if inst.params.len() > 0 {
-            self.out.write_str("(")?;
+            self.write_str("(")?;
             for param in &inst.params {
                 self.visit_param(param)?;
             }
-            self.out.write_str(")")?;
+            self.write_str(")")?;
         }
-        self.out.write_str("{")?;
+        self.write_str("{")?;
+        self.write_str("\n")?;
         for decl in &inst.body {
+            self.visit_decl(decl)?;
+            self.write_str("\n")?;
         }
-        self.out.write_str("}")
+        self.write_str("}")?;
+        self.write_str("\n")
     }
 
     fn visit_invariant(&mut self, inv: &Fmla) -> Result<(), Error> {
+        self.write_str("invariant ")?;
+        self.visit_formula(inv)?;
+        self.write_str(";")
+    }
+
+    fn visit_module(&mut self, module: &ModuleDecl) -> Result<(), Error> {
         todo!()
     }
 
-    fn visit_module(&mut self, module: &super::declarations::ModuleDecl) -> Result<(), Error> {
+    fn visit_object(&mut self, obj: &ObjectDecl) -> Result<(), Error> {
         todo!()
     }
 
-    fn visit_object(&mut self, obj: &super::declarations::ObjectDecl) -> Result<(), Error> {
-        todo!()
-    }
-
-    fn visit_relation(&mut self, obj: &super::declarations::Relation) -> Result<(), Error> {
+    fn visit_relation(&mut self, obj: &Relation) -> Result<(), Error> {
         todo!()
     }
 
@@ -138,7 +176,7 @@ impl <W: Write> StatementVisitor<(), Error> for PrettyPrinter<W> {
         todo!()
     }
 
-    fn visit_typedecl(&mut self, name: &TypeName, sort: &super::declarations::Sort) -> Result<(), Error> {
+    fn visit_typedecl(&mut self, name: &TypeName, sort: &Sort) -> Result<(), Error> {
         todo!()
     }
 }
@@ -147,17 +185,17 @@ impl <W: Write> ExpressionVisitor<(), Error> for PrettyPrinter<W> {
     fn visit_app(&mut self, a: &AppExpr) -> Result<(), std::fmt::Error> {
         self.visit_expr(a.func.as_ref())?;
 
-        self.out.write_str("(")?;
+        self.write_str("(")?;
         let mut sep = false;
         for arg in &a.args {
             if sep {
-                self.out.write_str(", ")?;
+                self.write_str(", ")?;
             } else {
                 sep = true;
             }
             self.visit_expr(arg)?;
         }
-        self.out.write_str(")")
+        self.write_str(")")
     }
 
     fn visit_binop(&mut self, lhs: &Expr, op: &Verb, rhs: &Expr) -> Result<(), Error> {
@@ -187,8 +225,13 @@ impl <W: Write> ExpressionVisitor<(), Error> for PrettyPrinter<W> {
         self.visit_expr(rhs)
     }
 
-    fn visit_boolean(&mut self, b: &bool) -> Result<(), Error> {
-        todo!()
+    fn visit_boolean(&mut self, b: bool) -> Result<(), Error> {
+        if b {
+            self.write_str("true")?;
+        } else {
+            self.write_str("false")?;
+        }
+        Ok(())
     }
 
     fn visit_formula(&mut self, fmla: &Fmla) -> Result<(), Error> {
@@ -205,39 +248,39 @@ impl <W: Write> ExpressionVisitor<(), Error> for PrettyPrinter<W> {
         let mut sep = false;
         for v in vars {
             if sep {
-                self.out.write_str(", ")?;
+                self.write_str(", ")?;
             } else {
                 sep = true;
             }
             self.visit_param(v)?;
         }
 
-        self.out.write_str(" . ")?;
+        self.write_str(" . ")?;
         self.visit_formula(&fmla)
     }
 
     fn visit_identifier(&mut self, ident: &Ident) -> Result<(), Error> {
         let s = ident.join(".");
-        self.out.write_str(&s)
+        self.write_str(&s)
     }
 
     fn visit_index(&mut self, idx: &IndexExpr) -> Result<(), Error> {
         self.visit_expr(&idx.lhs)?;
-        self.out.write_str("[")?;
+        self.write_str("[")?;
         self.visit_expr(&idx.idx)?;
-        self.out.write_str("]")
+        self.write_str("]")
     }
 
     fn visit_number(&mut self, n: &i64) -> Result<(), Error> {
-        self.out.write_str(&n.to_string())
+        self.write_str(&n.to_string())
     }
 
     fn visit_param(&mut self, p: &Param) -> Result<(), Error> {
-        self.out.write_str(&p.id)?;
+        self.write_str(&p.id)?;
         match &p.sort {
             None => Ok(()),
             Some(sort) => {
-                self.out.write_str(":")?;
+                self.write_str(":")?;
                 self.visit_identifier(&sort)
             }
         }
@@ -249,7 +292,7 @@ impl <W: Write> ExpressionVisitor<(), Error> for PrettyPrinter<W> {
             Verb::Minus => "-",
             _ => unreachable!()
         };
-        self.out.write_str(op)?;
+        self.write_str(op)?;
         self.visit_expr(expr)
     }
 
@@ -262,6 +305,6 @@ impl <W: Write> ExpressionVisitor<(), Error> for PrettyPrinter<W> {
     }
 
     fn visit_this(&mut self) -> Result<(), Error> {
-        self.out.write_str("this")
+        self.write_str("this")
     }
 }

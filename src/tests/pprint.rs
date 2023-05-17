@@ -1,7 +1,9 @@
 #[cfg(test)]
 mod tests {
     use pest_consume::Parser;
-    use crate::{parser::ivy::{Result, Rule, IvyParser}, ast::{expressions::Expr, pprint::PrettyPrinter, visitor::ExpressionVisitor, logic::Fmla}};
+    use crate::visitor::visitor::ExpressionVisitor;
+    use crate::visitor::pprint::{PrettyPrinter};
+    use crate::{parser::ivy::{Result, Rule, IvyParser}, ast::{expressions::Expr, logic::Fmla}};
 
     fn parse_expr(fragment: &str) -> Result<Expr> {
         let res = IvyParser::parse(Rule::expr, fragment)

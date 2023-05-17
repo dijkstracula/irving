@@ -1,11 +1,11 @@
 #![allow(unused_variables)]
 
-use super::actions::*;
-use super::declarations::*;
-use super::expressions::*;
-use super::logic::Fmla;
-use super::statements::*;
-use super::toplevels::*;
+use crate::ast::actions::*;
+use crate::ast::declarations::*;
+use crate::ast::expressions::*;
+use crate::ast::logic::Fmla;
+use crate::ast::statements::*;
+use crate::ast::toplevels::*;
 
 // TODO: Is the standard double-dispatch approach idiomatic for rust?
 // TODO: Feels like nodes need to control recursing into children.
@@ -109,7 +109,7 @@ pub trait ExpressionVisitor<T, E> {
     // Expressions
     fn visit_app(&mut self, a: &AppExpr) -> Result<T, E>;
     fn visit_binop(&mut self, lhs: &Expr, op: &Verb, rhs: &Expr) -> Result<T, E>;
-    fn visit_boolean(&mut self, b: &bool) -> Result<T, E>;
+    fn visit_boolean(&mut self, b: bool) -> Result<T, E>;
     fn visit_formula(&mut self, fmla: &Fmla) -> Result<T, E>;
     fn visit_identifier(&mut self, ident: &Ident) -> Result<T, E>;
     fn visit_index(&mut self, idx: &IndexExpr) -> Result<T, E>;
@@ -123,7 +123,7 @@ pub trait ExpressionVisitor<T, E> {
         match e {
             Expr::App(app) => self.visit_app(app),
             Expr::BinOp{lhs, op, rhs} => self.visit_binop(&lhs, op, &rhs),
-            Expr::Boolean(b) => self.visit_boolean(b),
+            Expr::Boolean(b) => self.visit_boolean(*b),
 //            Expr::Formula(fmla) => self.visit_formula(fmla),
             Expr::Identifier(ident) => self.visit_identifier(ident),
             Expr::Index(idx) => self.visit_index(idx),
