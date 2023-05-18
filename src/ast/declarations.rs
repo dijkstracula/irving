@@ -40,6 +40,7 @@ pub struct FunctionDecl {
     pub name: Vec<String>,
     pub params: Vec<Param>,
     pub ret: Symbol
+    // Am I an idiot? Where's the bee^W body
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]

@@ -9,7 +9,7 @@ use crate::ast::expressions::*;
 use crate::ast::logic::*;
 use crate::ast::statements::*;
 use crate::ast::toplevels::*;
-use super::visitor::{ExpressionVisitor, StatementVisitor};
+use crate::visitor::visitor::Visitor;
 
 pub struct PrettyPrinter<W> where W: Write {
     pub out: W,
@@ -49,7 +49,7 @@ impl <W: Write> Write for PrettyPrinter<W> {
     }
 }
 
-impl <W: Write> StatementVisitor<(), Error> for PrettyPrinter<W> {
+impl <W: Write> Visitor<(), Error> for PrettyPrinter<W> {
     fn visit_prog(&mut self, p: &Prog) -> Result<(), Error> {
         self.out.write_fmt(format_args!("#lang {}.{}", p.major_version, p.minor_version))?;
         self.visit_isolate(&p.top)
@@ -179,9 +179,9 @@ impl <W: Write> StatementVisitor<(), Error> for PrettyPrinter<W> {
     fn visit_typedecl(&mut self, name: &TypeName, sort: &Sort) -> Result<(), Error> {
         todo!()
     }
-}
 
-impl <W: Write> ExpressionVisitor<(), Error> for PrettyPrinter<W> {
+    // Expressions
+
     fn visit_app(&mut self, a: &AppExpr) -> Result<(), std::fmt::Error> {
         self.visit_expr(a.func.as_ref())?;
 

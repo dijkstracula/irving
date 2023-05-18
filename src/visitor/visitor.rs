@@ -3,15 +3,17 @@
 use crate::ast::actions::*;
 use crate::ast::declarations::*;
 use crate::ast::expressions::*;
-use crate::ast::logic::Fmla;
+use crate::ast::logic::*;
 use crate::ast::statements::*;
 use crate::ast::toplevels::*;
 
 // TODO: Is the standard double-dispatch approach idiomatic for rust?
 // TODO: Feels like nodes need to control recursing into children.
 
-pub trait StatementVisitor<T, E> {
-    fn visit_prog(&mut self, p: &Prog) -> Result<T, E>;
+pub trait Visitor<T, E> where T: Default {
+    fn visit_prog(&mut self, p: &Prog) -> Result<T, E> {
+        self.visit_isolate(&p.top)
+    }
 
     // Statements
     fn visit_if(&mut self, p: &If) -> Result<T, E>;
@@ -19,32 +21,165 @@ pub trait StatementVisitor<T, E> {
     fn visit_action_sequence(&mut self, actions: &Vec<Action>) -> Result<T, E>;
 
     // Actions
-    fn visit_assert(&mut self, a: &AssertAction) -> Result<T, E>;
-    fn visit_assign(&mut self, a: &AssignAction) -> Result<T, E>;
-    fn visit_assume(&mut self, a: &AssumeAction) -> Result<T, E>;
-    fn visit_call(&mut self, e: &AppExpr) -> Result<T, E>;
-    fn visit_ensure(&mut self, e: &EnsureAction) -> Result<T, E>;
-    fn visit_requires(&mut self, e: &RequiresAction) -> Result<T, E>;
+    fn visit_assert(&mut self, a: &AssertAction) -> Result<T, E> {
+        self.visit_expr(&a.pred)
+    }
+    fn visit_assign(&mut self, a: &AssignAction) -> Result<T, E> {
+        self.visit_expr(&a.lhs)?;
+        self.visit_expr(&a.rhs)
+    }
+    fn visit_assume(&mut self, a: &AssumeAction) -> Result<T, E> {
+        self.visit_expr(&a.pred)
+    }
+    fn visit_call(&mut self, e: &AppExpr) -> Result<T, E> {
+        let func_t = self.visit_expr(&e.func)?;
+
+        let mut t: Option<T> = None;
+        for arg in &e.args {
+            t = Some(self.visit_expr(arg)?);
+        }
+        Ok(t.unwrap_or(func_t))
+    }
+    fn visit_ensure(&mut self, e: &EnsureAction) -> Result<T, E> {
+        self.visit_formula(&e.pred)
+    }
+    fn visit_requires(&mut self, e: &RequiresAction) -> Result<T, E> {
+        self.visit_formula(&e.pred)
+    }
 
     // Declarations
-    fn visit_action_decl(&mut self, action: &ActionDecl) -> Result<T, E>;
-    fn visit_after(&mut self, action: &AfterDecl) -> Result<T, E>;
-    fn visit_alias(&mut self, name: &Symbol, val: &Expr) -> Result<T, E>;
-    fn visit_axiom(&mut self, axiom: &Fmla) -> Result<T, E>;
-    fn visit_before(&mut self, action: &BeforeDecl) -> Result<T, E>;
-    fn visit_export(&mut self, action: &ExportDecl) -> Result<T, E>;
-    fn visit_function(&mut self, fun: &FunctionDecl) -> Result<T, E>;
-    fn visit_globals(&mut self, defs: &Vec<Decl>) -> Result<T, E>;
-    fn visit_import(&mut self, action: &ImportDecl) -> Result<T, E>;
-    fn visit_isolate(&mut self, action: &IsolateDecl) -> Result<T, E>;
-    fn visit_include(&mut self, module: &Symbol) -> Result<T, E>;
-    fn visit_instance(&mut self, inst: &InstanceDecl) -> Result<T, E>;
-    fn visit_invariant(&mut self, inv: &Fmla) -> Result<T, E>;
-    fn visit_module(&mut self, module: &ModuleDecl) -> Result<T, E>;
-    fn visit_object(&mut self, obj: &ObjectDecl) -> Result<T, E>;
-    fn visit_relation(&mut self, obj: &Relation) -> Result<T, E>;
-    fn visit_vardecl(&mut self, term: &Term) -> Result<T, E>;
+    fn visit_action_decl(&mut self, action: &ActionDecl) -> Result<T, E> {
+        let mut t: Option<T> = None;
+        for param in &action.params {
+            t = Some(self.visit_param(param)?);
+        }
+        if let Some(p) = &action.ret {
+            t = Some(self.visit_param(p)?);
+        }
+        if let Some(body) = &action.body {
+            for decl in body {
+                t = Some(self.visit_decl(decl)?);
+            }
+        }
+        Ok(t.unwrap_or_default())
+    }
+    fn visit_after(&mut self, action: &AfterDecl) -> Result<T, E> {
+        let mut t: Option<T> = None;
+
+        if let Some(params) = &action.params {
+            for param in params {
+                t = Some(self.visit_param(param)?);
+            }
+        }
+        if let Some(r) = &action.ret {
+            t = Some(self.visit_param(r)?);
+        }
+        for decl in &action.body {
+            t = Some(self.visit_decl(decl)?);
+        }
+        Ok(t.unwrap_or_default())
+    }
+    fn visit_alias(&mut self, name: &Symbol, val: &Expr) -> Result<T, E> {
+        self.visit_expr(val)
+    }
+    fn visit_axiom(&mut self, axiom: &Fmla) -> Result<T, E> {
+        self.visit_formula(axiom)
+    }
+    fn visit_before(&mut self, action: &BeforeDecl) -> Result<T, E> {
+        let mut t: Option<T> = None;
+        if let Some(params) = &action.params {
+            for param in params {
+                t = Some(self.visit_param(param)?);
+            }
+        }
+        for decl in &action.body {
+            t = Some(self.visit_decl(decl)?);
+        }
+        Ok(t.unwrap_or_default())
+    }
+    fn visit_export(&mut self, action: &ExportDecl) -> Result<T, E> {
+        match action {
+            ExportDecl::Action(action) => self.visit_action_decl(action),
+            ExportDecl::ForwardRef(_) => Ok(T::default())
+        }
+    }
+    fn visit_function(&mut self, fun: &FunctionDecl) -> Result<T, E> {
+        let mut t: Option<T> = None;
+        for param in &fun.params {
+            t = Some(self.visit_param(param)?);
+        }
+        Ok(t.unwrap_or_default())
+    }
+    fn visit_globals(&mut self, defs: &Vec<Decl>) -> Result<T, E> {
+        let mut t: Option<T> = None;
+        for decl in defs {
+            t = Some(self.visit_decl(decl)?);
+        }
+        Ok(t.unwrap_or_default())
+    }
+    fn visit_import(&mut self, action: &ImportDecl) -> Result<T, E> {
+        let mut t: Option<T> = None;
+        for param in &action.params {
+            t = Some(self.visit_param(param)?);
+        }
+        Ok(t.unwrap_or_default())
+    }
+    fn visit_isolate(&mut self, action: &IsolateDecl) -> Result<T, E> {
+        let mut t: Option<T> = None;
+        for param in &action.params {
+            t = Some(self.visit_param(param)?);
+        }
+        for decl in &action.body {
+            t = Some(self.visit_decl(decl)?);
+        }
+        Ok(t.unwrap_or_default())
+    }
+    fn visit_include(&mut self, module: &Symbol) -> Result<T, E> {
+        Ok(T::default())
+    }
+    fn visit_instance(&mut self, inst: &InstanceDecl) -> Result<T, E> {
+        let mut t: Option<T> = None;
+        for arg in &inst.args {
+            t = Some(self.visit_param(arg)?);
+        }
+        Ok(t.unwrap_or_default())
+
+    }
+    fn visit_invariant(&mut self, inv: &Fmla) -> Result<T, E> {
+        self.visit_formula(inv)
+    }
+    fn visit_module(&mut self, module: &ModuleDecl) -> Result<T, E> {
+        let mut t: Option<T> = None;
+        for param in &module.params {
+            t = Some(self.visit_param(param)?);
+        }
+        for decl in &module.body {
+            t = Some(self.visit_decl(decl)?);
+        }
+        Ok(t.unwrap_or_default())
+    }
+    fn visit_object(&mut self, obj: &ObjectDecl) -> Result<T, E> {
+        let mut t: Option<T> = None;
+        for param in &obj.params {
+            t = Some(self.visit_param(param)?);
+        }
+        for decl in &obj.body {
+            t = Some(self.visit_decl(decl)?);
+        }
+        Ok(t.unwrap_or_default())
+    }
+    fn visit_relation(&mut self, obj: &Relation) -> Result<T, E> {
+        let mut t: Option<T> = None;
+        for param in &obj.params {
+            t = Some(self.visit_param(param)?);
+        }
+        Ok(t.unwrap_or_default())
+    }
+    fn visit_vardecl(&mut self, term: &Term) -> Result<T, E> {
+        self.visit_identifier(&term.id)
+    }
     fn visit_typedecl(&mut self, ident: &TypeName, sort: &Sort) -> Result<T, E>;
+
 
     // auto-visitation for intermediary AST nodes
 
@@ -103,21 +238,67 @@ pub trait StatementVisitor<T, E> {
     }
 
 
-}
-
-pub trait ExpressionVisitor<T, E> {
     // Expressions
-    fn visit_app(&mut self, a: &AppExpr) -> Result<T, E>;
-    fn visit_binop(&mut self, lhs: &Expr, op: &Verb, rhs: &Expr) -> Result<T, E>;
-    fn visit_boolean(&mut self, b: bool) -> Result<T, E>;
-    fn visit_formula(&mut self, fmla: &Fmla) -> Result<T, E>;
-    fn visit_identifier(&mut self, ident: &Ident) -> Result<T, E>;
-    fn visit_index(&mut self, idx: &IndexExpr) -> Result<T, E>;
-    fn visit_number(&mut self, n: &i64) -> Result<T, E>;
-    fn visit_param(&mut self, p: &Param) -> Result<T, E>;
-    fn visit_unaryop(&mut self, op: &Verb, expr: &Expr) -> Result<T, E>;
-    fn visit_term(&mut self, term: &Term) -> Result<T, E>;
-    fn visit_this(&mut self) -> Result<T, E>;
+    fn visit_app(&mut self, a: &AppExpr) -> Result<T, E> {
+        let mut t: Option<T> = Some(self.visit_expr(&a.func)?);
+        for arg in &a.args {
+            t = Some(self.visit_expr(arg)?);
+        }
+        Ok(t.unwrap())
+    }
+    fn visit_binop(&mut self, lhs: &Expr, op: &Verb, rhs: &Expr) -> Result<T, E> {
+        self.visit_expr(lhs)?;
+        self.visit_expr(rhs)
+    }
+    fn visit_boolean(&mut self, b: bool) -> Result<T, E> {
+        Ok(T::default())
+    }
+    fn visit_formula(&mut self, fmla: &Fmla) -> Result<T, E> {
+        match fmla {
+            Fmla::Forall(Forall { vars, fmla }) => {
+                for var in vars {
+                    self.visit_param(var)?;
+                }
+                self.visit_formula(fmla)
+            }
+            Fmla::Exists(Exists { vars, fmla }) => {
+                for var in vars {
+                    self.visit_param(var)?;
+                }
+                self.visit_formula(fmla)
+            }
+            Fmla::Pred(expr) => self.visit_expr(expr)
+        }
+    }
+    fn visit_identifier(&mut self, ident: &Ident) -> Result<T, E> {
+        Ok(T::default())
+    }
+    fn visit_index(&mut self, idx: &IndexExpr) -> Result<T, E> {
+        self.visit_expr(&idx.lhs)?;
+        self.visit_expr(&idx.idx)
+    }
+    fn visit_number(&mut self, n: &i64) -> Result<T, E> {
+        Ok(T::default())
+    }
+    fn visit_param(&mut self, p: &Param) -> Result<T, E> {
+        match &p.sort {
+            None => Ok(T::default()),
+            Some(sort) => self.visit_identifier(sort)
+        }
+    }
+    fn visit_unaryop(&mut self, op: &Verb, expr: &Expr) -> Result<T, E> {
+        self.visit_expr(expr)
+    }
+    fn visit_term(&mut self, term: &Term) -> Result<T, E> {
+        self.visit_identifier(&term.id)?;
+        match &term.sort {
+            None => Ok(T::default()),
+            Some(sort) => self.visit_identifier(sort)
+        }
+    }
+    fn visit_this(&mut self) -> Result<T, E> {
+        Ok(T::default())
+    }
 
     fn visit_expr(&mut self, e: &Expr) -> Result<T, E> {
         match e {
