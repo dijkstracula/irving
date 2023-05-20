@@ -36,8 +36,8 @@ decl_block = { "{" ~ decl* ~ ";"? ~ "}" }
 include_decl      = { INCLUDE ~ symbol }
 var_decl          = { VAR ~ term }
 
-after_decl        = { AFTER  ~ (decl_sig ~ decl_ret?)? ~ decl_block }
-before_decl       = { BEFORE ~ (decl_sig ~ decl_ret?)? ~ decl_block }
+after_decl        = { AFTER  ~ (decl_sig ~ decl_ret?)? ~ stmt_block }
+before_decl       = { BEFORE ~ (decl_sig ~ decl_ret?)? ~ stmt_block }
 
 alias_decl        = { ALIAS ~ symbol ~ "=" ~ expr }
 axiom_decl        = { AXIOM ~ fmla }
@@ -50,10 +50,10 @@ module_decl       = { MODULE ~ decl_sig ~ "=" ~ decl_block }
 object_decl       = { OBJECT ~ decl_sig ~ "=" ~ decl_block }
 extract_decl      = { EXTRACT ~ decl_sig ~ "=" ~ decl_block }
 
-action_decl       = { ACTION ~ decl_sig ~ decl_ret? ~ ("=" ~ decl_block)? }
+action_decl       = { ACTION ~ decl_sig ~ decl_ret? ~ ("=" ~ stmt_block)? }
 import_decl       = { IMPORT ~ ACTION ~ decl_sig }
 export_decl       = { EXPORT ~ (ident | action_decl) }
-implement_decl    = { IMPLEMENT ~ decl_sig ~ decl_ret? ~ decl_block }
+implement_decl    = { IMPLEMENT ~ decl_sig ~ decl_ret? ~ stmt_block }
 
 instance_decl     = { INSTANCE ~ ident ~ ":" ~ decl_sig }
 

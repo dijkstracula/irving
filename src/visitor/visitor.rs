@@ -57,8 +57,8 @@ pub trait Visitor<T, E> where T: Default {
             t = Some(self.visit_param(p)?);
         }
         if let Some(body) = &action.body {
-            for decl in body {
-                t = Some(self.visit_decl(decl)?);
+            for stmt in body {
+                t = Some(self.visit_stmt(stmt)?);
             }
         }
         Ok(t.unwrap_or_default())
@@ -74,8 +74,8 @@ pub trait Visitor<T, E> where T: Default {
         if let Some(r) = &action.ret {
             t = Some(self.visit_param(r)?);
         }
-        for decl in &action.body {
-            t = Some(self.visit_decl(decl)?);
+        for stmt in &action.body {
+            t = Some(self.visit_stmt(stmt)?);
         }
         Ok(t.unwrap_or_default())
     }
@@ -92,8 +92,8 @@ pub trait Visitor<T, E> where T: Default {
                 t = Some(self.visit_param(param)?);
             }
         }
-        for decl in &action.body {
-            t = Some(self.visit_decl(decl)?);
+        for stmt in &action.body {
+            t = Some(self.visit_stmt(stmt)?);
         }
         Ok(t.unwrap_or_default())
     }
@@ -197,7 +197,7 @@ pub trait Visitor<T, E> where T: Default {
             Action::Assert(a) => self.visit_assert(a),
             Action::Assign(a) => self.visit_assign(a),
             Action::Assume(a) => self.visit_assume(a),
-            Action::Call(e) => self.visit_call(e),
+            Action::Call(e) => self.visit_app(e),
             Action::Ensure(en) => self.visit_ensure(en),
             Action::Requires(req) => self.visit_requires(req)
         }
@@ -313,5 +313,31 @@ pub trait Visitor<T, E> where T: Default {
             Expr::Term(t) => self.visit_term(t),
             Expr::This => self.visit_this(),
         }
+    }
+
+
+    fn visit_vec_interleaved<U>(&mut self, 
+            us: &Vec<U>, 
+            f: fn(&mut Self, &U) -> Result<T, E>,
+            sep_f: fn(&mut Self) -> Result<T, E>,
+        ) -> Result<T, E> {
+        let mut t: Option<T> = None;
+        let mut sep = false;
+        for u in us {
+            if sep {
+                Some(sep_f(self)?);
+            } else {
+                sep = true;
+            }
+            t = Some(f(self, u)?);
+        }
+        Ok(t.unwrap_or_default())
+    }
+
+    fn visit_vec<U>(&mut self, 
+            us: &Vec<U>, 
+            f: fn(&mut Self, &U) -> Result<T, E>,
+        ) -> Result<T, E> {
+            self.visit_vec_interleaved(us, f, |s| Ok(T::default()))
     }
 }

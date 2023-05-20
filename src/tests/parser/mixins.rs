@@ -34,6 +34,15 @@ mod tests {
     }
 
     #[test]
+    fn parse_export_forward_ref_qualified() {
+        let fragment = "export foo.bar";
+        let res = IvyParser::parse(Rule::decl, fragment)
+            .expect("Parsing failed")
+            .single().unwrap();
+        IvyParser::decl(res).unwrap();
+    }
+
+    #[test]
     fn parse_export_action() {
         let fragment = "export action foo(a: int) = { }";
         let res = IvyParser::parse(Rule::decl, fragment)
@@ -42,6 +51,14 @@ mod tests {
         IvyParser::decl(res).unwrap();
     }
 
+    #[test]
+    fn parse_qualified_export_action() {
+        let fragment = "action foo.bar(a: int) = { }";
+        let res = IvyParser::parse(Rule::decl, fragment)
+            .expect("Parsing failed")
+            .single().unwrap();
+        assert!(IvyParser::decl(res).is_err());
+    }
 
     #[test]
     fn parse_action_decl() {
@@ -49,7 +66,6 @@ mod tests {
         let res = IvyParser::parse(Rule::decl, fragment)
             .expect("Parsing failed")
             .single().unwrap();
-        //assert!(IvyParser::decl(res).is_ok());
         IvyParser::decl(res).unwrap();
     }
 
@@ -59,8 +75,19 @@ mod tests {
         let res = IvyParser::parse(Rule::decl, fragment)
             .expect("Parsing failed")
             .single().unwrap();
-        //assert!(IvyParser::decl(res).is_ok());
         IvyParser::decl(res).unwrap();
+    }
+
+    #[test]
+    fn parse_nested_action() {
+        let fragment = "action foo(a: int) = { 
+            action(bar: b) = {}
+        }";
+        let res = IvyParser::parse(Rule::action_decl, fragment)
+            .expect("Parsing failed")
+            .single().unwrap();
+        // This assert indicates that parsing the action stopped when we hit the second action (i.e. what follows is invalid).
+        assert!(IvyParser::action_decl(res).unwrap().body == None);
     }
 
     #[test]

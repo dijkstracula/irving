@@ -23,6 +23,15 @@ impl PrettyPrinter<String> {
     }
 }
 
+impl <W> PrettyPrinter<W> where W: Write {
+    fn write_comma_separated<U>(&mut self, params: &Vec<U>, f: fn(&mut Self, &U) -> Result<(), Error>) -> Result<(), Error> {
+        self.visit_vec_interleaved(params, f, |s| s.write_str(", "))
+    }
+    fn write_seminl_separated<U>(&mut self, params: &Vec<U>, f: fn(&mut Self, &U) -> Result<(), Error>) -> Result<(), Error> {
+        self.visit_vec_interleaved(params, f, |s| s.write_str(";\n"))
+    }
+}
+
 impl <W: Write> Write for PrettyPrinter<W> {
     fn write_str(&mut self, s: &str) -> std::fmt::Result {
         // TODO: can I do this without allocation?
@@ -51,51 +60,116 @@ impl <W: Write> Write for PrettyPrinter<W> {
 
 impl <W: Write> Visitor<(), Error> for PrettyPrinter<W> {
     fn visit_prog(&mut self, p: &Prog) -> Result<(), Error> {
-        self.out.write_fmt(format_args!("#lang {}.{}", p.major_version, p.minor_version))?;
+        self.write_fmt(format_args!("#lang {}.{}", p.major_version, p.minor_version))?;
         self.visit_isolate(&p.top)
     }
 
     fn visit_if(&mut self, p: &If) -> Result<(), Error> {
-        todo!()
+        self.write_str("if ")?;
+        self.visit_expr(&p.tst)?;
+        self.write_str(" {\n")?;
+
+        for stmt in &p.thn {
+            self.visit_stmt(stmt)?;
+            self.write_str(";\n")?;
+        }
+        match &p.els {
+            None => (),
+            Some(stmts) => {
+                self.write_str("} else {")?;
+                for stmt in stmts {
+                    self.visit_stmt(stmt)?;
+                    self.write_str(";\n")?;
+                }
+                self.write_str("}\n")?;
+            }
+        }
+        self.write_str("}\n")
     }
 
     fn visit_while(&mut self, p: &While) -> Result<(), Error> {
-        todo!()
+        self.write_str("while ")?;
+        self.visit_expr(&p.test)?;
+        self.write_str(" {\n")?;
+        for stmt in &p.doit {
+            self.visit_stmt(stmt)?;
+            self.write_str(";\n")?;
+        }
+        self.write_str("}\n")
     }
 
     fn visit_action_sequence(&mut self, actions: &Vec<Action>) -> Result<(), Error> {
-        todo!()
+        for a in actions {
+            self.visit_action(a)?;
+            self.write_str(";\n")?;
+        }
+        Ok(())
     }
 
     fn visit_assert(&mut self, a: &AssertAction) -> Result<(), Error> {
-        todo!()
+        self.write_str("assert ")?;
+        self.visit_expr(&a.pred)
     }
 
     fn visit_assign(&mut self, a: &AssignAction) -> Result<(), Error> {
-        todo!()
+        self.visit_expr(&a.lhs)?;
+        self.write_str(" := ")?;
+        self.visit_expr(&a.rhs)
     }
 
     fn visit_assume(&mut self, a: &AssumeAction) -> Result<(), Error> {
-        todo!()
-    }
-
-    fn visit_call(&mut self, e: &AppExpr) -> Result<(), Error> {
-        todo!()
+        self.write_str("assume ")?;
+        self.visit_expr(&a.pred)
     }
 
     fn visit_ensure(&mut self, e: &EnsureAction) -> Result<(), Error> {
-        todo!()
+        self.write_str("ensure ")?;
+        self.visit_formula(&e.pred)
     }
 
     fn visit_requires(&mut self, e: &RequiresAction) -> Result<(), Error> {
-        todo!()
+        self.write_str("requires ")?;
+        self.visit_formula(&e.pred)
     }
 
     fn visit_action_decl(&mut self, action: &ActionDecl) -> Result<(), Error> {
-        todo!()
+        self.write_str("action ")?;
+        self.write_str(&action.name.join("."))?;
+        self.write_str("(")?;
+        self.write_comma_separated(&action.params, |s, p| s.visit_param(p))?;
+        self.write_str(")")?;
+
+        if let Some(ret) = &action.ret {
+            self.write_str(" returns(")?;
+            self.visit_param(ret)?;
+            self.write_str(")")?;
+        }
+        if let Some(stmts) = &action.body {
+            self.write_str(" {\n")?;
+            self.write_seminl_separated(stmts, |s, d| s.visit_stmt(d))?;
+            self.write_str("}\n")?;
+        }
+        Ok(())
     }
 
     fn visit_after(&mut self, action: &AfterDecl) -> Result<(), Error> {
+        self.write_str("action ")?;
+        self.write_str(&action.name.join("."))?;
+        self.write_str("(")?;
+        match &action.params {
+            None => (),
+            Some(params) => self.write_comma_separated(&params, |s, p| s.visit_param(p))?,
+        }
+        self.write_str(")")?;
+
+        match &action.ret {
+            None => (),
+            Some(ret) => {
+                self.write_str(" returns(")?;
+                self.visit_param(ret)?;
+                self.write_str(")")?;
+            }
+        }
         todo!()
     }
 
@@ -139,9 +213,7 @@ impl <W: Write> Visitor<(), Error> for PrettyPrinter<W> {
         self.out.write_fmt(format_args!("isolate {}", inst.name))?;
         if inst.params.len() > 0 {
             self.write_str("(")?;
-            for param in &inst.params {
-                self.visit_param(param)?;
-            }
+            self.write_comma_separated(&inst.params, |s, p| s.visit_param(p))?;
             self.write_str(")")?;
         }
         self.write_str("{")?;
@@ -186,15 +258,7 @@ impl <W: Write> Visitor<(), Error> for PrettyPrinter<W> {
         self.visit_expr(a.func.as_ref())?;
 
         self.write_str("(")?;
-        let mut sep = false;
-        for arg in &a.args {
-            if sep {
-                self.write_str(", ")?;
-            } else {
-                sep = true;
-            }
-            self.visit_expr(arg)?;
-        }
+        self.write_comma_separated(&a.args, |s, e| s.visit_expr(e))?;
         self.write_str(")")
     }
 
@@ -243,18 +307,8 @@ impl <W: Write> Visitor<(), Error> for PrettyPrinter<W> {
             Fmla::Pred(e) => return self.visit_expr(e),
         };
 
-
-        self.out.write_fmt(format_args!("{}", quant))?;
-        let mut sep = false;
-        for v in vars {
-            if sep {
-                self.write_str(", ")?;
-            } else {
-                sep = true;
-            }
-            self.visit_param(v)?;
-        }
-
+        self.out.write_str(quant)?;
+        self.write_comma_separated(&vars, |s,v| s.visit_param(v))?;
         self.write_str(" . ")?;
         self.visit_formula(&fmla)
     }

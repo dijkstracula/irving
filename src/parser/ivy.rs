@@ -184,18 +184,30 @@ impl IvyParser {
     }
 
     pub fn action_decl(input: Node) -> Result<ActionDecl> {
-        match_nodes!(
+        let span = input.as_pair().as_span(); // Irritating!
+
+        let ret = match_nodes!(
         input.into_children();
-            [decl_sig(DeclSig{name, params}), decl_ret(ret), decl_block(body)] => Ok(
+            [decl_sig(DeclSig{name, params}), decl_ret(ret), stmt_block(body)] => Ok(
                 ActionDecl{name, params, ret, body: Some(body)}
             ),
-            [decl_sig(DeclSig{name, params}), decl_block(body)] => Ok(
+            [decl_sig(DeclSig{name, params}), stmt_block(body)] => Ok(
                 ActionDecl{name, params, ret: None, body: Some(body)}
             ),
             [decl_sig(DeclSig{name, params})] => Ok(
                 ActionDecl{name, params, ret: None, body: None}
             ),
-        )
+        );
+        ret.and_then(|action| {
+            // TODO: having a QualifiedDeclSig vs a DeclSig with just a Symbol as a name would simplify this.
+            if action.name.len() > 1 {
+                Err(Error::new_from_span(
+                    ErrorVariant::<Rule>::CustomError { message: "Need an unqualified action name".into() }, 
+                    span))
+            } else {
+                Ok(action)
+            }
+        })
     }
 
     pub fn alias_decl(input: Node) -> Result<(Symbol, Expr)> {
@@ -214,13 +226,13 @@ impl IvyParser {
     pub fn after_decl(input: Node) -> Result<AfterDecl> {
         match_nodes!(
         input.into_children();
-        [decl_sig(DeclSig{name, params}), decl_ret(ret), decl_block(body)] => Ok(
+        [decl_sig(DeclSig{name, params}), decl_ret(ret), stmt_block(body)] => Ok(
             AfterDecl { name, params: Some(params), ret: ret, body}
         ),
-        [decl_sig(DeclSig{name, params}), decl_block(body)] => Ok(
+        [decl_sig(DeclSig{name, params}), stmt_block(body)] => Ok(
             AfterDecl { name, params: Some(params), ret: None, body}
         ),
-        [ident(name), decl_block(body)] => Ok(
+        [ident(name), stmt_block(body)] => Ok(
             AfterDecl { name, params: None, ret: None, body}
         ),
         )
@@ -266,10 +278,10 @@ impl IvyParser {
         // implement like defining an action, modulo internal name mangling.
         match_nodes!(
         input.into_children();
-            [decl_sig(DeclSig{name, params}), decl_ret(ret), decl_block(body)] => Ok(
+            [decl_sig(DeclSig{name, params}), decl_ret(ret), stmt_block(body)] => Ok(
                 ActionDecl{name, params, ret, body: Some(body)}
             ),
-            [decl_sig(DeclSig{name, params}), decl_block(body)] => Ok(
+            [decl_sig(DeclSig{name, params}), stmt_block(body)] => Ok(
                 ActionDecl{name, params, ret: None, body: Some(body)}
             ),
         )

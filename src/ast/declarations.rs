@@ -17,7 +17,7 @@ pub struct ActionDecl {
     pub name: Vec<String>,
     pub params: Vec<Param>,
     pub ret: Option<Param>,
-    pub body: Option<Vec<Decl>>,
+    pub body: Option<Vec<Stmt>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -25,14 +25,14 @@ pub struct AfterDecl {
     pub name: Vec<String>,
     pub params: Option<Vec<Param>>,
     pub ret:  Option<Param>,
-    pub body: Vec<Decl>
+    pub body: Vec<Stmt>
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct BeforeDecl {
     pub name: Vec<String>,
     pub params: Option<Vec<Param>>,
-    pub body: Vec<Decl>
+    pub body: Vec<Stmt>
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]

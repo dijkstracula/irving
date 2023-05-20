@@ -6,6 +6,7 @@ use std::{collections::HashMap};
 
 use crate::ast::declarations::*;
 use crate::ast::expressions::*;
+use crate::ast::statements::Stmt;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ModuleError {
@@ -22,9 +23,9 @@ pub struct Mixin {
     pub params: Option<Vec<Param>>,
     pub ret: Option<Param>,
 
-    pub pre: Option<Vec<Decl>>,
-    pub body: Option<Vec<Decl>>,
-    pub post: Option<Vec<Decl>>,
+    pub pre: Option<Vec<Stmt>>,
+    pub body: Option<Vec<Stmt>>,
+    pub post: Option<Vec<Stmt>>,
 }
 
 impl Mixin {
