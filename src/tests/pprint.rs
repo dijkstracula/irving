@@ -59,4 +59,18 @@ mod tests {
         assert_eq!(fragment, pp.out);
     }
 
+    #[test]
+    fn pprint_prog() {
+        let prog = include_str!("programs/002_safety_and_invariants.ivy");
+        let res = IvyParser::parse(Rule::prog, &prog)
+            .expect("Parsing failed")
+            .single().unwrap();
+        let _ast = IvyParser::prog(res)
+            .expect("AST generation failed");
+
+        let mut pp = PrettyPrinter::<String>::new();
+        pp.visit_prog(&_ast).expect("traversal failed");
+        println!("{}", pp.out);
+    }
+
 }

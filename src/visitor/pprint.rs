@@ -35,11 +35,13 @@ impl <W> PrettyPrinter<W> where W: Write {
 impl <W: Write> Write for PrettyPrinter<W> {
     fn write_str(&mut self, s: &str) -> std::fmt::Result {
         // TODO: can I do this without allocation?
-        let lines = s.lines().enumerate().collect::<Vec<_>>();
+        let lines = s.split("\n").enumerate().collect::<Vec<_>>();
 
         for (i, line) in &lines {
-            if !self.curr_line_is_indented {
-                let indent = std::iter::repeat(" ").take(self.indent).collect::<String>();
+            self.indent -= line.matches("}").count();
+            self.indent -= line.matches(")").count();
+            if line.len() > 0 && !self.curr_line_is_indented {
+                let indent = std::iter::repeat(" ").take(4 * self.indent).collect::<String>();
                 self.out.write_str(&indent)?;
                 self.curr_line_is_indented = true;
             }
@@ -47,8 +49,6 @@ impl <W: Write> Write for PrettyPrinter<W> {
 
             self.indent += line.matches("{").count();
             self.indent += line.matches("(").count();
-            self.indent -= line.matches("}").count();
-            self.indent -= line.matches(")").count();
             if *i < lines.len() - 1 {
                 self.out.write_str("\n")?;
                 self.curr_line_is_indented = false;
@@ -60,7 +60,7 @@ impl <W: Write> Write for PrettyPrinter<W> {
 
 impl <W: Write> Visitor<(), Error> for PrettyPrinter<W> {
     fn visit_prog(&mut self, p: &Prog) -> Result<(), Error> {
-        self.write_fmt(format_args!("#lang {}.{}", p.major_version, p.minor_version))?;
+        self.write_fmt(format_args!("#lang ivy{}.{}\n", p.major_version, p.minor_version))?;
         self.visit_isolate(&p.top)
     }
 
@@ -153,7 +153,7 @@ impl <W: Write> Visitor<(), Error> for PrettyPrinter<W> {
     }
 
     fn visit_after(&mut self, action: &AfterDecl) -> Result<(), Error> {
-        self.write_str("action ")?;
+        self.write_str("after ")?;
         self.write_str(&action.name.join("."))?;
         self.write_str("(")?;
         match &action.params {
@@ -162,31 +162,46 @@ impl <W: Write> Visitor<(), Error> for PrettyPrinter<W> {
         }
         self.write_str(")")?;
 
-        match &action.ret {
-            None => (),
-            Some(ret) => {
-                self.write_str(" returns(")?;
-                self.visit_param(ret)?;
-                self.write_str(")")?;
-            }
+        if let Some(ret) = &action.ret {
+            self.write_str(" returns(")?;
+            self.visit_param(ret)?;
+            self.write_str(")")?;
         }
-        todo!()
+
+        self.write_str(" {\n")?;
+        self.write_seminl_separated(&action.body, |s, d| s.visit_stmt(d))?;
+        self.write_str("}\n")
     }
 
     fn visit_alias(&mut self, name: &Symbol, val: &Expr) -> Result<(), Error> {
-        todo!()
+        self.write_fmt(format_args!("alias {} = ", name))?;
+        self.visit_expr(val)
     }
 
     fn visit_axiom(&mut self, axiom: &Fmla) -> Result<(), Error> {
-        todo!()
+        self.write_str("axiom ")?;
+        self.visit_formula(axiom)
     }
 
     fn visit_before(&mut self, action: &BeforeDecl) -> Result<(), Error> {
-        todo!()
+        self.write_str("before ")?;
+        self.write_str(&action.name.join("."))?;
+        self.write_str("(")?;
+        match &action.params {
+            None => (),
+            Some(params) => self.write_comma_separated(&params, |s, p| s.visit_param(p))?,
+        }
+        self.write_str(") {\n")?;
+        self.write_seminl_separated(&action.body, |s, d| s.visit_stmt(d))?;
+        self.write_str("}\n")
     }
 
     fn visit_export(&mut self, action: &ExportDecl) -> Result<(), Error> {
-        todo!()
+        self.write_str("import ")?;
+        match action {
+            ExportDecl::Action(a) => self.visit_action_decl(a),
+            ExportDecl::ForwardRef(r) => self.write_str(&r.join("."))
+        }
     }
 
     fn visit_function(&mut self, fun: &FunctionDecl) -> Result<(), Error> {
@@ -194,19 +209,25 @@ impl <W: Write> Visitor<(), Error> for PrettyPrinter<W> {
     }
 
     fn visit_globals(&mut self, defs: &Vec<Decl>) -> Result<(), Error> {
-        todo!()
+        self.write_str("global {")?;
+        self.write_seminl_separated(defs, |s, def| s.visit_decl(def))?;
+        self.write_str("}")
     }
 
     fn visit_import(&mut self, action: &ImportDecl) -> Result<(), Error> {
-        todo!()
+        self.write_fmt(format_args!("import action {}(", action.name))?;
+        self.write_comma_separated(&action.params, |s, p| s.visit_param(p))?;
+        self.write_str(")")
     }
 
     fn visit_include(&mut self, module: &Symbol) -> Result<(), Error> {
-        todo!()
+        self.write_fmt(format_args!("include {}", module))
     }
 
     fn visit_instance(&mut self, inst: &InstanceDecl) -> Result<(), Error> {
-        todo!()
+        self.write_fmt(format_args!("instance {} : {}(", &inst.name.join("."), &inst.sort.join(".")))?;
+        self.write_comma_separated(&inst.args, |s, p| s.visit_param(p))?;
+        self.write_str(")")
     }
 
     fn visit_isolate(&mut self, inst: &IsolateDecl) -> Result<(), Error> {
@@ -216,40 +237,77 @@ impl <W: Write> Visitor<(), Error> for PrettyPrinter<W> {
             self.write_comma_separated(&inst.params, |s, p| s.visit_param(p))?;
             self.write_str(")")?;
         }
-        self.write_str("{")?;
-        self.write_str("\n")?;
+        self.write_str(" {\n")?;
         for decl in &inst.body {
             self.visit_decl(decl)?;
             self.write_str("\n")?;
         }
-        self.write_str("}")?;
-        self.write_str("\n")
+        self.write_str("}\n")
     }
 
     fn visit_invariant(&mut self, inv: &Fmla) -> Result<(), Error> {
         self.write_str("invariant ")?;
-        self.visit_formula(inv)?;
-        self.write_str(";")
+        self.visit_formula(inv)
     }
 
     fn visit_module(&mut self, module: &ModuleDecl) -> Result<(), Error> {
-        todo!()
+        self.write_fmt(format_args!("module {}(", &module.name.join(".")))?;
+        self.write_comma_separated(&module.params, |s, p| s.visit_param(p))?;
+        self.write_str(")")
     }
 
     fn visit_object(&mut self, obj: &ObjectDecl) -> Result<(), Error> {
-        todo!()
+        self.write_fmt(format_args!("object {}", obj.name.join(".")))?;
+        if obj.params.len() > 0 {
+            self.write_str("(")?;
+            self.write_comma_separated(&obj.params, |s, p| s.visit_param(p))?;
+            self.write_str(")")?;
+        }
+
+        self.write_str(" = {\n")?;
+        self.write_seminl_separated(&obj.body, |s, d| s.visit_decl(d))?;
+        self.write_str("}")
     }
 
     fn visit_relation(&mut self, obj: &Relation) -> Result<(), Error> {
-        todo!()
+        self.write_fmt(format_args!("relation {}", obj.name.join(".")))?;
+        self.write_str("(")?;
+        self.write_comma_separated(&obj.params, |s, p| s.visit_param(p))?;
+        self.write_str(")")
     }
 
     fn visit_vardecl(&mut self, term: &Term) -> Result<(), Error> {
-        todo!()
+        self.write_fmt(format_args!("var {}", term.id.join(".")))?;
+        if let Some(sort) = &term.sort {
+            self.write_fmt(format_args!(": {}", sort.join(".")))?;
+        }
+        Ok(())
     }
 
     fn visit_typedecl(&mut self, name: &TypeName, sort: &Sort) -> Result<(), Error> {
-        todo!()
+        self.write_str("type ")?;
+        match name {
+            TypeName::Name(n) => { self.write_str(n)?; }
+            TypeName::This => { self.write_str("this")?; }
+        }
+
+        match sort {
+            Sort::Range(min, max) => { 
+                self.write_str(" = {")?;
+                self.visit_expr(min)?;
+                self.write_str("..")?;
+                self.visit_expr(max)?;
+                self.write_str("}")?;
+            },
+            Sort::Enum(branches) => {
+                self.write_str(" = {")?;
+                self.write_comma_separated(branches, |s, e| s.write_str(e))?;
+                self.write_str(" }")?;
+            }
+            Sort::Subclass(s) => { self.write_fmt(format_args!(" of {}", s))?; }
+            Sort::Uninterpreted => {},
+        }
+        Ok(())
     }
 
     // Expressions
@@ -271,10 +329,19 @@ impl <W: Write> Visitor<(), Error> for PrettyPrinter<W> {
             Verb::Dot => ".",
 
             Verb::Equals => "=",
+            Verb::Lt => "<",
+            Verb::Le => "<=",
+            Verb::Gt => ">",
+            Verb::Ge => ">=",
+
             Verb::Arrow => "->",
 
             Verb::And => "&",
-            _ => unimplemented!()
+            Verb::Or => "&",
+            _ => {
+                println!("{:?}", op);
+                unimplemented!()
+            }
         };
 
         self.visit_expr(lhs)?;
