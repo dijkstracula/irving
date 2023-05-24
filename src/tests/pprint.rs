@@ -22,9 +22,9 @@ mod tests {
         let mut pp = PrettyPrinter::<String>::new();
 
         let fragment = "foo(a, b, c)";
-        let _ast = parse_expr(fragment).expect("Parsing failed");
+        let mut _ast = parse_expr(fragment).expect("Parsing failed");
 
-        pp.visit_expr(&_ast).expect("traversal failed");
+        pp.visit_expr(&mut _ast).expect("traversal failed");
         assert_eq!(fragment, pp.out);
     }
 
@@ -33,8 +33,8 @@ mod tests {
         let mut pp = PrettyPrinter::<String>::new();
 
         let fragment = "43 - 1";
-        let _ast = parse_expr(fragment).expect("Parsing failed");
-        pp.visit_expr(&_ast).expect("traversal failed");
+        let mut _ast = parse_expr(fragment).expect("Parsing failed");
+        pp.visit_expr(&mut _ast).expect("traversal failed");
         assert_eq!(fragment, pp.out);
     }
 
@@ -44,8 +44,8 @@ mod tests {
         let mut pp = PrettyPrinter::<String>::new();
 
         let fragment = "sock.send(host(1 - self).sock.id, val)";
-        let _ast = parse_expr(fragment).expect("Parsing failed");
-        pp.visit_expr(&_ast).expect("traversal failed");
+        let mut _ast = parse_expr(fragment).expect("Parsing failed");
+        pp.visit_expr(&mut _ast).expect("traversal failed");
         assert_eq!(fragment, pp.out);
     }
 
@@ -54,8 +54,8 @@ mod tests {
         let mut pp = PrettyPrinter::<String>::new();
 
         let fragment = "forall X:node, Y, Z . X = Y & Y = Z -> X = Y";
-        let _ast = parse_fmla(fragment).expect("Parsing failed");
-        pp.visit_formula(&_ast).expect("traversal failed");
+        let mut _ast = parse_fmla(fragment).expect("Parsing failed");
+        pp.visit_formula(&mut _ast).expect("traversal failed");
         assert_eq!(fragment, pp.out);
     }
 
@@ -65,11 +65,11 @@ mod tests {
         let res = IvyParser::parse(Rule::prog, &prog)
             .expect("Parsing failed")
             .single().unwrap();
-        let _ast = IvyParser::prog(res)
+        let mut _ast = IvyParser::prog(res)
             .expect("AST generation failed");
 
         let mut pp = PrettyPrinter::<String>::new();
-        pp.visit_prog(&_ast).expect("traversal failed");
+        pp.visit_prog(&mut _ast).expect("traversal failed");
         println!("{}", pp.out);
     }
 
