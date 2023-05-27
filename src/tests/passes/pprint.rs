@@ -61,7 +61,7 @@ mod tests {
 
     #[test]
     fn pprint_prog() {
-        let prog = include_str!("programs/002_safety_and_invariants.ivy");
+        let prog = include_str!("../programs/002_safety_and_invariants.ivy");
         let res = IvyParser::parse(Rule::prog, &prog)
             .expect("Parsing failed")
             .single().unwrap();

@@ -1,4 +1,4 @@
 mod isolate;
 mod parser;
-mod pprint;
+mod passes;
 mod programs;

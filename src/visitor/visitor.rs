@@ -306,9 +306,9 @@ pub trait Visitor<E> {
 
 
     fn visit_vec_interleaved<F, FT, T>(&mut self, ts: &mut Vec<T>, mut f: FT, mut sep_f: F) -> VisitorResult<E> 
-            where
-        FT: FnMut(&mut Self, &mut T) -> VisitorResult<E>,
-        F: FnMut (&mut Self) -> Result<(),E> {
+        where
+    FT: FnMut(&mut Self, &mut T) -> VisitorResult<E>,
+    F: FnMut (&mut Self) -> Result<(),E> {
         for (i, t) in ts.into_iter().enumerate() {
             if i > 0 {
                 sep_f(self)?;
@@ -322,14 +322,20 @@ pub trait Visitor<E> {
     }
 
     fn visit_vec<FT, T>(&mut self, ts: &mut Vec<T>, mut f: FT) -> VisitorResult<E> 
-            where
-        FT: FnMut(&mut Self, &mut T) -> VisitorResult<E> {
-        for (i, t) in ts.into_iter().enumerate() {
-            match f(self, t)? {
-                Continue => continue,
-                Remove => todo!(),
-            }
-        }
+        where
+    FT: FnMut(&mut Self, &mut T) -> VisitorResult<E> {
+        let owned = std::mem::take(ts);
+        let mut controls = owned.into_iter()
+            .map(|mut t| match f(self, &mut t) {
+                Ok(Continue) => Ok(Some(t)),
+                Ok(Remove) => Ok(None),
+                Err(e) => Err(e)
+            })
+            .collect::<Result<Vec<_>, E>>()?;
+        controls.retain(|o| o.is_some());
+        *ts = controls.into_iter().map(|o| o.unwrap()).collect();
+
+        // XXX: Remove if len(ts) == 0?
         Ok(Continue)
     }
 }

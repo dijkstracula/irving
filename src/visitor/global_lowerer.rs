@@ -11,12 +11,24 @@ use super::control::Control::Remove;
 use super::control::VisitorResult;
 
 pub struct GlobalLowerer {
-    pub prog: Prog
+    pub globals: Vec<Decl>
+}
+
+impl GlobalLowerer {
+    fn new() -> Self {
+        GlobalLowerer { globals: vec!() }
+    }
+
+    pub fn visit(prog: &mut Prog) {
+        let mut g = Self::new();
+        g.visit_prog(prog).unwrap();
+        prog.top.body.push(Decl::Globals(g.globals));
+    }
 }
 
 impl Visitor<Error> for GlobalLowerer {
     fn visit_globals(&mut self, defs: &mut Vec<Decl>) -> VisitorResult<Error> {
-        self.prog.top.body.append(defs);
+        self.globals.append(defs);
         Ok(Remove)
     }
 }
