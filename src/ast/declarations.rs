@@ -111,11 +111,15 @@ pub enum Decl {
 
     BeforeAction(BeforeDecl),
 
+    Common(Vec<Decl>),
+
     Export(ExportDecl),
 
     Function(FunctionDecl),
 
     Globals(Vec<Decl>),
+
+    Implementation(Vec<Decl>),
 
     Import(ImportDecl),
 
@@ -142,6 +146,8 @@ pub enum Decl {
     Object(ObjectDecl),
 
     Relation(Relation),
+
+    Specification(Vec<Decl>),
 
     Stmts(Vec<Stmt>),
 

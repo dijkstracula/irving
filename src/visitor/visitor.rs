@@ -101,6 +101,9 @@ pub trait Visitor<E> {
         }
         Ok(Continue)
     }
+    fn visit_common(&mut self, decls: &mut Vec<Decl>) -> VisitorResult<E> {
+        self.visit_vec(decls, |slf, d| slf.visit_decl(d))
+    }
     fn visit_export(&mut self, action: &mut ExportDecl) -> VisitorResult<E> {
         match action {
             ExportDecl::Action(action) => { self.visit_action_decl(action)?; }
@@ -117,6 +120,9 @@ pub trait Visitor<E> {
     fn visit_globals(&mut self, defs: &mut Vec<Decl>) -> VisitorResult<E> {
         self.visit_vec(defs, |slf, d| slf.visit_decl(d))?;
         Ok(Continue)
+    }
+    fn visit_implementation(&mut self, decls: &mut Vec<Decl>) -> VisitorResult<E> {
+        self.visit_vec(decls, |slf, d| slf.visit_decl(d))
     }
     fn visit_import(&mut self, action: &mut ImportDecl) -> VisitorResult<E> {
         self.visit_vec(&mut action.params, |slf, p| slf.visit_param(p))?;
@@ -152,6 +158,9 @@ pub trait Visitor<E> {
     fn visit_relation(&mut self, obj: &mut Relation) -> VisitorResult<E> {
         self.visit_vec(&mut obj.params, |slf, p| slf.visit_param(p))?;
         Ok(Continue)
+    }
+    fn visit_specification(&mut self, decls: &mut Vec<Decl>) -> VisitorResult<E> {
+        self.visit_vec(decls, |slf, d| slf.visit_decl(d))
     }
     fn visit_vardecl(&mut self, term: &mut Term) -> VisitorResult<E> {
         self.visit_identifier(&mut term.id)?;
@@ -198,19 +207,22 @@ pub trait Visitor<E> {
             Decl::Alias(name, val) => self.visit_alias(name, val),
             Decl::Axiom(x) => self.visit_axiom(x),
             Decl::BeforeAction(a) => self.visit_before(a),
+            Decl::Common(decls) => todo!(),
             Decl::Export(e) => self.visit_export(e),
             Decl::Function(f) => self.visit_function(f),
             Decl::Globals(g) => self.visit_globals(g),
             Decl::Import(i) => self.visit_import(i),
             Decl::Isolate(i) => self.visit_isolate(i),
             Decl::Include(i) => self.visit_include(i),
+            Decl::Implementation(decls) => todo!(),
             Decl::Instance(i) => self.visit_instance(i),
             Decl::Instantiate { name, prms } => todo!(),
             Decl::Interpretation { itype, ctype } => todo!(),
-                Decl::Invariant(i) => self.visit_invariant(i),
+            Decl::Invariant(i) => self.visit_invariant(i),
             Decl::Module(m) => self.visit_module(m),
             Decl::Object(o) => self.visit_object(o),
             Decl::Relation(r) => self.visit_relation(r),
+            Decl::Specification(decls) => todo!(),
             Decl::Stmts(stmts) => {
                 for stmt in stmts {
                     self.visit_stmt(stmt)?;

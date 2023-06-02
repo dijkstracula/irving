@@ -45,32 +45,35 @@ number = @{ (ASCII_NONZERO_DIGIT ~ ASCII_DIGIT+ | ASCII_DIGIT) }
 // Declaration kinds: from ivy2/ivylang.ivy's `decl.parse()`.
 // Also from ivy/ivy_lexer.py.
 
-ACTION       = _{ "action"    }
-ALIAS        = _{ "alias"     }
-ASSERT       = _{ "assert"    }
-ASSUME       = _{ "assume"    }
-ENSURE       = _{ "ensure"    }
-REQUIRE      = _{ "require"   }
-AXIOM        = _{ "axiom"     }
-FUNCTION     = _{ "function"  }
-RELATION     = _{ "relation"  }
-INCLUDE      = _{ "include "  }
-VAR          = _{ "individual" | "var" }
-GLOBAL       = _{ "global"    }
-HEADER       = _{ "header"    }
-IMPLEMENT    = _{ "implement" }
-INTERPRET    = _{ "interpret" }
-INVARIANT    = _{ "invariant" }
-MODULE       = _{ "module"    }
-INSTANTIATE  = _{ "instantiate" }
-OBJECT       = _{ "object"   }
-INSTANCE     = _{ "instance" }
-AUTOINSTANCE = _{ "autoinstance" }
-IMPORT       = _{ "import" }
-EXPORT       = _{ "export" }
-INIT         = _{ "init"   }
-AFTER        = _{ "after"  }
-TYPE         = _{ "type"   }
+ACTION          = _{ "action"    }
+ALIAS           = _{ "alias"     }
+ASSERT          = _{ "assert"    }
+ASSUME          = _{ "assume"    }
+ENSURE          = _{ "ensure"    }
+REQUIRE         = _{ "require"   }
+AXIOM           = _{ "axiom"     }
+FUNCTION        = _{ "function"  }
+RELATION        = _{ "relation"  }
+INCLUDE         = _{ "include "  }
+VAR             = _{ "individual" | "var" }
+GLOBAL          = _{ "global"    }
+IMPLEMENTATION  = _{ "implementation" }
+SPECIFICATION   = _{ "specification"  }
+COMMON          = _{ "common"  }
+HEADER          = _{ "header"    }
+IMPLEMENT       = _{ "implement" }
+INTERPRET       = _{ "interpret" }
+INVARIANT       = _{ "invariant" }
+MODULE          = _{ "module"    }
+INSTANTIATE     = _{ "instantiate" }
+OBJECT          = _{ "object"   }
+INSTANCE        = _{ "instance" }
+AUTOINSTANCE    = _{ "autoinstance" }
+IMPORT          = _{ "import" }
+EXPORT          = _{ "export" }
+INIT            = _{ "init"   }
+AFTER           = _{ "after"  }
+TYPE            = _{ "type"   }
 
 IF =     _{ "if" }
 WHILE =  _{ "while" }
@@ -96,6 +99,9 @@ reserved = {
 | INCLUDE
 | VAR
 | GLOBAL
+| IMPLEMENTATION
+| SPECIFICATION
+| COMMON
 | HEADER
 | IMPLEMENT
 | INTERPRET

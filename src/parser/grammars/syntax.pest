@@ -31,7 +31,7 @@ range_decl = { "{" ~ expr ~ ".." ~ expr ~ "}" }
 
 decl_ret   = { "returns" ~ "(" ~ param ~ ")" } //TODO: needs to be a paramlist
 decl_sig =  { ident ~ ("(" ~ paramlist ~ ")")? }
-decl_block = { "{" ~ decl* ~ ";"? ~ "}" }
+decl_block = { "{" ~ (decl ~ ";"?)* ~ "}" }
 
 include_decl      = { INCLUDE ~ symbol }
 var_decl          = { VAR ~ term }
@@ -57,6 +57,10 @@ implement_decl    = { IMPLEMENT ~ decl_sig ~ decl_ret? ~ stmt_block }
 
 instance_decl     = { INSTANCE ~ ident ~ ":" ~ decl_sig }
 
+implementation_decl    = { IMPLEMENTATION ~ decl_block }
+specification_decl     = { SPECIFICATION ~ decl_block }
+common_decl            = { COMMON ~ decl_block }
+
 // TODO: struct decl
 type_name         = { symbol | THIS }
 type_decl         = { TYPE ~ type_name ~ (("=" ~ (range_decl | enum_decl)) | ("of" ~ symbol))? } // superclass might have to be more than a symbol
@@ -71,6 +75,12 @@ autoinstance_decl = { AUTOINSTANCE ~ decl_sig }
 
 decl = {
       action_decl
+    
+    | implementation_decl
+    | specification_decl
+    | common_decl
+    | global_decl
+
     | alias_decl
     | axiom_decl
     | function_decl
@@ -78,7 +88,6 @@ decl = {
     | include_decl
     | var_decl
     | header_decl
-    | global_decl
     | implement_decl
     | instance_decl
     | interpret_decl
@@ -94,6 +103,7 @@ decl = {
     | before_decl
     | extract_decl
     | type_decl
+
     | (stmt ~ (";" ~ stmt)* )
 }
 

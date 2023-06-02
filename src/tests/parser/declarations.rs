@@ -33,6 +33,19 @@ mod tests {
         let res = IvyParser::decl(res).unwrap();
         println!("{:?}", res);
     }
+    
+    #[test]
+    fn parse_common_decl() {
+        let fragment = "common {
+            var msg: count;
+            after init { msg_count := 0 }
+        }";
+
+        let res = IvyParser::parse(Rule::decl, fragment)
+            .expect("Parsing failed")
+            .single().unwrap();
+        IvyParser::decl(res).unwrap();
+    }
 
     #[test]
     fn parse_function_decl() {
@@ -64,6 +77,19 @@ mod tests {
     #[test]
     fn parse_invariant_decl() {
         let fragment = "invariant X = Z | ~link(X,Y) | ~link(Z,Y)";
+        let res = IvyParser::parse(Rule::decl, fragment)
+            .expect("Parsing failed")
+            .single().unwrap();
+        IvyParser::decl(res).unwrap();
+    }
+
+    #[test]
+    fn parse_implentation_decl() {
+        let fragment = "implementation {
+            instance sock : net.socket;
+            after init { };
+        }";
+
         let res = IvyParser::parse(Rule::decl, fragment)
             .expect("Parsing failed")
             .single().unwrap();
@@ -116,6 +142,19 @@ mod tests {
             .expect("Parsing failed")
             .single().unwrap();
         assert!(IvyParser::relation_decl(res).is_ok());
+    }
+
+    #[test]
+    fn parse_specification_decl() {
+        let fragment = "specification {
+            var msg: count;
+            after init { msg_count := 0 }
+        }";
+
+        let res = IvyParser::parse(Rule::decl, fragment)
+            .expect("Parsing failed")
+            .single().unwrap();
+        IvyParser::decl(res).unwrap();
     }
 
     #[test]
