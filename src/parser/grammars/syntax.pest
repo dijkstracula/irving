@@ -37,6 +37,7 @@ include_decl      = { INCLUDE ~ symbol }
 var_decl          = { VAR ~ term }
 
 after_decl        = { AFTER  ~ (decl_sig ~ decl_ret?)? ~ stmt_block }
+attribute_decl    = { ATTRIBUTE ~ expr } // TODO: wildly overspecified: shoudl be constrained beyond just an expr.
 before_decl       = { BEFORE ~ (decl_sig ~ decl_ret?)? ~ stmt_block }
 
 alias_decl        = { ALIAS ~ symbol ~ "=" ~ expr }
@@ -82,6 +83,7 @@ decl = {
     | global_decl
 
     | alias_decl
+    | attribute_decl
     | axiom_decl
     | function_decl
     | relation_decl

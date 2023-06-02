@@ -107,6 +107,8 @@ pub enum Decl {
 
     Alias(Symbol, Expr),
 
+    Attribute(Expr),
+
     Axiom(Fmla),
 
     BeforeAction(BeforeDecl),

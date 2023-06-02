@@ -52,4 +52,14 @@ mod tests {
         let _ast = IvyParser::prog(res)
             .expect("AST generation failed");
     }
+
+    #[test]
+    fn test_append2() {
+        let prog = include_str!("programs/101_append2.ivy");
+        let res = IvyParser::parse(Rule::prog, &prog)
+            .expect("Parsing failed")
+            .single().unwrap();
+        let _ast = IvyParser::prog(res)
+            .expect("AST generation failed");
+    }
 }

@@ -216,6 +216,13 @@ impl IvyParser {
         [symbol(lhs), expr(rhs)] => Ok((lhs, rhs)))
     }
 
+    pub fn attribute_decl(input: Node) -> Result<Expr> {
+        match_nodes!(
+        input.into_children();
+        [expr(e)] => Ok(e)
+        )
+    }
+
     pub fn axiom_decl(input: Node) -> Result<Fmla> {
         match_nodes!(
         input.into_children();
@@ -432,6 +439,7 @@ impl IvyParser {
         [action_decl(decl)]   => Ok(Decl::Action(decl)),
         [after_decl(decl)]    => Ok(Decl::AfterAction(decl)),
         [alias_decl((l,r))]   => Ok(Decl::Alias(l, r)),
+        [attribute_decl(expr)] => Ok(Decl::Attribute(expr)),
         [axiom_decl(fmla)]    => Ok(Decl::Axiom(fmla)),
         [common_decl(decls)] => Ok(Decl::Common(decls)),
         [export_decl(fmla)]   => Ok(Decl::Export(fmla)),

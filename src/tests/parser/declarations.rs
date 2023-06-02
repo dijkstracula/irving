@@ -25,6 +25,15 @@ mod tests {
     }
 
     #[test]
+    fn parse_attribute() {
+        let fragment = "attribute bmc[10]";
+        let res = IvyParser::parse(Rule::decl, fragment)
+            .expect("Parsing failed")
+            .single().unwrap();
+        let _res = IvyParser::decl(res).unwrap();
+    }
+
+    #[test]
     fn parse_axiom() {
         let fragment = "axiom X:id < Y";
         let res = IvyParser::parse(Rule::decl, fragment)

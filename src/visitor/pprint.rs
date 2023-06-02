@@ -189,6 +189,12 @@ impl <W: Write> Visitor<Error> for PrettyPrinter<W> {
         Ok(Continue)
     }
 
+    fn visit_attribute(&mut self, attr: &mut Expr) -> VisitorResult<Error> {
+        self.write_str("attribute ")?;
+        self.visit_expr(attr)?;
+        Ok(Continue)
+    }
+
     fn visit_axiom(&mut self, axiom: &mut Fmla) -> VisitorResult<Error> {
         self.write_str("axiom ")?;
         self.visit_formula(axiom)?;
@@ -216,6 +222,13 @@ impl <W: Write> Visitor<Error> for PrettyPrinter<W> {
         }
     }
 
+    fn visit_common(&mut self, decls: &mut Vec<Decl>) -> VisitorResult<Error> {
+        self.write_str("common {")?;
+        self.write_seminl_separated(decls, |pp, d| pp.visit_decl(d))?;
+        self.write_str("}\n")?;
+        Ok(Continue)
+    }
+
     fn visit_function(&mut self, fun: &mut FunctionDecl) -> VisitorResult<Error> {
         todo!()
     }
@@ -224,6 +237,13 @@ impl <W: Write> Visitor<Error> for PrettyPrinter<W> {
         self.write_str("global {")?;
         self.write_seminl_separated(defs, |pp, def| pp.visit_decl(def))?;
         self.write_str("}")?;
+        Ok(Continue)
+    }
+
+    fn visit_implementation(&mut self, decls: &mut Vec<Decl>) -> VisitorResult<Error> {
+        self.write_str("implementation {")?;
+        self.write_seminl_separated(decls, |pp, d| pp.visit_decl(d))?;
+        self.write_str("}\n")?;
         Ok(Continue)
     }
 
@@ -286,6 +306,13 @@ impl <W: Write> Visitor<Error> for PrettyPrinter<W> {
         self.write_str(" = {\n")?;
         self.write_seminl_separated(&mut obj.body, |pp, d| pp.visit_decl(d))?;
         self.write_str("}")?;
+        Ok(Continue)
+    }
+
+    fn visit_specification(&mut self, decls: &mut Vec<Decl>) -> VisitorResult<Error> {
+        self.write_str("specification {")?;
+        self.write_seminl_separated(decls, |pp, d| pp.visit_decl(d))?;
+        self.write_str("}\n")?;
         Ok(Continue)
     }
 

@@ -49,6 +49,7 @@ ACTION          = _{ "action"    }
 ALIAS           = _{ "alias"     }
 ASSERT          = _{ "assert"    }
 ASSUME          = _{ "assume"    }
+ATTRIBUTE       = _{ "attribute" }
 ENSURE          = _{ "ensure"    }
 REQUIRE         = _{ "require"   }
 AXIOM           = _{ "axiom"     }
@@ -91,6 +92,7 @@ reserved = {
 | ALIAS
 | ASSERT
 | ASSUME
+| ATTRIBUTE
 | ENSURE
 | REQUIRE
 | AXIOM

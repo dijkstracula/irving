@@ -88,6 +88,10 @@ pub trait Visitor<E> {
         self.visit_expr(val)?;
         Ok(Continue)
     }
+    fn visit_attribute(&mut self, expr: &mut Expr) -> VisitorResult<E> {
+        self.visit_expr(expr)?;
+        Ok(Continue)
+    }
     fn visit_axiom(&mut self, axiom: &mut Fmla) -> VisitorResult<E> {
         self.visit_formula(axiom)?;
         Ok(Continue)
@@ -205,6 +209,7 @@ pub trait Visitor<E> {
             Decl::Action(a) => self.visit_action_decl(a),
             Decl::AfterAction(a) => self.visit_after(a),
             Decl::Alias(name, val) => self.visit_alias(name, val),
+            Decl::Attribute(attr) => self.visit_attribute(attr),
             Decl::Axiom(x) => self.visit_axiom(x),
             Decl::BeforeAction(a) => self.visit_before(a),
             Decl::Common(decls) => todo!(),
