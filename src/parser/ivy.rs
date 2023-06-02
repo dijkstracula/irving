@@ -238,6 +238,13 @@ impl IvyParser {
         )
     }
 
+    pub fn common_decl(input: Node) -> Result<Vec<Decl>> {
+        match_nodes!(
+        input.into_children();
+            [decl_block(decls)] => Ok(decls)
+        )
+    }
+
     pub fn enum_decl(input: Node) -> Result<Vec<Symbol>> {
         match_nodes!(
         input.into_children();
@@ -287,6 +294,13 @@ impl IvyParser {
         )
     }
 
+    pub fn implementation_decl(input: Node) -> Result<Vec<Decl>> {
+        match_nodes!(
+        input.into_children();
+            [decl_block(decls)] => Ok(decls)
+        )
+    }
+
     pub fn import_decl(input: Node) -> Result<ImportDecl> {
         let span = input.as_pair().as_span(); // Irritating!
 
@@ -311,18 +325,18 @@ impl IvyParser {
         )
     }
 
-    pub fn invariant_decl(input: Node) -> Result<Fmla> {
-        match_nodes!(
-        input.into_children();
-        [fmla(e)] => Ok(e)
-        )
-    }
-
     pub fn instance_decl(input: Node) -> Result<InstanceDecl> {
         match_nodes!(
         input.into_children();
         [ident(name), decl_sig(DeclSig{name: sort, params: sort_args})] => 
             Ok(InstanceDecl{name, sort, args: sort_args})
+        )
+    }
+
+    pub fn invariant_decl(input: Node) -> Result<Fmla> {
+        match_nodes!(
+        input.into_children();
+        [fmla(e)] => Ok(e)
         )
     }
 
@@ -374,6 +388,13 @@ impl IvyParser {
         )
     }
 
+    pub fn specification_decl(input: Node) -> Result<Vec<Decl>> {
+        match_nodes!(
+        input.into_children();
+            [decl_block(decls)] => Ok(decls)
+        )
+    }
+
     pub fn type_decl(input: Node) -> Result<Type> {
         match_nodes!(
         input.into_children();
@@ -412,18 +433,21 @@ impl IvyParser {
         [after_decl(decl)]    => Ok(Decl::AfterAction(decl)),
         [alias_decl((l,r))]   => Ok(Decl::Alias(l, r)),
         [axiom_decl(fmla)]    => Ok(Decl::Axiom(fmla)),
+        [common_decl(decls)] => Ok(Decl::Common(decls)),
         [export_decl(fmla)]   => Ok(Decl::Export(fmla)),
         [extract_decl(decl)]  => Ok(Decl::Isolate(decl)),
         [global_decl(decls)]  => Ok(Decl::Globals(decls)),
         [function_decl(decl)] => Ok(Decl::Function(decl)),
         [implement_decl(decl)] => Ok(Decl::Action(decl)),
-        [import_decl(decl)]   => Ok(Decl::Import(decl)),
+        [implementation_decl(decls)] => Ok(Decl::Implementation(decls)),
+        [import_decl(decl)]    => Ok(Decl::Import(decl)),
         [include_decl(module)] => Ok(Decl::Include(module)),
         [invariant_decl(fmla)] => Ok(Decl::Invariant(fmla)),
         [instance_decl(decl)] => Ok(Decl::Instance(decl)),
         [module_decl(decl)]   => Ok(Decl::Module(decl)),
         [object_decl(decl)]   => Ok(Decl::Object(decl)),
         [relation_decl(decl)] => Ok(Decl::Relation(decl)),
+        [specification_decl(decls)] => Ok(Decl::Specification(decls)),
         [type_decl(decl)]     => Ok(Decl::Type(decl)),
         [var_decl(decl)]      => Ok(Decl::Var(decl)),
         [stmt(stmts)..]       => Ok(Decl::Stmts(stmts.collect()))
