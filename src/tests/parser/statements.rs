@@ -60,6 +60,14 @@ mod tests {
     }
 
     #[test]
+    fn parse_ensure_action_2() {
+        let fragment = "ensure msg_count = 0 -> host(0).contents.eq(host(1).contents)";
+        let _res = IvyParser::parse(Rule::stmt, fragment)
+            .expect("Parsing failed")
+            .single().unwrap();
+    }
+
+    #[test]
     fn parse_requires_action() {
         let fragment = "require ~failed(y)";
         let _res = IvyParser::parse(Rule::stmt, fragment)

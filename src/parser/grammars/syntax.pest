@@ -129,7 +129,7 @@ actions = { action ~ (";" ~ action)* }
 
 // Statements
 
-stmt_block = { "{" ~ stmt* ~ ";"? ~ "}" }
+stmt_block = { "{" ~ (stmt ~ ";"?)* ~ "}" }
 
 return_stmt = { "return" ~ expr}
 if_stmt     = { "if"    ~ expr ~ stmt_block ~ ("else" ~ stmt_block)? }

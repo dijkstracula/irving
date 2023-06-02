@@ -10,6 +10,7 @@ lazy_static::lazy_static! {
     // from ivy2/lang.ivy.
     static ref PRATT: PrattParser<Rule> =
     PrattParser::new()
+        .op(Op::infix(Rule::DOT, Assoc::Left))
         .op(Op::infix(Rule::COMMA, Assoc::Left))
         .op(Op::infix(Rule::COLON, Assoc::Left))
 
@@ -60,6 +61,10 @@ pub fn parse_log_term(pairs: Pairs<Rule>) -> Result<Expr> {
             };
             Ok(Expr::Boolean(val))
         }
+        Rule::number => {
+            let val: i64 = primary.as_str().parse::<>().unwrap();
+            Ok(Expr::Number(val))
+        }
         Rule::log_term => {
             parse_log_term(primary.into_inner())
         }
@@ -88,6 +93,7 @@ pub fn parse_log_term(pairs: Pairs<Rule>) -> Result<Expr> {
             Rule::LE => Verb::Le,
             Rule::EQ => Verb::Equals,
             Rule::NEQ => Verb::Notequals,
+            Rule::DOT => Verb::Dot,
             _ => unimplemented!()
         };
 

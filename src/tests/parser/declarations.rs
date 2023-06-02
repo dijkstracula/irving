@@ -30,10 +30,18 @@ mod tests {
         let res = IvyParser::parse(Rule::decl, fragment)
             .expect("Parsing failed")
             .single().unwrap();
-        let res = IvyParser::decl(res).unwrap();
-        println!("{:?}", res);
+        let _res = IvyParser::decl(res).unwrap();
     }
-    
+
+    #[test]
+    fn parse_axiom_2() {
+        let fragment = "axiom host(0).sock.id ~= host(1).sock.id";
+        let res = IvyParser::parse(Rule::decl, fragment)
+            .expect("Parsing failed")
+            .single().unwrap();
+        let _res = IvyParser::decl(res).unwrap();
+    }
+
     #[test]
     fn parse_common_decl() {
         let fragment = "common {
