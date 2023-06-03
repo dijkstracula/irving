@@ -26,8 +26,8 @@ impl GlobalLowerer {
     }
 }
 
-impl Visitor<Error> for GlobalLowerer {
-    fn visit_globals(&mut self, defs: &mut Vec<Decl>) -> VisitorResult<Error> {
+impl Visitor<(), Error> for GlobalLowerer {
+    fn visit_globals(&mut self, defs: &mut Vec<Decl>) -> VisitorResult<(), Error> {
         self.globals.append(defs);
         Ok(Remove)
     }
