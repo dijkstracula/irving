@@ -238,7 +238,7 @@ impl <W: Write> Visitor<(), Error> for PrettyPrinter<W> {
         self.write_str("import ")?;
         match action {
             ExportDecl::Action(a) => self.visit_action_decl(a),
-            ExportDecl::ForwardRef(r) => { self.write_str(&r.join("."))?; Ok(Continue(())) }
+            ExportDecl::ForwardRef(r) => { self.write_str(r)?; Ok(Continue(())) }
         }
     }
 
@@ -280,7 +280,7 @@ impl <W: Write> Visitor<(), Error> for PrettyPrinter<W> {
     }
 
     fn visit_instance(&mut self, inst: &mut InstanceDecl) -> VisitorResult<(), Error> {
-        self.write_fmt(format_args!("instance {} : {}(", &inst.name.join("."), &inst.sort.join(".")))?;
+        self.write_fmt(format_args!("instance {} : {}(", inst.name, &inst.sort.join(".")))?;
         self.write_comma_separated(&mut inst.args, |pp, p| pp.visit_param(p))?;
         self.write_str(")")?;
         Ok(Continue(()))

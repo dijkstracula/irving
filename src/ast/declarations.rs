@@ -46,7 +46,7 @@ pub struct FunctionDecl {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ExportDecl {
     Action(ActionDecl),
-    ForwardRef(Vec<Symbol>),
+    ForwardRef(Symbol),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -57,7 +57,7 @@ pub struct ImportDecl {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct InstanceDecl {
-    pub name: Vec<Symbol>,
+    pub name: Symbol,
     pub sort: Vec<Symbol>,
     pub args: Vec<Param>,
 }

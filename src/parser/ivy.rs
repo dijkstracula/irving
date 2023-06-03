@@ -263,7 +263,7 @@ impl IvyParser {
     pub fn export_decl(input: Node) -> Result<ExportDecl> {
         match_nodes!(
         input.into_children();
-            [ident(name)] => Ok(
+            [symbol(name)] => Ok(
                 ExportDecl::ForwardRef(name)
             ),
             [action_decl(decl)] => Ok(
@@ -336,7 +336,7 @@ impl IvyParser {
     pub fn instance_decl(input: Node) -> Result<InstanceDecl> {
         match_nodes!(
         input.into_children();
-        [ident(name), decl_sig(DeclSig{name: sort, params: sort_args})] => 
+        [symbol(name), decl_sig(DeclSig{name: sort, params: sort_args})] => 
             Ok(InstanceDecl{name, sort, args: sort_args})
         )
     }
