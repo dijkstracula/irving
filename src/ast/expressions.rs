@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use super::declarations::{Sort};
+use crate::typechecker::sorts::IvySort;
 
 /// Corresponds to a file/line pairing, and possibly additionally docstrings to
 /// be reconstructed in the extracted code.
@@ -50,7 +50,7 @@ pub enum TypeName {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Type {
     pub ident: TypeName,
-    pub sort: Sort
+    pub sort: IvySort
     /* spec: TypeSpec */
 }
 

@@ -9,6 +9,7 @@ use crate::ast::statements::*;
 use crate::ast::toplevels::*;
 
 use crate::parser::expressions::parse_expr;
+use crate::typechecker::sorts::IvySort;
 
 use super::logic::parse_log_term;
 
@@ -406,16 +407,16 @@ impl IvyParser {
         match_nodes!(
         input.into_children();
         [type_name(ident), enum_decl(cstrs)] => Ok(
-            Type {ident, sort: Sort::Enum(cstrs) }
+            Type {ident, sort: IvySort::Enum(cstrs) }
         ),
         [type_name(ident), range_decl((lo, hi))] => Ok(
-            Type {ident, sort: Sort::Range(Box::new(lo), Box::new(hi)) }
+            Type {ident, sort: IvySort::Range(Box::new(lo), Box::new(hi)) }
         ),
         [type_name(ident), symbol(supr)] => Ok(
-            Type {ident, sort: Sort::Subclass(supr) }
+            Type {ident, sort: IvySort::Subclass(supr) }
         ),
         [type_name(ident)] => Ok(
-            Type {ident, sort: Sort::Uninterpreted }
+            Type {ident, sort: IvySort::Uninterpreted }
         ))
     }
 

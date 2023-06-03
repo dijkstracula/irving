@@ -6,6 +6,7 @@ use crate::ast::expressions::*;
 use crate::ast::logic::*;
 use crate::ast::statements::*;
 use crate::ast::toplevels::*;
+use crate::typechecker::sorts::IvySort;
 
 use super::control::Control::Remove;
 use super::control::Control::Continue;
@@ -144,7 +145,7 @@ pub trait Visitor<T, E> where T: Default {
     fn visit_vardecl(&mut self, term: &mut Term) -> VisitorResult<T, E> {
         self.visit_identifier(&mut term.id)
     }
-    fn visit_typedecl(&mut self, ident: &TypeName, sort: &mut Sort) -> VisitorResult<T, E> {
+    fn visit_typedecl(&mut self, ident: &TypeName, sort: &mut IvySort) -> VisitorResult<T, E> {
         Ok(Continue(T::default()))
     }
 

@@ -90,14 +90,6 @@ pub struct Relation {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum Sort {
-    Range(Box<Expr>, Box<Expr>),
-    Enum(Vec<Symbol>),
-    Subclass(Symbol),
-    Uninterpreted,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[allow(clippy::large_enum_variant)]
 pub enum Decl {
 

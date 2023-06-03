@@ -10,6 +10,7 @@ use crate::ast::expressions::*;
 use crate::ast::logic::*;
 use crate::ast::statements::*;
 use crate::ast::toplevels::*;
+use crate::typechecker::sorts::IvySort;
 use crate::visitor::visitor::Visitor;
 
 use super::control::Control::Continue;
@@ -351,7 +352,7 @@ impl <W: Write> Visitor<(), Error> for PrettyPrinter<W> {
         Ok(Continue(()))
     }
 
-    fn visit_typedecl(&mut self, name: &TypeName, sort: &mut Sort) -> VisitorResult<(), Error> {
+    fn visit_typedecl(&mut self, name: &TypeName, sort: &mut IvySort) -> VisitorResult<(), Error> {
         self.write_str("type ")?;
         match name {
             TypeName::Name(n) => { self.write_str(n)?; }
@@ -359,20 +360,28 @@ impl <W: Write> Visitor<(), Error> for PrettyPrinter<W> {
         }
 
         match sort {
-            Sort::Range(min, max) => { 
+            // These are inferred, usually, I suppose.
+            IvySort::Uninterpreted => {},
+            IvySort::Top => {},
+            IvySort::Bool => {},
+            IvySort::Number => {},
+            IvySort::Function(_, _) => {},
+            IvySort::Relation(_) => {},
+            IvySort::SortVar(_) => {},
+
+            IvySort::Range(min, max) => { 
                 self.write_str(" = {")?;
                 self.visit_expr(min)?;
                 self.write_str("..")?;
                 self.visit_expr(max)?;
                 self.write_str("}")?;
             },
-            Sort::Enum(branches) => {
+            IvySort::Enum(branches) => {
                 self.write_str(" = {")?;
                 self.write_comma_separated(branches, |pp, e| pp.visit_symbol(e))?;
                 self.write_str(" }")?;
             }
-            Sort::Subclass(s) => { self.write_fmt(format_args!(" of {}", s))?; }
-            Sort::Uninterpreted => {},
+            IvySort::Subclass(s) => { self.write_fmt(format_args!(" of {}", s))?; }
         }
         Ok(Continue(()))
     }
