@@ -1,5 +1,4 @@
 // From ivy/ivy_lexer.py
-COMMA       = { "," }
 ISA         = { "isa" }
 LPAREN      = { "(" }
 RPAREN      = { ")" }

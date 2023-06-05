@@ -17,8 +17,7 @@ pub type Ident = Vec<Symbol>;
 pub enum Verb {
     Iff, Or, And, Lt, Le, Gt, Ge, Equals, Notequals, Not, Arrow,
     Plus, Minus, Times, Div,
-    Empty, True, False, 
-    Colon, Comma, Dot
+    Dot /* TODO: Mod????? */
 }
 
 pub type Symbol = String;

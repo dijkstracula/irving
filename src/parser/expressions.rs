@@ -30,8 +30,6 @@ lazy_static::lazy_static! {
         .op(Op::infix(Rule::OR, Assoc::Left))
         .op(Op::infix(Rule::AND, Assoc::Left))
 
-        .op(Op::infix(Rule::COMMA, Assoc::Left))
-
         .op(Op::prefix(Rule::UMINUS))
         .op(Op::prefix(Rule::NOT))
 

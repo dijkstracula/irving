@@ -11,7 +11,6 @@ lazy_static::lazy_static! {
     static ref PRATT: PrattParser<Rule> =
     PrattParser::new()
         .op(Op::infix(Rule::DOT, Assoc::Left))
-        .op(Op::infix(Rule::COMMA, Assoc::Left))
         .op(Op::infix(Rule::COLON, Assoc::Left))
 
         .op(Op::infix(Rule::LT, Assoc::Left))
@@ -82,7 +81,6 @@ pub fn parse_log_term(pairs: Pairs<Rule>) -> Result<Expr> {
 
     .map_infix(|lhs, op, rhs| {
         let verb = match op.as_rule() {
-            Rule::COMMA => Verb::Comma,
             Rule::AND => Verb::And,
             Rule::OR => Verb::Or,
             Rule::IFF => Verb::Iff,

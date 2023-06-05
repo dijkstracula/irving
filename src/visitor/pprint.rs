@@ -362,6 +362,7 @@ impl <W: Write> Visitor<(), Error> for PrettyPrinter<W> {
         match sort {
             // These are inferred, usually, I suppose.
             IvySort::Uninterpreted => {},
+            IvySort::Unit => {},
             IvySort::Top => {},
             IvySort::Bool => {},
             IvySort::Number => {},
