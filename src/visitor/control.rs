@@ -1,4 +1,3 @@
-
 pub type VisitorResult<T, E> = std::result::Result<Control<T>, E>;
 
 pub enum Control<T> {
@@ -7,5 +6,5 @@ pub enum Control<T> {
 
     // Remove the current node entirely (this only makes
     // sense if the node is in a compound block)
-    Remove
+    Remove,
 }

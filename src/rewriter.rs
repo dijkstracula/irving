@@ -2,7 +2,7 @@
 
 /* Structures that we need to extract */
 
-use std::{collections::HashMap};
+use std::collections::HashMap;
 
 use crate::ast::declarations::*;
 use crate::ast::expressions::*;
@@ -12,7 +12,7 @@ use crate::ast::statements::Stmt;
 pub enum ModuleError {
     DuplicateDecl(Decl),
     MixinMismatch,
-    MissingSubmodule(String)
+    MissingSubmodule(String),
 }
 
 type Result<T> = std::result::Result<T, ModuleError>;
@@ -46,7 +46,7 @@ impl Mixin {
             Decl::Action(actiondecl) => Self::from_action(actiondecl),
             Decl::BeforeAction(pre) => Self::from_before(pre),
             Decl::AfterAction(post) => Self::from_after(post),
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     }
 
@@ -96,37 +96,36 @@ impl Mixin {
 
     pub fn mix_action(&mut self, action: ActionDecl) -> Result<()> {
         self.params = Self::mix(std::mem::take(&mut self.params), Some(action.params))?;
-        self.ret    = Self::mix(std::mem::take(&mut self.ret), action.ret)?;
-        self.body   = Self::mix(std::mem::take(&mut self.body), action.body)?;
+        self.ret = Self::mix(std::mem::take(&mut self.ret), action.ret)?;
+        self.body = Self::mix(std::mem::take(&mut self.body), action.body)?;
         Ok(())
     }
 
     pub fn mix_after(&mut self, action: AfterDecl) -> Result<()> {
         self.params = Self::mix(std::mem::take(&mut self.params), action.params)?;
-        self.ret    = Self::mix(std::mem::take(&mut self.ret), action.ret)?;
-        self.post   = Self::mix(std::mem::take(&mut self.post), Some(action.body))?;
+        self.ret = Self::mix(std::mem::take(&mut self.ret), action.ret)?;
+        self.post = Self::mix(std::mem::take(&mut self.post), Some(action.body))?;
         Ok(())
     }
 
     pub fn mix_before(&mut self, action: BeforeDecl) -> Result<()> {
         self.params = Self::mix(std::mem::take(&mut self.params), action.params)?;
-        self.pre    = Self::mix(std::mem::take(&mut self.pre), Some(action.body))?;
+        self.pre = Self::mix(std::mem::take(&mut self.pre), Some(action.body))?;
         Ok(())
     }
 
-    fn mix<'a, T>(o1: Option<T>, o2: Option<T>) -> Result<Option<T>> 
+    fn mix<'a, T>(o1: Option<T>, o2: Option<T>) -> Result<Option<T>>
     where
         T: Clone + Eq,
     {
         match (o1, o2) {
-            (None, None)     => Ok(None),
+            (None, None) => Ok(None),
             (Some(t1), None) => Ok(Some(t1)),
             (None, Some(t2)) => Ok(Some(t2)),
             (Some(t1), Some(t2)) if t1 == t2 => Ok(Some(t2)),
-            _ => Err(ModuleError::MixinMismatch)
-        } 
+            _ => Err(ModuleError::MixinMismatch),
+        }
     }
-
 }
 
 /// A module in the sense of the top level ivy_module.Module object.
@@ -149,10 +148,9 @@ impl Module {
             actions: HashMap::new(),
             submodules: HashMap::new(),
         }
-    } 
+    }
 
-
-/* 
+    /*
     pub fn handle_action_decl(&mut self, action: ActionDecl) -> Result<()> {
         match action.name.as_slice() {
             [] => panic!("Malformed AST: mod={:?}, act={:?}", self, action),
@@ -163,7 +161,7 @@ impl Module {
                 }
                 Ok(()) // TODO
             }
-            // If the action name is qualified, then we'll need to hand it off 
+            // If the action name is qualified, then we'll need to hand it off
             // to the appropriate submodule.
             [qualifier, ..] => {
                 match self.submodules.get_mut(qualifier) {
@@ -187,5 +185,4 @@ impl Module {
             .collect::<Result<_>>()
     }
     */
-
 }

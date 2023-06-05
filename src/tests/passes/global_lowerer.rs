@@ -1,9 +1,9 @@
 #[cfg(test)]
 mod tests {
-    use pest_consume::Parser;
     use crate::ast::declarations::Decl;
+    use crate::parser::ivy::{IvyParser, Rule};
     use crate::visitor::global_lowerer::GlobalLowerer;
-    use crate::parser::ivy::{Rule, IvyParser};
+    use pest_consume::Parser;
 
     #[test]
     fn lower_simple_prog() {
@@ -19,16 +19,16 @@ object abc = {
 ";
         let res = IvyParser::parse(Rule::prog, &prog)
             .expect("Parsing failed")
-            .single().unwrap();
-        let mut ast = IvyParser::prog(res)
-            .expect("AST generation failed");
+            .single()
+            .unwrap();
+        let mut ast = IvyParser::prog(res).expect("AST generation failed");
 
         assert!(ast.top.body.len() == 2);
         match ast.top.body.get(0) {
             Some(Decl::Globals(gs)) => {
                 assert!(gs.len() == 1);
-            },
-            _ => unreachable!()
+            }
+            _ => unreachable!(),
         }
 
         GlobalLowerer::visit(&mut ast);
@@ -38,10 +38,10 @@ object abc = {
         // element here.
         match ast.top.body.last() {
             Some(Decl::Globals(gs)) => {
-                // 
+                //
                 assert!(gs.len() == 2);
-            },
-            _ => unreachable!()
+            }
+            _ => unreachable!(),
         }
     }
 }

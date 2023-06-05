@@ -8,14 +8,17 @@ use crate::ast::statements::*;
 use crate::ast::toplevels::*;
 use crate::typechecker::sorts::IvySort;
 
-use super::control::Control::Remove;
 use super::control::Control::Continue;
+use super::control::Control::Remove;
 use super::control::VisitorResult;
 
 // TODO: Is the standard double-dispatch approach idiomatic for rust?
 // TODO: Feels like nodes need to control recursing into children.
 
-pub trait Visitor<T, E> where T: Default {
+pub trait Visitor<T, E>
+where
+    T: Default,
+{
     fn visit_prog(&mut self, p: &mut Prog) -> VisitorResult<T, E> {
         self.visit_isolate(&mut p.top)
     }
@@ -96,8 +99,8 @@ pub trait Visitor<T, E> where T: Default {
     }
     fn visit_export(&mut self, action: &mut ExportDecl) -> VisitorResult<T, E> {
         match action {
-            ExportDecl::Action(action) => { self.visit_action_decl(action) }
-            ExportDecl::ForwardRef(_) =>  { Ok(Continue(T::default()))}
+            ExportDecl::Action(action) => self.visit_action_decl(action),
+            ExportDecl::ForwardRef(_) => Ok(Continue(T::default())),
         }
     }
     fn visit_function(&mut self, fun: &mut FunctionDecl) -> VisitorResult<T, E> {
@@ -149,9 +152,7 @@ pub trait Visitor<T, E> where T: Default {
         Ok(Continue(T::default()))
     }
 
-
     // auto-visitation for intermediary AST nodes
-
 
     fn visit_stmt(&mut self, s: &mut Stmt) -> VisitorResult<T, E> {
         match s {
@@ -168,7 +169,7 @@ pub trait Visitor<T, E> where T: Default {
             Action::Assume(a) => self.visit_assume(a),
             Action::Call(e) => self.visit_app(e),
             Action::Ensure(en) => self.visit_ensure(en),
-            Action::Requires(req) => self.visit_requires(req)
+            Action::Requires(req) => self.visit_requires(req),
         }
     }
 
@@ -202,7 +203,6 @@ pub trait Visitor<T, E> where T: Default {
         }
     }
 
-
     // Expressions
     fn visit_app(&mut self, a: &mut AppExpr) -> VisitorResult<T, E> {
         self.visit_expr(&mut a.func)?;
@@ -225,9 +225,7 @@ pub trait Visitor<T, E> where T: Default {
                 self.visit_vec(vars, |slf, v| slf.visit_param(v))?;
                 self.visit_formula(fmla)
             }
-            Fmla::Pred(expr) => { 
-                self.visit_expr(expr)
-            }
+            Fmla::Pred(expr) => self.visit_expr(expr),
         }
     }
     fn visit_identifier(&mut self, ident: &mut Ident) -> VisitorResult<T, E> {
@@ -256,7 +254,7 @@ pub trait Visitor<T, E> where T: Default {
         self.visit_identifier(&mut term.id)?;
         match &mut term.sort {
             None => Ok(Continue(T::default())),
-            Some(sort) => self.visit_identifier(sort)
+            Some(sort) => self.visit_identifier(sort),
         }
     }
     fn visit_this(&mut self) -> VisitorResult<T, E> {
@@ -266,9 +264,9 @@ pub trait Visitor<T, E> where T: Default {
     fn visit_expr(&mut self, e: &mut Expr) -> VisitorResult<T, E> {
         match e {
             Expr::App(app) => self.visit_app(app),
-            Expr::BinOp{lhs, op, rhs} => self.visit_binop(lhs, op, rhs),
+            Expr::BinOp { lhs, op, rhs } => self.visit_binop(lhs, op, rhs),
             Expr::Boolean(b) => self.visit_boolean(b),
-//            Expr::Formula(fmla) => self.visit_formula(fmla),
+            //            Expr::Formula(fmla) => self.visit_formula(fmla),
             Expr::Identifier(ident) => self.visit_identifier(ident),
             Expr::Index(idx) => self.visit_index(idx),
             Expr::Number(i) => self.visit_number(i),
@@ -278,21 +276,22 @@ pub trait Visitor<T, E> where T: Default {
         }
     }
 
-
-    fn visit_vec<FU, U>(&mut self, us: &mut Vec<U>, mut f: FU) -> VisitorResult<T, E> 
-        where
-    FU: FnMut(&mut Self, &mut U) -> VisitorResult<T, E> {
+    fn visit_vec<FU, U>(&mut self, us: &mut Vec<U>, mut f: FU) -> VisitorResult<T, E>
+    where
+        FU: FnMut(&mut Self, &mut U) -> VisitorResult<T, E>,
+    {
         let owned = std::mem::take(us);
         let mut t: Option<T> = None;
 
-        let mut controls = owned.into_iter()
+        let mut controls = owned
+            .into_iter()
             .map(|mut elem| match f(self, &mut elem) {
                 Ok(Continue(res)) => {
                     t = Some(res);
                     Ok(Some(elem))
                 }
                 Ok(Remove) => Ok(None),
-                Err(e) => Err(e)
+                Err(e) => Err(e),
             })
             .collect::<Result<Vec<_>, E>>()?;
         controls.retain(|o| o.is_some());
@@ -302,7 +301,7 @@ pub trait Visitor<T, E> where T: Default {
         // XXX: or if we never get a Some() value in u?
         match t {
             None => Ok(Continue(T::default())),
-            Some(t) => Ok(Continue(t))
+            Some(t) => Ok(Continue(t)),
         }
     }
 }

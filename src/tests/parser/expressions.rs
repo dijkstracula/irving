@@ -1,14 +1,16 @@
 #[cfg(test)]
 mod tests {
-    use pest_consume::Parser;
     use crate::ast::expressions::*;
     use crate::parser::ivy::{IvyParser, Result, Rule};
+    use pest_consume::Parser;
 
     // Expressions
 
     fn parse_expr(fragment: &str) -> Result<Expr> {
         let res = IvyParser::parse(Rule::expr, fragment)
-            .expect("Parsing failed").single().unwrap();
+            .expect("Parsing failed")
+            .single()
+            .unwrap();
         IvyParser::expr(res)
     }
 
@@ -17,7 +19,7 @@ mod tests {
         let _ast = parse_expr("a").unwrap();
         assert_eq!(_ast, Expr::Identifier(vec!("a".into())));
     }
-    
+
     #[test]
     fn parse_negation_expr() {
         let _ast = parse_expr("~a").unwrap();
@@ -36,11 +38,14 @@ mod tests {
     #[test]
     fn parse_sub() {
         let _ast = parse_expr("42 - 1").unwrap();
-        assert_eq!(_ast, Expr::BinOp {
-            lhs: Box::new(Expr::Number(42)),
-            op: Verb::Minus,
-            rhs: Box::new(Expr::Number(1)),
-        });
+        assert_eq!(
+            _ast,
+            Expr::BinOp {
+                lhs: Box::new(Expr::Number(42)),
+                op: Verb::Minus,
+                rhs: Box::new(Expr::Number(1)),
+            }
+        );
     }
 
     #[test]
@@ -53,11 +58,14 @@ mod tests {
     #[test]
     fn parse_pred() {
         let _ast = parse_expr("i > 0").unwrap();
-        assert_eq!(_ast, Expr::BinOp {
-            lhs: Box::new(Expr::Identifier(vec!("i".into()))),
-            op: Verb::Gt,
-            rhs: Box::new(Expr::Number(0)),
-        });
+        assert_eq!(
+            _ast,
+            Expr::BinOp {
+                lhs: Box::new(Expr::Identifier(vec!("i".into()))),
+                op: Verb::Gt,
+                rhs: Box::new(Expr::Number(0)),
+            }
+        );
     }
 
     #[test]
@@ -74,20 +82,32 @@ mod tests {
     #[test]
     fn parse_annotated_var() {
         let _ast = parse_expr("a : int").expect("Parsing failed");
-        assert_eq!(_ast, Expr::Term(Term{id: vec!("a".into()), sort: Some(vec!("int".into()))}));
+        assert_eq!(
+            _ast,
+            Expr::Term(Term {
+                id: vec!("a".into()),
+                sort: Some(vec!("int".into()))
+            })
+        );
     }
 
     #[test]
     fn parse_annotated_this() {
         let _ast = parse_expr("a : this").expect("Parsing failed");
-        assert_eq!(_ast, Expr::Term(Term{id: vec!("a".into()), sort: Some(vec!("this".into()))}));
+        assert_eq!(
+            _ast,
+            Expr::Term(Term {
+                id: vec!("a".into()),
+                sort: Some(vec!("this".into()))
+            })
+        );
     }
 
     #[test]
     fn parse_unary_fnapp() {
         let _ast = parse_expr("foo(a)").expect("Parsing failed");
     }
-    
+
     #[test]
     fn parse_fnapp_and_index() {
         let _ast = parse_expr("foo(a).b.c").unwrap();

@@ -15,9 +15,22 @@ pub type Ident = Vec<Symbol>;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Verb {
-    Iff, Or, And, Lt, Le, Gt, Ge, Equals, Notequals, Not, Arrow,
-    Plus, Minus, Times, Div,
-    Dot /* TODO: Mod????? */
+    Iff,
+    Or,
+    And,
+    Lt,
+    Le,
+    Gt,
+    Ge,
+    Equals,
+    Notequals,
+    Not,
+    Arrow,
+    Plus,
+    Minus,
+    Times,
+    Div,
+    Dot, /* TODO: Mod????? */
 }
 
 pub type Symbol = String;
@@ -25,13 +38,13 @@ pub type Symbol = String;
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct AppExpr {
     pub func: Box<Expr>,
-    pub args: Vec<Expr>
+    pub args: Vec<Expr>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct IndexExpr {
     pub lhs: Box<Expr>,
-    pub idx: Box<Expr>
+    pub idx: Box<Expr>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -43,14 +56,13 @@ pub struct Param {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum TypeName {
     Name(Symbol),
-    This
+    This,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Type {
     pub ident: TypeName,
-    pub sort: IvySort
-    /* spec: TypeSpec */
+    pub sort: IvySort, /* spec: TypeSpec */
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -68,7 +80,7 @@ pub enum Expr {
     BinOp {
         lhs: Box<Expr>,
         op: Verb,
-        rhs: Box<Expr>
+        rhs: Box<Expr>,
     },
 
     Boolean(bool),
@@ -79,7 +91,10 @@ pub enum Expr {
 
     Number(i64),
 
-    UnaryOp{op: Verb, expr: Box<Expr>},
+    UnaryOp {
+        op: Verb,
+        expr: Box<Expr>,
+    },
 
     Term(Term),
 

@@ -1,16 +1,20 @@
 #[cfg(test)]
 mod tests {
+    use crate::{
+        parser::ivy::{IvyParser, Rule},
+        typechecker::{inference::ConstraintGenerator, sorts::IvySort},
+        visitor::{control::Control, visitor::Visitor},
+    };
     use pest_consume::Parser;
-    use crate::{parser::ivy::{Rule, IvyParser}, typechecker::{inference::ConstraintGenerator, sorts::IvySort}, visitor::{visitor::Visitor, control::Control}};
 
     #[test]
     fn test_bool_binop() {
         let prog = "1 < 2";
         let parsed = IvyParser::parse(Rule::expr, &prog)
             .expect("Parsing failed")
-            .single().unwrap();
-        let mut binop = IvyParser::expr(parsed)
-            .expect("AST generation failed");
+            .single()
+            .unwrap();
+        let mut binop = IvyParser::expr(parsed).expect("AST generation failed");
 
         let mut cg = ConstraintGenerator::new();
         let (expr_type, _) = match cg.visit_expr(&mut binop).unwrap() {
@@ -25,9 +29,9 @@ mod tests {
         let prog = "1 + 2";
         let parsed = IvyParser::parse(Rule::expr, &prog)
             .expect("Parsing failed")
-            .single().unwrap();
-        let mut binop = IvyParser::expr(parsed)
-            .expect("AST generation failed");
+            .single()
+            .unwrap();
+        let mut binop = IvyParser::expr(parsed).expect("AST generation failed");
 
         let mut cg = ConstraintGenerator::new();
         let (expr_type, _) = match cg.visit_expr(&mut binop).unwrap() {

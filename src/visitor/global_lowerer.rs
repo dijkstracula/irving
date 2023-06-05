@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
 
-use std::fmt::{Error};
+use std::fmt::Error;
 
 use crate::ast::declarations::*;
 use crate::ast::toplevels::Prog;
@@ -11,12 +11,12 @@ use super::control::Control::Remove;
 use super::control::VisitorResult;
 
 pub struct GlobalLowerer {
-    pub globals: Vec<Decl>
+    pub globals: Vec<Decl>,
 }
 
 impl GlobalLowerer {
     fn new() -> Self {
-        GlobalLowerer { globals: vec!() }
+        GlobalLowerer { globals: vec![] }
     }
 
     pub fn visit(prog: &mut Prog) {

@@ -1,8 +1,7 @@
 #[cfg(test)]
 mod tests {
-    use pest_consume::Parser;
     use crate::parser::ivy::{IvyParser, Rule};
-
+    use pest_consume::Parser;
 
     // Declarations
 
@@ -11,7 +10,8 @@ mod tests {
         let fragment = "foo(a: int) returns (b: int)";
         let res = IvyParser::parse(Rule::decl_sig, fragment)
             .expect("Parsing failed")
-            .single().unwrap();
+            .single()
+            .unwrap();
         assert!(IvyParser::decl_sig(res).is_ok());
     }
 
@@ -20,7 +20,8 @@ mod tests {
         let fragment = "alias byte = uint[8]";
         let res = IvyParser::parse(Rule::decl, fragment)
             .expect("Parsing failed")
-            .single().unwrap();
+            .single()
+            .unwrap();
         let _res = IvyParser::decl(res).unwrap();
     }
 
@@ -29,7 +30,8 @@ mod tests {
         let fragment = "attribute bmc[10]";
         let res = IvyParser::parse(Rule::decl, fragment)
             .expect("Parsing failed")
-            .single().unwrap();
+            .single()
+            .unwrap();
         let _res = IvyParser::decl(res).unwrap();
     }
 
@@ -38,7 +40,8 @@ mod tests {
         let fragment = "axiom X:id < Y";
         let res = IvyParser::parse(Rule::decl, fragment)
             .expect("Parsing failed")
-            .single().unwrap();
+            .single()
+            .unwrap();
         let _res = IvyParser::decl(res).unwrap();
     }
 
@@ -47,7 +50,8 @@ mod tests {
         let fragment = "axiom host(0).sock.id ~= host(1).sock.id";
         let res = IvyParser::parse(Rule::decl, fragment)
             .expect("Parsing failed")
-            .single().unwrap();
+            .single()
+            .unwrap();
         let _res = IvyParser::decl(res).unwrap();
     }
 
@@ -60,7 +64,8 @@ mod tests {
 
         let res = IvyParser::parse(Rule::decl, fragment)
             .expect("Parsing failed")
-            .single().unwrap();
+            .single()
+            .unwrap();
         IvyParser::decl(res).unwrap();
     }
 
@@ -69,7 +74,8 @@ mod tests {
         let fragment = "function foo(a: int, b: int): int";
         let res = IvyParser::parse(Rule::function_decl, fragment)
             .expect("Parsing failed")
-            .single().unwrap();
+            .single()
+            .unwrap();
         assert!(IvyParser::function_decl(res).is_ok());
     }
 
@@ -78,7 +84,8 @@ mod tests {
         let fragment = "global { instance file : vector(byte) }";
         let res = IvyParser::parse(Rule::global_decl, fragment)
             .expect("Parsing failed")
-            .single().unwrap();
+            .single()
+            .unwrap();
         IvyParser::global_decl(res).unwrap();
     }
 
@@ -87,7 +94,8 @@ mod tests {
         let fragment = "instance c : counter(int)";
         let res = IvyParser::parse(Rule::decl, fragment)
             .expect("Parsing failed")
-            .single().unwrap();
+            .single()
+            .unwrap();
         IvyParser::decl(res).unwrap();
     }
 
@@ -96,7 +104,8 @@ mod tests {
         let fragment = "invariant X = Z | ~link(X,Y) | ~link(Z,Y)";
         let res = IvyParser::parse(Rule::decl, fragment)
             .expect("Parsing failed")
-            .single().unwrap();
+            .single()
+            .unwrap();
         IvyParser::decl(res).unwrap();
     }
 
@@ -109,7 +118,8 @@ mod tests {
 
         let res = IvyParser::parse(Rule::decl, fragment)
             .expect("Parsing failed")
-            .single().unwrap();
+            .single()
+            .unwrap();
         IvyParser::decl(res).unwrap();
     }
 
@@ -118,7 +128,8 @@ mod tests {
         let fragment = "module net(pid: node) = { }";
         let res = IvyParser::parse(Rule::decl, fragment)
             .expect("Parsing failed")
-            .single().unwrap();
+            .single()
+            .unwrap();
         assert!(IvyParser::decl(res).is_ok());
     }
 
@@ -127,7 +138,8 @@ mod tests {
         let fragment = "module net(pid) = { }";
         let res = IvyParser::parse(Rule::decl, fragment)
             .expect("Parsing failed")
-            .single().unwrap();
+            .single()
+            .unwrap();
         assert!(IvyParser::decl(res).is_ok());
     }
 
@@ -139,7 +151,8 @@ mod tests {
         ";
         let res = IvyParser::parse(Rule::decl, fragment)
             .expect("Parsing failed")
-            .single().unwrap();
+            .single()
+            .unwrap();
         assert!(IvyParser::decl(res).is_ok());
     }
 
@@ -148,7 +161,8 @@ mod tests {
         let fragment = "object timer = { }";
         let res = IvyParser::parse(Rule::decl, fragment)
             .expect("Parsing failed")
-            .single().unwrap();
+            .single()
+            .unwrap();
         assert!(IvyParser::decl(res).is_ok());
     }
 
@@ -157,7 +171,8 @@ mod tests {
         let fragment = "relation foo(a: int, b: int)";
         let res = IvyParser::parse(Rule::relation_decl, fragment)
             .expect("Parsing failed")
-            .single().unwrap();
+            .single()
+            .unwrap();
         assert!(IvyParser::relation_decl(res).is_ok());
     }
 
@@ -170,7 +185,8 @@ mod tests {
 
         let res = IvyParser::parse(Rule::decl, fragment)
             .expect("Parsing failed")
-            .single().unwrap();
+            .single()
+            .unwrap();
         IvyParser::decl(res).unwrap();
     }
 
@@ -179,7 +195,8 @@ mod tests {
         let fragment = "var a";
         let res = IvyParser::parse(Rule::var_decl, fragment)
             .expect("Parsing failed")
-            .single().unwrap();
+            .single()
+            .unwrap();
         assert!(IvyParser::var_decl(res).is_ok());
     }
 
@@ -188,7 +205,8 @@ mod tests {
         let fragment = "type int";
         let res = IvyParser::parse(Rule::type_decl, fragment)
             .expect("Parsing failed")
-            .single().unwrap();
+            .single()
+            .unwrap();
         assert!(IvyParser::type_decl(res).is_ok());
     }
 
@@ -197,7 +215,8 @@ mod tests {
         let fragment = "type this";
         let res = IvyParser::parse(Rule::type_decl, fragment)
             .expect("Parsing failed")
-            .single().unwrap();
+            .single()
+            .unwrap();
         IvyParser::type_decl(res).unwrap();
     }
 
@@ -206,7 +225,8 @@ mod tests {
         let fragment = "type int of something";
         let res = IvyParser::parse(Rule::type_decl, fragment)
             .expect("Parsing failed")
-            .single().unwrap();
+            .single()
+            .unwrap();
         assert!(IvyParser::type_decl(res).is_ok());
     }
 
@@ -215,7 +235,8 @@ mod tests {
         let fragment = "var a : int";
         let res = IvyParser::parse(Rule::var_decl, fragment)
             .expect("Parsing failed")
-            .single().unwrap();
+            .single()
+            .unwrap();
         assert!(IvyParser::var_decl(res).is_ok());
     }
 
@@ -224,7 +245,8 @@ mod tests {
         let fragment = "type coolguys = {sammy, nathan, james}";
         let res = IvyParser::parse(Rule::type_decl, fragment)
             .expect("Parsing failed")
-            .single().unwrap();
+            .single()
+            .unwrap();
         IvyParser::type_decl(res).unwrap();
     }
     #[test]
@@ -232,7 +254,8 @@ mod tests {
         let fragment = "type pid = {0..1}";
         let res = IvyParser::parse(Rule::type_decl, fragment)
             .expect("Parsing failed")
-            .single().unwrap();
+            .single()
+            .unwrap();
         IvyParser::type_decl(res).unwrap();
     }
 
@@ -241,7 +264,8 @@ mod tests {
         let fragment = "ensure X -> Y";
         let res = IvyParser::parse(Rule::ensure_action, fragment)
             .expect("Parsing failed")
-            .single().unwrap();
+            .single()
+            .unwrap();
         IvyParser::ensure_action(res).unwrap();
     }
 }

@@ -1,5 +1,5 @@
 use pest::error::ErrorVariant;
-use pest_consume::{Parser, Error, match_nodes};
+use pest_consume::{match_nodes, Error, Parser};
 
 use crate::ast::actions::*;
 use crate::ast::declarations::*;
@@ -25,15 +25,12 @@ const _LOGIC: &str = include_str!("grammars/logic.pest");
 #[grammar = "parser/grammars/logic.pest"]
 pub struct IvyParser;
 
-
 pub type Result<T> = std::result::Result<T, Error<Rule>>;
 type Node<'i> = pest_consume::Node<'i, Rule, ()>; //TODO: consume a UserData thing rather than ()
-
 
 #[pest_consume::parser]
 #[allow(dead_code)]
 impl IvyParser {
-
     // Terminals
 
     fn EOI(_input: Node) -> Result<()> {
@@ -41,7 +38,8 @@ impl IvyParser {
     }
 
     fn number(input: Node) -> Result<i64> {
-        input.as_str()
+        input
+            .as_str()
             .parse::<i64>()
             .map_err(|_| input.error("Expected number"))
     }
@@ -53,7 +51,7 @@ impl IvyParser {
     fn LOGICVAR(input: Node) -> Result<String> {
         Ok(input.as_str().to_owned())
     }
-    
+
     fn param(input: Node) -> Result<Param> {
         match_nodes!(
         input.into_children();
@@ -98,7 +96,6 @@ impl IvyParser {
     fn THIS(input: Node) -> Result<Expr> {
         Ok(Expr::This)
     }
-
 
     // Utils
 
@@ -203,8 +200,11 @@ impl IvyParser {
             // TODO: having a QualifiedDeclSig vs a DeclSig with just a Symbol as a name would simplify this.
             if action.name.len() > 1 {
                 Err(Error::new_from_span(
-                    ErrorVariant::<Rule>::CustomError { message: "Need an unqualified action name".into() }, 
-                    span))
+                    ErrorVariant::<Rule>::CustomError {
+                        message: "Need an unqualified action name".into(),
+                    },
+                    span,
+                ))
             } else {
                 Ok(action)
             }
@@ -317,9 +317,9 @@ impl IvyParser {
             [decl_sig(DeclSig{mut name, params})] => {
                 if name.len() > 1 {
                     Err(Error::new_from_span(
-                        ErrorVariant::<Rule>::CustomError { message: "Need an unqualified isolate name".into() }, 
+                        ErrorVariant::<Rule>::CustomError { message: "Need an unqualified isolate name".into() },
                         span))
-                } else { 
+                } else {
                     Ok(ImportDecl{name: name.pop().unwrap(), params})
                 }
             }
@@ -336,7 +336,7 @@ impl IvyParser {
     pub fn instance_decl(input: Node) -> Result<InstanceDecl> {
         match_nodes!(
         input.into_children();
-        [symbol(name), decl_sig(DeclSig{name: sort, params: sort_args})] => 
+        [symbol(name), decl_sig(DeclSig{name: sort, params: sort_args})] =>
             Ok(InstanceDecl{name, sort, args: sort_args})
         )
     }
@@ -356,9 +356,9 @@ impl IvyParser {
         [decl_sig(DeclSig{mut name, params}), decl_block(body)] => {
             if name.len() > 1 {
                 Err(Error::new_from_span(
-                    ErrorVariant::<Rule>::CustomError { message: "Need an unqualified isolate name".into() }, 
+                    ErrorVariant::<Rule>::CustomError { message: "Need an unqualified isolate name".into() },
                     span))
-            } else { 
+            } else {
                 Ok(IsolateDecl{name: name.pop().unwrap(), params, body})
             }
         })
@@ -538,7 +538,6 @@ impl IvyParser {
 
     // Statements
 
-
     pub fn stmt_block(input: Node) -> Result<Vec<Stmt>> {
         match_nodes!(
         input.into_children();
@@ -591,7 +590,7 @@ impl IvyParser {
         [number(major), number(minor)] => {
             if major >= 255 {
                 Err(input.error(format!("Invalid major version number {:?}.{:?}", major, minor)))
-            } else if minor >= 255 { 
+            } else if minor >= 255 {
                 Err(input.error(format!("Invalid minor version number {:?}.{:?}", major, minor)))
             } else {
                 Ok((major as u8, minor as u8))
@@ -603,13 +602,13 @@ impl IvyParser {
         match_nodes!(
         input.into_children();
         [langver((major, minor)), decl(decls).., EOI(())] => {
-            Ok(Prog { 
-                major_version: major, 
+            Ok(Prog {
+                major_version: major,
                 minor_version: minor,
                 top: IsolateDecl{
                     name: "this".into(),
                     params: vec!(),
-                    body: decls.collect() 
+                    body: decls.collect()
                 }})
         })
     }

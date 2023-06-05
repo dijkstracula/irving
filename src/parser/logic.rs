@@ -1,9 +1,8 @@
 use pest::iterators::Pairs;
-use pest::pratt_parser::{PrattParser, Op, Assoc};
+use pest::pratt_parser::{Assoc, Op, PrattParser};
 
-use crate::parser::ivy::*;
 use crate::ast::expressions::*;
-
+use crate::parser::ivy::*;
 
 lazy_static::lazy_static! {
     // This ordering is taken from the precedence numberings
@@ -20,7 +19,7 @@ lazy_static::lazy_static! {
 
         .op(Op::infix(Rule::EQ, Assoc::Left))
         .op(Op::infix(Rule::NEQ, Assoc::Left))
-        
+
         .op(Op::infix(Rule::IFF, Assoc::Left))
         .op(Op::infix(Rule::ARROW, Assoc::Left))
         .op(Op::infix(Rule::OR, Assoc::Left))
@@ -35,83 +34,79 @@ lazy_static::lazy_static! {
 
 pub fn parse_log_term(pairs: Pairs<Rule>) -> Result<Expr> {
     PRATT
-    .map_primary(|primary| match primary.as_rule() {
-        Rule::logicvar => {
-            let mut pairs = primary.into_inner();
-            let id = pairs.next()
-                .map(|s| vec!(s.as_str().to_owned()))
-                .unwrap();
-            let sort = pairs.next()
-                .map(|s| vec!(s.as_str().to_owned()));
-            match sort {
-                // TODO: wondering if either return path should just be a Term.
-                None    => Ok(Expr::Identifier(id)),
-                Some(_) => Ok(Expr::Term(Term{ id, sort }))
+        .map_primary(|primary| match primary.as_rule() {
+            Rule::logicvar => {
+                let mut pairs = primary.into_inner();
+                let id = pairs.next().map(|s| vec![s.as_str().to_owned()]).unwrap();
+                let sort = pairs.next().map(|s| vec![s.as_str().to_owned()]);
+                match sort {
+                    // TODO: wondering if either return path should just be a Term.
+                    None => Ok(Expr::Identifier(id)),
+                    Some(_) => Ok(Expr::Term(Term { id, sort })),
+                }
             }
-        }
-        Rule::symbol => {
-            Ok(Expr::Identifier(vec!(primary.as_str().to_owned())))
-        }
-        Rule::boollit => {
-            let val = match primary.as_str() {
-                "true" => true,
-                "false" => false,
-                _ => unreachable!()
-            };
-            Ok(Expr::Boolean(val))
-        }
-        Rule::number => {
-            let val: i64 = primary.as_str().parse::<>().unwrap();
-            Ok(Expr::Number(val))
-        }
-        Rule::log_term => {
-            parse_log_term(primary.into_inner())
-        }
-        _ => unreachable!("parse_log_term expected primary, found {:?}", primary),
-    })
-
-    .map_prefix(|op, rhs| {
-        let verb = match op.as_rule() {
-            Rule::UMINUS => Verb::Minus,
-            Rule::NOT    => Verb::Not,
-            _ => unreachable!("Unexpected unary op")
-        };
-        Ok(Expr::UnaryOp { op: verb, expr: Box::new(rhs?) })
-    })
-
-    .map_infix(|lhs, op, rhs| {
-        let verb = match op.as_rule() {
-            Rule::AND => Verb::And,
-            Rule::OR => Verb::Or,
-            Rule::IFF => Verb::Iff,
-            Rule::ARROW => Verb::Arrow,
-            Rule::GT => Verb::Gt,
-            Rule::GE => Verb::Ge,
-            Rule::LT => Verb::Lt,
-            Rule::LE => Verb::Le,
-            Rule::EQ => Verb::Equals,
-            Rule::NEQ => Verb::Notequals,
-            Rule::DOT => Verb::Dot,
-            _ => unimplemented!()
-        };
-
-        Ok(Expr::BinOp { 
-            lhs: Box::new(lhs?), 
-            op: verb, 
-            rhs: Box::new(rhs?) 
+            Rule::symbol => Ok(Expr::Identifier(vec![primary.as_str().to_owned()])),
+            Rule::boollit => {
+                let val = match primary.as_str() {
+                    "true" => true,
+                    "false" => false,
+                    _ => unreachable!(),
+                };
+                Ok(Expr::Boolean(val))
+            }
+            Rule::number => {
+                let val: i64 = primary.as_str().parse().unwrap();
+                Ok(Expr::Number(val))
+            }
+            Rule::log_term => parse_log_term(primary.into_inner()),
+            _ => unreachable!("parse_log_term expected primary, found {:?}", primary),
         })
-    })
+        .map_prefix(|op, rhs| {
+            let verb = match op.as_rule() {
+                Rule::UMINUS => Verb::Minus,
+                Rule::NOT => Verb::Not,
+                _ => unreachable!("Unexpected unary op"),
+            };
+            Ok(Expr::UnaryOp {
+                op: verb,
+                expr: Box::new(rhs?),
+            })
+        })
+        .map_infix(|lhs, op, rhs| {
+            let verb = match op.as_rule() {
+                Rule::AND => Verb::And,
+                Rule::OR => Verb::Or,
+                Rule::IFF => Verb::Iff,
+                Rule::ARROW => Verb::Arrow,
+                Rule::GT => Verb::Gt,
+                Rule::GE => Verb::Ge,
+                Rule::LT => Verb::Lt,
+                Rule::LE => Verb::Le,
+                Rule::EQ => Verb::Equals,
+                Rule::NEQ => Verb::Notequals,
+                Rule::DOT => Verb::Dot,
+                _ => unimplemented!(),
+            };
 
-    .map_postfix(|lhs, op| match op.as_rule() {
-        Rule::log_app_args => {
-            let results = op.into_inner()
-                .map(|e| parse_log_term(e.into_inner()))
-                .collect::<Vec<Result<_>>>();
-            let args = results.into_iter()
-                .collect::<Result<Vec<_>>>()?;
-            Ok(Expr::App(AppExpr { func: Box::new(lhs?), args }))
-        },
-        _ => unimplemented!()
-    })
-    .parse(pairs)
+            Ok(Expr::BinOp {
+                lhs: Box::new(lhs?),
+                op: verb,
+                rhs: Box::new(rhs?),
+            })
+        })
+        .map_postfix(|lhs, op| match op.as_rule() {
+            Rule::log_app_args => {
+                let results = op
+                    .into_inner()
+                    .map(|e| parse_log_term(e.into_inner()))
+                    .collect::<Vec<Result<_>>>();
+                let args = results.into_iter().collect::<Result<Vec<_>>>()?;
+                Ok(Expr::App(AppExpr {
+                    func: Box::new(lhs?),
+                    args,
+                }))
+            }
+            _ => unimplemented!(),
+        })
+        .parse(pairs)
 }

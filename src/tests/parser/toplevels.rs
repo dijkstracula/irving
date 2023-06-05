@@ -1,14 +1,15 @@
 #[cfg(test)]
 mod tests {
-    use pest_consume::Parser;
     use crate::parser::ivy::{IvyParser, Rule};
+    use pest_consume::Parser;
 
     #[test]
     fn parse_hashlang_major_minor() {
         let body = "#lang ivy1.8";
         let res = IvyParser::parse(Rule::hashlang, body)
             .expect("Parsing failed")
-            .single().unwrap();
+            .single()
+            .unwrap();
 
         let (major, minor) = IvyParser::langver(res).unwrap();
         assert!(major == 1);
@@ -20,7 +21,8 @@ mod tests {
         let body = "#lang ivy2";
         let res = IvyParser::parse(Rule::hashlang, body)
             .expect("Parsing failed")
-            .single().unwrap();
+            .single()
+            .unwrap();
 
         let (major, minor) = IvyParser::langver(res).unwrap();
         assert!(major == 2);
@@ -35,13 +37,13 @@ mod tests {
 
         let res = IvyParser::parse(Rule::prog, body)
             .expect("Parsing failed")
-            .single().unwrap();
+            .single()
+            .unwrap();
 
         let prog = IvyParser::prog(res).unwrap();
         assert!(prog.major_version == 2);
         assert!(prog.minor_version == 0);
     }
-
 
     #[test]
     fn parse_less_trivial_prog() {
@@ -55,7 +57,8 @@ module net(pid: node) = {
 
         let res = IvyParser::parse(Rule::prog, body)
             .expect("Parsing failed")
-            .single().unwrap();
+            .single()
+            .unwrap();
 
         let prog = IvyParser::prog(res).unwrap();
         assert!(prog.major_version == 2);

@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
-    use pest_consume::Parser;
     use crate::parser::ivy::{IvyParser, Rule};
+    use pest_consume::Parser;
 
     // Statements
 
@@ -10,7 +10,8 @@ mod tests {
         let fragment = "a := b";
         let res = IvyParser::parse(Rule::stmt, fragment)
             .expect("Parsing failed")
-            .single().unwrap();
+            .single()
+            .unwrap();
         IvyParser::stmt(res).expect("generate ast");
     }
 
@@ -19,17 +20,18 @@ mod tests {
         let fragment = "r(X) := false";
         let res = IvyParser::parse(Rule::stmt, fragment)
             .expect("Parsing failed")
-            .single().unwrap();
+            .single()
+            .unwrap();
         IvyParser::stmt(res).expect("generate ast");
     }
-
 
     #[test]
     fn parse_assign_annot() {
         let fragment = "var a:int := b";
         let res = IvyParser::parse(Rule::stmt, fragment)
             .expect("Parsing failed")
-            .single().unwrap();
+            .single()
+            .unwrap();
         IvyParser::stmt(res).expect("generate ast");
     }
 
@@ -38,7 +40,8 @@ mod tests {
         let fragment = "assert x < y";
         let res = IvyParser::parse(Rule::stmt, fragment)
             .expect("Parsing failed")
-            .single().unwrap();
+            .single()
+            .unwrap();
         IvyParser::stmt(res).unwrap();
     }
 
@@ -47,7 +50,8 @@ mod tests {
         let fragment = "assume x < y";
         let res = IvyParser::parse(Rule::stmt, fragment)
             .expect("Parsing failed")
-            .single().unwrap();
+            .single()
+            .unwrap();
         IvyParser::stmt(res).unwrap();
     }
 
@@ -56,7 +60,8 @@ mod tests {
         let fragment = "ensure ~failed(y)";
         let _res = IvyParser::parse(Rule::stmt, fragment)
             .expect("Parsing failed")
-            .single().unwrap();
+            .single()
+            .unwrap();
     }
 
     #[test]
@@ -64,7 +69,8 @@ mod tests {
         let fragment = "ensure msg_count = 0 -> host(0).contents.eq(host(1).contents)";
         let _res = IvyParser::parse(Rule::stmt, fragment)
             .expect("Parsing failed")
-            .single().unwrap();
+            .single()
+            .unwrap();
     }
 
     #[test]
@@ -72,7 +78,8 @@ mod tests {
         let fragment = "require ~failed(y)";
         let _res = IvyParser::parse(Rule::stmt, fragment)
             .expect("Parsing failed")
-            .single().unwrap();
+            .single()
+            .unwrap();
     }
 
     #[test]
@@ -80,7 +87,8 @@ mod tests {
         let fragment = "if 1 < 2 { a := 42; }";
         let res = IvyParser::parse(Rule::stmt, fragment)
             .expect("Parsing failed")
-            .single().unwrap();
+            .single()
+            .unwrap();
         IvyParser::stmt(res).unwrap();
     }
 
@@ -89,7 +97,8 @@ mod tests {
         let fragment = "requires a = 0; a := 42; ensure a = 42";
         let res = IvyParser::parse(Rule::stmt, fragment)
             .expect("Parsing failed")
-            .single().unwrap();
+            .single()
+            .unwrap();
         println!("{:?}", IvyParser::stmt(res).unwrap());
     }
 
@@ -98,7 +107,8 @@ mod tests {
         let fragment = "if 1 < 2 { a := 42; } else { a := 43; }";
         let res = IvyParser::parse(Rule::stmt, fragment)
             .expect("Parsing failed")
-            .single().unwrap();
+            .single()
+            .unwrap();
         assert!(IvyParser::stmt(res).is_ok());
     }
 
@@ -107,7 +117,8 @@ mod tests {
         let fragment = "while 1 < 2 { a := a + 1; }";
         let res = IvyParser::parse(Rule::stmt, fragment)
             .expect("Parsing failed")
-            .single().unwrap();
+            .single()
+            .unwrap();
         IvyParser::stmt(res).unwrap();
     }
 
@@ -120,7 +131,8 @@ mod tests {
 
         let res = IvyParser::parse(Rule::stmt, fragment)
             .expect("Parsing failed")
-            .single().unwrap();
+            .single()
+            .unwrap();
         let res = IvyParser::stmt(res).unwrap();
         println!("{:?}", res);
     }

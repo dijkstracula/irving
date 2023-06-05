@@ -18,11 +18,11 @@ pub enum Fmla {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Exists {
     pub vars: Vec<Param>,
-    pub fmla: Box<Fmla>
+    pub fmla: Box<Fmla>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Forall {
     pub vars: Vec<Param>,
-    pub fmla: Box<Fmla>
+    pub fmla: Box<Fmla>,
 }

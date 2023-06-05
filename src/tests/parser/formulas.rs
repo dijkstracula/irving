@@ -1,12 +1,14 @@
 #[cfg(test)]
 mod tests {
-    use pest_consume::Parser;
     use crate::ast::logic::Fmla;
     use crate::parser::ivy::{IvyParser, Result, Rule};
+    use pest_consume::Parser;
 
     fn parse_fmla(fragment: &str) -> Result<Fmla> {
         let res = IvyParser::parse(Rule::fmla, fragment)
-            .expect("Parsing failed").single().unwrap();
+            .expect("Parsing failed")
+            .single()
+            .unwrap();
         IvyParser::fmla(res)
     }
 
@@ -25,12 +27,10 @@ mod tests {
         parse_fmla("~(X)").expect("Parsing failed");
     }
 
-
     #[test]
     fn parse_term_with_annotation() {
         parse_fmla("X:int").expect("Parsing failed");
     }
-
 
     #[test]
     fn parse_pred() {
@@ -66,12 +66,15 @@ mod tests {
 
     #[test]
     fn parse_nested_quants() {
-        let _ast = parse_fmla("end(X) = end(Y) & (forall I. 0 <= I & I < end(X) -> value(X,I) = value(Y,I))").unwrap();
+        let _ast = parse_fmla(
+            "end(X) = end(Y) & (forall I. 0 <= I & I < end(X) -> value(X,I) = value(Y,I))",
+        )
+        .unwrap();
     }
-
 
     #[test]
     fn parse_nested_quants2() {
-        parse_fmla("end(X) = end(Y) & forall I. 0 <= I & I < end(X) -> value(X,I) = value(Y,I)").expect("Parsing failed");
+        parse_fmla("end(X) = end(Y) & forall I. 0 <= I & I < end(X) -> value(X,I) = value(Y,I)")
+            .expect("Parsing failed");
     }
 }

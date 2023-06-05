@@ -17,52 +17,67 @@ use super::control::Control::Continue;
 use super::control::Control::Remove;
 use super::control::VisitorResult;
 
-pub struct PrettyPrinter<W> where W: Write {
+pub struct PrettyPrinter<W>
+where
+    W: Write,
+{
     pub out: W,
     indent: usize,
-    curr_line_is_indented: bool
+    curr_line_is_indented: bool,
 }
 
 impl PrettyPrinter<String> {
     pub fn new() -> Self {
-        PrettyPrinter { out: String::new(), indent: 0, curr_line_is_indented: false}
+        PrettyPrinter {
+            out: String::new(),
+            indent: 0,
+            curr_line_is_indented: false,
+        }
     }
 }
 
-impl <W> PrettyPrinter<W> where W: Write {
-
+impl<W> PrettyPrinter<W>
+where
+    W: Write,
+{
     fn write_comma_separated<F, U>(&mut self, us: &mut Vec<U>, mut f: F) -> VisitorResult<(), Error>
-        where
-    F: FnMut(&mut Self, &mut U) -> VisitorResult<(), Error> {
+    where
+        F: FnMut(&mut Self, &mut U) -> VisitorResult<(), Error>,
+    {
         for (i, t) in us.into_iter().enumerate() {
             if i > 0 {
                 self.write_str(", ")?;
             }
             match f(self, t)? {
                 Continue(_) => continue,
-                Remove => unreachable!()
+                Remove => unreachable!(),
             }
         }
         Ok(Continue(()))
     }
 
-    fn write_seminl_separated<F, U>(&mut self, us: &mut Vec<U>, mut f: F) -> VisitorResult<(), Error>
-        where
-    F: FnMut(&mut Self, &mut U) -> VisitorResult<(), Error> {
+    fn write_seminl_separated<F, U>(
+        &mut self,
+        us: &mut Vec<U>,
+        mut f: F,
+    ) -> VisitorResult<(), Error>
+    where
+        F: FnMut(&mut Self, &mut U) -> VisitorResult<(), Error>,
+    {
         for (i, t) in us.into_iter().enumerate() {
             if i > 0 {
                 self.write_str(";\n")?;
             }
             match f(self, t)? {
                 Continue(_) => continue,
-                Remove => unreachable!()
+                Remove => unreachable!(),
             }
         }
         Ok(Continue(()))
     }
 }
 
-impl <W: Write> Write for PrettyPrinter<W> {
+impl<W: Write> Write for PrettyPrinter<W> {
     fn write_str(&mut self, s: &str) -> fmt::Result {
         // TODO: can I do this without allocation?
         let lines = s.split("\n").enumerate().collect::<Vec<_>>();
@@ -71,7 +86,9 @@ impl <W: Write> Write for PrettyPrinter<W> {
             self.indent -= line.matches("}").count();
             self.indent -= line.matches(")").count();
             if line.len() > 0 && !self.curr_line_is_indented {
-                let indent = std::iter::repeat(" ").take(4 * self.indent).collect::<String>();
+                let indent = std::iter::repeat(" ")
+                    .take(4 * self.indent)
+                    .collect::<String>();
                 self.out.write_str(&indent)?;
                 self.curr_line_is_indented = true;
             }
@@ -88,9 +105,12 @@ impl <W: Write> Write for PrettyPrinter<W> {
     }
 }
 
-impl <W: Write> Visitor<(), Error> for PrettyPrinter<W> {
+impl<W: Write> Visitor<(), Error> for PrettyPrinter<W> {
     fn visit_prog(&mut self, p: &mut Prog) -> VisitorResult<(), Error> {
-        self.write_fmt(format_args!("#lang ivy{}.{}\n", p.major_version, p.minor_version))?;
+        self.write_fmt(format_args!(
+            "#lang ivy{}.{}\n",
+            p.major_version, p.minor_version
+        ))?;
         self.visit_isolate(&mut p.top)?;
         Ok(Continue(()))
     }
@@ -238,7 +258,10 @@ impl <W: Write> Visitor<(), Error> for PrettyPrinter<W> {
         self.write_str("import ")?;
         match action {
             ExportDecl::Action(a) => self.visit_action_decl(a),
-            ExportDecl::ForwardRef(r) => { self.write_str(r)?; Ok(Continue(())) }
+            ExportDecl::ForwardRef(r) => {
+                self.write_str(r)?;
+                Ok(Continue(()))
+            }
         }
     }
 
@@ -280,7 +303,11 @@ impl <W: Write> Visitor<(), Error> for PrettyPrinter<W> {
     }
 
     fn visit_instance(&mut self, inst: &mut InstanceDecl) -> VisitorResult<(), Error> {
-        self.write_fmt(format_args!("instance {} : {}(", inst.name, &inst.sort.join(".")))?;
+        self.write_fmt(format_args!(
+            "instance {} : {}(",
+            inst.name,
+            &inst.sort.join(".")
+        ))?;
         self.write_comma_separated(&mut inst.args, |pp, p| pp.visit_param(p))?;
         self.write_str(")")?;
         Ok(Continue(()))
@@ -355,34 +382,40 @@ impl <W: Write> Visitor<(), Error> for PrettyPrinter<W> {
     fn visit_typedecl(&mut self, name: &TypeName, sort: &mut IvySort) -> VisitorResult<(), Error> {
         self.write_str("type ")?;
         match name {
-            TypeName::Name(n) => { self.write_str(n)?; }
-            TypeName::This => { self.write_str("this")?; }
+            TypeName::Name(n) => {
+                self.write_str(n)?;
+            }
+            TypeName::This => {
+                self.write_str("this")?;
+            }
         }
 
         match sort {
             // These are inferred, usually, I suppose.
-            IvySort::Uninterpreted => {},
-            IvySort::Unit => {},
-            IvySort::Top => {},
-            IvySort::Bool => {},
-            IvySort::Number => {},
-            IvySort::Function(_, _) => {},
-            IvySort::Relation(_) => {},
-            IvySort::SortVar(_) => {},
+            IvySort::Uninterpreted => {}
+            IvySort::Unit => {}
+            IvySort::Top => {}
+            IvySort::Bool => {}
+            IvySort::Number => {}
+            IvySort::Function(_, _) => {}
+            IvySort::Relation(_) => {}
+            IvySort::SortVar(_) => {}
 
-            IvySort::Range(min, max) => { 
+            IvySort::Range(min, max) => {
                 self.write_str(" = {")?;
                 self.visit_expr(min)?;
                 self.write_str("..")?;
                 self.visit_expr(max)?;
                 self.write_str("}")?;
-            },
+            }
             IvySort::Enum(branches) => {
                 self.write_str(" = {")?;
                 self.write_comma_separated(branches, |pp, e| pp.visit_symbol(e))?;
                 self.write_str(" }")?;
             }
-            IvySort::Subclass(s) => { self.write_fmt(format_args!(" of {}", s))?; }
+            IvySort::Subclass(s) => {
+                self.write_fmt(format_args!(" of {}", s))?;
+            }
         }
         Ok(Continue(()))
     }
@@ -398,7 +431,12 @@ impl <W: Write> Visitor<(), Error> for PrettyPrinter<W> {
         Ok(Continue(()))
     }
 
-    fn visit_binop(&mut self, lhs: &mut Expr, op: &Verb, rhs: &mut Expr) -> VisitorResult<(), Error> {
+    fn visit_binop(
+        &mut self,
+        lhs: &mut Expr,
+        op: &Verb,
+        rhs: &mut Expr,
+    ) -> VisitorResult<(), Error> {
         let op_str = match op {
             Verb::Plus => "+",
             Verb::Minus => "-",
@@ -426,7 +464,7 @@ impl <W: Write> Visitor<(), Error> for PrettyPrinter<W> {
         match op {
             Verb::Dot => {
                 self.out.write_fmt(format_args!("{}", op_str))?;
-            },
+            }
             _ => {
                 self.out.write_fmt(format_args!(" {} ", op_str))?;
             }
@@ -446,13 +484,11 @@ impl <W: Write> Visitor<(), Error> for PrettyPrinter<W> {
 
     fn visit_formula(&mut self, fmla: &mut Fmla) -> VisitorResult<(), Error> {
         let (quant, mut vars, mut fmla) = match fmla {
-            Fmla::Exists(Exists { vars, fmla }) =>
-                ("exists ", vars, fmla),
-            Fmla::Forall(Forall { vars, fmla}) => 
-                ("forall ", vars, fmla),
-            Fmla::Pred(e) => { 
+            Fmla::Exists(Exists { vars, fmla }) => ("exists ", vars, fmla),
+            Fmla::Forall(Forall { vars, fmla }) => ("forall ", vars, fmla),
+            Fmla::Pred(e) => {
                 self.visit_expr(e)?;
-                return Ok(Continue(()))
+                return Ok(Continue(()));
             }
         };
 
@@ -498,7 +534,7 @@ impl <W: Write> Visitor<(), Error> for PrettyPrinter<W> {
         let op = match op {
             Verb::Not => "!",
             Verb::Minus => "-",
-            _ => unreachable!()
+            _ => unreachable!(),
         };
         self.write_str(op)?;
         self.visit_expr(expr)?;

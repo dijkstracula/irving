@@ -1,21 +1,21 @@
 #![allow(dead_code)]
 
-use super::expressions::*;
 use super::actions::*;
+use super::expressions::*;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[allow(clippy::large_enum_variant)]
 pub struct If {
     pub tst: Expr,
     pub thn: Vec<Stmt>,
-    pub els: Option<Vec<Stmt>>
+    pub els: Option<Vec<Stmt>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[allow(clippy::large_enum_variant)]
 pub struct While {
     pub test: Expr,
-    pub doit: Vec<Stmt>
+    pub doit: Vec<Stmt>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -23,5 +23,5 @@ pub struct While {
 pub enum Stmt {
     ActionSequence(Vec<Action>),
     If(If),
-    While(While)
+    While(While),
 }

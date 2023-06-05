@@ -24,23 +24,22 @@ pub struct ActionDecl {
 pub struct AfterDecl {
     pub name: Vec<String>,
     pub params: Option<Vec<Param>>,
-    pub ret:  Option<Param>,
-    pub body: Vec<Stmt>
+    pub ret: Option<Param>,
+    pub body: Vec<Stmt>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct BeforeDecl {
     pub name: Vec<String>,
     pub params: Option<Vec<Param>>,
-    pub body: Vec<Stmt>
+    pub body: Vec<Stmt>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct FunctionDecl {
     pub name: Vec<String>,
     pub params: Vec<Param>,
-    pub ret: Symbol
-    // Am I an idiot? Where's the bee^W body
+    pub ret: Symbol, // Am I an idiot? Where's the bee^W body
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -86,13 +85,12 @@ pub struct ObjectDecl {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Relation {
     pub name: Vec<String>,
-    pub params: Vec<Param>
+    pub params: Vec<Param>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[allow(clippy::large_enum_variant)]
 pub enum Decl {
-
     Action(ActionDecl),
 
     AfterAction(AfterDecl),
@@ -123,16 +121,10 @@ pub enum Decl {
 
     Instance(InstanceDecl),
 
-    Instantiate {
-        name: Expr,
-        prms: Vec<Expr>,
-    },
+    Instantiate { name: Expr, prms: Vec<Expr> },
 
-    Interpretation {
-        itype: Expr,
-        ctype: Expr,
-    },
-    
+    Interpretation { itype: Expr, ctype: Expr },
+
     Invariant(Fmla),
 
     Module(ModuleDecl),

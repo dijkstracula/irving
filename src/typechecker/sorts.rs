@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use crate::ast::expressions::{Symbol, Expr};
+use crate::ast::expressions::{Expr, Symbol};
 
 use super::inference::SortVar;
 
@@ -17,7 +17,7 @@ pub enum IvySort {
     Relation(Vec<IvySort>),
     Subclass(Symbol),
 
-    SortVar(SortVar)
+    SortVar(SortVar),
 }
 
 impl Default for IvySort {
