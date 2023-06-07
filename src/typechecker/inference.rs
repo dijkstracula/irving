@@ -4,7 +4,7 @@ use std::collections::HashMap;
 
 use crate::{
     ast::{
-        expressions::{Param, Symbol},
+        expressions::{self, Param, Symbol},
         toplevels::Prog,
     },
     visitor::{control::VisitorResult, visitor::Visitor},
@@ -65,18 +65,26 @@ pub struct Constraint(IvySort, IvySort);
 
 pub struct ConstraintGenerator {
     pub ctx: Context,
+    next_sortvar_id: usize,
 }
 
 impl ConstraintGenerator {
     pub fn new() -> Self {
         ConstraintGenerator {
             ctx: Context::new(),
+            next_sortvar_id: 0,
         }
     }
 
     pub fn visit(prog: &mut Prog) {
         let mut cg = Self::new();
         cg.visit_prog(prog).unwrap();
+    }
+
+    fn next_sortvar(&mut self) -> IvySort {
+        let id = self.next_sortvar_id;
+        self.next_sortvar_id += 1;
+        IvySort::SortVar(id)
     }
 }
 
@@ -98,11 +106,12 @@ impl Visitor<(IvySort, Vec<Constraint>), Error> for ConstraintGenerator {
     }
 
     // Nonterminals
+
     fn visit_binop(
         &mut self,
-        lhs: &mut crate::ast::expressions::Expr,
-        op: &crate::ast::expressions::Verb,
-        rhs: &mut crate::ast::expressions::Expr,
+        lhs: &mut expressions::Expr,
+        op: &expressions::Verb,
+        rhs: &mut expressions::Expr,
     ) -> VisitorResult<(IvySort, Vec<Constraint>), Error> {
         let (lhs_sort, mut lhs_constraints) = match self.visit_expr(lhs)? {
             Continue((s, c)) => (s, c),
@@ -118,11 +127,11 @@ impl Visitor<(IvySort, Vec<Constraint>), Error> for ConstraintGenerator {
 
         match op {
             // Boolean operators
-            crate::ast::expressions::Verb::Iff
-            | crate::ast::expressions::Verb::Or
-            | crate::ast::expressions::Verb::And
-            | crate::ast::expressions::Verb::Not
-            | crate::ast::expressions::Verb::Arrow => {
+            expressions::Verb::Iff
+            | expressions::Verb::Or
+            | expressions::Verb::And
+            | expressions::Verb::Not
+            | expressions::Verb::Arrow => {
                 constraints.push(Constraint(lhs_sort.clone(), rhs_sort.clone()));
                 constraints.push(Constraint(lhs_sort, IvySort::Bool));
                 constraints.push(Constraint(IvySort::Bool, rhs_sort));
@@ -130,26 +139,26 @@ impl Visitor<(IvySort, Vec<Constraint>), Error> for ConstraintGenerator {
             }
 
             // Equality and comparison
-            crate::ast::expressions::Verb::Lt
-            | crate::ast::expressions::Verb::Le
-            | crate::ast::expressions::Verb::Gt
-            | crate::ast::expressions::Verb::Ge => {
+            expressions::Verb::Lt
+            | expressions::Verb::Le
+            | expressions::Verb::Gt
+            | expressions::Verb::Ge => {
                 constraints.push(Constraint(lhs_sort.clone(), rhs_sort.clone()));
                 constraints.push(Constraint(lhs_sort, IvySort::Number));
                 constraints.push(Constraint(IvySort::Number, rhs_sort));
                 Ok(Continue((IvySort::Bool, constraints)))
             }
 
-            crate::ast::expressions::Verb::Equals | crate::ast::expressions::Verb::Notequals => {
+            expressions::Verb::Equals | expressions::Verb::Notequals => {
                 constraints.push(Constraint(lhs_sort, rhs_sort));
                 Ok(Continue((IvySort::Bool, constraints)))
             }
 
             // Numeric operators
-            crate::ast::expressions::Verb::Plus
-            | crate::ast::expressions::Verb::Minus
-            | crate::ast::expressions::Verb::Times
-            | crate::ast::expressions::Verb::Div => {
+            expressions::Verb::Plus
+            | expressions::Verb::Minus
+            | expressions::Verb::Times
+            | expressions::Verb::Div => {
                 constraints.push(Constraint(lhs_sort.clone(), rhs_sort.clone()));
                 constraints.push(Constraint(lhs_sort, IvySort::Number));
                 constraints.push(Constraint(IvySort::Number, rhs_sort));
@@ -157,11 +166,40 @@ impl Visitor<(IvySort, Vec<Constraint>), Error> for ConstraintGenerator {
             }
 
             // Field indexing
-            crate::ast::expressions::Verb::Dot => {
+            expressions::Verb::Dot => {
                 // TODO: We need to check that the rhs expression is valid for the lhs's record type.
                 // We don't have record types yet, though.
                 Ok(Continue((rhs_sort, constraints)))
             }
         }
+    }
+
+    fn visit_call(
+        &mut self,
+        e: &mut expressions::AppExpr,
+    ) -> VisitorResult<(IvySort, Vec<Constraint>), Error> {
+        let mut argsorts = vec![];
+        let mut constraints = vec![];
+        for arg in &mut e.args {
+            let (arg_sort, mut arg_cstrs) = match self.visit_expr(arg)? {
+                Continue((a, c)) => (a, c),
+                crate::visitor::control::Control::Remove => unreachable!(),
+            };
+            argsorts.push(arg_sort);
+            constraints.append(&mut arg_cstrs);
+        }
+        let (funcsort, mut func_cstrs) = match self.visit_expr(&mut e.func)? {
+            Continue((a, c)) => (a, c),
+            crate::visitor::control::Control::Remove => unreachable!(),
+        };
+        constraints.append(&mut func_cstrs);
+
+        // TODO: can't we annotate the return value with `(returns foo: sort)`?  Do we drop this at the parser level?
+        let fnsort = IvySort::Function(argsorts, Box::new(self.next_sortvar()));
+
+        // TODO: at present this assumes that the function is already in the context.  Either we'll have to collect
+        // them in advance or just write Ivy programs where declarations precede use (might be impossible for us?)
+        //constraints.push(Constraint(fnsort, ()))
+        todo!()
     }
 }
