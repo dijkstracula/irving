@@ -165,10 +165,10 @@ impl IvyParser {
     pub fn decl_sig(input: Node) -> Result<DeclSig> {
         match_nodes!(
         input.into_children();
-        [ident(name), paramlist(params)] => {
+        [symbol(name), paramlist(params)] => {
             Ok(DeclSig { name, params})
         },
-        [ident(name)] => {
+        [symbol(name)] => {
             Ok(DeclSig { name, params: vec!()})
         })
     }
@@ -181,10 +181,21 @@ impl IvyParser {
         })
     }
 
-    pub fn action_decl(input: Node) -> Result<ActionDecl> {
-        let span = input.as_pair().as_span(); // Irritating!
+    // Mixins and Actions
 
-        let ret = match_nodes!(
+    pub fn mixin_sig(input: Node) -> Result<MixinSig> {
+        match_nodes!(
+        input.into_children();
+        [ident(name), paramlist(params)] => {
+            Ok(MixinSig { name, params})
+        },
+        [ident(name)] => {
+            Ok(MixinSig { name, params: vec!()})
+        })
+    }
+
+    pub fn action_decl(input: Node) -> Result<ActionDecl> {
+        match_nodes!(
         input.into_children();
             [decl_sig(DeclSig{name, params}), decl_ret(ret), stmt_block(body)] => Ok(
                 ActionDecl{name, params, ret, body: Some(body)}
@@ -195,20 +206,7 @@ impl IvyParser {
             [decl_sig(DeclSig{name, params})] => Ok(
                 ActionDecl{name, params, ret: None, body: None}
             ),
-        );
-        ret.and_then(|action| {
-            // TODO: having a QualifiedDeclSig vs a DeclSig with just a Symbol as a name would simplify this.
-            if action.name.len() > 1 {
-                Err(Error::new_from_span(
-                    ErrorVariant::<Rule>::CustomError {
-                        message: "Need an unqualified action name".into(),
-                    },
-                    span,
-                ))
-            } else {
-                Ok(action)
-            }
-        })
+        )
     }
 
     pub fn alias_decl(input: Node) -> Result<(Symbol, Expr)> {
@@ -234,10 +232,10 @@ impl IvyParser {
     pub fn after_decl(input: Node) -> Result<AfterDecl> {
         match_nodes!(
         input.into_children();
-        [decl_sig(DeclSig{name, params}), decl_ret(ret), stmt_block(body)] => Ok(
+        [mixin_sig(MixinSig{name, params}), decl_ret(ret), stmt_block(body)] => Ok(
             AfterDecl { name, params: Some(params), ret: ret, body}
         ),
-        [decl_sig(DeclSig{name, params}), stmt_block(body)] => Ok(
+        [mixin_sig(MixinSig{name, params}), stmt_block(body)] => Ok(
             AfterDecl { name, params: Some(params), ret: None, body}
         ),
         [ident(name), stmt_block(body)] => Ok(
@@ -288,16 +286,16 @@ impl IvyParser {
         )
     }
 
-    pub fn implement_decl(input: Node) -> Result<ActionDecl> {
+    pub fn implement_action_decl(input: Node) -> Result<ImplementDecl> {
         // XXX: Looks like `handle_before_after` in ivy_parser.py just treats
         // implement like defining an action, modulo internal name mangling.
         match_nodes!(
         input.into_children();
-            [decl_sig(DeclSig{name, params}), decl_ret(ret), stmt_block(body)] => Ok(
-                ActionDecl{name, params, ret, body: Some(body)}
+            [mixin_sig(MixinSig{name, params}), decl_ret(ret), stmt_block(body)] => Ok(
+                ImplementDecl{name, params, ret, body: Some(body)}
             ),
-            [decl_sig(DeclSig{name, params}), stmt_block(body)] => Ok(
-                ActionDecl{name, params, ret: None, body: Some(body)}
+            [mixin_sig(MixinSig{name, params}), stmt_block(body)] => Ok(
+                ImplementDecl{name, params, ret: None, body: Some(body)}
             ),
         )
     }
@@ -310,19 +308,9 @@ impl IvyParser {
     }
 
     pub fn import_decl(input: Node) -> Result<ImportDecl> {
-        let span = input.as_pair().as_span(); // Irritating!
-
         match_nodes!(
         input.into_children();
-            [decl_sig(DeclSig{mut name, params})] => {
-                if name.len() > 1 {
-                    Err(Error::new_from_span(
-                        ErrorVariant::<Rule>::CustomError { message: "Need an unqualified isolate name".into() },
-                        span))
-                } else {
-                    Ok(ImportDecl{name: name.pop().unwrap(), params})
-                }
-            }
+            [decl_sig(DeclSig{name, params})] => Ok(ImportDecl{name, params})
         )
     }
 
@@ -336,7 +324,7 @@ impl IvyParser {
     pub fn instance_decl(input: Node) -> Result<InstanceDecl> {
         match_nodes!(
         input.into_children();
-        [symbol(name), decl_sig(DeclSig{name: sort, params: sort_args})] =>
+        [symbol(name), mixin_sig(MixinSig{name: sort, params: sort_args})] =>
             Ok(InstanceDecl{name, sort, args: sort_args})
         )
     }
@@ -349,19 +337,11 @@ impl IvyParser {
     }
 
     pub fn extract_decl(input: Node) -> Result<IsolateDecl> {
-        let span = input.as_pair().as_span(); // Irritating!
-
         match_nodes!(
         input.into_children();
-        [decl_sig(DeclSig{mut name, params}), decl_block(body)] => {
-            if name.len() > 1 {
-                Err(Error::new_from_span(
-                    ErrorVariant::<Rule>::CustomError { message: "Need an unqualified isolate name".into() },
-                    span))
-            } else {
-                Ok(IsolateDecl{name: name.pop().unwrap(), params, body})
-            }
-        })
+        [decl_sig(DeclSig{name, params}), decl_block(body)] =>
+            Ok(IsolateDecl{name, params, body})
+        )
     }
 
     pub fn module_decl(input: Node) -> Result<ModuleDecl> {
@@ -447,7 +427,7 @@ impl IvyParser {
         [extract_decl(decl)]  => Ok(Decl::Isolate(decl)),
         [global_decl(decls)]  => Ok(Decl::Globals(decls)),
         [function_decl(decl)] => Ok(Decl::Function(decl)),
-        [implement_decl(decl)] => Ok(Decl::Action(decl)),
+        [implement_action_decl(decl)] => Ok(Decl::Implement(decl)),
         [implementation_decl(decls)] => Ok(Decl::Implementation(decls)),
         [import_decl(decl)]    => Ok(Decl::Import(decl)),
         [include_decl(module)] => Ok(Decl::Include(module)),

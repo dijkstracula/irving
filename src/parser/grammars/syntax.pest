@@ -30,15 +30,13 @@ range_decl = { "{" ~ expr ~ ".." ~ expr ~ "}" }
 // Decls
 
 decl_ret   = { "returns" ~ "(" ~ param ~ ")" } //TODO: needs to be a paramlist
-decl_sig =  { ident ~ ("(" ~ paramlist ~ ")")? }
+decl_sig =  { symbol ~ ("(" ~ paramlist ~ ")")? }
 decl_block = { "{" ~ (decl ~ ";"?)* ~ "}" }
 
 include_decl      = { INCLUDE ~ symbol }
 var_decl          = { VAR ~ term }
 
-after_decl        = { AFTER  ~ (decl_sig ~ decl_ret?)? ~ stmt_block }
 attribute_decl    = { ATTRIBUTE ~ expr } // TODO: wildly overspecified: shoudl be constrained beyond just an expr.
-before_decl       = { BEFORE ~ (decl_sig ~ decl_ret?)? ~ stmt_block }
 
 alias_decl        = { ALIAS ~ symbol ~ "=" ~ expr }
 axiom_decl        = { AXIOM ~ fmla }
@@ -51,12 +49,10 @@ module_decl       = { MODULE ~ decl_sig ~ "=" ~ decl_block }
 object_decl       = { OBJECT ~ decl_sig ~ "=" ~ decl_block }
 extract_decl      = { EXTRACT ~ decl_sig ~ "=" ~ decl_block }
 
-action_decl       = { ACTION ~ decl_sig ~ decl_ret? ~ ("=" ~ stmt_block)? }
 import_decl       = { IMPORT ~ ACTION ~ decl_sig }
 export_decl       = { EXPORT ~ (symbol | action_decl) }
-implement_decl    = { IMPLEMENT ~ decl_sig ~ decl_ret? ~ stmt_block }
 
-instance_decl     = { INSTANCE ~ symbol ~ ":" ~ decl_sig }
+instance_decl     = { INSTANCE ~ symbol ~ ":" ~ mixin_sig }
 
 implementation_decl    = { IMPLEMENTATION ~ decl_block }
 specification_decl     = { SPECIFICATION ~ decl_block }
@@ -90,7 +86,7 @@ decl = {
     | include_decl
     | var_decl
     | header_decl
-    | implement_decl
+    | implement_action_decl
     | instance_decl
     | interpret_decl
     | invariant_decl
@@ -109,7 +105,15 @@ decl = {
     | (stmt ~ (";" ~ stmt)* )
 }
 
-// Actions
+// Actions and mixins
+action_decl       = { ACTION ~ decl_sig ~ decl_ret? ~ ("=" ~ stmt_block)? }
+after_decl        = { AFTER  ~ (mixin_sig ~ decl_ret?)? ~ stmt_block }
+before_decl       = { BEFORE ~ (mixin_sig ~ decl_ret?)? ~ stmt_block }
+implement_action_decl    = { IMPLEMENT ~ mixin_sig ~ decl_ret? ~ stmt_block }
+
+// NB: Because a mixin signature can refer to an action outside the current scope, the sig
+// name needs to be a qualified identifier and not just a symbol token.
+mixin_sig =  { ident ~ ("(" ~ paramlist ~ ")")? }
 
 assign_action = { (var_decl | expr) ~ ":=" ~ expr} //TODO
 assert_action = { ASSERT ~ expr}

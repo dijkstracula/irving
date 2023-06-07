@@ -111,6 +111,16 @@ where
     fn visit_globals(&mut self, defs: &mut Vec<Decl>) -> VisitorResult<T, E> {
         self.visit_vec(defs, |slf, d| slf.visit_decl(d))
     }
+    fn visit_implement_action(&mut self, action: &mut ImplementDecl) -> VisitorResult<T, E> {
+        self.visit_vec(&mut action.params, |slf, p| slf.visit_param(p))?;
+        if let Some(p) = &mut action.ret {
+            self.visit_param(p)?;
+        }
+        if let Some(body) = &mut action.body {
+            self.visit_vec(body, |slf, p| slf.visit_stmt(p))?;
+        }
+        Ok(Continue(T::default()))
+    }
     fn visit_implementation(&mut self, decls: &mut Vec<Decl>) -> VisitorResult<T, E> {
         self.visit_vec(decls, |slf, d| slf.visit_decl(d))
     }
@@ -188,6 +198,7 @@ where
             Decl::Import(i) => self.visit_import(i),
             Decl::Isolate(i) => self.visit_isolate(i),
             Decl::Include(i) => self.visit_include(i),
+            Decl::Implement(a) => self.visit_implement_action(a),
             Decl::Implementation(decls) => todo!(),
             Decl::Instance(i) => self.visit_instance(i),
             Decl::Instantiate { name, prms } => todo!(),

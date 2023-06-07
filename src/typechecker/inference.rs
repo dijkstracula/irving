@@ -60,9 +60,6 @@ impl Context {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct SortVar(usize);
-
 // TODO: Experiment with this holding references, or maybe RCs?
 pub struct Constraint(IvySort, IvySort);
 

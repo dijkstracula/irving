@@ -56,16 +56,6 @@ mod tests {
     }
 
     #[test]
-    fn parse_qualified_export_action() {
-        let fragment = "action foo.bar(a: int) = { }";
-        let res = IvyParser::parse(Rule::decl, fragment)
-            .expect("Parsing failed")
-            .single()
-            .unwrap();
-        assert!(IvyParser::decl(res).is_err());
-    }
-
-    #[test]
     fn parse_action_decl() {
         let fragment = "action foo(a: int)";
         let res = IvyParser::parse(Rule::decl, fragment)

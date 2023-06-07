@@ -44,7 +44,7 @@ mod tests {
         assert_eq!(
             decl,
             ActionDecl {
-                name: vec!("foo".to_owned()),
+                name: "foo".to_owned(),
                 params: vec!(Param {
                     id: "a".to_owned(),
                     sort: Some(vec!("int".to_owned()))

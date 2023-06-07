@@ -11,8 +11,6 @@ pub struct Annotation {
     line: u32,
 }
 
-pub type Ident = Vec<Symbol>;
-
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Verb {
     Iff,
@@ -34,6 +32,7 @@ pub enum Verb {
 }
 
 pub type Symbol = String;
+pub type Ident = Vec<Symbol>;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct AppExpr {

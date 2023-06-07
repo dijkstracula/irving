@@ -184,7 +184,7 @@ impl<W: Write> Visitor<(), Error> for PrettyPrinter<W> {
 
     fn visit_action_decl(&mut self, action: &mut ActionDecl) -> VisitorResult<(), Error> {
         self.write_str("action ")?;
-        self.write_str(&action.name.join("."))?;
+        self.write_str(&action.name)?;
         self.write_str("(")?;
         self.write_comma_separated(&mut action.params, |pp, p| pp.visit_param(p))?;
         self.write_str(")")?;
@@ -282,7 +282,25 @@ impl<W: Write> Visitor<(), Error> for PrettyPrinter<W> {
         self.write_str("}")?;
         Ok(Continue(()))
     }
+    fn visit_implement_action(&mut self, action: &mut ImplementDecl) -> VisitorResult<(), Error> {
+        self.write_str("implement ")?;
+        self.write_str(&action.name.join("."))?;
+        self.write_str("(")?;
+        self.write_comma_separated(&mut action.params, |pp, p| pp.visit_param(p))?;
+        self.write_str(")")?;
 
+        if let Some(ret) = &mut action.ret {
+            self.write_str(" returns(")?;
+            self.visit_param(ret)?;
+            self.write_str(")")?;
+        }
+        if let Some(stmts) = &mut action.body {
+            self.write_str(" {\n")?;
+            self.write_seminl_separated(stmts, |pp, d| pp.visit_stmt(d))?;
+            self.write_str("}\n")?;
+        }
+        Ok(Continue(()))
+    }
     fn visit_implementation(&mut self, decls: &mut Vec<Decl>) -> VisitorResult<(), Error> {
         self.write_str("implementation {")?;
         self.write_seminl_separated(decls, |pp, d| pp.visit_decl(d))?;
@@ -336,14 +354,14 @@ impl<W: Write> Visitor<(), Error> for PrettyPrinter<W> {
     }
 
     fn visit_module(&mut self, module: &mut ModuleDecl) -> VisitorResult<(), Error> {
-        self.write_fmt(format_args!("module {}(", &module.name.join(".")))?;
+        self.write_fmt(format_args!("module {}(", &module.name))?;
         self.write_comma_separated(&mut module.params, |pp, p| pp.visit_param(p))?;
         self.write_str(")")?;
         Ok(Continue(()))
     }
 
     fn visit_object(&mut self, obj: &mut ObjectDecl) -> VisitorResult<(), Error> {
-        self.write_fmt(format_args!("object {}", obj.name.join(".")))?;
+        self.write_fmt(format_args!("object {}", &obj.name))?;
         if obj.params.len() > 0 {
             self.write_str("(")?;
             self.write_comma_separated(&mut obj.params, |pp, p| pp.visit_param(p))?;
@@ -364,7 +382,7 @@ impl<W: Write> Visitor<(), Error> for PrettyPrinter<W> {
     }
 
     fn visit_relation(&mut self, obj: &mut Relation) -> VisitorResult<(), Error> {
-        self.write_fmt(format_args!("relation {}", obj.name.join(".")))?;
+        self.write_fmt(format_args!("relation {}", obj.name))?;
         self.write_str("(")?;
         self.write_comma_separated(&mut obj.params, |pp, p| pp.visit_param(p))?;
         self.write_str(")")?;

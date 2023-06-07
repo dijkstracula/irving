@@ -2,8 +2,6 @@
 
 use crate::ast::expressions::{Expr, Symbol};
 
-use super::inference::SortVar;
-
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum IvySort {
     Uninterpreted,
@@ -17,7 +15,7 @@ pub enum IvySort {
     Relation(Vec<IvySort>),
     Subclass(Symbol),
 
-    SortVar(SortVar),
+    SortVar(usize),
 }
 
 impl Default for IvySort {

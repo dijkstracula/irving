@@ -52,7 +52,7 @@ impl Mixin {
 
     pub fn from_action(action: ActionDecl) -> Self {
         Mixin {
-            name: action.name.last().unwrap().to_owned(),
+            name: action.name.to_owned(),
             params: Some(action.params),
             ret: action.ret,
 

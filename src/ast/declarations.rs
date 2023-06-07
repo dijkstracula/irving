@@ -6,15 +6,21 @@ use super::statements::*;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct DeclSig {
-    pub name: Vec<Symbol>,
+    pub name: Symbol,
     pub params: Vec<Param>,
 }
 
 pub type DeclRet = Option<Param>;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct MixinSig {
+    pub name: Ident,
+    pub params: Vec<Param>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ActionDecl {
-    pub name: Vec<String>,
+    pub name: Symbol,
     pub params: Vec<Param>,
     pub ret: Option<Param>,
     pub body: Option<Vec<Stmt>>,
@@ -22,7 +28,7 @@ pub struct ActionDecl {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct AfterDecl {
-    pub name: Vec<String>,
+    pub name: Ident,
     pub params: Option<Vec<Param>>,
     pub ret: Option<Param>,
     pub body: Vec<Stmt>,
@@ -30,14 +36,14 @@ pub struct AfterDecl {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct BeforeDecl {
-    pub name: Vec<String>,
+    pub name: Ident,
     pub params: Option<Vec<Param>>,
     pub body: Vec<Stmt>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct FunctionDecl {
-    pub name: Vec<String>,
+    pub name: Symbol,
     pub params: Vec<Param>,
     pub ret: Symbol, // Am I an idiot? Where's the bee^W body
 }
@@ -55,9 +61,17 @@ pub struct ImportDecl {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct ImplementDecl {
+    pub name: Ident,
+    pub params: Vec<Param>,
+    pub ret: Option<Param>,
+    pub body: Option<Vec<Stmt>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct InstanceDecl {
     pub name: Symbol,
-    pub sort: Vec<Symbol>,
+    pub sort: Ident,
     pub args: Vec<Param>,
 }
 
@@ -70,21 +84,21 @@ pub struct IsolateDecl {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ModuleDecl {
-    pub name: Vec<String>,
+    pub name: Symbol,
     pub params: Vec<Param>,
     pub body: Vec<Decl>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ObjectDecl {
-    pub name: Vec<String>,
+    pub name: Symbol,
     pub params: Vec<Param>,
     pub body: Vec<Decl>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Relation {
-    pub name: Vec<String>,
+    pub name: Symbol,
     pub params: Vec<Param>,
 }
 
@@ -110,6 +124,8 @@ pub enum Decl {
     Function(FunctionDecl),
 
     Globals(Vec<Decl>),
+
+    Implement(ImplementDecl),
 
     Implementation(Vec<Decl>),
 
