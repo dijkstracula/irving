@@ -1,5 +1,6 @@
 pub type VisitorResult<T, E> = std::result::Result<Control<T>, E>;
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Control<T> {
     // Proceed with the post-order traversal, returning some value
     Continue(T),

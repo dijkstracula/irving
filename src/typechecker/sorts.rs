@@ -15,6 +15,7 @@ pub enum IvySort {
     Relation(Vec<IvySort>),
     Subclass(Symbol),
 
+    // A SortVar contains the index of its referrent into the typing context.
     SortVar(usize),
 }
 

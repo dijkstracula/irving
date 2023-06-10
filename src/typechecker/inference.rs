@@ -13,11 +13,11 @@ use crate::{
 use super::{sorts::IvySort, Error};
 use crate::visitor::control::Control::Continue;
 
-pub struct Context(Vec<HashMap<Symbol, IvySort>>);
+pub struct Bindings(Vec<HashMap<Symbol, IvySort>>);
 
-impl Context {
+impl Bindings {
     pub fn new() -> Self {
-        Context(vec![])
+        Bindings(vec![])
     }
 
     pub fn push_scope(&mut self) {
@@ -63,16 +63,72 @@ impl Context {
 // TODO: Experiment with this holding references, or maybe RCs?
 pub struct Constraint(IvySort, IvySort);
 
-pub struct ConstraintGenerator {
-    pub ctx: Context,
-    next_sortvar_id: usize,
+pub struct TypeChecker {
+    pub ctx: Vec<IvySort>,
 }
 
-impl ConstraintGenerator {
+impl TypeChecker {
     pub fn new() -> Self {
-        ConstraintGenerator {
-            ctx: Context::new(),
-            next_sortvar_id: 0,
+        TypeChecker { ctx: vec![] }
+    }
+
+    fn resolve(&mut self, sort: &IvySort) -> IvySort {
+        if let IvySort::SortVar(original_id) = sort {
+            let mut curr_id = *original_id;
+            let mut next_sort = &self.ctx[curr_id];
+
+            while let IvySort::SortVar(new_id) = next_sort {
+                curr_id = *new_id;
+                next_sort = &self.ctx[curr_id];
+
+                //TODO: occurs check?
+            }
+            next_sort.clone()
+        } else {
+            sort.clone()
+        }
+    }
+
+    fn unify(&mut self, lhs: &IvySort, rhs: &IvySort) -> Result<IvySort, Error> {
+        let lhs = self.resolve(lhs);
+        let rhs = self.resolve(rhs);
+        match (&lhs, &rhs) {
+            (IvySort::SortVar(i), IvySort::SortVar(j)) => {
+                if i < j {
+                    self.ctx[*j] = rhs.clone();
+                    Ok(lhs)
+                } else if i > j {
+                    self.ctx[*i] = lhs.clone();
+                    Ok(rhs)
+                } else {
+                    Ok(lhs)
+                }
+            }
+            (IvySort::SortVar(i), _) => {
+                self.ctx[*i] = rhs.clone();
+                Ok(rhs)
+            }
+            (_, IvySort::SortVar(j)) => {
+                self.ctx[*j] = lhs.clone();
+                Ok(lhs)
+            }
+            (IvySort::Function(lhsargs, lhsret), IvySort::Function(rhsargs, rhsret)) => {
+                if lhsargs.len() != rhsargs.len() {
+                    Err(Error::UnificationError(lhs.clone(), rhs.clone()))
+                } else {
+                    for (a1, a2) in lhsargs.iter().zip(rhsargs.iter()) {
+                        self.unify(a1, a2)?;
+                    }
+                    self.unify(&lhsret, &rhsret)
+                }
+            }
+            (t1, t2) => {
+                if t1 == t2 {
+                    Ok(lhs)
+                } else {
+                    Err(Error::UnificationError(lhs.clone(), rhs.clone()))
+                }
+            }
         }
     }
 
@@ -80,29 +136,24 @@ impl ConstraintGenerator {
         let mut cg = Self::new();
         cg.visit_prog(prog).unwrap();
     }
-
-    fn next_sortvar(&mut self) -> IvySort {
-        let id = self.next_sortvar_id;
-        self.next_sortvar_id += 1;
-        IvySort::SortVar(id)
-    }
 }
 
-impl Visitor<(IvySort, Vec<Constraint>), Error> for ConstraintGenerator {
+impl Visitor<IvySort, Error> for TypeChecker {
     // Terminals
 
-    fn visit_boolean(&mut self, _: &mut bool) -> VisitorResult<(IvySort, Vec<Constraint>), Error> {
-        Ok(Continue((IvySort::Bool, vec![])))
+    fn visit_boolean(&mut self, _: &mut bool) -> VisitorResult<IvySort, Error> {
+        Ok(Continue(IvySort::Bool))
     }
-    fn visit_param(&mut self, p: &mut Param) -> VisitorResult<(IvySort, Vec<Constraint>), Error> {
+    fn visit_param(&mut self, p: &mut Param) -> VisitorResult<IvySort, Error> {
         //if let Some(annotated) = p.
-        match self.ctx.lookup(&p.id) {
-            None => Err(Error::UnboundVariable(p.id.clone())),
-            Some(sort) => Ok(Continue((sort.clone(), vec![]))),
-        }
+        //match self.ctx.lookup(&p.id) {
+        //    None => Err(Error::UnboundVariable(p.id.clone())),
+        //    Some(sort) => Ok(Continue((sort.clone(), vec![]))),
+        // }
+        todo!()
     }
-    fn visit_number(&mut self, _: &mut i64) -> VisitorResult<(IvySort, Vec<Constraint>), Error> {
-        Ok(Continue((IvySort::Number, vec![])))
+    fn visit_number(&mut self, _: &mut i64) -> VisitorResult<IvySort, Error> {
+        Ok(Continue(IvySort::Number))
     }
 
     // Nonterminals
@@ -112,18 +163,15 @@ impl Visitor<(IvySort, Vec<Constraint>), Error> for ConstraintGenerator {
         lhs: &mut expressions::Expr,
         op: &expressions::Verb,
         rhs: &mut expressions::Expr,
-    ) -> VisitorResult<(IvySort, Vec<Constraint>), Error> {
-        let (lhs_sort, mut lhs_constraints) = match self.visit_expr(lhs)? {
-            Continue((s, c)) => (s, c),
+    ) -> VisitorResult<IvySort, Error> {
+        let lhs_sort = match self.visit_expr(lhs)? {
+            Continue(s) => s,
             crate::visitor::control::Control::Remove => unreachable!(),
         };
-        let (rhs_sort, mut rhs_constraints) = match self.visit_expr(rhs)? {
-            Continue((s, c)) => (s, c),
+        let rhs_sort = match self.visit_expr(rhs)? {
+            Continue(s) => s,
             crate::visitor::control::Control::Remove => unreachable!(),
         };
-
-        lhs_constraints.append(&mut rhs_constraints);
-        let mut constraints = lhs_constraints;
 
         match op {
             // Boolean operators
@@ -132,10 +180,15 @@ impl Visitor<(IvySort, Vec<Constraint>), Error> for ConstraintGenerator {
             | expressions::Verb::And
             | expressions::Verb::Not
             | expressions::Verb::Arrow => {
-                constraints.push(Constraint(lhs_sort.clone(), rhs_sort.clone()));
-                constraints.push(Constraint(lhs_sort, IvySort::Bool));
-                constraints.push(Constraint(IvySort::Bool, rhs_sort));
-                Ok(Continue((IvySort::Bool, constraints)))
+                if self
+                    .unify(&lhs_sort, &IvySort::Bool)
+                    .and(self.unify(&IvySort::Bool, &rhs_sort))
+                    .is_err()
+                {
+                    Err(Error::UnificationError(lhs_sort, rhs_sort))
+                } else {
+                    Ok(Continue(IvySort::Bool))
+                }
             }
 
             // Equality and comparison
@@ -143,15 +196,23 @@ impl Visitor<(IvySort, Vec<Constraint>), Error> for ConstraintGenerator {
             | expressions::Verb::Le
             | expressions::Verb::Gt
             | expressions::Verb::Ge => {
-                constraints.push(Constraint(lhs_sort.clone(), rhs_sort.clone()));
-                constraints.push(Constraint(lhs_sort, IvySort::Number));
-                constraints.push(Constraint(IvySort::Number, rhs_sort));
-                Ok(Continue((IvySort::Bool, constraints)))
+                if self
+                    .unify(&lhs_sort, &IvySort::Number)
+                    .and(self.unify(&IvySort::Number, &rhs_sort))
+                    .is_err()
+                {
+                    Err(Error::UnificationError(lhs_sort, rhs_sort))
+                } else {
+                    Ok(Continue(IvySort::Bool))
+                }
             }
 
             expressions::Verb::Equals | expressions::Verb::Notequals => {
-                constraints.push(Constraint(lhs_sort, rhs_sort));
-                Ok(Continue((IvySort::Bool, constraints)))
+                if self.unify(&lhs_sort, &rhs_sort).is_err() {
+                    Err(Error::UnificationError(lhs_sort, rhs_sort))
+                } else {
+                    Ok(Continue(IvySort::Bool))
+                }
             }
 
             // Numeric operators
@@ -159,47 +220,25 @@ impl Visitor<(IvySort, Vec<Constraint>), Error> for ConstraintGenerator {
             | expressions::Verb::Minus
             | expressions::Verb::Times
             | expressions::Verb::Div => {
-                constraints.push(Constraint(lhs_sort.clone(), rhs_sort.clone()));
-                constraints.push(Constraint(lhs_sort, IvySort::Number));
-                constraints.push(Constraint(IvySort::Number, rhs_sort));
-                Ok(Continue((IvySort::Number, constraints)))
+                if self
+                    .unify(&lhs_sort, &IvySort::Number)
+                    .and(self.unify(&IvySort::Number, &rhs_sort))
+                    .is_err()
+                {
+                    Err(Error::UnificationError(lhs_sort, rhs_sort))
+                } else {
+                    Ok(Continue(IvySort::Number))
+                }
             }
 
             // Field indexing
             expressions::Verb::Dot => {
-                // TODO: We need to check that the rhs expression is valid for the lhs's record type.
-                // We don't have record types yet, though.
-                Ok(Continue((rhs_sort, constraints)))
+                unimplemented!()
             }
         }
     }
 
-    fn visit_call(
-        &mut self,
-        e: &mut expressions::AppExpr,
-    ) -> VisitorResult<(IvySort, Vec<Constraint>), Error> {
-        let mut argsorts = vec![];
-        let mut constraints = vec![];
-        for arg in &mut e.args {
-            let (arg_sort, mut arg_cstrs) = match self.visit_expr(arg)? {
-                Continue((a, c)) => (a, c),
-                crate::visitor::control::Control::Remove => unreachable!(),
-            };
-            argsorts.push(arg_sort);
-            constraints.append(&mut arg_cstrs);
-        }
-        let (funcsort, mut func_cstrs) = match self.visit_expr(&mut e.func)? {
-            Continue((a, c)) => (a, c),
-            crate::visitor::control::Control::Remove => unreachable!(),
-        };
-        constraints.append(&mut func_cstrs);
-
-        // TODO: can't we annotate the return value with `(returns foo: sort)`?  Do we drop this at the parser level?
-        let fnsort = IvySort::Function(argsorts, Box::new(self.next_sortvar()));
-
-        // TODO: at present this assumes that the function is already in the context.  Either we'll have to collect
-        // them in advance or just write Ivy programs where declarations precede use (might be impossible for us?)
-        //constraints.push(Constraint(fnsort, ()))
+    fn visit_call(&mut self, e: &mut expressions::AppExpr) -> VisitorResult<IvySort, Error> {
         todo!()
     }
 }
