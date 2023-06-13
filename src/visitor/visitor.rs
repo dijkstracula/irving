@@ -156,7 +156,11 @@ where
         self.visit_vec(decls, |slf, d| slf.visit_decl(d))
     }
     fn visit_vardecl(&mut self, term: &mut Term) -> VisitorResult<T, E> {
-        self.visit_identifier(&mut term.id)
+        self.visit_symbol(&mut term.id)?;
+        if let Some(sort) = &mut term.sort {
+            self.visit_identifier(sort)?;
+        }
+        Ok(Continue(T::default()))
     }
     fn visit_typedecl(&mut self, ident: &TypeName, sort: &mut IvySort) -> VisitorResult<T, E> {
         Ok(Continue(T::default()))
@@ -226,6 +230,10 @@ where
     fn visit_boolean(&mut self, b: &mut bool) -> VisitorResult<T, E> {
         Ok(Continue(T::default()))
     }
+    fn visit_field_access(&mut self, lhs: &mut Expr, rhs: &mut Symbol) -> VisitorResult<T, E> {
+        self.visit_expr(lhs)?;
+        self.visit_symbol(rhs)
+    }
     fn visit_formula(&mut self, fmla: &mut Fmla) -> VisitorResult<T, E> {
         match fmla {
             Fmla::Forall(Forall { vars, fmla }) => {
@@ -262,7 +270,7 @@ where
         Ok(Continue(T::default()))
     }
     fn visit_term(&mut self, term: &mut Term) -> VisitorResult<T, E> {
-        self.visit_identifier(&mut term.id)?;
+        self.visit_symbol(&mut term.id)?;
         match &mut term.sort {
             None => Ok(Continue(T::default())),
             Some(sort) => self.visit_identifier(sort),
@@ -277,10 +285,10 @@ where
             Expr::App(app) => self.visit_app(app),
             Expr::BinOp { lhs, op, rhs } => self.visit_binop(lhs, op, rhs),
             Expr::Boolean(b) => self.visit_boolean(b),
-            //            Expr::Formula(fmla) => self.visit_formula(fmla),
-            Expr::Identifier(ident) => self.visit_identifier(ident),
+            Expr::FieldAccess { record, field } => self.visit_field_access(record, field),
             Expr::Index(idx) => self.visit_index(idx),
             Expr::Number(i) => self.visit_number(i),
+            Expr::Symbol(s) => self.visit_symbol(s),
             Expr::UnaryOp { op, expr } => self.visit_unaryop(op, expr),
             Expr::Term(t) => self.visit_term(t),
             Expr::This => self.visit_this(),

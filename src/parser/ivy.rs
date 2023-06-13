@@ -80,8 +80,8 @@ impl IvyParser {
     fn term(input: Node) -> Result<Term> {
         match_nodes!(
         input.into_children();
-        [ident(id), ident(sort)] => Ok(Term {id, sort: Some(sort) }),
-        [ident(id)] => Ok(Term {id, sort: None })
+        [symbol(id), ident(sort)] => Ok(Term {id, sort: Some(sort) }),
+        [symbol(id)] => Ok(Term {id, sort: None })
         )
     }
 

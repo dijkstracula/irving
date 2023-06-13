@@ -66,7 +66,7 @@ pub struct Type {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Term {
-    pub id: Ident,
+    pub id: Symbol,
     pub sort: Option<Ident>,
     //is_destructor: bool,
 }
@@ -84,11 +84,16 @@ pub enum Expr {
 
     Boolean(bool),
 
-    Identifier(Ident),
+    FieldAccess {
+        record: Box<Expr>,
+        field: Symbol,
+    },
 
     Index(IndexExpr),
 
     Number(i64),
+
+    Symbol(Symbol),
 
     UnaryOp {
         op: Verb,

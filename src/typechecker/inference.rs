@@ -132,6 +132,12 @@ impl TypeChecker {
         }
     }
 
+    pub fn new_sortvar(&mut self) -> IvySort {
+        let s = IvySort::SortVar(self.ctx.len());
+        self.ctx.push(s.clone());
+        s
+    }
+
     pub fn visit(prog: &mut Prog) {
         let mut cg = Self::new();
         cg.visit_prog(prog).unwrap();
@@ -233,12 +239,21 @@ impl Visitor<IvySort, Error> for TypeChecker {
 
             // Field indexing
             expressions::Verb::Dot => {
-                unimplemented!()
+                if let IvySort::Process(proc) = lhs_sort {
+                    todo!()
+                } else {
+                    Err(Error::NotARecord(lhs_sort))
+                }
             }
         }
     }
 
     fn visit_call(&mut self, e: &mut expressions::AppExpr) -> VisitorResult<IvySort, Error> {
+        let fsort = self.visit_expr(&mut e.func)?;
+        todo!()
+    }
+
+    fn visit_vardecl(&mut self, term: &mut expressions::Term) -> VisitorResult<IvySort, Error> {
         todo!()
     }
 }

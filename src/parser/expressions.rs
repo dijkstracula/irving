@@ -1,5 +1,7 @@
+use pest::error::ErrorVariant;
 use pest::iterators::Pairs;
 use pest::pratt_parser::{Assoc, Op, PrattParser};
+use pest_consume::Error;
 
 use crate::ast::expressions::*;
 use crate::parser::ivy::*;
@@ -9,7 +11,6 @@ lazy_static::lazy_static! {
     // from ivy2/lang.ivy.
     static ref PRATT: PrattParser<Rule> =
     PrattParser::new()
-        .op(Op::infix(Rule::DOT, Assoc::Left))
         .op(Op::infix(Rule::ARROW, Assoc::Left))
         .op(Op::infix(Rule::COLON, Assoc::Left))
 
@@ -32,43 +33,18 @@ lazy_static::lazy_static! {
         .op(Op::prefix(Rule::UMINUS))
         .op(Op::prefix(Rule::NOT))
 
-
         // Postfix
         .op(Op::postfix(Rule::fnapp_args))
-        .op(Op::postfix(Rule::index));
+        .op(Op::postfix(Rule::index))
+
+        .op(Op::infix(Rule::DOT, Assoc::Left));
+
 }
 
 pub fn parse_expr(pairs: Pairs<Rule>) -> Result<Expr> {
     PRATT
         .map_primary(|primary| match primary.as_rule() {
-            Rule::term => {
-                let mut pairs = primary.into_inner();
-                let id = pairs
-                    .next()
-                    .map(|p| {
-                        p.into_inner()
-                            .map(|s| s.as_str().to_owned())
-                            .collect::<Vec<_>>()
-                    })
-                    .unwrap();
-                let sort = pairs.next().map(|p| {
-                    p.into_inner()
-                        .map(|s| s.as_str().to_owned())
-                        .collect::<Vec<_>>()
-                });
-                match sort {
-                    // TODO: wondering if either return path should just be a Term.
-                    None => Ok(Expr::Identifier(id)),
-                    Some(_) => Ok(Expr::Term(Term { id, sort })),
-                }
-            }
-            Rule::ident => {
-                let results = primary
-                    .into_inner()
-                    .map(|p| p.as_str().to_owned())
-                    .collect::<Vec<_>>();
-                Ok(Expr::Identifier(results))
-            }
+            Rule::symbol => Ok(Expr::Symbol(primary.as_str().into())),
             Rule::boollit => {
                 let val = match primary.as_str() {
                     "true" => true,
@@ -110,14 +86,32 @@ pub fn parse_expr(pairs: Pairs<Rule>) -> Result<Expr> {
 
                 Rule::PLUS => Verb::Plus,
                 Rule::MINUS => Verb::Minus,
-                _ => unimplemented!(),
+                _ => unreachable!("Unexpected binary op"),
             };
 
-            Ok(Expr::BinOp {
-                lhs: Box::new(lhs?),
-                op: verb,
-                rhs: Box::new(rhs?),
-            })
+            if verb == Verb::Dot {
+                let field = match rhs? {
+                    Expr::Symbol(field) => field,
+                    _ => {
+                        return Err(Error::new_from_span(
+                            ErrorVariant::CustomError {
+                                message: "invalid field access expression".into(),
+                            },
+                            op.as_span(),
+                        ));
+                    }
+                };
+                Ok(Expr::FieldAccess {
+                    record: Box::new(lhs?),
+                    field: field,
+                })
+            } else {
+                Ok(Expr::BinOp {
+                    lhs: Box::new(lhs?),
+                    op: verb,
+                    rhs: Box::new(rhs?),
+                })
+            }
         })
         .map_postfix(|lhs, op| match op.as_rule() {
             Rule::fnapp_args => {

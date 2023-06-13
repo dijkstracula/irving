@@ -390,7 +390,7 @@ impl<W: Write> Visitor<(), Error> for PrettyPrinter<W> {
     }
 
     fn visit_vardecl(&mut self, term: &mut Term) -> VisitorResult<(), Error> {
-        self.write_fmt(format_args!("var {}", term.id.join(".")))?;
+        self.write_fmt(format_args!("var {}", term.id))?;
         if let Some(sort) = &term.sort {
             self.write_fmt(format_args!(": {}", sort.join(".")))?;
         }
@@ -433,6 +433,16 @@ impl<W: Write> Visitor<(), Error> for PrettyPrinter<W> {
             }
             IvySort::Subclass(s) => {
                 self.write_fmt(format_args!(" of {}", s))?;
+            }
+            IvySort::Process(proc) => {
+                self.write_str(" = {\n")?;
+                self.write_str("implementation {\n")?;
+                self.write_str("}\n")?;
+                self.write_str("specification {\n")?;
+                self.write_str("common {\n")?;
+                self.write_str("}\n")?;
+                self.write_str("}\n")?;
+                self.write_str("}")?;
             }
         }
         Ok(Continue(()))
@@ -500,6 +510,12 @@ impl<W: Write> Visitor<(), Error> for PrettyPrinter<W> {
         Ok(Continue(()))
     }
 
+    fn visit_field_access(&mut self, lhs: &mut Expr, rhs: &mut Symbol) -> VisitorResult<(), Error> {
+        self.visit_expr(lhs)?;
+        self.write_str(".")?;
+        self.visit_symbol(rhs)
+    }
+
     fn visit_formula(&mut self, fmla: &mut Fmla) -> VisitorResult<(), Error> {
         let (quant, mut vars, mut fmla) = match fmla {
             Fmla::Exists(Exists { vars, fmla }) => ("exists ", vars, fmla),
@@ -560,7 +576,7 @@ impl<W: Write> Visitor<(), Error> for PrettyPrinter<W> {
     }
 
     fn visit_term(&mut self, term: &mut Term) -> VisitorResult<(), Error> {
-        self.visit_identifier(&mut term.id)?;
+        self.visit_symbol(&mut term.id)?;
         if let Some(sort) = &mut term.sort {
             self.write_str(":")?;
             self.visit_identifier(sort)?;

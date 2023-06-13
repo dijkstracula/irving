@@ -37,15 +37,15 @@ pub fn parse_log_term(pairs: Pairs<Rule>) -> Result<Expr> {
         .map_primary(|primary| match primary.as_rule() {
             Rule::logicvar => {
                 let mut pairs = primary.into_inner();
-                let id = pairs.next().map(|s| vec![s.as_str().to_owned()]).unwrap();
+                let id = pairs.next().unwrap().as_str().to_owned();
                 let sort = pairs.next().map(|s| vec![s.as_str().to_owned()]);
                 match sort {
                     // TODO: wondering if either return path should just be a Term.
-                    None => Ok(Expr::Identifier(id)),
+                    None => Ok(Expr::Symbol(id)),
                     Some(_) => Ok(Expr::Term(Term { id, sort })),
                 }
             }
-            Rule::symbol => Ok(Expr::Identifier(vec![primary.as_str().to_owned()])),
+            Rule::symbol => Ok(Expr::Symbol(primary.as_str().to_owned())),
             Rule::boollit => {
                 let val = match primary.as_str() {
                     "true" => true,

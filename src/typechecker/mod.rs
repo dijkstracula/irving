@@ -10,6 +10,7 @@ pub(crate) mod sorts;
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Error {
     SortMismatch { expected: IvySort, actual: IvySort },
+    NotARecord(IvySort),
     UnboundVariable(Symbol),
     UnificationError(IvySort, IvySort),
 }

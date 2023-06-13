@@ -135,5 +135,5 @@ symbol   = @{ !reserved ~ ASCII_ALPHA       ~ ("_" | ASCII_ALPHANUMERIC)* }
 ident = { THIS | (symbol ~ ("." ~ symbol)*) }
 
 // A term is a fully-qualified identifier with an optional type annotation.
-term = { ident ~ ( ":" ~ ident)? }
+term = { symbol ~ ( ":" ~ ident)? }
 termlist = { term ~ ("," ~ term)* }
