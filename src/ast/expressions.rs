@@ -58,7 +58,7 @@ pub enum TypeName {
     This,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Type {
     pub ident: TypeName,
     pub sort: IvySort, /* spec: TypeSpec */

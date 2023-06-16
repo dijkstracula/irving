@@ -1,16 +1,18 @@
 #![allow(dead_code)]
 
+use std::collections::HashMap;
+
 use crate::ast::expressions::{Expr, Symbol};
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Process {
-    args: Vec<(String, IvySort)>,
-    impl_fields: Vec<(String, IvySort)>,
-    spec_fields: Vec<(String, IvySort)>,
-    commonspec_fields: Vec<(String, IvySort)>,
+    pub args: Vec<(Symbol, IvySort)>,
+    pub impl_fields: HashMap<Symbol, IvySort>,
+    pub spec_fields: HashMap<Symbol, IvySort>,
+    pub commonspec_fields: HashMap<Symbol, IvySort>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum IvySort {
     Uninterpreted,
     Unit,

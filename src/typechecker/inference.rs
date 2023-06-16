@@ -64,12 +64,18 @@ impl Bindings {
 pub struct Constraint(IvySort, IvySort);
 
 pub struct TypeChecker {
+    pub bindings: Bindings,
     pub ctx: Vec<IvySort>,
 }
 
 impl TypeChecker {
     pub fn new() -> Self {
-        TypeChecker { ctx: vec![] }
+        let mut s = TypeChecker {
+            bindings: Bindings::new(),
+            ctx: vec![],
+        };
+        s.bindings.push_scope();
+        s
     }
 
     fn resolve(&mut self, sort: &IvySort) -> IvySort {
@@ -78,10 +84,12 @@ impl TypeChecker {
             let mut next_sort = &self.ctx[curr_id];
 
             while let IvySort::SortVar(new_id) = next_sort {
+                if new_id == original_id {
+                    //TODO: occurs check?
+                    break;
+                }
                 curr_id = *new_id;
                 next_sort = &self.ctx[curr_id];
-
-                //TODO: occurs check?
             }
             next_sort.clone()
         } else {
@@ -90,6 +98,7 @@ impl TypeChecker {
     }
 
     fn unify(&mut self, lhs: &IvySort, rhs: &IvySort) -> Result<IvySort, Error> {
+        println!("unify({:?}, {:?})", lhs, rhs);
         let lhs = self.resolve(lhs);
         let rhs = self.resolve(rhs);
         match (&lhs, &rhs) {
@@ -116,10 +125,12 @@ impl TypeChecker {
                 if lhsargs.len() != rhsargs.len() {
                     Err(Error::UnificationError(lhs.clone(), rhs.clone()))
                 } else {
+                    let mut args = vec![];
                     for (a1, a2) in lhsargs.iter().zip(rhsargs.iter()) {
-                        self.unify(a1, a2)?;
+                        args.push(self.unify(a1, a2)?);
                     }
-                    self.unify(&lhsret, &rhsret)
+                    let ret = self.unify(&lhsret, &rhsret)?;
+                    Ok(IvySort::Function(args, Box::new(ret)))
                 }
             }
             (t1, t2) => {
@@ -160,6 +171,12 @@ impl Visitor<IvySort, Error> for TypeChecker {
     }
     fn visit_number(&mut self, _: &mut i64) -> VisitorResult<IvySort, Error> {
         Ok(Continue(IvySort::Number))
+    }
+    fn visit_symbol(&mut self, sym: &mut Symbol) -> VisitorResult<IvySort, Error> {
+        match self.bindings.lookup(sym) {
+            Some(sort) => Ok(Continue(sort.clone())),
+            None => Err(Error::UnboundVariable(sym.clone())),
+        }
     }
 
     // Nonterminals
@@ -237,23 +254,65 @@ impl Visitor<IvySort, Error> for TypeChecker {
                 }
             }
 
-            // Field indexing
-            expressions::Verb::Dot => {
-                if let IvySort::Process(proc) = lhs_sort {
-                    todo!()
-                } else {
-                    Err(Error::NotARecord(lhs_sort))
-                }
-            }
+            _ => unimplemented!(),
         }
     }
 
-    fn visit_call(&mut self, e: &mut expressions::AppExpr) -> VisitorResult<IvySort, Error> {
-        let fsort = self.visit_expr(&mut e.func)?;
-        todo!()
+    fn visit_field_access(
+        &mut self,
+        lhs: &mut expressions::Expr,
+        rhs: &mut Symbol,
+    ) -> VisitorResult<IvySort, Error> {
+        let recordsort = match self.visit_expr(lhs)? {
+            Continue(IvySort::Process(proc)) => proc,
+            Continue(sort) => return Err(Error::NotARecord(sort)),
+            crate::visitor::control::Control::Remove => unreachable!(),
+        };
+
+        match recordsort
+            .impl_fields
+            .get(rhs)
+            .or(recordsort.spec_fields.get(rhs))
+            .or(recordsort.commonspec_fields.get(rhs))
+        {
+            Some(sort) => Ok(Continue(sort.clone())),
+            None => Err(Error::UnboundVariable(rhs.clone())),
+        }
+    }
+
+    fn visit_app(&mut self, e: &mut expressions::AppExpr) -> VisitorResult<IvySort, Error> {
+        let fsort = match self.visit_expr(&mut e.func)? {
+            Continue(f) => f,
+            crate::visitor::control::Control::Remove => unreachable!(),
+        };
+
+        let mut argsorts = vec![];
+        for a in &mut e.args {
+            let a = match self.visit_expr(a)? {
+                Continue(a) => a,
+                crate::visitor::control::Control::Remove => unreachable!(),
+            };
+            argsorts.push(a);
+        }
+        let retsort = self.new_sortvar();
+
+        let expected_sort = IvySort::Function(argsorts, Box::new(retsort));
+        if let Ok(IvySort::Function(_, ret)) = self.unify(&fsort, &expected_sort) {
+            Ok(Continue(*ret))
+        } else {
+            Err(Error::InvalidApplication(fsort))
+        }
     }
 
     fn visit_vardecl(&mut self, term: &mut expressions::Term) -> VisitorResult<IvySort, Error> {
-        todo!()
+        let sort = match &mut term.sort {
+            None => self.new_sortvar(),
+            Some(s) => match self.visit_identifier(s)? {
+                Continue(s) => s,
+                crate::visitor::control::Control::Remove => unreachable!(),
+            },
+        };
+        self.bindings.append(term.id.clone(), sort)?;
+        Ok(Continue(IvySort::Unit))
     }
 }
