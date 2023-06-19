@@ -22,7 +22,7 @@ isolate foo = {
         }
         after ub {
             seen(x) := true;
-            ensure seen(X) --> X <= y;
+            ensure seen(X) -> X <= y;
         }
     }
 
@@ -32,11 +32,13 @@ isolate foo = {
             max := 0;
         }
         implement ub {
-            max := x if x > max else max;
+            if x > max {
+                max := x;
+            }
             y := max;
         }
 
-        interpret t -> int;
+        #interpret t -> int;
         invariant seen(X) -> X <= max
     }
 }

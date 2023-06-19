@@ -203,6 +203,9 @@ impl IvyParser {
             [decl_sig(DeclSig{name, params}), stmt_block(body)] => Ok(
                 ActionDecl{name, params, ret: None, body: Some(body)}
             ),
+            [decl_sig(DeclSig{name, params}), decl_ret(ret)] => Ok(
+                ActionDecl{name, params, ret, body: None}
+            ),
             [decl_sig(DeclSig{name, params})] => Ok(
                 ActionDecl{name, params, ret: None, body: None}
             ),
@@ -240,6 +243,18 @@ impl IvyParser {
         ),
         [ident(name), stmt_block(body)] => Ok(
             AfterDecl { name, params: None, ret: None, body}
+        ),
+        )
+    }
+
+    pub fn before_decl(input: Node) -> Result<BeforeDecl> {
+        match_nodes!(
+        input.into_children();
+        [mixin_sig(MixinSig{name, params}), stmt_block(body)] => Ok(
+            BeforeDecl { name, params: Some(params), body: body}
+        ),
+        [ident(name), stmt_block(body)] => Ok(
+            BeforeDecl { name, params: None, body: body}
         ),
         )
     }
@@ -422,6 +437,7 @@ impl IvyParser {
         [alias_decl((l,r))]   => Ok(Decl::Alias(l, r)),
         [attribute_decl(expr)] => Ok(Decl::Attribute(expr)),
         [axiom_decl(fmla)]    => Ok(Decl::Axiom(fmla)),
+        [before_decl(decl)]    => Ok(Decl::BeforeAction(decl)),
         [common_decl(decls)] => Ok(Decl::Common(decls)),
         [export_decl(fmla)]   => Ok(Decl::Export(fmla)),
         [extract_decl(decl)]  => Ok(Decl::Isolate(decl)),
