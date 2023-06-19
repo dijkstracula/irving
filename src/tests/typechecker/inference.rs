@@ -3,6 +3,7 @@ mod tests {
     use std::collections::HashMap;
 
     use crate::{
+        ast::expressions::Expr,
         parser::ivy::{IvyParser, Rule},
         typechecker::{
             inference::TypeChecker,
@@ -185,5 +186,111 @@ mod tests {
 
         let res = cg.visit_expr(&mut getop);
         assert_eq!(res, Err(Error::NotARecord(IvySort::Number)));
+    }
+
+    // decls
+
+    #[test]
+    fn test_relation_decl_unannotated() {
+        let prog = "relation is_up(X, Y)";
+
+        let parsed = IvyParser::parse(Rule::decl, &prog)
+            .expect("Parsing failed")
+            .single()
+            .unwrap();
+        let mut decl_ast = IvyParser::decl(parsed).expect("AST generation failed");
+
+        let mut tc = TypeChecker::new();
+        let _res = tc.visit_decl(&mut decl_ast).unwrap();
+
+        assert_eq!(
+            tc.bindings.lookup(&"is_up".to_owned()),
+            Some(&IvySort::Function(
+                [IvySort::SortVar(0), IvySort::SortVar(1)].into(),
+                Box::new(IvySort::Bool)
+            ))
+        )
+    }
+
+    #[test]
+    fn test_relation_decl_annotated() {
+        let prog = "relation is_up(X: bool, Y: bool)";
+
+        let parsed = IvyParser::parse(Rule::decl, &prog)
+            .expect("Parsing failed")
+            .single()
+            .unwrap();
+        let mut decl_ast = IvyParser::decl(parsed).expect("AST generation failed");
+
+        let mut tc = TypeChecker::new();
+        let _res = tc.visit_decl(&mut decl_ast).unwrap();
+
+        assert_eq!(
+            tc.bindings.lookup(&"is_up".to_owned()),
+            Some(&IvySort::Function(
+                [IvySort::Bool, IvySort::Bool].into(),
+                Box::new(IvySort::Bool)
+            ))
+        )
+    }
+
+    #[test]
+    fn test_typedecl_uninterp() {
+        let prog = "type node";
+
+        let parsed = IvyParser::parse(Rule::decl, &prog)
+            .expect("Parsing failed")
+            .single()
+            .unwrap();
+        let mut decl_ast = IvyParser::decl(parsed).expect("AST generation failed");
+
+        let mut tc = TypeChecker::new();
+        let _res = tc.visit_decl(&mut decl_ast).unwrap();
+
+        assert_eq!(
+            tc.bindings.lookup(&"node".to_owned()),
+            Some(&IvySort::Uninterpreted)
+        )
+    }
+
+    #[test]
+    fn test_typedecl_enum() {
+        let prog = "type status = {on, off}";
+
+        let parsed = IvyParser::parse(Rule::decl, &prog)
+            .expect("Parsing failed")
+            .single()
+            .unwrap();
+        let mut decl_ast = IvyParser::decl(parsed).expect("AST generation failed");
+
+        let mut tc = TypeChecker::new();
+        let _res = tc.visit_decl(&mut decl_ast).unwrap();
+
+        assert_eq!(
+            tc.bindings.lookup(&"status".to_owned()),
+            Some(&IvySort::Enum(["on".into(), "off".into()].into()))
+        )
+    }
+
+    #[test]
+    fn test_typedecl_range() {
+        let prog = "type numbers = {0..100}";
+
+        let parsed = IvyParser::parse(Rule::decl, &prog)
+            .expect("Parsing failed")
+            .single()
+            .unwrap();
+        let mut decl_ast = IvyParser::decl(parsed).expect("AST generation failed");
+
+        let mut tc = TypeChecker::new();
+        let _res = tc.visit_decl(&mut decl_ast).unwrap();
+
+        assert_eq!(
+            tc.bindings.lookup(&"numbers".to_owned()),
+            Some(&IvySort::Range(
+                Box::new(Expr::Number(0)),
+                Box::new(Expr::Number(100))
+            ))
+        )
     }
 }

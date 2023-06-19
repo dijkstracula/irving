@@ -1,5 +1,5 @@
 #[cfg(test)]
-mod tests {
+mod parser {
     use crate::parser::ivy::{IvyParser, Rule};
     use pest_consume::Parser;
 
@@ -61,5 +61,27 @@ mod tests {
             .single()
             .unwrap();
         let _ast = IvyParser::prog(res).expect("AST generation failed");
+    }
+}
+
+#[cfg(test)]
+mod typechecker {
+    use crate::{
+        parser::ivy::{IvyParser, Rule},
+        typechecker::inference::TypeChecker,
+    };
+    use pest_consume::Parser;
+
+    #[test]
+    fn test_state_and_actions() {
+        let prog = include_str!("programs/001_state_and_actions.ivy");
+        let res = IvyParser::parse(Rule::prog, &prog)
+            .expect("Parsing failed")
+            .single()
+            .unwrap();
+        let mut prog = IvyParser::prog(res).expect("AST generation failed");
+
+        let mut tc = TypeChecker::new();
+        let _res = tc.visit(&mut prog);
     }
 }
