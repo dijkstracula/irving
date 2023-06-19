@@ -1,6 +1,7 @@
 #[cfg(test)]
 mod tests {
-    use crate::ast::logic::Fmla;
+    use crate::ast::expressions::*;
+    use crate::ast::logic::*;
     use crate::parser::ivy::{IvyParser, Result, Rule};
     use pest_consume::Parser;
 
@@ -55,8 +56,48 @@ mod tests {
 
     #[test]
     fn parse_universal_quant3() {
-        let _ast = parse_fmla("forall X:node,Y,Z. X=Y & Y=Z -> X=Y").expect("parse");
-        println!("{:?}", _ast);
+        let ast = parse_fmla("forall X:node,Y,Z. X=Y & Y=Z -> X=Y").expect("parse");
+        assert_eq!(
+            ast,
+            Fmla::Forall(Forall {
+                vars: [
+                    Param {
+                        id: "X".into(),
+                        sort: Some(["node".into()].into())
+                    },
+                    Param {
+                        id: "Y".into(),
+                        sort: None
+                    },
+                    Param {
+                        id: "Z".into(),
+                        sort: None
+                    }
+                ]
+                .into(),
+                fmla: Box::new(Fmla::Pred(Expr::BinOp {
+                    lhs: Box::new(Expr::BinOp {
+                        lhs: Box::new(Expr::BinOp {
+                            lhs: Box::new(Expr::Symbol("X".into())),
+                            op: Verb::Equals,
+                            rhs: Box::new(Expr::BinOp {
+                                lhs: Box::new(Expr::Symbol("Y".into())),
+                                op: Verb::And,
+                                rhs: Box::new(Expr::Symbol("Y".into()))
+                            })
+                        }),
+                        op: Verb::Equals,
+                        rhs: Box::new(Expr::BinOp {
+                            lhs: Box::new(Expr::Symbol("Z".into())),
+                            op: Verb::Arrow,
+                            rhs: Box::new(Expr::Symbol("X".into()))
+                        })
+                    }),
+                    op: Verb::Equals,
+                    rhs: Box::new(Expr::Symbol("Y".into()))
+                }))
+            })
+        )
     }
 
     #[test]

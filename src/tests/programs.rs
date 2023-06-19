@@ -44,6 +44,16 @@ mod parser {
     }
 
     #[test]
+    fn test_isolates() {
+        let prog = include_str!("programs/005_isolate_and_mixins.ivy");
+        let res = IvyParser::parse(Rule::prog, &prog)
+            .expect("Parsing failed")
+            .single()
+            .unwrap();
+        let _ast = IvyParser::prog(res).expect("AST generation failed");
+    }
+
+    #[test]
     fn test_append() {
         let prog = include_str!("programs/100_append.ivy");
         let res = IvyParser::parse(Rule::prog, &prog)

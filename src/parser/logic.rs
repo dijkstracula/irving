@@ -41,6 +41,7 @@ pub fn parse_log_term(pairs: Pairs<Rule>) -> Result<Expr> {
                 let sort = pairs.next().map(|s| vec![s.as_str().to_owned()]);
                 match sort {
                     // TODO: wondering if either return path should just be a Term.
+                    // TODO: we need a separate AST node for logicvars.
                     None => Ok(Expr::Symbol(id)),
                     Some(_) => Ok(Expr::Term(Term { id, sort })),
                 }

@@ -1,0 +1,42 @@
+#lang ivy1.8
+
+# Taken from Padon et al (CAV 2020)
+# https://cs.stanford.edu/~padon/ivy-cav2020.pdf
+
+isolate foo = {
+    type t
+
+    action ub(x: t) returns (y: t)
+
+    specification {
+        relation seen (X: t)
+
+        property forall X: t. ~(X < X)
+
+        after init {
+            seen(X) := false;
+        }
+
+        before ub {
+            require x >= 0;
+        }
+        after ub {
+            seen(x) := true;
+            ensure seen(X) --> X <= y;
+        }
+    }
+
+    implementation {
+        var max: t
+        after init {
+            max := 0;
+        }
+        implement ub {
+            max := x if x > max else max;
+            y := max;
+        }
+
+        interpret t -> int;
+        invariant seen(X) -> X <= max
+    }
+}
