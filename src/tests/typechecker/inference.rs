@@ -134,7 +134,7 @@ mod tests {
         let mut callop = IvyParser::expr(parsed).expect("AST generation failed");
 
         let mut cg = TypeChecker::new();
-        let var = cg.new_sortvar();
+        let var = cg.bindings.new_sortvar();
         cg.bindings.append("f".into(), var).unwrap();
         let res = cg.visit_expr(&mut callop);
         assert_eq!(res, Ok(Control::Continue(IvySort::SortVar(1))));

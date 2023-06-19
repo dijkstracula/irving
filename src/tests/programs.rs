@@ -84,7 +84,7 @@ mod typechecker {
 
     #[test]
     fn test_state_and_actions() {
-        let prog = include_str!("programs/001_state_and_actions.ivy");
+        let prog = include_str!("programs/005_isolate_and_mixins.ivy");
         let res = IvyParser::parse(Rule::prog, &prog)
             .expect("Parsing failed")
             .single()

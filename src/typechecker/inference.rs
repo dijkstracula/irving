@@ -4,7 +4,8 @@ use std::collections::HashMap;
 
 use crate::{
     ast::{
-        declarations,
+        actions::*,
+        declarations::*,
         expressions::{self, Param, Symbol},
         toplevels::Prog,
     },
@@ -14,143 +15,18 @@ use crate::{
     },
 };
 
-use super::{sorts::IvySort, Error};
+use super::{sorts::IvySort, unifier::Resolver, Error};
 use crate::visitor::control::Control::Continue;
 
-pub struct Bindings(Vec<HashMap<Symbol, IvySort>>);
-
-impl Bindings {
-    pub fn new() -> Self {
-        Bindings(vec![])
-    }
-
-    pub fn push_scope(&mut self) {
-        self.0.push(HashMap::<_, _>::new())
-    }
-
-    pub fn pop_scope(&mut self) {
-        match self.0.pop() {
-            None => panic!("popping an empty scope"),
-            Some(_) => (),
-        }
-    }
-
-    // TODO: I wonder what we need to do in order to support annotations, which are qualified
-    // identifiers.  Maybe it's its own kind of constraint?
-    pub fn lookup(&self, sym: &Symbol) -> Option<&IvySort> {
-        self.0
-            .iter()
-            .rfind(|scope| scope.contains_key(sym))
-            .and_then(|scope| scope.get(sym))
-    }
-
-    pub fn append(&mut self, sym: Symbol, sort: IvySort) -> Result<(), Error> {
-        let scope = match self.0.last_mut() {
-            None => panic!("Appending into an empty scope"),
-            Some(scope) => scope,
-        };
-
-        // Only check the current scope, shadowing should be fine, right?
-        if let Some(existing) = scope.get(&sym) {
-            if existing != &sort {
-                return Err(Error::SortMismatch {
-                    expected: existing.clone(),
-                    actual: sort,
-                });
-            }
-        }
-        scope.insert(sym, sort);
-        Ok(())
-    }
-}
-
-// TODO: Experiment with this holding references, or maybe RCs?
-pub struct Constraint(IvySort, IvySort);
-
 pub struct TypeChecker {
-    pub bindings: Bindings,
-    pub ctx: Vec<IvySort>,
+    pub bindings: Resolver,
 }
 
 impl TypeChecker {
     pub fn new() -> Self {
-        let mut s = TypeChecker {
-            bindings: Bindings::new(),
-            ctx: vec![],
-        };
-        s.bindings.push_scope();
-        s
-    }
-
-    fn resolve(&mut self, sort: &IvySort) -> IvySort {
-        if let IvySort::SortVar(original_id) = sort {
-            let mut curr_id = *original_id;
-            let mut next_sort = &self.ctx[curr_id];
-
-            while let IvySort::SortVar(new_id) = next_sort {
-                if new_id == original_id {
-                    //TODO: occurs check?
-                    break;
-                }
-                curr_id = *new_id;
-                next_sort = &self.ctx[curr_id];
-            }
-            next_sort.clone()
-        } else {
-            sort.clone()
+        TypeChecker {
+            bindings: Resolver::new(),
         }
-    }
-
-    fn unify(&mut self, lhs: &IvySort, rhs: &IvySort) -> Result<IvySort, Error> {
-        println!("unify({:?}, {:?})", lhs, rhs);
-        let lhs = self.resolve(lhs);
-        let rhs = self.resolve(rhs);
-        match (&lhs, &rhs) {
-            (IvySort::SortVar(i), IvySort::SortVar(j)) => {
-                if i < j {
-                    self.ctx[*j] = rhs.clone();
-                    Ok(lhs)
-                } else if i > j {
-                    self.ctx[*i] = lhs.clone();
-                    Ok(rhs)
-                } else {
-                    Ok(lhs)
-                }
-            }
-            (IvySort::SortVar(i), _) => {
-                self.ctx[*i] = rhs.clone();
-                Ok(rhs)
-            }
-            (_, IvySort::SortVar(j)) => {
-                self.ctx[*j] = lhs.clone();
-                Ok(lhs)
-            }
-            (IvySort::Function(lhsargs, lhsret), IvySort::Function(rhsargs, rhsret)) => {
-                if lhsargs.len() != rhsargs.len() {
-                    Err(Error::UnificationError(lhs.clone(), rhs.clone()))
-                } else {
-                    let mut args = vec![];
-                    for (a1, a2) in lhsargs.iter().zip(rhsargs.iter()) {
-                        args.push(self.unify(a1, a2)?);
-                    }
-                    let ret = self.unify(&lhsret, &rhsret)?;
-                    Ok(IvySort::Function(args, Box::new(ret)))
-                }
-            }
-            (t1, t2) => {
-                if t1 == t2 {
-                    Ok(lhs)
-                } else {
-                    Err(Error::UnificationError(lhs.clone(), rhs.clone()))
-                }
-            }
-        }
-    }
-
-    pub fn new_sortvar(&mut self) -> IvySort {
-        let s = IvySort::SortVar(self.ctx.len());
-        self.ctx.push(s.clone());
-        s
     }
 
     pub fn visit(&mut self, prog: &mut Prog) {
@@ -175,7 +51,7 @@ impl Visitor<IvySort, Error> for TypeChecker {
                     Control::Remove => unreachable!(),
                 }
             }
-            None => self.new_sortvar(),
+            None => self.bindings.new_sortvar(),
         };
         Ok(Continue(sort))
     }
@@ -220,8 +96,9 @@ impl Visitor<IvySort, Error> for TypeChecker {
             | expressions::Verb::Not
             | expressions::Verb::Arrow => {
                 if self
+                    .bindings
                     .unify(&lhs_sort, &IvySort::Bool)
-                    .and(self.unify(&IvySort::Bool, &rhs_sort))
+                    .and(self.bindings.unify(&IvySort::Bool, &rhs_sort))
                     .is_err()
                 {
                     Err(Error::UnificationError(lhs_sort, rhs_sort))
@@ -236,8 +113,9 @@ impl Visitor<IvySort, Error> for TypeChecker {
             | expressions::Verb::Gt
             | expressions::Verb::Ge => {
                 if self
+                    .bindings
                     .unify(&lhs_sort, &IvySort::Number)
-                    .and(self.unify(&IvySort::Number, &rhs_sort))
+                    .and(self.bindings.unify(&IvySort::Number, &rhs_sort))
                     .is_err()
                 {
                     Err(Error::UnificationError(lhs_sort, rhs_sort))
@@ -247,7 +125,7 @@ impl Visitor<IvySort, Error> for TypeChecker {
             }
 
             expressions::Verb::Equals | expressions::Verb::Notequals => {
-                if self.unify(&lhs_sort, &rhs_sort).is_err() {
+                if self.bindings.unify(&lhs_sort, &rhs_sort).is_err() {
                     Err(Error::UnificationError(lhs_sort, rhs_sort))
                 } else {
                     Ok(Continue(IvySort::Bool))
@@ -260,8 +138,9 @@ impl Visitor<IvySort, Error> for TypeChecker {
             | expressions::Verb::Times
             | expressions::Verb::Div => {
                 if self
+                    .bindings
                     .unify(&lhs_sort, &IvySort::Number)
-                    .and(self.unify(&IvySort::Number, &rhs_sort))
+                    .and(self.bindings.unify(&IvySort::Number, &rhs_sort))
                     .is_err()
                 {
                     Err(Error::UnificationError(lhs_sort, rhs_sort))
@@ -310,22 +189,29 @@ impl Visitor<IvySort, Error> for TypeChecker {
             };
             argsorts.push(a);
         }
-        let retsort = self.new_sortvar();
+        let retsort = self.bindings.new_sortvar();
 
         let expected_sort = IvySort::Function(argsorts, Box::new(retsort));
-        if let Ok(IvySort::Function(_, ret)) = self.unify(&fsort, &expected_sort) {
+        if let Ok(IvySort::Function(_, ret)) = self.bindings.unify(&fsort, &expected_sort) {
             Ok(Continue(*ret))
         } else {
             Err(Error::InvalidApplication(fsort))
         }
     }
 
+    // Actions
+
+    fn visit_action_decl(&mut self, action: &mut ActionDecl) -> VisitorResult<IvySort, Error> {
+        todo!()
+    }
+
     // Decls
 
-    fn visit_relation(
-        &mut self,
-        obj: &mut declarations::Relation,
-    ) -> VisitorResult<IvySort, Error> {
+    fn visit_module(&mut self, module: &mut ModuleDecl) -> VisitorResult<IvySort, Error> {
+        todo!();
+    }
+
+    fn visit_relation(&mut self, obj: &mut Relation) -> VisitorResult<IvySort, Error> {
         // A relation is a bool-producing function for our purposes.
         // TODO: contemplate defaultdict-style "default functions" like the C++
         // extraction code uses.
@@ -345,13 +231,6 @@ impl Visitor<IvySort, Error> for TypeChecker {
         Ok(Continue(IvySort::Unit))
     }
 
-    fn visit_module(
-        &mut self,
-        module: &mut declarations::ModuleDecl,
-    ) -> VisitorResult<IvySort, Error> {
-        todo!();
-    }
-
     fn visit_typedecl(
         &mut self,
         ident: &expressions::TypeName,
@@ -368,7 +247,7 @@ impl Visitor<IvySort, Error> for TypeChecker {
 
     fn visit_vardecl(&mut self, term: &mut expressions::Term) -> VisitorResult<IvySort, Error> {
         let sort = match &mut term.sort {
-            None => self.new_sortvar(),
+            None => self.bindings.new_sortvar(),
             Some(s) => match self.visit_identifier(s)? {
                 Continue(s) => s,
                 Control::Remove => unreachable!(),

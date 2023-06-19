@@ -6,6 +6,7 @@ use self::sorts::IvySort;
 
 pub(crate) mod inference;
 pub(crate) mod sorts;
+pub(crate) mod unifier;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Error {

@@ -2,6 +2,9 @@
 
 /* Structures that we need to extract */
 
+/* XXX: This stuff is pretty vestigal.  Should we toss it out and/or refactor
+ * it inot the visitor module? */
+
 use std::collections::HashMap;
 
 use crate::ast::declarations::*;
