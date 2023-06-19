@@ -6,7 +6,7 @@ mod tests {
         parser::ivy::{IvyParser, Rule},
         typechecker::{
             inference::TypeChecker,
-            sorts::{IvySort, Process},
+            sorts::{IvySort, Module},
             Error,
         },
         visitor::{control::Control, visitor::Visitor},
@@ -163,7 +163,8 @@ mod tests {
             .unwrap();
         let mut getop = IvyParser::expr(parsed).expect("AST generation failed");
 
-        let procsort = Process {
+        // Accessing 'b' should be fine when 'a' is bound to a Process.
+        let procsort = Module {
             args: vec![],
             impl_fields: HashMap::from([("b".into(), IvySort::Bool)]),
             spec_fields: HashMap::from([]),
@@ -172,10 +173,17 @@ mod tests {
 
         let mut cg = TypeChecker::new();
         cg.bindings
-            .append("a".into(), IvySort::Process(procsort))
+            .append("a".into(), IvySort::Module(procsort))
             .unwrap();
 
         let res = cg.visit_expr(&mut getop);
         assert_eq!(res, Ok(Control::Continue(IvySort::Bool)));
+
+        // But it doesn't make sense to access 'b' if 'a' is a scalar type.
+        cg.bindings.push_scope();
+        cg.bindings.append("a".into(), IvySort::Number).unwrap();
+
+        let res = cg.visit_expr(&mut getop);
+        assert_eq!(res, Err(Error::NotARecord(IvySort::Number)));
     }
 }

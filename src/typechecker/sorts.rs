@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use crate::ast::expressions::{Expr, Symbol};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Process {
+pub struct Module {
     pub args: Vec<(Symbol, IvySort)>,
     pub impl_fields: HashMap<Symbol, IvySort>,
     pub spec_fields: HashMap<Symbol, IvySort>,
@@ -24,7 +24,7 @@ pub enum IvySort {
     Function(Vec<IvySort>, Box<IvySort>),
     Relation(Vec<IvySort>),
     Subclass(Symbol),
-    Process(Process),
+    Module(Module),
 
     // A SortVar contains the index of its referrent into the typing context.
     SortVar(usize),

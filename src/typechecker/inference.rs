@@ -264,7 +264,7 @@ impl Visitor<IvySort, Error> for TypeChecker {
         rhs: &mut Symbol,
     ) -> VisitorResult<IvySort, Error> {
         let recordsort = match self.visit_expr(lhs)? {
-            Continue(IvySort::Process(proc)) => proc,
+            Continue(IvySort::Module(proc)) => proc,
             Continue(sort) => return Err(Error::NotARecord(sort)),
             crate::visitor::control::Control::Remove => unreachable!(),
         };
@@ -302,6 +302,13 @@ impl Visitor<IvySort, Error> for TypeChecker {
         } else {
             Err(Error::InvalidApplication(fsort))
         }
+    }
+
+    fn visit_module(
+        &mut self,
+        module: &mut crate::ast::declarations::ModuleDecl,
+    ) -> VisitorResult<IvySort, Error> {
+        todo!();
     }
 
     fn visit_vardecl(&mut self, term: &mut expressions::Term) -> VisitorResult<IvySort, Error> {

@@ -434,7 +434,7 @@ impl<W: Write> Visitor<(), Error> for PrettyPrinter<W> {
             IvySort::Subclass(s) => {
                 self.write_fmt(format_args!(" of {}", s))?;
             }
-            IvySort::Process(proc) => {
+            IvySort::Module(proc) => {
                 self.write_str(" = {\n")?;
                 self.write_str("implementation {\n")?;
                 self.write_str("}\n")?;
