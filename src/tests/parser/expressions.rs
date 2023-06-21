@@ -40,12 +40,11 @@ mod tests {
         let _ast = parse_expr("42 - 1").unwrap();
         assert_eq!(
             _ast,
-            Expr::BinOp {
+            Expr::BinOp(BinOp{
                 lhs: Box::new(Expr::Number(42)),
                 op: Verb::Minus,
                 rhs: Box::new(Expr::Number(1)),
-            }
-        );
+            }));
     }
 
     #[test]
@@ -60,12 +59,11 @@ mod tests {
         let _ast = parse_expr("i > 0").unwrap();
         assert_eq!(
             _ast,
-            Expr::BinOp {
+            Expr::BinOp(BinOp {
                 lhs: Box::new(Expr::Symbol("i".into())),
                 op: Verb::Gt,
                 rhs: Box::new(Expr::Number(0)),
-            }
-        );
+            }));
     }
 
     #[test]

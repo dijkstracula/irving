@@ -89,11 +89,11 @@ pub fn parse_log_term(pairs: Pairs<Rule>) -> Result<Expr> {
                 _ => unimplemented!(),
             };
 
-            Ok(Expr::BinOp {
+            Ok(Expr::BinOp(BinOp{
                 lhs: Box::new(lhs?),
                 op: verb,
                 rhs: Box::new(rhs?),
-            })
+            }))
         })
         .map_postfix(|lhs, op| match op.as_rule() {
             Rule::log_app_args => {

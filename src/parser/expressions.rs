@@ -106,11 +106,11 @@ pub fn parse_expr(pairs: Pairs<Rule>) -> Result<Expr> {
                     field: field,
                 })
             } else {
-                Ok(Expr::BinOp {
+                Ok(Expr::BinOp(BinOp {
                     lhs: Box::new(lhs?),
                     op: verb,
                     rhs: Box::new(rhs?),
-                })
+                }))
             }
         })
         .map_postfix(|lhs, op| match op.as_rule() {

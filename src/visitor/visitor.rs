@@ -283,7 +283,7 @@ where
     fn visit_expr(&mut self, e: &mut Expr) -> VisitorResult<T, E> {
         match e {
             Expr::App(app) => self.visit_app(app),
-            Expr::BinOp { lhs, op, rhs } => self.visit_binop(lhs, op, rhs),
+            Expr::BinOp(op)=> self.visit_binop(&mut *op.lhs, &mut op.op, &mut *op.rhs),
             Expr::Boolean(b) => self.visit_boolean(b),
             Expr::FieldAccess { record, field } => self.visit_field_access(record, field),
             Expr::Index(idx) => self.visit_index(idx),

@@ -75,27 +75,27 @@ mod tests {
                     }
                 ]
                 .into(),
-                fmla: Box::new(Fmla::Pred(Expr::BinOp {
-                    lhs: Box::new(Expr::BinOp {
-                        lhs: Box::new(Expr::BinOp {
+                fmla: Box::new(Fmla::Pred(Expr::BinOp(BinOp {
+                    lhs: Box::new(Expr::BinOp(BinOp {
+                        lhs: Box::new(Expr::BinOp(BinOp {
                             lhs: Box::new(Expr::Symbol("X".into())),
                             op: Verb::Equals,
-                            rhs: Box::new(Expr::BinOp {
+                            rhs: Box::new(Expr::BinOp(BinOp {
                                 lhs: Box::new(Expr::Symbol("Y".into())),
                                 op: Verb::And,
                                 rhs: Box::new(Expr::Symbol("Y".into()))
-                            })
-                        }),
+                            }))
+                        })),
                         op: Verb::Equals,
-                        rhs: Box::new(Expr::BinOp {
+                        rhs: Box::new(Expr::BinOp(BinOp {
                             lhs: Box::new(Expr::Symbol("Z".into())),
                             op: Verb::Arrow,
                             rhs: Box::new(Expr::Symbol("X".into()))
-                        })
-                    }),
+                        }))
+                    })),
                     op: Verb::Equals,
                     rhs: Box::new(Expr::Symbol("Y".into()))
-                }))
+                })))
             })
         )
     }

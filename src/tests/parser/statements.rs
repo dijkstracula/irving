@@ -110,11 +110,11 @@ mod tests {
         assert_eq!(
             stmt,
             RequiresAction {
-                pred: Fmla::Pred(Expr::BinOp {
+                pred: Fmla::Pred(Expr::BinOp(BinOp {
                     lhs: Box::new(Expr::Symbol("x".into())),
                     op: Verb::Ge,
                     rhs: Box::new(Expr::Number(0))
-                })
+                }))
             }
         );
     }
