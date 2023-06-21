@@ -1,10 +1,7 @@
 #![allow(dead_code)]
 
-use std::collections::HashMap;
-
 use crate::{
     ast::{
-        actions::*,
         declarations::*,
         expressions::{self, Param, Symbol},
         toplevels::Prog,
@@ -201,13 +198,13 @@ impl Visitor<IvySort, Error> for TypeChecker {
 
     // Actions
 
-    fn visit_action_decl(&mut self, action: &mut ActionDecl) -> VisitorResult<IvySort, Error> {
+    fn visit_action_decl(&mut self, _action: &mut ActionDecl) -> VisitorResult<IvySort, Error> {
         todo!()
     }
 
     // Decls
 
-    fn visit_module(&mut self, module: &mut ModuleDecl) -> VisitorResult<IvySort, Error> {
+    fn visit_module(&mut self, _module: &mut ModuleDecl) -> VisitorResult<IvySort, Error> {
         todo!();
     }
 

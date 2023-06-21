@@ -89,7 +89,7 @@ pub fn parse_log_term(pairs: Pairs<Rule>) -> Result<Expr> {
                 _ => unimplemented!(),
             };
 
-            Ok(Expr::BinOp(BinOp{
+            Ok(Expr::BinOp(BinOp {
                 lhs: Box::new(lhs?),
                 op: verb,
                 rhs: Box::new(rhs?),

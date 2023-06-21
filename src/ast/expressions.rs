@@ -87,10 +87,7 @@ pub enum Expr {
 
     Boolean(bool),
 
-    FieldAccess {
-        record: Box<Expr>,
-        field: Symbol,
-    },
+    FieldAccess { record: Box<Expr>, field: Symbol },
 
     Index(IndexExpr),
 
@@ -98,10 +95,7 @@ pub enum Expr {
 
     Symbol(Symbol),
 
-    UnaryOp {
-        op: Verb,
-        expr: Box<Expr>,
-    },
+    UnaryOp { op: Verb, expr: Box<Expr> },
 
     Term(Term),
 

@@ -86,6 +86,8 @@ pub fn parse_expr(pairs: Pairs<Rule>) -> Result<Expr> {
 
                 Rule::PLUS => Verb::Plus,
                 Rule::MINUS => Verb::Minus,
+                Rule::TIMES => Verb::Times,
+                Rule::DIV => Verb::Div,
                 _ => unreachable!("Unexpected binary op"),
             };
 
