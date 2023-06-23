@@ -2,7 +2,7 @@ use std::{collections::HashMap, vec};
 
 use crate::ast::expressions::*;
 
-use super::{sorts::IvySort, Error};
+use super::{sorts::IvySort, TypeError};
 
 pub struct Bindings(Vec<HashMap<Symbol, IvySort>>);
 
@@ -49,7 +49,7 @@ impl Resolver {
             .and_then(|scope| scope.get(sym))
     }
 
-    pub fn append(&mut self, sym: Symbol, sort: IvySort) -> Result<(), Error> {
+    pub fn append(&mut self, sym: Symbol, sort: IvySort) -> Result<(), TypeError> {
         let scope = match self.bindings.last_mut() {
             None => panic!("Appending into an empty scope"),
             Some(scope) => scope,
@@ -58,7 +58,7 @@ impl Resolver {
         // Only check the current scope, shadowing should be fine, right?
         if let Some(existing) = scope.get(&sym) {
             if existing != &sort {
-                return Err(Error::SortMismatch {
+                return Err(TypeError::SortMismatch {
                     expected: existing.clone(),
                     actual: sort,
                 });
@@ -89,7 +89,7 @@ impl Resolver {
         }
     }
 
-    pub fn unify(&mut self, lhs: &IvySort, rhs: &IvySort) -> Result<IvySort, Error> {
+    pub fn unify(&mut self, lhs: &IvySort, rhs: &IvySort) -> Result<IvySort, TypeError> {
         println!("unify({:?}, {:?})", lhs, rhs);
         let lhs = self.resolve(lhs);
         let rhs = self.resolve(rhs);
@@ -115,7 +115,7 @@ impl Resolver {
             }
             (IvySort::Function(lhsargs, lhsret), IvySort::Function(rhsargs, rhsret)) => {
                 if lhsargs.len() != rhsargs.len() {
-                    Err(Error::UnificationError(lhs.clone(), rhs.clone()))
+                    Err(TypeError::UnificationError(lhs.clone(), rhs.clone()))
                 } else {
                     let mut args = vec![];
                     for (a1, a2) in lhsargs.iter().zip(rhsargs.iter()) {
@@ -129,7 +129,7 @@ impl Resolver {
                 if t1 == t2 {
                     Ok(lhs)
                 } else {
-                    Err(Error::UnificationError(lhs.clone(), rhs.clone()))
+                    Err(TypeError::UnificationError(lhs.clone(), rhs.clone()))
                 }
             }
         }

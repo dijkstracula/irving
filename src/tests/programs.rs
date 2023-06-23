@@ -74,6 +74,7 @@ mod parser {
     }
 }
 
+/*
 #[cfg(test)]
 mod typechecker {
     use crate::{
@@ -95,3 +96,4 @@ mod typechecker {
         let _res = tc.visit(&mut prog);
     }
 }
+*/

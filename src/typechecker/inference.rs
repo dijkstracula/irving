@@ -1,91 +1,40 @@
-#![allow(dead_code)]
+use anyhow::bail;
 
 use crate::{
-    ast::{
-        declarations::*,
-        expressions::{self, Param, Symbol},
-        toplevels::Prog,
-    },
-    visitor::{
-        control::{Control, VisitorResult},
-        visitor::Visitor,
-    },
+    ast::expressions::{self, Expr, Type},
+    typechecker::TypeError,
+    visitor::visitor::{self, Control, Visitable, Visitor},
 };
 
-use super::{sorts::IvySort, unifier::Resolver, Error};
-use crate::visitor::control::Control::Continue;
+use super::{sorts::IvySort, unifier::Resolver};
 
 pub struct TypeChecker {
     pub bindings: Resolver,
 }
 
 impl TypeChecker {
+    // TODO: this should take a ref to bindings because the visitor will
+    // want to hold onto it.
     pub fn new() -> Self {
         TypeChecker {
             bindings: Resolver::new(),
         }
     }
-
-    pub fn visit(&mut self, prog: &mut Prog) {
-        self.visit_prog(prog).unwrap();
-    }
 }
 
-impl Visitor<IvySort, Error> for TypeChecker {
-    // Terminals
-
-    fn visit_boolean(&mut self, _: &mut bool) -> VisitorResult<IvySort, Error> {
-        Ok(Continue(IvySort::Bool))
-    }
-    fn visit_param(&mut self, p: &mut Param) -> VisitorResult<IvySort, Error> {
-        let sort = match &mut p.sort {
-            Some(idents) => {
-                // TODO: I don't know how to do instance resolution yet, argh
-                assert!(idents.len() == 1);
-                let mut sym = idents.get_mut(0).unwrap();
-                match self.visit_symbol(&mut sym)? {
-                    Continue(sort) => sort,
-                    Control::Remove => unreachable!(),
-                }
-            }
-            None => self.bindings.new_sortvar(),
+impl Visitor<IvySort> for TypeChecker {
+    /*
+    fn begin_binop(&mut self, ast: &mut expressions::BinOp) -> visitor::VisitorResult<IvySort> {
+        let lhs_sort = match ast.lhs.visit(self)? {
+            Control::Produce(s) => s,
+            _ => unreachable!()
         };
-        Ok(Continue(sort))
-    }
-    fn visit_number(&mut self, _: &mut i64) -> VisitorResult<IvySort, Error> {
-        Ok(Continue(IvySort::Number))
-    }
-    fn visit_symbol(&mut self, sym: &mut Symbol) -> VisitorResult<IvySort, Error> {
-        match sym.as_str() {
-            "bool" => Ok(Continue(IvySort::Bool)),
-            // TODO: and of course other builtins.
-            _ => match self.bindings.lookup(sym) {
-                Some(sort) => Ok(Continue(sort.clone())),
-                None => Err(Error::UnboundVariable(sym.clone())),
-            },
-        }
-    }
-
-    // Nonterminals
-
-    // Exprs
-
-    fn visit_binop(
-        &mut self,
-        lhs: &mut expressions::Expr,
-        op: &expressions::Verb,
-        rhs: &mut expressions::Expr,
-    ) -> VisitorResult<IvySort, Error> {
-        let lhs_sort = match self.visit_expr(lhs)? {
-            Continue(s) => s,
-            Control::Remove => unreachable!(),
-        };
-        let rhs_sort = match self.visit_expr(rhs)? {
-            Continue(s) => s,
-            Control::Remove => unreachable!(),
+        let rhs_sort = match ast.rhs.visit(self)? {
+            Control::Produce(s) => s,
+            _ => unreachable!()
         };
 
-        match op {
+        match ast.op {
             // Boolean operators
             expressions::Verb::Iff
             | expressions::Verb::Or
@@ -98,9 +47,9 @@ impl Visitor<IvySort, Error> for TypeChecker {
                     .and(self.bindings.unify(&IvySort::Bool, &rhs_sort))
                     .is_err()
                 {
-                    Err(Error::UnificationError(lhs_sort, rhs_sort))
+                    bail!(TypeError::UnificationError(lhs_sort, rhs_sort))
                 } else {
-                    Ok(Continue(IvySort::Bool))
+                    Ok(Control::Produce(IvySort::Bool))
                 }
             }
 
@@ -115,17 +64,17 @@ impl Visitor<IvySort, Error> for TypeChecker {
                     .and(self.bindings.unify(&IvySort::Number, &rhs_sort))
                     .is_err()
                 {
-                    Err(Error::UnificationError(lhs_sort, rhs_sort))
+                    bail!(TypeError::UnificationError(lhs_sort, rhs_sort))
                 } else {
-                    Ok(Continue(IvySort::Bool))
+                    Ok(IvySort::Bool)
                 }
             }
 
             expressions::Verb::Equals | expressions::Verb::Notequals => {
                 if self.bindings.unify(&lhs_sort, &rhs_sort).is_err() {
-                    Err(Error::UnificationError(lhs_sort, rhs_sort))
+                    bail!(TypeError::UnificationError(lhs_sort, rhs_sort))
                 } else {
-                    Ok(Continue(IvySort::Bool))
+                    Ok(IvySort::Bool)
                 }
             }
 
@@ -140,117 +89,52 @@ impl Visitor<IvySort, Error> for TypeChecker {
                     .and(self.bindings.unify(&IvySort::Number, &rhs_sort))
                     .is_err()
                 {
-                    Err(Error::UnificationError(lhs_sort, rhs_sort))
+                    bail!(TypeError::UnificationError(lhs_sort, rhs_sort))
                 } else {
-                    Ok(Continue(IvySort::Number))
+                    Ok(IvySort::Number)
                 }
             }
 
             _ => unimplemented!(),
         }
+        Ok(Control::SkipSiblings)
+    }
+    */
+
+    fn boolean(&mut self, b: &mut bool) -> visitor::VisitorResult<IvySort, bool> {
+        Ok(Control::Produce(IvySort::Bool))
     }
 
-    fn visit_field_access(
+    fn number(&mut self, _n: &mut i64) -> visitor::VisitorResult<IvySort, i64> {
+        Ok(Control::Produce(IvySort::Number))
+    }
+
+    fn param(
         &mut self,
-        lhs: &mut expressions::Expr,
-        rhs: &mut Symbol,
-    ) -> VisitorResult<IvySort, Error> {
-        let recordsort = match self.visit_expr(lhs)? {
-            Continue(IvySort::Module(proc)) => proc,
-            Continue(sort) => return Err(Error::NotARecord(sort)),
-            Control::Remove => unreachable!(),
-        };
-
-        match recordsort
-            .impl_fields
-            .get(rhs)
-            .or(recordsort.spec_fields.get(rhs))
-            .or(recordsort.commonspec_fields.get(rhs))
-        {
-            Some(sort) => Ok(Continue(sort.clone())),
-            None => Err(Error::UnboundVariable(rhs.clone())),
+        p: &mut expressions::Param,
+    ) -> visitor::VisitorResult<IvySort, expressions::Param> {
+        match &mut p.sort {
+            Some(idents) => {
+                // TODO: I don't know how to do instance resolution yet, argh
+                assert!(idents.len() == 1);
+                let sym = idents.get_mut(0).unwrap();
+                sym.visit(self)
+            }
+            None => Ok(Control::Produce(self.bindings.new_sortvar())),
         }
     }
 
-    fn visit_app(&mut self, e: &mut expressions::AppExpr) -> VisitorResult<IvySort, Error> {
-        let fsort = match self.visit_expr(&mut e.func)? {
-            Continue(f) => f,
-            Control::Remove => unreachable!(),
-        };
-
-        let mut argsorts = vec![];
-        for a in &mut e.args {
-            let a = match self.visit_expr(a)? {
-                Continue(a) => a,
-                Control::Remove => unreachable!(),
-            };
-            argsorts.push(a);
-        }
-        let retsort = self.bindings.new_sortvar();
-
-        let expected_sort = IvySort::Function(argsorts, Box::new(retsort));
-        if let Ok(IvySort::Function(_, ret)) = self.bindings.unify(&fsort, &expected_sort) {
-            Ok(Continue(*ret))
-        } else {
-            Err(Error::InvalidApplication(fsort))
-        }
-    }
-
-    // Actions
-
-    fn visit_action_decl(&mut self, _action: &mut ActionDecl) -> VisitorResult<IvySort, Error> {
-        todo!()
-    }
-
-    // Decls
-
-    fn visit_module(&mut self, _module: &mut ModuleDecl) -> VisitorResult<IvySort, Error> {
-        todo!();
-    }
-
-    fn visit_relation(&mut self, obj: &mut Relation) -> VisitorResult<IvySort, Error> {
-        // A relation is a bool-producing function for our purposes.
-        // TODO: contemplate defaultdict-style "default functions" like the C++
-        // extraction code uses.
-        let paramsorts = obj
-            .params
-            .iter_mut()
-            .map(|p| match self.visit_param(p) {
-                Ok(Continue(sort)) => Ok(sort),
-                Ok(Control::Remove) => unreachable!(),
-                Err(e) => Err(e),
-            })
-            .collect::<Result<Vec<_>, _>>()?;
-
-        let relsort = IvySort::Function(paramsorts, Box::new(IvySort::Bool));
-        self.bindings.append(obj.name.clone(), relsort)?;
-
-        Ok(Continue(IvySort::Unit))
-    }
-
-    fn visit_typedecl(
+    fn symbol(
         &mut self,
-        ident: &expressions::TypeName,
-        sort: &mut IvySort,
-    ) -> VisitorResult<IvySort, Error> {
-        let sortname = match ident {
-            expressions::TypeName::Name(n) => n,
-            expressions::TypeName::This => todo!(),
-        };
-
-        self.bindings.append(sortname.clone(), sort.clone())?;
-        Ok(Continue(IvySort::Unit))
-    }
-
-    fn visit_vardecl(&mut self, term: &mut expressions::Term) -> VisitorResult<IvySort, Error> {
-        let sort = match &mut term.sort {
-            None => self.bindings.new_sortvar(),
-            Some(s) => match self.visit_identifier(s)? {
-                Continue(s) => s,
-                Control::Remove => unreachable!(),
+        sym: &mut expressions::Symbol,
+    ) -> visitor::VisitorResult<IvySort, expressions::Symbol> {
+        match sym.as_str() {
+            "bool" => Ok(Control::Produce(IvySort::Bool)),
+            // TODO: and of course other builtins.
+            _ => match self.bindings.lookup(sym) {
+                Some(sort) => Ok(Control::Produce(sort.clone())),
+                None => bail!(TypeError::UnboundVariable(sym.clone())),
             },
-        };
-        self.bindings.append(term.id.clone(), sort)?;
-        Ok(Continue(IvySort::Unit))
+        }
     }
 }

@@ -14,6 +14,7 @@ pub struct GlobalLowerer {
     pub globals: Vec<Decl>,
 }
 
+/*
 impl GlobalLowerer {
     fn new() -> Self {
         GlobalLowerer { globals: vec![] }
@@ -32,3 +33,4 @@ impl Visitor<(), Error> for GlobalLowerer {
         Ok(Remove)
     }
 }
+*/
