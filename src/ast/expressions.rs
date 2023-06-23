@@ -59,6 +59,8 @@ pub struct Param {
     pub sort: Option<Ident>,
 }
 
+pub type ParamList = Vec<Param>;
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum TypeName {
     Name(Symbol),
