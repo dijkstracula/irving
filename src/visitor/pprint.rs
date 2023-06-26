@@ -36,7 +36,7 @@ where
             }
             u.visit(self)?;
         }
-        Ok(Control::Produce(()))
+        Ok(ControlMut::Produce(()))
     }
 }
 
@@ -85,7 +85,7 @@ impl<W: Write> Visitor<()> for PrettyPrinter<W> {
             p.major_version, p.minor_version
         ))?;
         self.write_separated(&mut p.top.body, "\n")?;
-        Ok(Control::SkipSiblings(()))
+        Ok(ControlMut::SkipSiblings(()))
     }
 
     // Statements
@@ -93,14 +93,14 @@ impl<W: Write> Visitor<()> for PrettyPrinter<W> {
     fn action_seq(
         &mut self,
         ast: &mut Vec<actions::Action>,
-    ) -> VisitorResult<(), Vec<actions::Action>> {
+    ) -> VisitorResult<(), statements::Stmt> {
         for (i, a) in ast.iter_mut().enumerate() {
             if i > 0 {
                 self.write_str(";\n")?;
             }
             a.visit(self)?;
         }
-        Ok(Control::Produce(()))
+        Ok(ControlMut::Produce(()))
     }
 
     fn begin_if(&mut self, ast: &mut statements::If) -> VisitorResult<(), statements::Stmt> {
@@ -116,7 +116,7 @@ impl<W: Write> Visitor<()> for PrettyPrinter<W> {
         }
         self.write_str("}\n")?;
 
-        Ok(Control::SkipSiblings(()))
+        Ok(ControlMut::SkipSiblings(()))
     }
 
     fn begin_while(&mut self, ast: &mut statements::While) -> VisitorResult<(), statements::Stmt> {
@@ -127,7 +127,7 @@ impl<W: Write> Visitor<()> for PrettyPrinter<W> {
         self.write_separated(&mut ast.doit, ";\n")?;
         self.write_str("}\n")?;
 
-        Ok(Control::SkipSiblings(()))
+        Ok(ControlMut::SkipSiblings(()))
     }
 
     // Actions
@@ -137,7 +137,7 @@ impl<W: Write> Visitor<()> for PrettyPrinter<W> {
         _ast: &mut actions::AssertAction,
     ) -> VisitorResult<(), actions::Action> {
         self.write_str("assert ")?;
-        Ok(Control::Produce(()))
+        Ok(ControlMut::Produce(()))
     }
 
     fn begin_assign(
@@ -148,7 +148,7 @@ impl<W: Write> Visitor<()> for PrettyPrinter<W> {
         self.write_str(" := ")?;
         ast.rhs.visit(self)?;
 
-        Ok(Control::SkipSiblings(()))
+        Ok(ControlMut::SkipSiblings(()))
     }
 
     fn begin_assume(
@@ -156,7 +156,7 @@ impl<W: Write> Visitor<()> for PrettyPrinter<W> {
         _ast: &mut actions::AssumeAction,
     ) -> VisitorResult<(), actions::Action> {
         self.write_str("assume ")?;
-        Ok(Control::Produce(()))
+        Ok(ControlMut::Produce(()))
     }
 
     fn begin_ensure(
@@ -164,7 +164,7 @@ impl<W: Write> Visitor<()> for PrettyPrinter<W> {
         _ast: &mut actions::EnsureAction,
     ) -> VisitorResult<(), actions::Action> {
         self.write_str("ensure ")?;
-        Ok(Control::Produce(()))
+        Ok(ControlMut::Produce(()))
     }
 
     fn begin_requires(
@@ -172,7 +172,7 @@ impl<W: Write> Visitor<()> for PrettyPrinter<W> {
         _ast: &mut actions::RequiresAction,
     ) -> VisitorResult<(), actions::Action> {
         self.write_str("require ")?;
-        Ok(Control::Produce(()))
+        Ok(ControlMut::Produce(()))
     }
 
     // Declarations
@@ -200,7 +200,7 @@ impl<W: Write> Visitor<()> for PrettyPrinter<W> {
             self.write_str("\n}\n")?;
         }
 
-        Ok(Control::SkipSiblings(()))
+        Ok(ControlMut::SkipSiblings(()))
     }
 
     fn begin_after_decl(
@@ -228,7 +228,7 @@ impl<W: Write> Visitor<()> for PrettyPrinter<W> {
         self.write_separated(&mut ast.body, ";\n")?;
         self.write_str("\n}\n")?;
 
-        Ok(Control::SkipSiblings(()))
+        Ok(ControlMut::SkipSiblings(()))
     }
 
     fn begin_attribute_decl(
@@ -236,12 +236,15 @@ impl<W: Write> Visitor<()> for PrettyPrinter<W> {
         _ast: &mut expressions::Expr,
     ) -> VisitorResult<(), declarations::Decl> {
         self.write_str("attribute ")?;
-        Ok(Control::Produce(()))
+        Ok(ControlMut::Produce(()))
     }
 
-    fn begin_axiom_decl(&mut self, _ast: &mut logic::Fmla) -> VisitorResult<(), logic::Fmla> {
+    fn begin_axiom_decl(
+        &mut self,
+        _ast: &mut logic::Fmla,
+    ) -> VisitorResult<(), declarations::Decl> {
         self.write_str("axiom ")?;
-        Ok(Control::Produce(()))
+        Ok(ControlMut::Produce(()))
     }
 
     fn begin_before_decl(
@@ -263,7 +266,7 @@ impl<W: Write> Visitor<()> for PrettyPrinter<W> {
         self.write_separated(&mut ast.body, ";\n")?;
         self.write_str("\n}\n")?;
 
-        Ok(Control::SkipSiblings(()))
+        Ok(ControlMut::SkipSiblings(()))
     }
 
     fn begin_export_decl(
@@ -271,7 +274,7 @@ impl<W: Write> Visitor<()> for PrettyPrinter<W> {
         _ast: &mut declarations::ExportDecl,
     ) -> VisitorResult<(), declarations::Decl> {
         self.write_str("export ")?;
-        Ok(Control::Produce(()))
+        Ok(ControlMut::Produce(()))
     }
 
     fn begin_common_decl(
@@ -279,14 +282,14 @@ impl<W: Write> Visitor<()> for PrettyPrinter<W> {
         _ast: &mut Vec<declarations::Decl>,
     ) -> VisitorResult<(), declarations::Decl> {
         self.write_str("common {")?;
-        Ok(Control::Produce(()))
+        Ok(ControlMut::Produce(()))
     }
     fn finish_common_decl(
         &mut self,
         _ast: &mut Vec<declarations::Decl>,
     ) -> VisitorResult<(), declarations::Decl> {
         self.write_str("}")?;
-        Ok(Control::Produce(()))
+        Ok(ControlMut::Produce(()))
     }
 
     fn begin_global_decl(
@@ -294,14 +297,14 @@ impl<W: Write> Visitor<()> for PrettyPrinter<W> {
         _ast: &mut Vec<declarations::Decl>,
     ) -> VisitorResult<(), declarations::Decl> {
         self.write_str("global {")?;
-        Ok(Control::Produce(()))
+        Ok(ControlMut::Produce(()))
     }
     fn finish_global_decl(
         &mut self,
         _ast: &mut Vec<declarations::Decl>,
     ) -> VisitorResult<(), declarations::Decl> {
         self.write_str("}")?;
-        Ok(Control::Produce(()))
+        Ok(ControlMut::Produce(()))
     }
 
     fn begin_implement_decl(
@@ -330,7 +333,7 @@ impl<W: Write> Visitor<()> for PrettyPrinter<W> {
         }
         self.write_str("}\n")?;
 
-        Ok(Control::SkipSiblings(()))
+        Ok(ControlMut::SkipSiblings(()))
     }
 
     fn begin_import_decl(
@@ -338,14 +341,14 @@ impl<W: Write> Visitor<()> for PrettyPrinter<W> {
         ast: &mut declarations::ImportDecl,
     ) -> VisitorResult<(), declarations::Decl> {
         self.write_fmt(format_args!("import action {}(", ast.name))?;
-        Ok(Control::Produce(()))
+        Ok(ControlMut::Produce(()))
     }
     fn finish_import_decl(
         &mut self,
         _ast: &mut declarations::ImportDecl,
     ) -> VisitorResult<(), declarations::Decl> {
         self.write_str(")")?;
-        Ok(Control::Produce(()))
+        Ok(ControlMut::Produce(()))
     }
 
     fn begin_implementation_decl(
@@ -353,14 +356,14 @@ impl<W: Write> Visitor<()> for PrettyPrinter<W> {
         _ast: &mut Vec<declarations::Decl>,
     ) -> VisitorResult<(), declarations::Decl> {
         self.write_str("implementation {")?;
-        Ok(Control::Produce(()))
+        Ok(ControlMut::Produce(()))
     }
     fn finish_implementation_decl(
         &mut self,
         _ast: &mut Vec<declarations::Decl>,
     ) -> VisitorResult<(), declarations::Decl> {
         self.write_str("}")?;
-        Ok(Control::Produce(()))
+        Ok(ControlMut::Produce(()))
     }
 
     fn begin_include_decl(
@@ -368,7 +371,7 @@ impl<W: Write> Visitor<()> for PrettyPrinter<W> {
         _ast: &mut expressions::Symbol,
     ) -> VisitorResult<(), declarations::Decl> {
         self.write_str("include ")?;
-        Ok(Control::Produce(()))
+        Ok(ControlMut::Produce(()))
     }
 
     fn begin_invariant_decl(
@@ -376,7 +379,7 @@ impl<W: Write> Visitor<()> for PrettyPrinter<W> {
         _ast: &mut logic::Fmla,
     ) -> VisitorResult<(), declarations::Decl> {
         self.write_str("invariant ")?;
-        Ok(Control::Produce(()))
+        Ok(ControlMut::Produce(()))
     }
 
     fn begin_isolate_decl(
@@ -393,7 +396,7 @@ impl<W: Write> Visitor<()> for PrettyPrinter<W> {
         self.write_separated(&mut inst.body, "\n")?;
         self.write_str("\n}\n")?;
 
-        Ok(Control::SkipSiblings(()))
+        Ok(ControlMut::SkipSiblings(()))
     }
 
     fn begin_module_decl(
@@ -412,7 +415,7 @@ impl<W: Write> Visitor<()> for PrettyPrinter<W> {
         self.write_separated(&mut module.body, "\n")?;
         self.write_str("\n}\n")?;
 
-        Ok(Control::SkipSiblings(()))
+        Ok(ControlMut::SkipSiblings(()))
     }
 
     fn begin_object_decl(
@@ -430,7 +433,7 @@ impl<W: Write> Visitor<()> for PrettyPrinter<W> {
         self.write_separated(&mut ast.body, "\n")?;
         self.write_str("}\n")?;
 
-        Ok(Control::SkipSiblings(()))
+        Ok(ControlMut::SkipSiblings(()))
     }
 
     fn begin_specification(
@@ -438,14 +441,14 @@ impl<W: Write> Visitor<()> for PrettyPrinter<W> {
         _ast: &mut Vec<declarations::Decl>,
     ) -> VisitorResult<(), declarations::Decl> {
         self.write_str("specification {")?;
-        Ok(Control::Produce(()))
+        Ok(ControlMut::Produce(()))
     }
     fn finish_specification(
         &mut self,
         _ast: &mut Vec<declarations::Decl>,
     ) -> VisitorResult<(), declarations::Decl> {
         self.write_str("}")?;
-        Ok(Control::Produce(()))
+        Ok(ControlMut::Produce(()))
     }
 
     fn begin_relation(
@@ -455,7 +458,7 @@ impl<W: Write> Visitor<()> for PrettyPrinter<W> {
         self.write_fmt(format_args!("relation {}(", ast.name))?;
         self.write_separated(&mut ast.params, ", ")?;
         self.write_str(")")?;
-        Ok(Control::SkipSiblings(()))
+        Ok(ControlMut::SkipSiblings(()))
     }
 
     fn begin_typedecl(
@@ -471,7 +474,7 @@ impl<W: Write> Visitor<()> for PrettyPrinter<W> {
                 self.write_str("this")?;
             }
         }
-        Ok(Control::SkipSiblings(()))
+        Ok(ControlMut::SkipSiblings(()))
     }
 
     fn begin_vardecl(
@@ -483,7 +486,7 @@ impl<W: Write> Visitor<()> for PrettyPrinter<W> {
             self.write_str(": ")?;
             self.identifier(sort)?;
         }
-        Ok(Control::SkipSiblings(()))
+        Ok(ControlMut::SkipSiblings(()))
     }
 
     // Quantifieds
@@ -493,7 +496,7 @@ impl<W: Write> Visitor<()> for PrettyPrinter<W> {
         self.write_separated(&mut fmla.vars, ", ")?;
         self.write_str(" . ")?;
         fmla.fmla.visit(self)?;
-        Ok(Control::SkipSiblings(()))
+        Ok(ControlMut::SkipSiblings(()))
     }
 
     fn begin_exists(&mut self, fmla: &mut logic::Exists) -> VisitorResult<(), logic::Fmla> {
@@ -501,7 +504,7 @@ impl<W: Write> Visitor<()> for PrettyPrinter<W> {
         self.write_separated(&mut fmla.vars, ", ")?;
         self.write_str(" . ")?;
         fmla.fmla.visit(self)?;
-        Ok(Control::SkipSiblings(()))
+        Ok(ControlMut::SkipSiblings(()))
     }
     // Expressions
 
@@ -514,7 +517,7 @@ impl<W: Write> Visitor<()> for PrettyPrinter<W> {
         self.write_str("(")?;
         self.write_separated(&mut ast.args, ", ")?;
         self.write_str(")")?;
-        Ok(Control::SkipSiblings(()))
+        Ok(ControlMut::SkipSiblings(()))
     }
 
     fn begin_binop(
@@ -547,7 +550,7 @@ impl<W: Write> Visitor<()> for PrettyPrinter<W> {
         self.write_fmt(format_args!(" {} ", op_str))?;
         ast.rhs.visit(self)?;
 
-        Ok(Control::SkipSiblings(()))
+        Ok(ControlMut::SkipSiblings(()))
     }
 
     fn begin_call(
@@ -564,7 +567,7 @@ impl<W: Write> Visitor<()> for PrettyPrinter<W> {
     ) -> VisitorResult<(), expressions::Expr> {
         lhs.visit(self)?;
         self.write_fmt(format_args!(".{}", rhs))?;
-        Ok(Control::SkipSiblings(()))
+        Ok(ControlMut::SkipSiblings(()))
     }
 
     fn begin_index(&mut self, expr: &mut IndexExpr) -> VisitorResult<(), expressions::Expr> {
@@ -572,7 +575,7 @@ impl<W: Write> Visitor<()> for PrettyPrinter<W> {
         self.write_str("[")?;
         expr.idx.visit(self)?;
         self.write_str("]")?;
-        Ok(Control::SkipSiblings(()))
+        Ok(ControlMut::SkipSiblings(()))
     }
 
     // Terminals
@@ -583,17 +586,17 @@ impl<W: Write> Visitor<()> for PrettyPrinter<W> {
         } else {
             self.write_str("false")?;
         }
-        Ok(Control::Produce(()))
+        Ok(ControlMut::Produce(()))
     }
 
     fn identifier(&mut self, i: &mut expressions::Ident) -> VisitorResult<(), expressions::Ident> {
         self.write_separated(i, ".")?;
-        Ok(Control::Produce(()))
+        Ok(ControlMut::Produce(()))
     }
 
     fn number(&mut self, n: &mut i64) -> VisitorResult<(), i64> {
         self.write_str(&n.to_string())?;
-        Ok(Control::Produce(()))
+        Ok(ControlMut::Produce(()))
     }
 
     fn param(&mut self, p: &mut expressions::Param) -> VisitorResult<(), expressions::Param> {
@@ -603,7 +606,7 @@ impl<W: Write> Visitor<()> for PrettyPrinter<W> {
             self.write_str(": ")?;
             self.identifier(sort)?;
         }
-        Ok(Control::Produce(()))
+        Ok(ControlMut::Produce(()))
     }
 
     fn sort(&mut self, s: &mut IvySort) -> VisitorResult<(), IvySort> {
@@ -637,10 +640,10 @@ impl<W: Write> Visitor<()> for PrettyPrinter<W> {
             IvySort::Uninterpreted => {}
             _ => todo!(),
         }
-        Ok(Control::Produce(()))
+        Ok(ControlMut::Produce(()))
     }
     fn symbol(&mut self, s: &mut expressions::Symbol) -> VisitorResult<(), expressions::Symbol> {
         self.write_str(s)?;
-        Ok(Control::Produce(()))
+        Ok(ControlMut::Produce(()))
     }
 }

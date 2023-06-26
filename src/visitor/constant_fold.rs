@@ -1,6 +1,6 @@
 use crate::ast::expressions::*;
 
-use super::visitor::{Control, Visitor, VisitorResult};
+use super::visitor::{ControlMut, Visitor, VisitorResult};
 
 /// Constant-folds arithmetic expressions.  This is not a useful optimization
 /// for us but demonstrates how to use the new Visitor.
@@ -16,21 +16,21 @@ impl Visitor<()> for ConstantFold {
     ) -> VisitorResult<(), Expr> {
         match (expr.lhs.as_ref(), &expr.op, expr.rhs.as_ref()) {
             (Expr::Number(lhs), Verb::Plus, Expr::Number(rhs)) => {
-                Ok(Control::Mutation(Expr::Number(lhs + rhs), ()))
+                Ok(ControlMut::Mutation(Expr::Number(lhs + rhs), ()))
             }
             (Expr::Number(lhs), Verb::Minus, Expr::Number(rhs)) => {
-                Ok(Control::Mutation(Expr::Number(lhs - rhs), ()))
+                Ok(ControlMut::Mutation(Expr::Number(lhs - rhs), ()))
             }
             (Expr::Number(lhs), Verb::Times, Expr::Number(rhs)) => {
-                Ok(Control::Mutation(Expr::Number(lhs * rhs), ()))
+                Ok(ControlMut::Mutation(Expr::Number(lhs * rhs), ()))
             }
             (Expr::Number(lhs), Verb::Div, Expr::Number(rhs)) => {
-                Ok(Control::Mutation(Expr::Number(lhs / rhs), ()))
+                Ok(ControlMut::Mutation(Expr::Number(lhs / rhs), ()))
             }
 
-            (lhs, Verb::Plus, Expr::Number(0)) => Ok(Control::Mutation(lhs.clone(), ())),
+            (lhs, Verb::Plus, Expr::Number(0)) => Ok(ControlMut::Mutation(lhs.clone(), ())),
 
-            _ => Ok(Control::Produce(())),
+            _ => Ok(ControlMut::Produce(())),
         }
     }
 }

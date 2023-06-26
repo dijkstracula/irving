@@ -3,7 +3,7 @@ use anyhow::bail;
 use crate::{
     ast::expressions::{self, Expr, Type},
     typechecker::TypeError,
-    visitor::visitor::{self, Control, Visitable, Visitor},
+    visitor::visitor::{self, ControlMut, Visitable, Visitor},
 };
 
 use super::{sorts::IvySort, unifier::Resolver};
@@ -102,11 +102,11 @@ impl Visitor<IvySort> for TypeChecker {
     */
 
     fn boolean(&mut self, b: &mut bool) -> visitor::VisitorResult<IvySort, bool> {
-        Ok(Control::Produce(IvySort::Bool))
+        Ok(ControlMut::Produce(IvySort::Bool))
     }
 
     fn number(&mut self, _n: &mut i64) -> visitor::VisitorResult<IvySort, i64> {
-        Ok(Control::Produce(IvySort::Number))
+        Ok(ControlMut::Produce(IvySort::Number))
     }
 
     fn param(
@@ -118,9 +118,11 @@ impl Visitor<IvySort> for TypeChecker {
                 // TODO: I don't know how to do instance resolution yet, argh
                 assert!(idents.len() == 1);
                 let sym = idents.get_mut(0).unwrap();
-                sym.visit(self)
+                sym.visit(self)?
+                    .modifying(sym)
+                    .map(|s| ControlMut::Produce(s))
             }
-            None => Ok(Control::Produce(self.bindings.new_sortvar())),
+            None => Ok(ControlMut::Produce(self.bindings.new_sortvar())),
         }
     }
 
@@ -129,12 +131,86 @@ impl Visitor<IvySort> for TypeChecker {
         sym: &mut expressions::Symbol,
     ) -> visitor::VisitorResult<IvySort, expressions::Symbol> {
         match sym.as_str() {
-            "bool" => Ok(Control::Produce(IvySort::Bool)),
+            "bool" => Ok(ControlMut::Produce(IvySort::Bool)),
             // TODO: and of course other builtins.
             _ => match self.bindings.lookup(sym) {
-                Some(sort) => Ok(Control::Produce(sort.clone())),
+                Some(sort) => Ok(ControlMut::Produce(sort.clone())),
                 None => bail!(TypeError::UnboundVariable(sym.clone())),
             },
+        }
+    }
+
+    //
+
+    fn finish_binop(
+        &mut self,
+        ast: &mut expressions::BinOp,
+        lhs_sort: IvySort,
+        _op_ret: IvySort,
+        rhs_sort: IvySort,
+    ) -> visitor::VisitorResult<IvySort, Expr> {
+        match ast.op {
+            // Boolean operators
+            expressions::Verb::Iff
+            | expressions::Verb::Or
+            | expressions::Verb::And
+            | expressions::Verb::Not
+            | expressions::Verb::Arrow => {
+                if self
+                    .bindings
+                    .unify(&lhs_sort, &IvySort::Bool)
+                    .and(self.bindings.unify(&IvySort::Bool, &rhs_sort))
+                    .is_err()
+                {
+                    bail!(TypeError::UnificationError(lhs_sort, rhs_sort))
+                } else {
+                    Ok(ControlMut::Produce(IvySort::Bool))
+                }
+            }
+
+            // Equality and comparison
+            expressions::Verb::Lt
+            | expressions::Verb::Le
+            | expressions::Verb::Gt
+            | expressions::Verb::Ge => {
+                if self
+                    .bindings
+                    .unify(&lhs_sort, &IvySort::Number)
+                    .and(self.bindings.unify(&IvySort::Number, &rhs_sort))
+                    .is_err()
+                {
+                    bail!(TypeError::UnificationError(lhs_sort, rhs_sort))
+                } else {
+                    Ok(ControlMut::Produce(IvySort::Bool))
+                }
+            }
+
+            expressions::Verb::Equals | expressions::Verb::Notequals => {
+                if self.bindings.unify(&lhs_sort, &rhs_sort).is_err() {
+                    bail!(TypeError::UnificationError(lhs_sort, rhs_sort))
+                } else {
+                    Ok(ControlMut::Produce(IvySort::Bool))
+                }
+            }
+
+            // Numeric operators
+            expressions::Verb::Plus
+            | expressions::Verb::Minus
+            | expressions::Verb::Times
+            | expressions::Verb::Div => {
+                if self
+                    .bindings
+                    .unify(&lhs_sort, &IvySort::Number)
+                    .and(self.bindings.unify(&IvySort::Number, &rhs_sort))
+                    .is_err()
+                {
+                    bail!(TypeError::UnificationError(lhs_sort, rhs_sort))
+                } else {
+                    Ok(ControlMut::Produce(IvySort::Number))
+                }
+            }
+
+            _ => unimplemented!(),
         }
     }
 }
