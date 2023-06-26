@@ -1,6 +1,6 @@
 use crate::ast::expressions::*;
 
-use super::visitor::{ControlMut, Visitor, VisitorResult};
+use super::{control::ControlMut, visitor::Visitor, VisitorResult};
 
 /// Constant-folds arithmetic expressions.  This is not a useful optimization
 /// for us but demonstrates how to use the new Visitor.

@@ -6,7 +6,6 @@ use crate::ast::expressions::Symbol;
 
 use self::sorts::IvySort;
 
-pub(crate) mod expressions;
 pub(crate) mod inference;
 pub(crate) mod sorts;
 pub(crate) mod unifier;

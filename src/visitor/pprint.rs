@@ -3,15 +3,14 @@ use std::fmt::Write;
 
 use crate::{
     ast::{
-        actions,
-        declarations::{self, ExportDecl},
+        actions, declarations,
         expressions::{self, IndexExpr, Verb},
         logic, statements, toplevels,
     },
     typechecker::sorts::IvySort,
 };
 
-use super::visitor::*;
+use super::{control::ControlMut, visitor::*, VisitorResult};
 
 pub struct PrettyPrinter<W>
 where
@@ -619,7 +618,7 @@ impl<W: Write> Visitor<()> for PrettyPrinter<W> {
                 max.visit(self)?;
                 self.write_str("}")?;
             }
-            IvySort::Enum(branches) => {
+            IvySort::Enum(_) => {
                 self.write_str(" = {")?;
                 //self.write_separated(branches, ", ")?;
                 self.write_str(" }")?;
@@ -627,7 +626,7 @@ impl<W: Write> Visitor<()> for PrettyPrinter<W> {
             IvySort::Subclass(s) => {
                 self.write_fmt(format_args!(" of {}", s))?;
             }
-            IvySort::Process(proc) => {
+            IvySort::Process(_proc) => {
                 self.write_str(" = {\n")?;
                 self.write_str("implementation {\n")?;
                 self.write_str("}\n")?;

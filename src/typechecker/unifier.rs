@@ -42,11 +42,14 @@ impl Resolver {
 
     // TODO: I wonder what we need to do in order to support annotations, which are qualified
     // identifiers.  Maybe it's its own kind of constraint?
-    pub fn lookup(&self, sym: &Symbol) -> Option<&IvySort> {
-        self.bindings
+    pub fn lookup(&mut self, sym: &Symbol) -> Option<IvySort> {
+        let unresolved = self
+            .bindings
             .iter()
             .rfind(|scope| scope.contains_key(sym))
             .and_then(|scope| scope.get(sym))
+            .map(|s| s.clone());
+        unresolved.map(|s| self.resolve(&s))
     }
 
     pub fn append(&mut self, sym: Symbol, sort: IvySort) -> Result<(), TypeError> {

@@ -11,113 +11,8 @@ use crate::ast::statements::*;
 use crate::ast::toplevels::*;
 use crate::typechecker::sorts::IvySort;
 
-/// Action performed after visiting a node of type Node.
-
-pub enum ControlMut<T, Node> {
-    /// Hand back a value to the caller
-    Produce(T),
-
-    /// Skip traversing the nodes' siblings
-    SkipSiblings(T),
-
-    Mutation(Node, T),
-}
-
-/*
-impl <T> Control<Vec<T>> {
-    pub fn collect<F>(self, mut f: F) -> VisitorResult<T>
-    where
-        F: FnMut(Vec<T>) -> VisitorResult<T>
-    {
-        match self {
-            Control::Produce(xs) => f(xs),
-            _ => unreachable!()
-        }
-    }
-}
-*/
-
-impl<T, Node> ControlMut<T, Node> {
-    /// Runs the thunk if we received `Produce` from the Visitor.
-    pub fn and_then<F>(self, mut next: F) -> VisitorResult<T, Node>
-    where
-        // TODO: Thread through the T value??
-        F: FnMut(T) -> VisitorResult<T, Node>,
-    {
-        match self {
-            ControlMut::Produce(t) => next(t),
-            ctrl => Ok(ctrl),
-        }
-    }
-
-    pub fn map<F, U, N2>(self, mut f: F) -> VisitorResult<U, N2>
-    where
-        // TODO: Thread through the T value??
-        F: FnMut(T) -> anyhow::Result<U>,
-    {
-        match self {
-            ControlMut::Produce(t) => Ok(ControlMut::Produce(f(t)?)),
-            ControlMut::SkipSiblings(t) => Ok(ControlMut::SkipSiblings(f(t)?)),
-            ControlMut::Mutation(new, t) => todo!(),
-        }
-    }
-
-    /// XXX: "unwrap"?
-    pub fn modifying(self, target: &mut Node) -> anyhow::Result<T> {
-        Ok(match self {
-            ControlMut::Produce(t) => t,
-            ControlMut::SkipSiblings(t) => t,
-            ControlMut::Mutation(repl, t) => {
-                *target = repl;
-                t
-            }
-        })
-    }
-
-    /*
-    /// Mutates the node if we received `Change` from the Visitor.
-    pub fn change_expr(self, target: &mut Expr) -> VisitorResult<T> {
-        Ok(match self {
-            Control::ChangeExpr(modified, t) => {
-                *target = modified;
-                Self::Produce(t)
-            }
-            ctrl => ctrl,
-        })
-    }
-
-    /// Mutates the node if we received `Change` from the Visitor.
-    pub fn change_stmt(self, target: &mut Stmt) -> VisitorResult<T> {
-        Ok(match self {
-            Control::ChangeStmt(modified, t) => {
-                *target = modified;
-                Self::Produce(t)
-            }
-            ctrl => ctrl,
-        })
-    }
-
-    /// Mutates the node if we received `Change` from the Visitor.
-    pub fn change_decl(self, target: &mut Decl) -> VisitorResult<T> {
-        Ok(match self {
-            Control::ChangeDecl(modified, t) => {
-                *target = modified;
-                Self::Produce(t)
-            }
-            ctrl => ctrl,
-        })
-    }
-    /// Delineates when we've finished traversing the children of a node.
-    pub fn children_end(self) -> Self {
-        match self {
-            Control::SkipSiblings(t) => Control::Produce(t),
-            ctrl => ctrl,
-        }
-    }
-    */
-}
-
-pub type VisitorResult<T, Node> = anyhow::Result<ControlMut<T, Node>>;
+use super::control::ControlMut;
+use super::VisitorResult;
 
 pub trait Visitor<T>
 where
@@ -325,7 +220,12 @@ where
     fn begin_relation(&mut self, _ast: &mut Relation) -> VisitorResult<T, Decl> {
         Ok(ControlMut::Produce(T::default()))
     }
-    fn finish_relation(&mut self, _ast: &mut Relation) -> VisitorResult<T, Decl> {
+    fn finish_relation(
+        &mut self,
+        _ast: &mut Relation,
+        _n: T,
+        _ps: Vec<T>,
+    ) -> VisitorResult<T, Decl> {
         Ok(ControlMut::Produce(T::default()))
     }
 
@@ -346,7 +246,12 @@ where
     fn begin_vardecl(&mut self, _ast: &mut Term) -> VisitorResult<T, Decl> {
         Ok(ControlMut::Produce(T::default()))
     }
-    fn finish_vardecl(&mut self, _ast: &mut Term) -> VisitorResult<T, Decl> {
+    fn finish_vardecl(
+        &mut self,
+        _ast: &mut Term,
+        _id_t: T,
+        _sort_t: Option<T>,
+    ) -> VisitorResult<T, Decl> {
         Ok(ControlMut::Produce(T::default()))
     }
 
@@ -371,7 +276,7 @@ where
     fn begin_app(&mut self, _ast: &mut AppExpr) -> VisitorResult<T, Expr> {
         Ok(ControlMut::Produce(T::default()))
     }
-    fn finish_app(&mut self, _ast: &mut AppExpr) -> VisitorResult<T, Expr> {
+    fn finish_app(&mut self, _ast: &mut AppExpr, _f: T, _args: Vec<T>) -> VisitorResult<T, Expr> {
         Ok(ControlMut::Produce(T::default()))
     }
 
@@ -515,9 +420,9 @@ where
     fn visit(&mut self, visitor: &mut dyn Visitor<T>) -> VisitorResult<T, Self> {
         let t = match self {
             Expr::App(expr) => visitor.begin_app(expr)?.and_then(|_| {
-                let func = expr.func.visit(visitor)?.modifying(&mut expr.func);
-                let args = expr.args.visit(visitor)?.modifying(&mut expr.args);
-                visitor.finish_app(expr)
+                let func = expr.func.visit(visitor)?.modifying(&mut expr.func)?;
+                let args = expr.args.visit(visitor)?.modifying(&mut expr.args)?;
+                visitor.finish_app(expr, func, args)
             }),
             Expr::BinOp(expr) => visitor.begin_binop(expr)?.and_then(|foo| {
                 let l = expr.lhs.visit(visitor)?.modifying(&mut expr.lhs)?;
@@ -722,9 +627,9 @@ where
                 visitor.finish_object_decl(decl)
             }),
             Decl::Relation(decl) => visitor.begin_relation(decl)?.and_then(|_| {
-                let _n = decl.name.visit(visitor)?.modifying(&mut decl.name);
-                let _p = decl.params.visit(visitor)?.modifying(&mut decl.params);
-                visitor.finish_relation(decl)
+                let n = decl.name.visit(visitor)?.modifying(&mut decl.name)?;
+                let p = decl.params.visit(visitor)?.modifying(&mut decl.params)?;
+                visitor.finish_relation(decl, n, p)
             }),
             Decl::Specification(decl) => visitor.begin_specification(decl)?.and_then(|_| {
                 let _d = decl.visit(visitor)?.modifying(decl);
@@ -735,9 +640,13 @@ where
                 Ok(ControlMut::Produce(T::default()))
             }
             Decl::Var(decl) => visitor.begin_vardecl(decl)?.and_then(|_| {
-                let _id = decl.id.visit(visitor)?.modifying(&mut decl.id);
-                let _sort = decl.sort.as_mut().map(|s| s.visit(visitor)?.modifying(s));
-                visitor.finish_vardecl(decl)
+                let id = decl.id.visit(visitor)?.modifying(&mut decl.id)?;
+                let sort = decl
+                    .sort
+                    .as_mut()
+                    .map(|s| s.visit(visitor)?.modifying(s))
+                    .transpose()?;
+                visitor.finish_vardecl(decl, id, sort)
             }),
             Decl::Type(decl) => visitor.begin_typedecl(decl)?.and_then(|_| {
                 let _i = match &mut decl.ident {
