@@ -1,14 +1,15 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
 
-use std::fmt::Error;
+use anyhow::Result;
 
-use crate::ast::declarations::*;
-use crate::ast::toplevels::Prog;
-use crate::visitor::visitor::Visitor;
+use crate::ast::{declarations::*, toplevels::Prog};
 
-use super::control::Control::Remove;
-use super::control::VisitorResult;
+use super::VisitorResult;
+use super::{
+    control::ControlMut,
+    visitor::{Visitable, Visitor},
+};
 
 pub struct GlobalLowerer {
     pub globals: Vec<Decl>,
@@ -19,16 +20,17 @@ impl GlobalLowerer {
         GlobalLowerer { globals: vec![] }
     }
 
-    pub fn visit(prog: &mut Prog) {
+    pub fn visit(prog: &mut Prog) -> Result<()> {
         let mut g = Self::new();
-        g.visit_prog(prog).unwrap();
+        prog.visit(&mut g)?;
         prog.top.body.push(Decl::Globals(g.globals));
+        Ok(())
     }
 }
 
-impl Visitor<(), Error> for GlobalLowerer {
-    fn visit_globals(&mut self, defs: &mut Vec<Decl>) -> VisitorResult<(), Error> {
-        self.globals.append(defs);
-        Ok(Remove)
+impl Visitor<()> for GlobalLowerer {
+    fn finish_global_decl(&mut self, ast: &mut Vec<Decl>) -> VisitorResult<(), Decl> {
+        self.globals.append(ast);
+        Ok(ControlMut::Mutation(Decl::Globals(vec![]), ()))
     }
 }

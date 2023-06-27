@@ -15,9 +15,8 @@ atom            = _{ prefix_op? ~ primary ~ postfix_op? }
                      LT | LE | GT | GE | EQ | NEQ |
                      AND | OR | DOT }
     postfix_op  = _{ fnapp_args | index }
-primary         = _{ term | number | boollit | "(" ~ expr ~ ")" }
+primary         = _{ symbol | number | boollit | "(" ~ expr ~ ")" }
 
-//TODO: contemplate renamining this as just "fnapp"?
 fnapp_args = { "(" ~ (expr ~ ("," ~ expr)* )? ~ ")" }
 //TODO: only one dimension of indexing, right?
 index      = { "[" ~ expr ~ "]" }

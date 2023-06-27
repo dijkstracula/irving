@@ -1,8 +1,18 @@
 #![allow(dead_code)]
 
+use std::collections::HashMap;
+
 use crate::ast::expressions::{Expr, Symbol};
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Process {
+    pub args: Vec<(Symbol, IvySort)>,
+    pub impl_fields: HashMap<Symbol, IvySort>,
+    pub spec_fields: HashMap<Symbol, IvySort>,
+    pub commonspec_fields: HashMap<Symbol, IvySort>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum IvySort {
     Uninterpreted,
     Unit,
@@ -14,7 +24,9 @@ pub enum IvySort {
     Function(Vec<IvySort>, Box<IvySort>),
     Relation(Vec<IvySort>),
     Subclass(Symbol),
+    Process(Process),
 
+    // A SortVar contains the index of its referrent into the typing context.
     SortVar(usize),
 }
 

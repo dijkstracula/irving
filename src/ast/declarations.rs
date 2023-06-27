@@ -4,105 +4,105 @@ use super::expressions::*;
 use super::logic::Fmla;
 use super::statements::*;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DeclSig {
     pub name: Symbol,
-    pub params: Vec<Param>,
+    pub params: ParamList,
 }
 
 pub type DeclRet = Option<Param>;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MixinSig {
     pub name: Ident,
-    pub params: Vec<Param>,
+    pub params: ParamList,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ActionDecl {
     pub name: Symbol,
-    pub params: Vec<Param>,
+    pub params: ParamList,
     pub ret: Option<Param>,
     pub body: Option<Vec<Stmt>>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AfterDecl {
     pub name: Ident,
-    pub params: Option<Vec<Param>>,
+    pub params: Option<ParamList>,
     pub ret: Option<Param>,
     pub body: Vec<Stmt>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BeforeDecl {
     pub name: Ident,
-    pub params: Option<Vec<Param>>,
+    pub params: Option<ParamList>,
     pub body: Vec<Stmt>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FunctionDecl {
     pub name: Symbol,
-    pub params: Vec<Param>,
+    pub params: ParamList,
     pub ret: Symbol, // Am I an idiot? Where's the bee^W body
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ExportDecl {
     Action(ActionDecl),
     ForwardRef(Symbol),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ImportDecl {
     pub name: Symbol,
-    pub params: Vec<Param>,
+    pub params: ParamList,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ImplementDecl {
     pub name: Ident,
-    pub params: Vec<Param>,
+    pub params: ParamList,
     pub ret: Option<Param>,
     pub body: Option<Vec<Stmt>>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct InstanceDecl {
     pub name: Symbol,
     pub sort: Ident,
-    pub args: Vec<Param>,
+    pub args: ParamList,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct IsolateDecl {
     pub name: Symbol,
-    pub params: Vec<Param>,
+    pub params: ParamList,
     pub body: Vec<Decl>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ModuleDecl {
     pub name: Symbol,
-    pub params: Vec<Param>,
+    pub params: ParamList,
     pub body: Vec<Decl>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ObjectDecl {
     pub name: Symbol,
-    pub params: Vec<Param>,
+    pub params: ParamList,
     pub body: Vec<Decl>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Relation {
     pub name: Symbol,
-    pub params: Vec<Param>,
+    pub params: ParamList,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(clippy::large_enum_variant)]
 pub enum Decl {
     Action(ActionDecl),

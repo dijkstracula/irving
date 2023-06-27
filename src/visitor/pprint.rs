@@ -1,21 +1,16 @@
-#![allow(dead_code)]
-#![allow(unused_variables)]
+use core::fmt::Result;
+use std::fmt::Write;
 
-use std::fmt;
-use std::fmt::{Error, Write};
+use crate::{
+    ast::{
+        actions, declarations,
+        expressions::{self, IndexExpr, Verb},
+        logic, statements, toplevels,
+    },
+    typechecker::sorts::IvySort,
+};
 
-use crate::ast::actions::*;
-use crate::ast::declarations::*;
-use crate::ast::expressions::*;
-use crate::ast::logic::*;
-use crate::ast::statements::*;
-use crate::ast::toplevels::*;
-use crate::typechecker::sorts::IvySort;
-use crate::visitor::visitor::Visitor;
-
-use super::control::Control::Continue;
-use super::control::Control::Remove;
-use super::control::VisitorResult;
+use super::{control::ControlMut, visitor::*, VisitorResult};
 
 pub struct PrettyPrinter<W>
 where
@@ -26,9 +21,27 @@ where
     curr_line_is_indented: bool,
 }
 
+impl<W> PrettyPrinter<W>
+where
+    W: Write,
+{
+    fn write_separated<U>(&mut self, us: &mut Vec<U>, sep: &str) -> VisitorResult<(), Vec<U>>
+    where
+        U: Visitable<()>,
+    {
+        for (i, u) in us.into_iter().enumerate() {
+            if i > 0 {
+                self.write_str(sep)?;
+            }
+            u.visit(self)?;
+        }
+        Ok(ControlMut::Produce(()))
+    }
+}
+
 impl PrettyPrinter<String> {
     pub fn new() -> Self {
-        PrettyPrinter {
+        Self {
             out: String::new(),
             indent: 0,
             curr_line_is_indented: false,
@@ -36,49 +49,8 @@ impl PrettyPrinter<String> {
     }
 }
 
-impl<W> PrettyPrinter<W>
-where
-    W: Write,
-{
-    fn write_comma_separated<F, U>(&mut self, us: &mut Vec<U>, mut f: F) -> VisitorResult<(), Error>
-    where
-        F: FnMut(&mut Self, &mut U) -> VisitorResult<(), Error>,
-    {
-        for (i, t) in us.into_iter().enumerate() {
-            if i > 0 {
-                self.write_str(", ")?;
-            }
-            match f(self, t)? {
-                Continue(_) => continue,
-                Remove => unreachable!(),
-            }
-        }
-        Ok(Continue(()))
-    }
-
-    fn write_seminl_separated<F, U>(
-        &mut self,
-        us: &mut Vec<U>,
-        mut f: F,
-    ) -> VisitorResult<(), Error>
-    where
-        F: FnMut(&mut Self, &mut U) -> VisitorResult<(), Error>,
-    {
-        for (i, t) in us.into_iter().enumerate() {
-            if i > 0 {
-                self.write_str(";\n")?;
-            }
-            match f(self, t)? {
-                Continue(_) => continue,
-                Remove => unreachable!(),
-            }
-        }
-        Ok(Continue(()))
-    }
-}
-
 impl<W: Write> Write for PrettyPrinter<W> {
-    fn write_str(&mut self, s: &str) -> fmt::Result {
+    fn write_str(&mut self, s: &str) -> Result {
         // TODO: can I do this without allocation?
         let lines = s.split("\n").enumerate().collect::<Vec<_>>();
 
@@ -105,357 +77,455 @@ impl<W: Write> Write for PrettyPrinter<W> {
     }
 }
 
-impl<W: Write> Visitor<(), Error> for PrettyPrinter<W> {
-    fn visit_prog(&mut self, p: &mut Prog) -> VisitorResult<(), Error> {
+impl<W: Write> Visitor<()> for PrettyPrinter<W> {
+    fn begin_prog(&mut self, p: &mut toplevels::Prog) -> VisitorResult<(), toplevels::Prog> {
         self.write_fmt(format_args!(
-            "#lang ivy{}.{}\n",
+            "#lang ivy{}.{}\n\n",
             p.major_version, p.minor_version
         ))?;
-        self.visit_isolate(&mut p.top)?;
-        Ok(Continue(()))
+        self.write_separated(&mut p.top.body, "\n")?;
+        Ok(ControlMut::SkipSiblings(()))
     }
 
-    fn visit_if(&mut self, p: &mut If) -> VisitorResult<(), Error> {
+    // Statements
+
+    fn action_seq(
+        &mut self,
+        ast: &mut Vec<actions::Action>,
+    ) -> VisitorResult<(), statements::Stmt> {
+        for (i, a) in ast.iter_mut().enumerate() {
+            if i > 0 {
+                self.write_str(";\n")?;
+            }
+            a.visit(self)?;
+        }
+        Ok(ControlMut::Produce(()))
+    }
+
+    fn begin_if(&mut self, ast: &mut statements::If) -> VisitorResult<(), statements::Stmt> {
         self.write_str("if ")?;
-        self.visit_expr(&mut p.tst)?;
+        ast.tst.visit(self)?;
         self.write_str(" {\n")?;
 
-        for stmt in &mut p.thn {
-            self.visit_stmt(stmt)?;
-            self.write_str(";\n")?;
-        }
-        match &mut p.els {
-            None => (),
-            Some(stmts) => {
-                self.write_str("} else {")?;
-                for stmt in stmts {
-                    self.visit_stmt(stmt)?;
-                    self.write_str(";\n")?;
-                }
-                self.write_str("}\n")?;
-            }
+        self.write_separated(&mut ast.thn, ";\n")?;
+
+        if let Some(stmts) = &mut ast.els {
+            self.write_str("} else {\n")?;
+            self.write_separated(stmts, ";\n")?;
         }
         self.write_str("}\n")?;
-        Ok(Continue(()))
+
+        Ok(ControlMut::SkipSiblings(()))
     }
 
-    fn visit_while(&mut self, p: &mut While) -> VisitorResult<(), Error> {
+    fn begin_while(&mut self, ast: &mut statements::While) -> VisitorResult<(), statements::Stmt> {
         self.write_str("while ")?;
-        self.visit_expr(&mut p.test)?;
+        ast.test.visit(self)?;
+
         self.write_str(" {\n")?;
-        for stmt in &mut p.doit {
-            self.visit_stmt(stmt)?;
-            self.write_str(";\n")?;
-        }
+        self.write_separated(&mut ast.doit, ";\n")?;
         self.write_str("}\n")?;
-        Ok(Continue(()))
+
+        Ok(ControlMut::SkipSiblings(()))
     }
 
-    fn visit_assert(&mut self, a: &mut AssertAction) -> VisitorResult<(), Error> {
+    // Actions
+
+    fn begin_assert(
+        &mut self,
+        _ast: &mut actions::AssertAction,
+    ) -> VisitorResult<(), actions::Action> {
         self.write_str("assert ")?;
-        self.visit_expr(&mut a.pred)?;
-        Ok(Continue(()))
+        Ok(ControlMut::Produce(()))
     }
 
-    fn visit_assign(&mut self, a: &mut AssignAction) -> VisitorResult<(), Error> {
-        self.visit_expr(&mut a.lhs)?;
+    fn begin_assign(
+        &mut self,
+        ast: &mut actions::AssignAction,
+    ) -> VisitorResult<(), actions::Action> {
+        ast.lhs.visit(self)?;
         self.write_str(" := ")?;
-        self.visit_expr(&mut a.rhs)?;
-        Ok(Continue(()))
+        ast.rhs.visit(self)?;
+
+        Ok(ControlMut::SkipSiblings(()))
     }
 
-    fn visit_assume(&mut self, a: &mut AssumeAction) -> VisitorResult<(), Error> {
+    fn begin_assume(
+        &mut self,
+        _ast: &mut actions::AssumeAction,
+    ) -> VisitorResult<(), actions::Action> {
         self.write_str("assume ")?;
-        self.visit_expr(&mut a.pred)?;
-        Ok(Continue(()))
+        Ok(ControlMut::Produce(()))
     }
 
-    fn visit_ensure(&mut self, e: &mut EnsureAction) -> VisitorResult<(), Error> {
+    fn begin_ensure(
+        &mut self,
+        _ast: &mut actions::EnsureAction,
+    ) -> VisitorResult<(), actions::Action> {
         self.write_str("ensure ")?;
-        self.visit_formula(&mut e.pred)?;
-        Ok(Continue(()))
+        Ok(ControlMut::Produce(()))
     }
 
-    fn visit_requires(&mut self, e: &mut RequiresAction) -> VisitorResult<(), Error> {
-        self.write_str("requires ")?;
-        self.visit_formula(&mut e.pred)?;
-        Ok(Continue(()))
+    fn begin_requires(
+        &mut self,
+        _ast: &mut actions::RequiresAction,
+    ) -> VisitorResult<(), actions::Action> {
+        self.write_str("require ")?;
+        Ok(ControlMut::Produce(()))
     }
 
-    fn visit_action_decl(&mut self, action: &mut ActionDecl) -> VisitorResult<(), Error> {
-        self.write_str("action ")?;
-        self.write_str(&action.name)?;
-        self.write_str("(")?;
-        self.write_comma_separated(&mut action.params, |pp, p| pp.visit_param(p))?;
-        self.write_str(")")?;
+    // Declarations
 
-        if let Some(ret) = &mut action.ret {
-            self.write_str(" returns(")?;
-            self.visit_param(ret)?;
+    fn begin_action_decl(
+        &mut self,
+        ast: &mut declarations::ActionDecl,
+    ) -> VisitorResult<(), declarations::Decl> {
+        self.write_fmt(format_args!("action {}", ast.name))?;
+        if ast.params.len() > 0 {
+            self.write_str("(")?;
+            self.write_separated(&mut ast.params, ", ")?;
             self.write_str(")")?;
         }
-        if let Some(stmts) = &mut action.body {
-            self.write_str(" {\n")?;
-            self.write_seminl_separated(stmts, |pp, d| pp.visit_stmt(d))?;
-            self.write_str("}\n")?;
+
+        if let Some(ret) = &mut ast.ret {
+            self.write_str(" returns(")?;
+            ret.visit(self)?;
+            self.write_str(")")?;
         }
-        Ok(Continue(()))
+        if let Some(stmts) = &mut ast.body {
+            self.write_str(" = {\n")?;
+            println!("{:?}", stmts);
+            self.write_separated(stmts, ";\n")?;
+            self.write_str("\n}\n")?;
+        }
+
+        Ok(ControlMut::SkipSiblings(()))
     }
 
-    fn visit_after(&mut self, action: &mut AfterDecl) -> VisitorResult<(), Error> {
+    fn begin_after_decl(
+        &mut self,
+        ast: &mut declarations::AfterDecl,
+    ) -> VisitorResult<(), declarations::Decl> {
         self.write_str("after ")?;
-        self.write_str(&action.name.join("."))?;
-        self.write_str("(")?;
-        if let Some(params) = &mut action.params {
-            self.write_comma_separated(params, |pp, p| pp.visit_param(p))?;
-        }
-        self.write_str(")")?;
+        self.identifier(&mut ast.name)?;
 
-        if let Some(ret) = &mut action.ret {
-            self.write_str(" returns(")?;
-            self.visit_param(ret)?;
-            self.write_str(")")?;
-        }
-
-        self.write_str(" {\n")?;
-        self.write_seminl_separated(&mut action.body, |pp, d| pp.visit_stmt(d))?;
-        self.write_str("}\n")?;
-        Ok(Continue(()))
-    }
-
-    fn visit_alias(&mut self, name: &Symbol, val: &mut Expr) -> VisitorResult<(), Error> {
-        self.write_fmt(format_args!("alias {} = ", name))?;
-        self.visit_expr(val)?;
-        Ok(Continue(()))
-    }
-
-    fn visit_attribute(&mut self, attr: &mut Expr) -> VisitorResult<(), Error> {
-        self.write_str("attribute ")?;
-        self.visit_expr(attr)?;
-        Ok(Continue(()))
-    }
-
-    fn visit_axiom(&mut self, axiom: &mut Fmla) -> VisitorResult<(), Error> {
-        self.write_str("axiom ")?;
-        self.visit_formula(axiom)?;
-        Ok(Continue(()))
-    }
-
-    fn visit_before(&mut self, action: &mut BeforeDecl) -> VisitorResult<(), Error> {
-        self.write_str("before ")?;
-        self.write_str(&action.name.join("."))?;
-        self.write_str("(")?;
-        if let Some(params) = &mut action.params {
-            self.write_comma_separated(params, |pp, p| pp.visit_param(p))?;
-        }
-        self.write_str(") {\n")?;
-        self.write_seminl_separated(&mut action.body, |pp, d| pp.visit_stmt(d))?;
-        self.write_str("}\n")?;
-        Ok(Continue(()))
-    }
-
-    fn visit_export(&mut self, action: &mut ExportDecl) -> VisitorResult<(), Error> {
-        self.write_str("import ")?;
-        match action {
-            ExportDecl::Action(a) => self.visit_action_decl(a),
-            ExportDecl::ForwardRef(r) => {
-                self.write_str(r)?;
-                Ok(Continue(()))
+        if let Some(params) = &mut ast.params {
+            if params.len() > 0 {
+                self.write_str("(")?;
+                self.write_separated(params, ", ")?;
+                self.write_str(")")?;
             }
         }
-    }
 
-    fn visit_common(&mut self, decls: &mut Vec<Decl>) -> VisitorResult<(), Error> {
-        self.write_str("common {")?;
-        self.write_seminl_separated(decls, |pp, d| pp.visit_decl(d))?;
-        self.write_str("}\n")?;
-        Ok(Continue(()))
-    }
-
-    fn visit_function(&mut self, fun: &mut FunctionDecl) -> VisitorResult<(), Error> {
-        todo!()
-    }
-
-    fn visit_globals(&mut self, defs: &mut Vec<Decl>) -> VisitorResult<(), Error> {
-        self.write_str("global {")?;
-        self.write_seminl_separated(defs, |pp, def| pp.visit_decl(def))?;
-        self.write_str("}")?;
-        Ok(Continue(()))
-    }
-    fn visit_implement_action(&mut self, action: &mut ImplementDecl) -> VisitorResult<(), Error> {
-        self.write_str("implement ")?;
-        self.write_str(&action.name.join("."))?;
-        self.write_str("(")?;
-        self.write_comma_separated(&mut action.params, |pp, p| pp.visit_param(p))?;
-        self.write_str(")")?;
-
-        if let Some(ret) = &mut action.ret {
+        if let Some(ret) = &mut ast.ret {
             self.write_str(" returns(")?;
-            self.visit_param(ret)?;
+            ret.visit(self)?;
             self.write_str(")")?;
         }
-        if let Some(stmts) = &mut action.body {
-            self.write_str(" {\n")?;
-            self.write_seminl_separated(stmts, |pp, d| pp.visit_stmt(d))?;
-            self.write_str("}\n")?;
+
+        self.write_str(" {\n")?;
+        self.write_separated(&mut ast.body, ";\n")?;
+        self.write_str("\n}\n")?;
+
+        Ok(ControlMut::SkipSiblings(()))
+    }
+
+    fn begin_attribute_decl(
+        &mut self,
+        _ast: &mut expressions::Expr,
+    ) -> VisitorResult<(), declarations::Decl> {
+        self.write_str("attribute ")?;
+        Ok(ControlMut::Produce(()))
+    }
+
+    fn begin_axiom_decl(
+        &mut self,
+        _ast: &mut logic::Fmla,
+    ) -> VisitorResult<(), declarations::Decl> {
+        self.write_str("axiom ")?;
+        Ok(ControlMut::Produce(()))
+    }
+
+    fn begin_before_decl(
+        &mut self,
+        ast: &mut declarations::BeforeDecl,
+    ) -> VisitorResult<(), declarations::Decl> {
+        self.write_str("before ")?;
+        self.identifier(&mut ast.name)?;
+
+        if let Some(params) = &mut ast.params {
+            if params.len() > 0 {
+                self.write_str("(")?;
+                self.write_separated(params, ", ")?;
+                self.write_str(")")?;
+            }
         }
-        Ok(Continue(()))
+
+        self.write_str(" {\n")?;
+        self.write_separated(&mut ast.body, ";\n")?;
+        self.write_str("\n}\n")?;
+
+        Ok(ControlMut::SkipSiblings(()))
     }
-    fn visit_implementation(&mut self, decls: &mut Vec<Decl>) -> VisitorResult<(), Error> {
-        self.write_str("implementation {")?;
-        self.write_seminl_separated(decls, |pp, d| pp.visit_decl(d))?;
+
+    fn begin_export_decl(
+        &mut self,
+        _ast: &mut declarations::ExportDecl,
+    ) -> VisitorResult<(), declarations::Decl> {
+        self.write_str("export ")?;
+        Ok(ControlMut::Produce(()))
+    }
+
+    fn begin_common_decl(
+        &mut self,
+        _ast: &mut Vec<declarations::Decl>,
+    ) -> VisitorResult<(), declarations::Decl> {
+        self.write_str("common {")?;
+        Ok(ControlMut::Produce(()))
+    }
+    fn finish_common_decl(
+        &mut self,
+        _ast: &mut Vec<declarations::Decl>,
+    ) -> VisitorResult<(), declarations::Decl> {
+        self.write_str("}")?;
+        Ok(ControlMut::Produce(()))
+    }
+
+    fn begin_global_decl(
+        &mut self,
+        _ast: &mut Vec<declarations::Decl>,
+    ) -> VisitorResult<(), declarations::Decl> {
+        self.write_str("global {")?;
+        Ok(ControlMut::Produce(()))
+    }
+    fn finish_global_decl(
+        &mut self,
+        _ast: &mut Vec<declarations::Decl>,
+    ) -> VisitorResult<(), declarations::Decl> {
+        self.write_str("}")?;
+        Ok(ControlMut::Produce(()))
+    }
+
+    fn begin_implement_decl(
+        &mut self,
+        ast: &mut declarations::ImplementDecl,
+    ) -> VisitorResult<(), declarations::Decl> {
+        self.write_str("implement ")?;
+        self.identifier(&mut ast.name)?;
+
+        if ast.params.len() > 0 {
+            self.write_str("(")?;
+            self.write_separated(&mut ast.params, ", ")?;
+            self.write_str(")")?;
+        }
+
+        if let Some(ret) = &mut ast.ret {
+            self.write_str(" returns(")?;
+            ret.visit(self)?;
+            self.write_str(")")?;
+        }
+
+        if let Some(stmts) = &mut ast.body {
+            self.write_str(" {\n")?;
+            self.write_separated(stmts, "\n")?;
+            self.write_str("\n}\n")?;
+        }
         self.write_str("}\n")?;
-        Ok(Continue(()))
+
+        Ok(ControlMut::SkipSiblings(()))
     }
 
-    fn visit_import(&mut self, action: &mut ImportDecl) -> VisitorResult<(), Error> {
-        self.write_fmt(format_args!("import action {}(", action.name))?;
-        self.write_comma_separated(&mut action.params, |pp, p| pp.visit_param(p))?;
+    fn begin_import_decl(
+        &mut self,
+        ast: &mut declarations::ImportDecl,
+    ) -> VisitorResult<(), declarations::Decl> {
+        self.write_fmt(format_args!("import action {}(", ast.name))?;
+        Ok(ControlMut::Produce(()))
+    }
+    fn finish_import_decl(
+        &mut self,
+        _ast: &mut declarations::ImportDecl,
+    ) -> VisitorResult<(), declarations::Decl> {
         self.write_str(")")?;
-        Ok(Continue(()))
+        Ok(ControlMut::Produce(()))
     }
 
-    fn visit_include(&mut self, module: &mut Symbol) -> VisitorResult<(), Error> {
-        self.write_fmt(format_args!("include {}", module))?;
-        Ok(Continue(()))
+    fn begin_implementation_decl(
+        &mut self,
+        _ast: &mut Vec<declarations::Decl>,
+    ) -> VisitorResult<(), declarations::Decl> {
+        self.write_str("implementation {")?;
+        Ok(ControlMut::Produce(()))
+    }
+    fn finish_implementation_decl(
+        &mut self,
+        _ast: &mut Vec<declarations::Decl>,
+    ) -> VisitorResult<(), declarations::Decl> {
+        self.write_str("}")?;
+        Ok(ControlMut::Produce(()))
     }
 
-    fn visit_instance(&mut self, inst: &mut InstanceDecl) -> VisitorResult<(), Error> {
-        self.write_fmt(format_args!(
-            "instance {} : {}(",
-            inst.name,
-            &inst.sort.join(".")
-        ))?;
-        self.write_comma_separated(&mut inst.args, |pp, p| pp.visit_param(p))?;
-        self.write_str(")")?;
-        Ok(Continue(()))
+    fn begin_include_decl(
+        &mut self,
+        _ast: &mut expressions::Symbol,
+    ) -> VisitorResult<(), declarations::Decl> {
+        self.write_str("include ")?;
+        Ok(ControlMut::Produce(()))
     }
 
-    fn visit_isolate(&mut self, inst: &mut IsolateDecl) -> VisitorResult<(), Error> {
+    fn begin_invariant_decl(
+        &mut self,
+        _ast: &mut logic::Fmla,
+    ) -> VisitorResult<(), declarations::Decl> {
+        self.write_str("invariant ")?;
+        Ok(ControlMut::Produce(()))
+    }
+
+    fn begin_isolate_decl(
+        &mut self,
+        inst: &mut declarations::IsolateDecl,
+    ) -> VisitorResult<(), declarations::Decl> {
         self.out.write_fmt(format_args!("isolate {}", inst.name))?;
         if inst.params.len() > 0 {
             self.write_str("(")?;
-            self.write_comma_separated(&mut inst.params, |pp, p| pp.visit_param(p))?;
+            inst.params.visit(self)?;
             self.write_str(")")?;
         }
         self.write_str(" {\n")?;
-        for decl in &mut inst.body {
-            self.visit_decl(decl)?;
-            self.write_str("\n")?;
-        }
-        self.write_str("}\n")?;
-        Ok(Continue(()))
+        self.write_separated(&mut inst.body, "\n")?;
+        self.write_str("\n}\n")?;
+
+        Ok(ControlMut::SkipSiblings(()))
     }
 
-    fn visit_invariant(&mut self, inv: &mut Fmla) -> VisitorResult<(), Error> {
-        self.write_str("invariant ")?;
-        self.visit_formula(inv)?;
-        Ok(Continue(()))
-    }
+    fn begin_module_decl(
+        &mut self,
+        module: &mut declarations::ModuleDecl,
+    ) -> VisitorResult<(), declarations::Decl> {
+        self.out
+            .write_fmt(format_args!("isolate {}", module.name))?;
 
-    fn visit_module(&mut self, module: &mut ModuleDecl) -> VisitorResult<(), Error> {
-        self.write_fmt(format_args!("module {}(", &module.name))?;
-        self.write_comma_separated(&mut module.params, |pp, p| pp.visit_param(p))?;
-        self.write_str(")")?;
-        Ok(Continue(()))
-    }
-
-    fn visit_object(&mut self, obj: &mut ObjectDecl) -> VisitorResult<(), Error> {
-        self.write_fmt(format_args!("object {}", &obj.name))?;
-        if obj.params.len() > 0 {
+        if module.params.len() > 0 {
             self.write_str("(")?;
-            self.write_comma_separated(&mut obj.params, |pp, p| pp.visit_param(p))?;
+            module.params.visit(self)?;
             self.write_str(")")?;
         }
+        self.write_str(" {\n")?;
+        self.write_separated(&mut module.body, "\n")?;
+        self.write_str("\n}\n")?;
 
-        self.write_str(" = {\n")?;
-        self.write_seminl_separated(&mut obj.body, |pp, d| pp.visit_decl(d))?;
-        self.write_str("}")?;
-        Ok(Continue(()))
+        Ok(ControlMut::SkipSiblings(()))
     }
 
-    fn visit_specification(&mut self, decls: &mut Vec<Decl>) -> VisitorResult<(), Error> {
-        self.write_str("specification {")?;
-        self.write_seminl_separated(decls, |pp, d| pp.visit_decl(d))?;
-        self.write_str("}\n")?;
-        Ok(Continue(()))
-    }
+    fn begin_object_decl(
+        &mut self,
+        ast: &mut declarations::ObjectDecl,
+    ) -> VisitorResult<(), declarations::Decl> {
+        self.out.write_fmt(format_args!("object {}", ast.name))?;
 
-    fn visit_relation(&mut self, obj: &mut Relation) -> VisitorResult<(), Error> {
-        self.write_fmt(format_args!("relation {}", obj.name))?;
-        self.write_str("(")?;
-        self.write_comma_separated(&mut obj.params, |pp, p| pp.visit_param(p))?;
-        self.write_str(")")?;
-        Ok(Continue(()))
-    }
-
-    fn visit_vardecl(&mut self, term: &mut Term) -> VisitorResult<(), Error> {
-        self.write_fmt(format_args!("var {}", term.id.join(".")))?;
-        if let Some(sort) = &term.sort {
-            self.write_fmt(format_args!(": {}", sort.join(".")))?;
+        if ast.params.len() > 0 {
+            self.write_str("(")?;
+            ast.params.visit(self)?;
+            self.write_str(")")?;
         }
-        Ok(Continue(()))
+        self.write_str(" {\n")?;
+        self.write_separated(&mut ast.body, "\n")?;
+        self.write_str("}\n")?;
+
+        Ok(ControlMut::SkipSiblings(()))
     }
 
-    fn visit_typedecl(&mut self, name: &TypeName, sort: &mut IvySort) -> VisitorResult<(), Error> {
+    fn begin_specification(
+        &mut self,
+        _ast: &mut Vec<declarations::Decl>,
+    ) -> VisitorResult<(), declarations::Decl> {
+        self.write_str("specification {")?;
+        Ok(ControlMut::Produce(()))
+    }
+    fn finish_specification(
+        &mut self,
+        _ast: &mut Vec<declarations::Decl>,
+    ) -> VisitorResult<(), declarations::Decl> {
+        self.write_str("}")?;
+        Ok(ControlMut::Produce(()))
+    }
+
+    fn begin_relation(
+        &mut self,
+        ast: &mut declarations::Relation,
+    ) -> VisitorResult<(), declarations::Decl> {
+        self.write_fmt(format_args!("relation {}(", ast.name))?;
+        self.write_separated(&mut ast.params, ", ")?;
+        self.write_str(")")?;
+        Ok(ControlMut::SkipSiblings(()))
+    }
+
+    fn begin_typedecl(
+        &mut self,
+        ast: &mut expressions::Type,
+    ) -> VisitorResult<(), declarations::Decl> {
         self.write_str("type ")?;
-        match name {
-            TypeName::Name(n) => {
+        match &ast.ident {
+            expressions::TypeName::Name(n) => {
                 self.write_str(n)?;
             }
-            TypeName::This => {
+            expressions::TypeName::This => {
                 self.write_str("this")?;
             }
         }
-
-        match sort {
-            // These are inferred, usually, I suppose.
-            IvySort::Uninterpreted => {}
-            IvySort::Unit => {}
-            IvySort::Top => {}
-            IvySort::Bool => {}
-            IvySort::Number => {}
-            IvySort::Function(_, _) => {}
-            IvySort::Relation(_) => {}
-            IvySort::SortVar(_) => {}
-
-            IvySort::Range(min, max) => {
-                self.write_str(" = {")?;
-                self.visit_expr(min)?;
-                self.write_str("..")?;
-                self.visit_expr(max)?;
-                self.write_str("}")?;
-            }
-            IvySort::Enum(branches) => {
-                self.write_str(" = {")?;
-                self.write_comma_separated(branches, |pp, e| pp.visit_symbol(e))?;
-                self.write_str(" }")?;
-            }
-            IvySort::Subclass(s) => {
-                self.write_fmt(format_args!(" of {}", s))?;
-            }
-        }
-        Ok(Continue(()))
+        Ok(ControlMut::SkipSiblings(()))
     }
 
+    fn begin_vardecl(
+        &mut self,
+        term: &mut expressions::Term,
+    ) -> VisitorResult<(), declarations::Decl> {
+        self.write_fmt(format_args!("var {}", term.id))?;
+        if let Some(sort) = &mut term.sort {
+            self.write_str(": ")?;
+            self.identifier(sort)?;
+        }
+        Ok(ControlMut::SkipSiblings(()))
+    }
+
+    // Quantifieds
+
+    fn begin_forall(&mut self, fmla: &mut logic::Forall) -> VisitorResult<(), logic::Fmla> {
+        self.write_str("forall ")?;
+        self.write_separated(&mut fmla.vars, ", ")?;
+        self.write_str(" . ")?;
+        fmla.fmla.visit(self)?;
+        Ok(ControlMut::SkipSiblings(()))
+    }
+
+    fn begin_exists(&mut self, fmla: &mut logic::Exists) -> VisitorResult<(), logic::Fmla> {
+        self.write_str("exists ")?;
+        self.write_separated(&mut fmla.vars, ", ")?;
+        self.write_str(" . ")?;
+        fmla.fmla.visit(self)?;
+        Ok(ControlMut::SkipSiblings(()))
+    }
     // Expressions
 
-    fn visit_app(&mut self, a: &mut AppExpr) -> VisitorResult<(), Error> {
-        self.visit_expr(a.func.as_mut())?;
+    fn begin_app(
+        &mut self,
+        ast: &mut expressions::AppExpr,
+    ) -> VisitorResult<(), expressions::Expr> {
+        ast.func.visit(self)?;
 
         self.write_str("(")?;
-        self.write_comma_separated(&mut a.args, |pp, e| pp.visit_expr(e))?;
+        self.write_separated(&mut ast.args, ", ")?;
         self.write_str(")")?;
-        Ok(Continue(()))
+        Ok(ControlMut::SkipSiblings(()))
     }
 
-    fn visit_binop(
+    fn begin_binop(
         &mut self,
-        lhs: &mut Expr,
-        op: &Verb,
-        rhs: &mut Expr,
-    ) -> VisitorResult<(), Error> {
-        let op_str = match op {
+        ast: &mut expressions::BinOp,
+    ) -> VisitorResult<(), expressions::Expr> {
+        ast.lhs.visit(self)?;
+
+        let op_str = match ast.op {
             Verb::Plus => "+",
             Verb::Minus => "-",
             Verb::Times => "*",
@@ -473,112 +543,106 @@ impl<W: Write> Visitor<(), Error> for PrettyPrinter<W> {
             Verb::And => "&",
             Verb::Or => "&",
             _ => {
-                println!("{:?}", op);
                 unimplemented!()
             }
         };
+        self.write_fmt(format_args!(" {} ", op_str))?;
+        ast.rhs.visit(self)?;
 
-        self.visit_expr(lhs)?;
-        match op {
-            Verb::Dot => {
-                self.out.write_fmt(format_args!("{}", op_str))?;
-            }
-            _ => {
-                self.out.write_fmt(format_args!(" {} ", op_str))?;
-            }
-        }
-        self.visit_expr(rhs)?;
-        Ok(Continue(()))
+        Ok(ControlMut::SkipSiblings(()))
     }
 
-    fn visit_boolean(&mut self, b: &mut bool) -> VisitorResult<(), Error> {
+    fn begin_call(
+        &mut self,
+        ast: &mut expressions::AppExpr,
+    ) -> VisitorResult<(), expressions::Expr> {
+        self.begin_app(ast)
+    }
+
+    fn begin_field_access(
+        &mut self,
+        lhs: &mut expressions::Expr,
+        rhs: &mut expressions::Symbol,
+    ) -> VisitorResult<(), expressions::Expr> {
+        lhs.visit(self)?;
+        self.write_fmt(format_args!(".{}", rhs))?;
+        Ok(ControlMut::SkipSiblings(()))
+    }
+
+    fn begin_index(&mut self, expr: &mut IndexExpr) -> VisitorResult<(), expressions::Expr> {
+        expr.lhs.visit(self)?;
+        self.write_str("[")?;
+        expr.idx.visit(self)?;
+        self.write_str("]")?;
+        Ok(ControlMut::SkipSiblings(()))
+    }
+
+    // Terminals
+
+    fn boolean(&mut self, b: &mut bool) -> VisitorResult<(), bool> {
         if *b {
             self.write_str("true")?;
         } else {
             self.write_str("false")?;
         }
-        Ok(Continue(()))
+        Ok(ControlMut::Produce(()))
     }
 
-    fn visit_formula(&mut self, fmla: &mut Fmla) -> VisitorResult<(), Error> {
-        let (quant, mut vars, mut fmla) = match fmla {
-            Fmla::Exists(Exists { vars, fmla }) => ("exists ", vars, fmla),
-            Fmla::Forall(Forall { vars, fmla }) => ("forall ", vars, fmla),
-            Fmla::Pred(e) => {
-                self.visit_expr(e)?;
-                return Ok(Continue(()));
-            }
-        };
-
-        self.out.write_str(quant)?;
-        self.write_comma_separated(&mut vars, |pp, v| pp.visit_param(v))?;
-        self.write_str(" . ")?;
-        self.visit_formula(&mut fmla)?;
-        Ok(Continue(()))
+    fn identifier(&mut self, i: &mut expressions::Ident) -> VisitorResult<(), expressions::Ident> {
+        self.write_separated(i, ".")?;
+        Ok(ControlMut::Produce(()))
     }
 
-    fn visit_identifier(&mut self, ident: &mut Ident) -> VisitorResult<(), Error> {
-        let s = ident.join(".");
-        self.write_str(&s)?;
-        Ok(Continue(()))
-    }
-
-    fn visit_index(&mut self, idx: &mut IndexExpr) -> VisitorResult<(), Error> {
-        self.visit_expr(&mut idx.lhs)?;
-        self.write_str("[")?;
-        self.visit_expr(&mut idx.idx)?;
-        self.write_str("]")?;
-        Ok(Continue(()))
-    }
-
-    fn visit_number(&mut self, n: &mut i64) -> VisitorResult<(), Error> {
+    fn number(&mut self, n: &mut i64) -> VisitorResult<(), i64> {
         self.write_str(&n.to_string())?;
-        Ok(Continue(()))
+        Ok(ControlMut::Produce(()))
     }
 
-    fn visit_param(&mut self, p: &mut Param) -> VisitorResult<(), Error> {
-        self.visit_symbol(&mut p.id)?;
+    fn param(&mut self, p: &mut expressions::Param) -> VisitorResult<(), expressions::Param> {
+        p.id.visit(self)?;
+
         if let Some(sort) = &mut p.sort {
-            self.write_str(":")?;
-            self.visit_identifier(sort)?;
+            self.write_str(": ")?;
+            self.identifier(sort)?;
         }
-        Ok(Continue(()))
-    }
-    fn visit_symbol(&mut self, sym: &mut Symbol) -> VisitorResult<(), Error> {
-        self.write_str(sym)?;
-        Ok(Continue(()))
-    }
-    fn visit_unaryop(&mut self, op: &Verb, expr: &mut Expr) -> VisitorResult<(), Error> {
-        let op = match op {
-            Verb::Not => "!",
-            Verb::Minus => "-",
-            _ => unreachable!(),
-        };
-        self.write_str(op)?;
-        self.visit_expr(expr)?;
-        Ok(Continue(()))
+        Ok(ControlMut::Produce(()))
     }
 
-    fn visit_term(&mut self, term: &mut Term) -> VisitorResult<(), Error> {
-        self.visit_identifier(&mut term.id)?;
-        if let Some(sort) = &mut term.sort {
-            self.write_str(":")?;
-            self.visit_identifier(sort)?;
+    fn sort(&mut self, s: &mut IvySort) -> VisitorResult<(), IvySort> {
+        match s {
+            // These are inferred, usually, I suppose.
+            IvySort::Range(min, max) => {
+                self.write_str(" = {")?;
+                min.visit(self)?;
+                self.write_str("..")?;
+                max.visit(self)?;
+                self.write_str("}")?;
+            }
+            IvySort::Enum(_) => {
+                self.write_str(" = {")?;
+                //self.write_separated(branches, ", ")?;
+                self.write_str(" }")?;
+            }
+            IvySort::Subclass(s) => {
+                self.write_fmt(format_args!(" of {}", s))?;
+            }
+            IvySort::Process(_proc) => {
+                self.write_str(" = {\n")?;
+                self.write_str("implementation {\n")?;
+                self.write_str("}\n")?;
+                self.write_str("specification {\n")?;
+                self.write_str("common {\n")?;
+                self.write_str("}\n")?;
+                self.write_str("}\n")?;
+                self.write_str("}")?;
+            }
+            IvySort::Uninterpreted => {}
+            _ => todo!(),
         }
-        Ok(Continue(()))
+        Ok(ControlMut::Produce(()))
     }
-
-    fn visit_this(&mut self) -> VisitorResult<(), Error> {
-        self.write_str("this")?;
-        Ok(Continue(()))
-    }
-
-    fn visit_call(&mut self, e: &mut AppExpr) -> VisitorResult<(), Error> {
-        self.visit_expr(&mut e.func)?;
-
-        for arg in &mut e.args {
-            self.visit_expr(arg)?;
-        }
-        Ok(Continue(()))
+    fn symbol(&mut self, s: &mut expressions::Symbol) -> VisitorResult<(), expressions::Symbol> {
+        self.write_str(s)?;
+        Ok(ControlMut::Produce(()))
     }
 }

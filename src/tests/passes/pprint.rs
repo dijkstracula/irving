@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
     use crate::visitor::pprint::PrettyPrinter;
-    use crate::visitor::visitor::Visitor;
+    use crate::visitor::visitor::Visitable;
     use crate::{
         ast::{expressions::Expr, logic::Fmla},
         parser::ivy::{IvyParser, Result, Rule},
@@ -29,9 +29,8 @@ mod tests {
         let mut pp = PrettyPrinter::<String>::new();
 
         let fragment = "foo(a, b, c)";
-        let mut _ast = parse_expr(fragment).expect("Parsing failed");
-
-        pp.visit_expr(&mut _ast).expect("traversal failed");
+        let mut ast = parse_expr(fragment).expect("Parsing failed");
+        ast.visit(&mut pp).expect("traversal failed");
         assert_eq!(fragment, pp.out);
     }
 
@@ -40,8 +39,8 @@ mod tests {
         let mut pp = PrettyPrinter::<String>::new();
 
         let fragment = "43 - 1";
-        let mut _ast = parse_expr(fragment).expect("Parsing failed");
-        pp.visit_expr(&mut _ast).expect("traversal failed");
+        let mut ast = parse_expr(fragment).expect("Parsing failed");
+        ast.visit(&mut pp).expect("traversal failed");
         assert_eq!(fragment, pp.out);
     }
 
@@ -50,8 +49,8 @@ mod tests {
         let mut pp = PrettyPrinter::<String>::new();
 
         let fragment = "sock.send(host(1 - self).sock.id, val)";
-        let mut _ast = parse_expr(fragment).expect("Parsing failed");
-        pp.visit_expr(&mut _ast).expect("traversal failed");
+        let mut ast = parse_expr(fragment).expect("Parsing failed");
+        ast.visit(&mut pp).expect("traversal failed");
         assert_eq!(fragment, pp.out);
     }
 
@@ -59,9 +58,9 @@ mod tests {
     fn pprint_formula() {
         let mut pp = PrettyPrinter::<String>::new();
 
-        let fragment = "forall X:node, Y, Z . X = Y & Y = Z -> X = Y";
-        let mut _ast = parse_fmla(fragment).expect("Parsing failed");
-        pp.visit_formula(&mut _ast).expect("traversal failed");
+        let fragment = "forall X: node, Y, Z . X = Y & Y = Z -> X = Y";
+        let mut ast = parse_fmla(fragment).expect("Parsing failed");
+        ast.visit(&mut pp).expect("traversal failed");
         assert_eq!(fragment, pp.out);
     }
 
@@ -72,10 +71,14 @@ mod tests {
             .expect("Parsing failed")
             .single()
             .unwrap();
-        let mut _ast = IvyParser::prog(res).expect("AST generation failed");
+        let mut ast = IvyParser::prog(res).expect("AST generation failed");
 
         let mut pp = PrettyPrinter::<String>::new();
-        pp.visit_prog(&mut _ast).expect("traversal failed");
-        println!("{}", pp.out);
+        ast.visit(&mut pp).expect("traversal failed");
+
+        // The pretty printer won't get my formatting exactly right, and that's
+        // fine.  Strip out extraneous newlines on my end.
+        //println!("{}", pp.out);
+        //assert_eq!(prog.replace("\n\n", "\n"), pp.out.replace("\n\n", "\n"));
     }
 }

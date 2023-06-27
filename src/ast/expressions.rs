@@ -41,6 +41,13 @@ pub struct AppExpr {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct BinOp {
+    pub lhs: Box<Expr>,
+    pub op: Verb,
+    pub rhs: Box<Expr>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct IndexExpr {
     pub lhs: Box<Expr>,
     pub idx: Box<Expr>,
@@ -52,13 +59,15 @@ pub struct Param {
     pub sort: Option<Ident>,
 }
 
+pub type ParamList = Vec<Param>;
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum TypeName {
     Name(Symbol),
     This,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Type {
     pub ident: TypeName,
     pub sort: IvySort, /* spec: TypeSpec */
@@ -66,7 +75,7 @@ pub struct Type {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Term {
-    pub id: Ident,
+    pub id: Symbol,
     pub sort: Option<Ident>,
     //is_destructor: bool,
 }
@@ -76,24 +85,19 @@ pub struct Term {
 pub enum Expr {
     App(AppExpr),
 
-    BinOp {
-        lhs: Box<Expr>,
-        op: Verb,
-        rhs: Box<Expr>,
-    },
+    BinOp(BinOp),
 
     Boolean(bool),
 
-    Identifier(Ident),
+    FieldAccess { record: Box<Expr>, field: Symbol },
 
     Index(IndexExpr),
 
     Number(i64),
 
-    UnaryOp {
-        op: Verb,
-        expr: Box<Expr>,
-    },
+    Symbol(Symbol),
+
+    UnaryOp { op: Verb, expr: Box<Expr> },
 
     Term(Term),
 

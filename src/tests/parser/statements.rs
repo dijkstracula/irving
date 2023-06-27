@@ -1,6 +1,9 @@
 #[cfg(test)]
 mod tests {
-    use crate::parser::ivy::{IvyParser, Rule};
+    use crate::{
+        ast::{actions::*, expressions::*, logic::*},
+        parser::ivy::{IvyParser, Rule},
+    };
     use pest_consume::Parser;
 
     // Statements
@@ -76,10 +79,44 @@ mod tests {
     #[test]
     fn parse_requires_action() {
         let fragment = "require ~failed(y)";
-        let _res = IvyParser::parse(Rule::stmt, fragment)
+        let res = IvyParser::parse(Rule::requires_action, fragment)
             .expect("Parsing failed")
             .single()
             .unwrap();
+
+        let stmt = IvyParser::requires_action(res).unwrap();
+        assert_eq!(
+            stmt,
+            RequiresAction {
+                pred: Fmla::Pred(Expr::UnaryOp {
+                    op: Verb::Not,
+                    expr: Box::new(Expr::App(AppExpr {
+                        func: Box::new(Expr::Symbol("failed".to_owned())),
+                        args: [Expr::Symbol("y".into())].into()
+                    }))
+                })
+            }
+        )
+    }
+
+    #[test]
+    fn parse_requires_action_2() {
+        let fragment = "require x >= 0";
+        let res = IvyParser::parse(Rule::requires_action, fragment)
+            .expect("Parsing failed")
+            .single()
+            .unwrap();
+        let stmt = IvyParser::requires_action(res).unwrap();
+        assert_eq!(
+            stmt,
+            RequiresAction {
+                pred: Fmla::Pred(Expr::BinOp(BinOp {
+                    lhs: Box::new(Expr::Symbol("x".into())),
+                    op: Verb::Ge,
+                    rhs: Box::new(Expr::Number(0))
+                }))
+            }
+        );
     }
 
     #[test]

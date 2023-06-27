@@ -1,167 +1,257 @@
-#![allow(dead_code)]
+use anyhow::bail;
 
-use std::collections::HashMap;
-
+use super::{sorts::IvySort, unifier::Resolver};
 use crate::{
     ast::{
-        expressions::{Param, Symbol},
-        toplevels::Prog,
+        declarations,
+        expressions::{self, Expr},
     },
-    visitor::{control::VisitorResult, visitor::Visitor},
+    typechecker::TypeError,
+    visitor::{
+        control::ControlMut,
+        visitor::{Visitable, Visitor},
+        VisitorResult,
+    },
 };
 
-use super::{sorts::IvySort, Error};
-use crate::visitor::control::Control::Continue;
+pub struct TypeChecker {
+    pub bindings: Resolver,
+}
 
-pub struct Context(Vec<HashMap<Symbol, IvySort>>);
-
-impl Context {
+impl TypeChecker {
+    // TODO: this should take a ref to bindings because the visitor will
+    // want to hold onto it.
     pub fn new() -> Self {
-        Context(vec![])
+        TypeChecker {
+            bindings: Resolver::new(),
+        }
+    }
+}
+
+impl Visitor<IvySort> for TypeChecker {
+    fn boolean(&mut self, _b: &mut bool) -> VisitorResult<IvySort, bool> {
+        Ok(ControlMut::Produce(IvySort::Bool))
     }
 
-    pub fn push_scope(&mut self) {
-        self.0.push(HashMap::<_, _>::new())
-    }
-
-    pub fn pop_scope(&mut self) {
-        match self.0.pop() {
-            None => panic!("popping an empty scope"),
-            Some(_) => (),
+    fn identifier(
+        &mut self,
+        i: &mut expressions::Ident,
+    ) -> VisitorResult<IvySort, expressions::Ident> {
+        // TODO: we'll have to walk each element in the identifier, and ensure
+        // that all but the final value is a Module.
+        if i.len() == 1 {
+            let mut s = i.get_mut(0).unwrap();
+            Ok(ControlMut::Produce(s.visit(self)?.modifying(&mut s)?))
+        } else {
+            // ???
+            todo!()
         }
     }
 
-    // TODO: I wonder what we need to do in order to support annotations, which are qualified
-    // identifiers.  Maybe it's its own kind of constraint?
-    pub fn lookup(&self, sym: &Symbol) -> Option<&IvySort> {
-        self.0
-            .iter()
-            .rfind(|scope| scope.contains_key(sym))
-            .and_then(|scope| scope.get(sym))
+    fn number(&mut self, _n: &mut i64) -> VisitorResult<IvySort, i64> {
+        Ok(ControlMut::Produce(IvySort::Number))
     }
 
-    pub fn append(&mut self, sym: Symbol, sort: IvySort) -> Result<(), Error> {
-        let scope = match self.0.last_mut() {
-            None => panic!("Appending into an empty scope"),
-            Some(scope) => scope,
-        };
+    fn param(&mut self, p: &mut expressions::Param) -> VisitorResult<IvySort, expressions::Param> {
+        match &mut p.sort {
+            Some(idents) => {
+                // TODO: I don't know how to do instance resolution yet, argh
+                assert!(idents.len() == 1);
+                let sym = idents.get_mut(0).unwrap();
+                sym.visit(self)?
+                    .modifying(sym)
+                    .map(|s| ControlMut::Produce(s))
+            }
+            None => Ok(ControlMut::Produce(self.bindings.new_sortvar())),
+        }
+    }
 
-        // Only check the current scope, shadowing should be fine, right?
-        if let Some(existing) = scope.get(&sym) {
-            if existing != &sort {
-                return Err(Error::SortMismatch {
-                    expected: existing.clone(),
-                    actual: sort,
-                });
+    fn symbol(
+        &mut self,
+        sym: &mut expressions::Symbol,
+    ) -> VisitorResult<IvySort, expressions::Symbol> {
+        match sym.as_str() {
+            "bool" => Ok(ControlMut::Produce(IvySort::Bool)),
+            // TODO: and of course other builtins.
+            _ => {
+                let sort = self.bindings.lookup(sym);
+
+                match sort {
+                    // XXX: ST: wtf???
+                    Some(sort) => Ok(ControlMut::Produce(sort.clone())),
+                    None => bail!(TypeError::UnboundVariable(sym.clone())),
+                }
             }
         }
-        scope.insert(sym, sort);
-        Ok(())
-    }
-}
-
-// TODO: Experiment with this holding references, or maybe RCs?
-pub struct Constraint(IvySort, IvySort);
-
-pub struct ConstraintGenerator {
-    pub ctx: Context,
-}
-
-impl ConstraintGenerator {
-    pub fn new() -> Self {
-        ConstraintGenerator {
-            ctx: Context::new(),
-        }
     }
 
-    pub fn visit(prog: &mut Prog) {
-        let mut cg = Self::new();
-        cg.visit_prog(prog).unwrap();
-    }
-}
+    //
 
-impl Visitor<(IvySort, Vec<Constraint>), Error> for ConstraintGenerator {
-    // Terminals
-
-    fn visit_boolean(&mut self, _: &mut bool) -> VisitorResult<(IvySort, Vec<Constraint>), Error> {
-        Ok(Continue((IvySort::Bool, vec![])))
-    }
-    fn visit_param(&mut self, p: &mut Param) -> VisitorResult<(IvySort, Vec<Constraint>), Error> {
-        //if let Some(annotated) = p.
-        match self.ctx.lookup(&p.id) {
-            None => Err(Error::UnboundVariable(p.id.clone())),
-            Some(sort) => Ok(Continue((sort.clone(), vec![]))),
-        }
-    }
-    fn visit_number(&mut self, _: &mut i64) -> VisitorResult<(IvySort, Vec<Constraint>), Error> {
-        Ok(Continue((IvySort::Number, vec![])))
-    }
-
-    // Nonterminals
-    fn visit_binop(
+    fn finish_app(
         &mut self,
-        lhs: &mut crate::ast::expressions::Expr,
-        op: &crate::ast::expressions::Verb,
-        rhs: &mut crate::ast::expressions::Expr,
-    ) -> VisitorResult<(IvySort, Vec<Constraint>), Error> {
-        let (lhs_sort, mut lhs_constraints) = match self.visit_expr(lhs)? {
-            Continue((s, c)) => (s, c),
-            crate::visitor::control::Control::Remove => unreachable!(),
-        };
-        let (rhs_sort, mut rhs_constraints) = match self.visit_expr(rhs)? {
-            Continue((s, c)) => (s, c),
-            crate::visitor::control::Control::Remove => unreachable!(),
-        };
+        _ast: &mut expressions::AppExpr,
+        fsort: IvySort,
+        argsorts: Vec<IvySort>,
+    ) -> VisitorResult<IvySort, Expr> {
+        let retsort = self.bindings.new_sortvar();
 
-        lhs_constraints.append(&mut rhs_constraints);
-        let mut constraints = lhs_constraints;
+        let expected_sort = IvySort::Function(argsorts, Box::new(retsort));
+        if let Ok(IvySort::Function(_, ret)) = self.bindings.unify(&fsort, &expected_sort) {
+            Ok(ControlMut::Produce(*ret.clone()))
+        } else {
+            bail!(TypeError::InvalidApplication(fsort))
+        }
+    }
 
-        match op {
+    fn finish_binop(
+        &mut self,
+        ast: &mut expressions::BinOp,
+        lhs_sort: IvySort,
+        _op_ret: IvySort,
+        rhs_sort: IvySort,
+    ) -> VisitorResult<IvySort, Expr> {
+        match ast.op {
             // Boolean operators
-            crate::ast::expressions::Verb::Iff
-            | crate::ast::expressions::Verb::Or
-            | crate::ast::expressions::Verb::And
-            | crate::ast::expressions::Verb::Not
-            | crate::ast::expressions::Verb::Arrow => {
-                constraints.push(Constraint(lhs_sort.clone(), rhs_sort.clone()));
-                constraints.push(Constraint(lhs_sort, IvySort::Bool));
-                constraints.push(Constraint(IvySort::Bool, rhs_sort));
-                Ok(Continue((IvySort::Bool, constraints)))
+            expressions::Verb::Iff
+            | expressions::Verb::Or
+            | expressions::Verb::And
+            | expressions::Verb::Not
+            | expressions::Verb::Arrow => {
+                if self
+                    .bindings
+                    .unify(&lhs_sort, &IvySort::Bool)
+                    .and(self.bindings.unify(&IvySort::Bool, &rhs_sort))
+                    .is_err()
+                {
+                    bail!(TypeError::UnificationError(lhs_sort, rhs_sort))
+                } else {
+                    Ok(ControlMut::Produce(IvySort::Bool))
+                }
             }
 
             // Equality and comparison
-            crate::ast::expressions::Verb::Lt
-            | crate::ast::expressions::Verb::Le
-            | crate::ast::expressions::Verb::Gt
-            | crate::ast::expressions::Verb::Ge => {
-                constraints.push(Constraint(lhs_sort.clone(), rhs_sort.clone()));
-                constraints.push(Constraint(lhs_sort, IvySort::Number));
-                constraints.push(Constraint(IvySort::Number, rhs_sort));
-                Ok(Continue((IvySort::Bool, constraints)))
+            expressions::Verb::Lt
+            | expressions::Verb::Le
+            | expressions::Verb::Gt
+            | expressions::Verb::Ge => {
+                if self
+                    .bindings
+                    .unify(&lhs_sort, &IvySort::Number)
+                    .and(self.bindings.unify(&IvySort::Number, &rhs_sort))
+                    .is_err()
+                {
+                    bail!(TypeError::UnificationError(lhs_sort, rhs_sort))
+                } else {
+                    Ok(ControlMut::Produce(IvySort::Bool))
+                }
             }
 
-            crate::ast::expressions::Verb::Equals | crate::ast::expressions::Verb::Notequals => {
-                constraints.push(Constraint(lhs_sort, rhs_sort));
-                Ok(Continue((IvySort::Bool, constraints)))
+            expressions::Verb::Equals | expressions::Verb::Notequals => {
+                if self.bindings.unify(&lhs_sort, &rhs_sort).is_err() {
+                    bail!(TypeError::UnificationError(lhs_sort, rhs_sort))
+                } else {
+                    Ok(ControlMut::Produce(IvySort::Bool))
+                }
             }
 
             // Numeric operators
-            crate::ast::expressions::Verb::Plus
-            | crate::ast::expressions::Verb::Minus
-            | crate::ast::expressions::Verb::Times
-            | crate::ast::expressions::Verb::Div => {
-                constraints.push(Constraint(lhs_sort.clone(), rhs_sort.clone()));
-                constraints.push(Constraint(lhs_sort, IvySort::Number));
-                constraints.push(Constraint(IvySort::Number, rhs_sort));
-                Ok(Continue((IvySort::Number, constraints)))
+            expressions::Verb::Plus
+            | expressions::Verb::Minus
+            | expressions::Verb::Times
+            | expressions::Verb::Div => {
+                if self
+                    .bindings
+                    .unify(&lhs_sort, &IvySort::Number)
+                    .and(self.bindings.unify(&IvySort::Number, &rhs_sort))
+                    .is_err()
+                {
+                    bail!(TypeError::UnificationError(lhs_sort, rhs_sort))
+                } else {
+                    Ok(ControlMut::Produce(IvySort::Number))
+                }
             }
 
-            // Field indexing
-            crate::ast::expressions::Verb::Dot => {
-                // TODO: We need to check that the rhs expression is valid for the lhs's record type.
-                // We don't have record types yet, though.
-                Ok(Continue((rhs_sort, constraints)))
-            }
+            _ => unimplemented!(),
         }
+    }
+
+    fn begin_field_access(
+        &mut self,
+        lhs: &mut Expr,
+        rhs: &mut expressions::Symbol,
+    ) -> VisitorResult<IvySort, Expr> {
+        let recordsort = match lhs.visit(self)?.modifying(lhs)? {
+            IvySort::Process(proc) => proc,
+            sort => bail!(TypeError::NotARecord(sort)),
+        };
+
+        match recordsort
+            .impl_fields
+            .get(rhs)
+            .or(recordsort.spec_fields.get(rhs))
+            .or(recordsort.commonspec_fields.get(rhs))
+        {
+            Some(sort) => Ok(ControlMut::SkipSiblings(sort.clone())),
+            None => bail!(TypeError::UnboundVariable(rhs.clone())),
+        }
+    }
+
+    // decls
+
+    fn begin_relation(
+        &mut self,
+        ast: &mut declarations::Relation,
+    ) -> VisitorResult<IvySort, declarations::Decl> {
+        // Bind the name to _something_; we'll unify this value with a function sort when finishing the visit.
+        let v = self.bindings.new_sortvar();
+        self.bindings.append(ast.name.clone(), v)?;
+        Ok(ControlMut::Produce(IvySort::Unit))
+    }
+    fn finish_relation(
+        &mut self,
+        _ast: &mut declarations::Relation,
+        n: IvySort,
+        paramsorts: Vec<IvySort>,
+    ) -> VisitorResult<IvySort, declarations::Decl> {
+        // A relation is a bool-producing function for our purposes.
+        // TODO: contemplate defaultdict-style "default functions" like the C++
+        // extraction code uses.
+        let relsort = IvySort::Function(paramsorts, Box::new(IvySort::Bool));
+        let _unifed = self.bindings.unify(&n, &relsort)?;
+        Ok(ControlMut::Produce(IvySort::Unit))
+    }
+
+    fn begin_typedecl(
+        &mut self,
+        ast: &mut expressions::Type,
+    ) -> VisitorResult<IvySort, declarations::Decl> {
+        let sortname = match &ast.ident {
+            expressions::TypeName::Name(n) => n,
+            expressions::TypeName::This => todo!(),
+        };
+        self.bindings.append(sortname.clone(), ast.sort.clone())?;
+        Ok(ControlMut::SkipSiblings(IvySort::Unit))
+    }
+
+    fn begin_vardecl(
+        &mut self,
+        ast: &mut expressions::Term,
+    ) -> VisitorResult<IvySort, declarations::Decl> {
+        // Bind the name to _something_; we'll unify this value with its resolved sort when finishing the visit.
+        let v = self.bindings.new_sortvar();
+        self.bindings.append(ast.id.clone(), v)?;
+        Ok(ControlMut::Produce(IvySort::Unit))
+    }
+    fn finish_vardecl(
+        &mut self,
+        _ast: &mut expressions::Term,
+        id_sort: IvySort,
+        resolved_sort: Option<IvySort>,
+    ) -> VisitorResult<IvySort, declarations::Decl> {
+        println!("NBT: {id_sort:?}, {resolved_sort:?}");
+        if let Some(s2) = resolved_sort {
+            self.bindings.unify(&id_sort, &s2)?;
+        }
+        Ok(ControlMut::Produce(IvySort::Unit))
     }
 }

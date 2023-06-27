@@ -1,19 +1,12 @@
 #[cfg(test)]
 mod tests {
-    use crate::parser::ivy::{IvyParser, Rule};
+    use crate::{
+        ast::{declarations::*, expressions::*},
+        parser::ivy::{IvyParser, Rule},
+    };
     use pest_consume::Parser;
 
     // Declarations
-
-    #[test]
-    fn parse_decl_sig() {
-        let fragment = "foo(a: int) returns (b: int)";
-        let res = IvyParser::parse(Rule::decl_sig, fragment)
-            .expect("Parsing failed")
-            .single()
-            .unwrap();
-        assert!(IvyParser::decl_sig(res).is_ok());
-    }
 
     #[test]
     fn parse_action_forward_ref() {
@@ -56,23 +49,48 @@ mod tests {
     }
 
     #[test]
-    fn parse_action_decl() {
+    fn parse_action_decl_no_ret_nor_body() {
         let fragment = "action foo(a: int)";
-        let res = IvyParser::parse(Rule::decl, fragment)
+        let res = IvyParser::parse(Rule::action_decl, fragment)
             .expect("Parsing failed")
             .single()
             .unwrap();
-        IvyParser::decl(res).unwrap();
+
+        assert_eq!(
+            IvyParser::action_decl(res),
+            Ok(ActionDecl {
+                name: "foo".into(),
+                params: [Param {
+                    id: "a".into(),
+                    sort: Some(["int".into()].into())
+                }]
+                .into(),
+                ret: None,
+                body: None,
+            })
+        );
     }
 
     #[test]
-    fn parse_action_decl_1() {
+    fn parse_action_decl_no_ret_but_body() {
         let fragment = "action foo(a: int) = { }";
-        let res = IvyParser::parse(Rule::decl, fragment)
+        let res = IvyParser::parse(Rule::action_decl, fragment)
             .expect("Parsing failed")
             .single()
             .unwrap();
-        IvyParser::decl(res).unwrap();
+        assert_eq!(
+            IvyParser::action_decl(res),
+            Ok(ActionDecl {
+                name: "foo".into(),
+                params: [Param {
+                    id: "a".into(),
+                    sort: Some(["int".into()].into())
+                }]
+                .into(),
+                ret: None,
+                body: Some(vec![])
+            })
+        );
     }
 
     #[test]
@@ -89,7 +107,33 @@ mod tests {
     }
 
     #[test]
-    fn parse_action_decl_2() {
+    fn parse_action_decl_with_ret_no_body() {
+        let fragment = "action foo(a: int) returns (b: int)";
+        let res = IvyParser::parse(Rule::action_decl, fragment)
+            .expect("Parsing failed")
+            .single()
+            .unwrap();
+
+        assert_eq!(
+            IvyParser::action_decl(res),
+            Ok(ActionDecl {
+                name: "foo".into(),
+                params: [Param {
+                    id: "a".into(),
+                    sort: Some(["int".into()].into())
+                }]
+                .into(),
+                ret: Some(Param {
+                    id: "b".into(),
+                    sort: Some(["int".into()].into())
+                }),
+                body: None
+            })
+        );
+    }
+
+    #[test]
+    fn parse_action_decl_with_ret_and_body() {
         let fragment = "action foo(a: int) returns (b: int) = { }";
         let res = IvyParser::parse(Rule::decl, fragment)
             .expect("Parsing failed")

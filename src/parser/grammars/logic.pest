@@ -18,7 +18,7 @@ log_term        =  { log_atom ~ (log_infix_op ~ log_atom)* }
 log_atom        = _{ log_prefix_op? ~ log_primary ~ log_app_args? }
     log_prefix_op   = _{ NOT }
     log_infix_op    = _{ IFF | ARROW |
-                     LT | LE | GT | GE | EQ | NEQ |
+                     LE | LT | GE | GT | EQ | NEQ |
                      AND | OR | DOT }
 log_primary    = _{ logicvar | symbol | boollit | number | "(" ~ log_term ~ ")" }
 

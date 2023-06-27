@@ -51,7 +51,7 @@ ASSUME          = _{ "assume"    }
 ATTRIBUTE       = _{ "attribute" }
 ENSURE          = _{ "ensure"    }
 REQUIRE         = _{ "require"   }
-AXIOM           = _{ "axiom"     }
+AXIOM           = _{ "axiom" | "property" }
 FUNCTION        = _{ "function"  }
 RELATION        = _{ "relation"  }
 INCLUDE         = _{ "include "  }
@@ -73,16 +73,17 @@ IMPORT          = _{ "import" }
 EXPORT          = _{ "export" }
 INIT            = _{ "init"   }
 AFTER           = _{ "after"  }
+BEFORE          = _{ "before" }
 TYPE            = _{ "type"   }
 
 IF =     _{ "if" }
 WHILE =  _{ "while" }
 RETURN = _{" return "}
 
-// These are not explicitly in ivy2's `decl.parse()` but I don't know how we
-// avoid having them
-BEFORE       = _{ "before" }
-EXTRACT      = _{ "extract" | "process" }
+// The semantics of these are slightly different in real-Ivy but I'm
+// somewhat sure that for our purposes they're equivalent, at least right
+// now.  
+EXTRACT      = _{ "extract" | "process" | "isolate" }
 
 boollit = { "true" | "false" }
 
@@ -135,5 +136,5 @@ symbol   = @{ !reserved ~ ASCII_ALPHA       ~ ("_" | ASCII_ALPHANUMERIC)* }
 ident = { THIS | (symbol ~ ("." ~ symbol)*) }
 
 // A term is a fully-qualified identifier with an optional type annotation.
-term = { ident ~ ( ":" ~ ident)? }
+term = { symbol ~ ( ":" ~ ident)? }
 termlist = { term ~ ("," ~ term)* }

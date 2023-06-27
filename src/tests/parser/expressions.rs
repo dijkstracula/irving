@@ -17,7 +17,7 @@ mod tests {
     #[test]
     fn parse_symbol_expr() {
         let _ast = parse_expr("a").unwrap();
-        assert_eq!(_ast, Expr::Identifier(vec!("a".into())));
+        assert_eq!(_ast, Expr::Symbol("a".into()));
     }
 
     #[test]
@@ -40,11 +40,11 @@ mod tests {
         let _ast = parse_expr("42 - 1").unwrap();
         assert_eq!(
             _ast,
-            Expr::BinOp {
+            Expr::BinOp(BinOp {
                 lhs: Box::new(Expr::Number(42)),
                 op: Verb::Minus,
                 rhs: Box::new(Expr::Number(1)),
-            }
+            })
         );
     }
 
@@ -60,11 +60,11 @@ mod tests {
         let _ast = parse_expr("i > 0").unwrap();
         assert_eq!(
             _ast,
-            Expr::BinOp {
-                lhs: Box::new(Expr::Identifier(vec!("i".into()))),
+            Expr::BinOp(BinOp {
+                lhs: Box::new(Expr::Symbol("i".into())),
                 op: Verb::Gt,
                 rhs: Box::new(Expr::Number(0)),
-            }
+            })
         );
     }
 
@@ -76,30 +76,12 @@ mod tests {
     #[test]
     fn parse_dot_expr() {
         let _ast = parse_expr("a.b").unwrap();
-        assert_eq!(_ast, Expr::Identifier(vec!("a".into(), "b".into())));
-    }
-
-    #[test]
-    fn parse_annotated_var() {
-        let _ast = parse_expr("a : int").expect("Parsing failed");
         assert_eq!(
             _ast,
-            Expr::Term(Term {
-                id: vec!("a".into()),
-                sort: Some(vec!("int".into()))
-            })
-        );
-    }
-
-    #[test]
-    fn parse_annotated_this() {
-        let _ast = parse_expr("a : this").expect("Parsing failed");
-        assert_eq!(
-            _ast,
-            Expr::Term(Term {
-                id: vec!("a".into()),
-                sort: Some(vec!("this".into()))
-            })
+            Expr::FieldAccess {
+                record: Box::new(Expr::Symbol("a".into())),
+                field: "b".into()
+            }
         );
     }
 
