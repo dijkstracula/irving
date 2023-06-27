@@ -196,6 +196,36 @@ impl Visitor<IvySort> for TypeChecker {
         }
     }
 
+    // actions
+
+    fn begin_action_decl(
+        &mut self,
+        ast: &mut declarations::ActionDecl,
+    ) -> VisitorResult<IvySort, declarations::Decl> {
+        // Bind the name to _something_; we'll unify this value with its resolved sort when finishing the visit.
+        let v = self.bindings.new_sortvar();
+        self.bindings.append(ast.name.clone(), v)?;
+        self.bindings.push_scope();
+        Ok(ControlMut::Produce(IvySort::Unit))
+    }
+
+    fn finish_action_decl(
+        &mut self,
+        ast: &mut declarations::ActionDecl,
+        name: IvySort,
+        params: Vec<IvySort>,
+        ret: Option<IvySort>,
+        _body: Option<Vec<IvySort>>,
+    ) -> VisitorResult<IvySort, declarations::Decl> {
+        let retsort = match ret {
+            None => self.bindings.new_sortvar(),
+            Some(s) => s,
+        };
+        let actsort = IvySort::Function(params, Box::new(retsort));
+        let _unifed = self.bindings.unify(&name, &actsort)?;
+        Ok(ControlMut::Produce(IvySort::Unit))
+    }
+
     // decls
 
     fn begin_relation(
@@ -248,7 +278,6 @@ impl Visitor<IvySort> for TypeChecker {
         id_sort: IvySort,
         resolved_sort: Option<IvySort>,
     ) -> VisitorResult<IvySort, declarations::Decl> {
-        println!("NBT: {id_sort:?}, {resolved_sort:?}");
         if let Some(s2) = resolved_sort {
             self.bindings.unify(&id_sort, &s2)?;
         }

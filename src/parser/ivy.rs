@@ -485,11 +485,10 @@ impl IvyParser {
         [var_decl(Term{id, sort}), expr(rhs)] => Ok(
             AssignAction{lhs: Expr::Term(Term{id, sort}), rhs}
         ),
-        [expr(lhs), expr(rhs)] => Ok(
-            // TODO: need a ::new() function that returns
-            // some sort of error if lhs isn't a valid lval.
-            AssignAction{lhs, rhs}
-        ),
+        [expr(lhs), expr(rhs)] => match lhs {
+            Expr::App(_) | Expr::FieldAccess {record: _, field: _} | Expr::Index(_) | Expr::Symbol(_) | Expr::This => Ok(AssignAction{lhs, rhs}),
+            _ => todo!(),
+        },
         )
     }
 

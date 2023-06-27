@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
     use crate::{
-        ast::{actions::*, expressions::*, logic::*},
+        ast::{actions::*, expressions::*, logic::*, statements::Stmt},
         parser::ivy::{IvyParser, Rule},
     };
     use pest_consume::Parser;
@@ -36,6 +36,39 @@ mod tests {
             .single()
             .unwrap();
         IvyParser::stmt(res).expect("generate ast");
+    }
+
+    #[test]
+    fn parse_assign_to_field() {
+        let fragment = "foo.bar := false";
+        let res = IvyParser::parse(Rule::stmt, fragment)
+            .expect("Parsing failed")
+            .single()
+            .unwrap();
+        let ast = IvyParser::stmt(res).expect("generate ast");
+        assert_eq!(
+            ast,
+            Stmt::ActionSequence(
+                [Action::Assign(AssignAction {
+                    lhs: Expr::FieldAccess {
+                        record: Box::new(Expr::Symbol("foo".into())),
+                        field: "bar".into()
+                    },
+                    rhs: Expr::Boolean(false)
+                })]
+                .into()
+            )
+        );
+    }
+
+    #[test]
+    fn parse_assign_to_field_of_this() {
+        let fragment = "this.bit := false";
+        let res = IvyParser::parse(Rule::stmt, fragment)
+            .expect("Parsing failed")
+            .single()
+            .unwrap();
+        let ast = IvyParser::stmt(res).expect("generate ast");
     }
 
     #[test]

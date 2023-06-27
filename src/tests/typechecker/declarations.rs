@@ -1,14 +1,9 @@
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
-
     use crate::{
+        ast::expressions::Expr,
         parser::ivy::{IvyParser, Rule},
-        typechecker::{
-            inference::TypeChecker,
-            sorts::{IvySort, Process},
-            TypeError,
-        },
+        typechecker::{inference::TypeChecker, sorts::IvySort},
         visitor::visitor::Visitable,
     };
     use pest_consume::Parser;

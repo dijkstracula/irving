@@ -94,7 +94,14 @@ where
     fn begin_action_decl(&mut self, _ast: &mut ActionDecl) -> VisitorResult<T, Decl> {
         Ok(ControlMut::Produce(T::default()))
     }
-    fn finish_action_decl(&mut self, _ast: &mut ActionDecl) -> VisitorResult<T, Decl> {
+    fn finish_action_decl(
+        &mut self,
+        _ast: &mut ActionDecl,
+        _name: T,
+        _params: Vec<T>,
+        ret: Option<T>,
+        _body: Option<Vec<T>>,
+    ) -> VisitorResult<T, Decl> {
         Ok(ControlMut::Produce(T::default()))
     }
 
@@ -535,9 +542,19 @@ where
     fn visit(&mut self, visitor: &mut dyn Visitor<T>) -> VisitorResult<T, Self> {
         let t = match self {
             Decl::Action(decl) => visitor.begin_action_decl(decl)?.and_then(|_| {
-                let _s = visitor.symbol(&mut decl.name)?.modifying(&mut decl.name);
-                let _params = decl.params.visit(visitor)?.modifying(&mut decl.params);
-                visitor.finish_action_decl(decl)
+                let n = visitor.symbol(&mut decl.name)?.modifying(&mut decl.name)?;
+                let params = decl.params.visit(visitor)?.modifying(&mut decl.params)?;
+                let ret = decl
+                    .ret
+                    .as_mut()
+                    .map(|mut r| r.visit(visitor)?.modifying(&mut r))
+                    .transpose()?;
+                let body = decl
+                    .body
+                    .as_mut()
+                    .map(|mut b| b.visit(visitor)?.modifying(&mut b))
+                    .transpose()?;
+                visitor.finish_action_decl(decl, n, params, ret, body)
             }),
             Decl::AfterAction(decl) => visitor.begin_after_decl(decl)?.and_then(|_| {
                 let _n = decl.name.visit(visitor)?.modifying(&mut decl.name)?;
@@ -569,9 +586,19 @@ where
             }),
             Decl::Export(decl) => visitor.begin_export_decl(decl)?.and_then(|_| match decl {
                 ExportDecl::Action(decl) => visitor.begin_action_decl(decl)?.and_then(|_| {
-                    let _n = decl.name.visit(visitor)?.modifying(&mut decl.name);
-                    let _p = decl.params.visit(visitor)?.modifying(&mut decl.params);
-                    visitor.finish_action_decl(decl)
+                    let n = visitor.symbol(&mut decl.name)?.modifying(&mut decl.name)?;
+                    let params = decl.params.visit(visitor)?.modifying(&mut decl.params)?;
+                    let ret = decl
+                        .ret
+                        .as_mut()
+                        .map(|mut r| r.visit(visitor)?.modifying(&mut r))
+                        .transpose()?;
+                    let body = decl
+                        .body
+                        .as_mut()
+                        .map(|mut b| b.visit(visitor)?.modifying(&mut b))
+                        .transpose()?;
+                    visitor.finish_action_decl(decl, n, params, ret, body)
                 }),
                 ExportDecl::ForwardRef(sym) => sym
                     .visit(visitor)?

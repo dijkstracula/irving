@@ -44,6 +44,7 @@ lazy_static::lazy_static! {
 pub fn parse_expr(pairs: Pairs<Rule>) -> Result<Expr> {
     PRATT
         .map_primary(|primary| match primary.as_rule() {
+            Rule::THIS => Ok(Expr::This),
             Rule::symbol => Ok(Expr::Symbol(primary.as_str().into())),
             Rule::boollit => {
                 let val = match primary.as_str() {
