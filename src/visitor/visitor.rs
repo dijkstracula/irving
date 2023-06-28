@@ -448,10 +448,10 @@ where
                 .boolean(b)?
                 .modifying(b)
                 .map(|t| ControlMut::Produce(t)),
-            Expr::FieldAccess {
+            Expr::FieldAccess(FieldAccess {
                 ref mut record,
                 ref mut field,
-            } => visitor.begin_field_access(record, field)?.and_then(|_| {
+            }) => visitor.begin_field_access(record, field)?.and_then(|_| {
                 let r = record.visit(visitor)?.modifying(record);
                 let f = field.visit(visitor)?.modifying(field);
                 visitor.finish_field_access(record, field)
@@ -791,6 +791,29 @@ where
 }
 
 impl<T> Visitable<T, Vec<T>> for Vec<Decl>
+where
+    T: Default,
+{
+    fn visit(&mut self, visitor: &mut dyn Visitor<T>) -> VisitorResult<Vec<T>, Self> {
+        let mut res = vec![];
+        for node in self {
+            match node.visit(visitor)? {
+                ControlMut::Produce(t) => res.push(t),
+                ControlMut::SkipSiblings(t) => {
+                    res.push(t);
+                    break;
+                }
+                ControlMut::Mutation(repl, t) => {
+                    *node = repl;
+                    res.push(t);
+                }
+            };
+        }
+        Ok(ControlMut::Produce(res))
+    }
+}
+
+impl<T> Visitable<T, Vec<T>> for Vec<Action>
 where
     T: Default,
 {

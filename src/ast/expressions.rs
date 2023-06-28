@@ -48,6 +48,12 @@ pub struct BinOp {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct FieldAccess {
+    pub record: Box<Expr>,
+    pub field: Symbol,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct IndexExpr {
     pub lhs: Box<Expr>,
     pub idx: Box<Expr>,
@@ -89,7 +95,7 @@ pub enum Expr {
 
     Boolean(bool),
 
-    FieldAccess { record: Box<Expr>, field: Symbol },
+    FieldAccess(FieldAccess),
 
     Index(IndexExpr),
 

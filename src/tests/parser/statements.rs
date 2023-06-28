@@ -50,10 +50,10 @@ mod tests {
             ast,
             Stmt::ActionSequence(
                 [Action::Assign(AssignAction {
-                    lhs: Expr::FieldAccess {
+                    lhs: Expr::FieldAccess(FieldAccess {
                         record: Box::new(Expr::Symbol("foo".into())),
                         field: "bar".into()
-                    },
+                    }),
                     rhs: Expr::Boolean(false)
                 })]
                 .into()
@@ -68,7 +68,7 @@ mod tests {
             .expect("Parsing failed")
             .single()
             .unwrap();
-        let ast = IvyParser::stmt(res).expect("generate ast");
+        let _ast = IvyParser::stmt(res).expect("generate ast");
     }
 
     #[test]

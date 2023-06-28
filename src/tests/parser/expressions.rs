@@ -99,10 +99,10 @@ mod tests {
         let _ast = parse_expr("a.b").unwrap();
         assert_eq!(
             _ast,
-            Expr::FieldAccess {
+            Expr::FieldAccess(FieldAccess {
                 record: Box::new(Expr::Symbol("a".into())),
                 field: "b".into()
-            }
+            })
         );
     }
 

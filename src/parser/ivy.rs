@@ -486,7 +486,7 @@ impl IvyParser {
             AssignAction{lhs: Expr::Term(Term{id, sort}), rhs}
         ),
         [expr(lhs), expr(rhs)] => match lhs {
-            Expr::App(_) | Expr::FieldAccess {record: _, field: _} | Expr::Index(_) | Expr::Symbol(_) | Expr::This => Ok(AssignAction{lhs, rhs}),
+            Expr::App(_) | Expr::FieldAccess(_) | Expr::Index(_) | Expr::Symbol(_) | Expr::This => Ok(AssignAction{lhs, rhs}),
             _ => todo!(),
         },
         )

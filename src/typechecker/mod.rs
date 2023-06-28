@@ -18,6 +18,9 @@ pub enum TypeError {
     #[error("Expected {expected:?}, got {actual:?}")]
     SortMismatch { expected: IvySort, actual: IvySort },
 
+    #[error("{0:?} is not an action or function")]
+    NotAFunction(IvySort),
+
     #[error("{0:?} is not a field-haver")]
     NotARecord(IvySort),
 
@@ -29,4 +32,7 @@ pub enum TypeError {
 
     #[error("Sort sequence {0:?} mismatches {1:?}")]
     LenMismatch(Vec<IvySort>, Vec<IvySort>),
+
+    #[error("Symbol {expected:?} redefined as {actual:?}")]
+    FargMismatch { expected: Symbol, actual: Symbol },
 }

@@ -105,10 +105,10 @@ pub fn parse_expr(pairs: Pairs<Rule>) -> Result<Expr> {
                         ));
                     }
                 };
-                Ok(Expr::FieldAccess {
+                Ok(Expr::FieldAccess(FieldAccess {
                     record: Box::new(lhs?),
                     field: field,
-                })
+                }))
             } else {
                 Ok(Expr::BinOp(BinOp {
                     lhs: Box::new(lhs?),

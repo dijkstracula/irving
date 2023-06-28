@@ -3,7 +3,6 @@ mod tests {
     use std::collections::HashMap;
 
     use crate::{
-        ast::expressions::Expr,
         parser::ivy::{IvyParser, Rule},
         typechecker::{
             inference::TypeChecker,
