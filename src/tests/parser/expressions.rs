@@ -69,6 +69,27 @@ mod tests {
     }
 
     #[test]
+    fn parse_pred_2() {
+        let _ast = parse_expr("b = true | b = false").unwrap();
+        assert_eq!(
+            _ast,
+            Expr::BinOp(BinOp {
+                lhs: Box::new(Expr::BinOp(BinOp {
+                    lhs: Box::new(Expr::Symbol("b".into())),
+                    op: Verb::Equals,
+                    rhs: Box::new(Expr::Boolean(true))
+                })),
+                op: Verb::Or,
+                rhs: Box::new(Expr::BinOp(BinOp {
+                    lhs: Box::new(Expr::Symbol("b".into())),
+                    op: Verb::Equals,
+                    rhs: Box::new(Expr::Boolean(false))
+                }))
+            })
+        );
+    }
+
+    #[test]
     fn parse_symbol_with_underscore() {
         assert!(parse_expr("hello_world").is_ok());
     }

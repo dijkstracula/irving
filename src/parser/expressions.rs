@@ -23,12 +23,13 @@ lazy_static::lazy_static! {
         .op(Op::infix(Rule::TIMES, Assoc::Left))
         .op(Op::infix(Rule::DIV, Assoc::Left))
 
+        .op(Op::infix(Rule::OR, Assoc::Left))
+        .op(Op::infix(Rule::AND, Assoc::Left))
+
         .op(Op::infix(Rule::EQ, Assoc::Left))
         .op(Op::infix(Rule::NEQ, Assoc::Left))
 
         .op(Op::infix(Rule::IFF, Assoc::Left))
-        .op(Op::infix(Rule::OR, Assoc::Left))
-        .op(Op::infix(Rule::AND, Assoc::Left))
 
         .op(Op::prefix(Rule::UMINUS))
         .op(Op::prefix(Rule::NOT))
