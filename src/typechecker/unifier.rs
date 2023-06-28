@@ -1,6 +1,6 @@
 use std::{collections::HashMap, vec};
 
-use crate::ast::expressions::*;
+use crate::{ast::expressions::*, typechecker::sorts::Fargs};
 
 use super::{sorts::IvySort, TypeError};
 
@@ -13,14 +13,14 @@ impl Bindings {
 }
 
 pub struct Resolver {
-    pub bindings: Vec<HashMap<String, IvySort>>,
+    pub sorts: Vec<HashMap<String, IvySort>>,
     pub ctx: Vec<IvySort>,
 }
 
 impl Resolver {
     pub fn new() -> Self {
         let mut s = Self {
-            bindings: vec![],
+            sorts: vec![],
             ctx: vec![],
         };
         s.push_scope();
@@ -30,13 +30,12 @@ impl Resolver {
     // Name bindings
 
     pub fn push_scope(&mut self) {
-        self.bindings.push(HashMap::<_, _>::new())
+        self.sorts.push(HashMap::<_, _>::new())
     }
 
     pub fn pop_scope(&mut self) {
-        match self.bindings.pop() {
-            None => panic!("popping an empty scope"),
-            Some(_) => (),
+        if let None = self.sorts.pop() {
+            panic!("popping an empty sort scope");
         }
     }
 
@@ -44,7 +43,7 @@ impl Resolver {
     // identifiers.  Maybe it's its own kind of constraint?
     pub fn lookup(&mut self, sym: &Symbol) -> Option<IvySort> {
         let unresolved = self
-            .bindings
+            .sorts
             .iter()
             .rfind(|scope| scope.contains_key(sym))
             .and_then(|scope| scope.get(sym))
@@ -53,7 +52,7 @@ impl Resolver {
     }
 
     pub fn append(&mut self, sym: Symbol, sort: IvySort) -> Result<(), TypeError> {
-        let scope = match self.bindings.last_mut() {
+        let scope = match self.sorts.last_mut() {
             None => panic!("Appending into an empty scope"),
             Some(scope) => scope,
         };
@@ -92,6 +91,25 @@ impl Resolver {
         }
     }
 
+    fn unify_fargs(&mut self, lhs: &Fargs, rhs: &Fargs) -> Result<Fargs, TypeError> {
+        match (lhs, rhs) {
+            (Fargs::Unknown, Fargs::Unknown) => Ok(Fargs::Unknown),
+            (Fargs::Unknown, Fargs::List(rhs)) => Ok(Fargs::List(rhs.clone())),
+            (Fargs::List(lhs), Fargs::Unknown) => Ok(Fargs::List(lhs.clone())),
+            (Fargs::List(lhs), Fargs::List(rhs)) => {
+                if lhs.len() != rhs.len() {
+                    Err(TypeError::LenMismatch(lhs.clone(), rhs.clone()))
+                } else {
+                    let mut args = vec![];
+                    for (a1, a2) in lhs.iter().zip(rhs.iter()) {
+                        args.push(self.unify(a1, a2)?);
+                    }
+                    Ok(Fargs::List(args))
+                }
+            }
+        }
+    }
+
     pub fn unify(&mut self, lhs: &IvySort, rhs: &IvySort) -> Result<IvySort, TypeError> {
         println!("unify({:?}, {:?})", lhs, rhs);
         let lhs = self.resolve(lhs);
@@ -117,16 +135,9 @@ impl Resolver {
                 Ok(lhs)
             }
             (IvySort::Function(lhsargs, lhsret), IvySort::Function(rhsargs, rhsret)) => {
-                if lhsargs.len() != rhsargs.len() {
-                    Err(TypeError::UnificationError(lhs.clone(), rhs.clone()))
-                } else {
-                    let mut args = vec![];
-                    for (a1, a2) in lhsargs.iter().zip(rhsargs.iter()) {
-                        args.push(self.unify(a1, a2)?);
-                    }
-                    let ret = self.unify(&lhsret, &rhsret)?;
-                    Ok(IvySort::Function(args, Box::new(ret)))
-                }
+                let args = self.unify_fargs(lhsargs, rhsargs)?;
+                let ret = self.unify(&lhsret, &rhsret)?;
+                Ok(IvySort::Function(args, Box::new(ret)))
             }
             (t1, t2) => {
                 if t1 == t2 {

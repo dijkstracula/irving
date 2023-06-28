@@ -187,10 +187,10 @@ impl IvyParser {
         match_nodes!(
         input.into_children();
         [ident(name), paramlist(params)] => {
-            Ok(MixinSig { name, params})
+            Ok(MixinSig { name, params: Some(params)})
         },
         [ident(name)] => {
-            Ok(MixinSig { name, params: vec!()})
+            Ok(MixinSig { name, params: None})
         })
     }
 
@@ -236,10 +236,10 @@ impl IvyParser {
         match_nodes!(
         input.into_children();
         [mixin_sig(MixinSig{name, params}), decl_ret(ret), stmt_block(body)] => Ok(
-            AfterDecl { name, params: Some(params), ret: ret, body}
+            AfterDecl { name, params: params, ret: ret, body}
         ),
         [mixin_sig(MixinSig{name, params}), stmt_block(body)] => Ok(
-            AfterDecl { name, params: Some(params), ret: None, body}
+            AfterDecl { name, params: params, ret: None, body}
         ),
         [ident(name), stmt_block(body)] => Ok(
             AfterDecl { name, params: None, ret: None, body}
@@ -251,7 +251,7 @@ impl IvyParser {
         match_nodes!(
         input.into_children();
         [mixin_sig(MixinSig{name, params}), stmt_block(body)] => Ok(
-            BeforeDecl { name, params: Some(params), body: body}
+            BeforeDecl { name, params: params, body: body}
         ),
         [ident(name), stmt_block(body)] => Ok(
             BeforeDecl { name, params: None, body: body}
@@ -340,7 +340,7 @@ impl IvyParser {
         match_nodes!(
         input.into_children();
         [symbol(name), mixin_sig(MixinSig{name: sort, params: sort_args})] =>
-            Ok(InstanceDecl{name, sort, args: sort_args})
+            Ok(InstanceDecl{name, sort, args: sort_args.unwrap_or_default()})
         )
     }
 

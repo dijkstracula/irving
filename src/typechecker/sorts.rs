@@ -13,6 +13,12 @@ pub struct Process {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Fargs {
+    Unknown, /* Still to be unified. */
+    List(Vec<IvySort>),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum IvySort {
     Uninterpreted,
     Unit,
@@ -21,7 +27,7 @@ pub enum IvySort {
     Number,
     Range(Box<Expr>, Box<Expr>),
     Enum(Vec<Symbol>),
-    Function(Vec<IvySort>, Box<IvySort>),
+    Function(Fargs, Box<IvySort>),
     Relation(Vec<IvySort>),
     Subclass(Symbol),
     Process(Process),
@@ -34,4 +40,10 @@ impl Default for IvySort {
     fn default() -> Self {
         IvySort::Unit
     }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum FArgs {
+    SortVar(usize),
+    ArgList(Vec<IvySort>),
 }

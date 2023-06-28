@@ -1,6 +1,9 @@
 use anyhow::bail;
 
-use super::{sorts::IvySort, unifier::Resolver};
+use super::{
+    sorts::{Fargs, IvySort},
+    unifier::Resolver,
+};
 use crate::{
     ast::{
         declarations,
@@ -95,7 +98,7 @@ impl Visitor<IvySort> for TypeChecker {
     ) -> VisitorResult<IvySort, Expr> {
         let retsort = self.bindings.new_sortvar();
 
-        let expected_sort = IvySort::Function(argsorts, Box::new(retsort));
+        let expected_sort = IvySort::Function(Fargs::List(argsorts), Box::new(retsort));
         if let Ok(IvySort::Function(_, ret)) = self.bindings.unify(&fsort, &expected_sort) {
             Ok(ControlMut::Produce(*ret.clone()))
         } else {
@@ -208,7 +211,6 @@ impl Visitor<IvySort> for TypeChecker {
         self.bindings.push_scope();
         Ok(ControlMut::Produce(IvySort::Unit))
     }
-
     fn finish_action_decl(
         &mut self,
         ast: &mut declarations::ActionDecl,
@@ -221,11 +223,48 @@ impl Visitor<IvySort> for TypeChecker {
             None => self.bindings.new_sortvar(),
             Some(s) => s,
         };
-        let actsort = IvySort::Function(params, Box::new(retsort));
+        let actsort = IvySort::Function(Fargs::List(params), Box::new(retsort));
         let _unifed = self.bindings.unify(&name, &actsort)?;
         Ok(ControlMut::Produce(IvySort::Unit))
     }
 
+    fn begin_implement_decl(
+        &mut self,
+        ast: &mut declarations::ImplementDecl,
+    ) -> VisitorResult<IvySort, declarations::Decl> {
+        // Bind the name to _something_; we'll unify this value with its resolved sort when finishing the visit.
+        if let Some(sym) = ast.name.first() {
+            let sort = match self.bindings.lookup(sym) {
+                None => bail!(TypeError::UnboundVariable(sym.clone())),
+                Some(sort) => sort,
+            };
+        } else {
+            todo!()
+        }
+
+        self.bindings.push_scope();
+        Ok(ControlMut::Produce(IvySort::Unit))
+    }
+    fn finish_implement_decl(
+        &mut self,
+        ast: &mut declarations::ImplementDecl,
+        name: IvySort,
+        params: Option<Vec<IvySort>>,
+        ret: Option<IvySort>,
+        _body: Option<Vec<IvySort>>,
+    ) -> VisitorResult<IvySort, declarations::Decl> {
+        let psort = match params {
+            None => Fargs::Unknown,
+            Some(s) => Fargs::List(s),
+        };
+        let retsort = match ret {
+            None => self.bindings.new_sortvar(),
+            Some(s) => s,
+        };
+        let actsort = IvySort::Function(psort, Box::new(retsort));
+        let _unifed = self.bindings.unify(&name, &actsort)?;
+        Ok(ControlMut::Produce(IvySort::Unit))
+    }
     // decls
 
     fn begin_relation(
@@ -246,7 +285,7 @@ impl Visitor<IvySort> for TypeChecker {
         // A relation is a bool-producing function for our purposes.
         // TODO: contemplate defaultdict-style "default functions" like the C++
         // extraction code uses.
-        let relsort = IvySort::Function(paramsorts, Box::new(IvySort::Bool));
+        let relsort = IvySort::Function(Fargs::List(paramsorts), Box::new(IvySort::Bool));
         let _unifed = self.bindings.unify(&n, &relsort)?;
         Ok(ControlMut::Produce(IvySort::Unit))
     }

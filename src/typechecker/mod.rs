@@ -26,4 +26,7 @@ pub enum TypeError {
 
     #[error("Sort {0:?} mismatches {1:?}")]
     UnificationError(IvySort, IvySort),
+
+    #[error("Sort sequence {0:?} mismatches {1:?}")]
+    LenMismatch(Vec<IvySort>, Vec<IvySort>),
 }

@@ -3,7 +3,10 @@ mod tests {
     use crate::{
         ast::expressions::Expr,
         parser::ivy::{IvyParser, Rule},
-        typechecker::{inference::TypeChecker, sorts::IvySort},
+        typechecker::{
+            inference::TypeChecker,
+            sorts::{Fargs, IvySort},
+        },
         visitor::visitor::Visitable,
     };
     use pest_consume::Parser;
@@ -30,7 +33,7 @@ mod tests {
         assert_eq!(
             tc.bindings.lookup(&"is_up".to_owned()),
             Some(IvySort::Function(
-                [IvySort::SortVar(1), IvySort::SortVar(2)].into(),
+                Fargs::List(vec!(IvySort::SortVar(1), IvySort::SortVar(2))),
                 Box::new(IvySort::Bool)
             ))
         )
@@ -57,7 +60,7 @@ mod tests {
         assert_eq!(
             tc.bindings.lookup(&"is_up".to_owned()),
             Some(IvySort::Function(
-                [IvySort::Bool, IvySort::Bool].into(),
+                Fargs::List(vec!(IvySort::Bool, IvySort::Bool)),
                 Box::new(IvySort::Bool)
             ))
         )

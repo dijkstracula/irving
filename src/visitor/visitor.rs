@@ -164,7 +164,14 @@ where
     fn begin_implement_decl(&mut self, _ast: &mut ImplementDecl) -> VisitorResult<T, Decl> {
         Ok(ControlMut::Produce(T::default()))
     }
-    fn finish_implement_decl(&mut self, _ast: &mut ImplementDecl) -> VisitorResult<T, Decl> {
+    fn finish_implement_decl(
+        &mut self,
+        _ast: &mut ImplementDecl,
+        _name: T,
+        _params: Option<Vec<T>>,
+        ret: Option<T>,
+        _body: Option<Vec<T>>,
+    ) -> VisitorResult<T, Decl> {
         Ok(ControlMut::Produce(T::default()))
     }
 
@@ -610,7 +617,26 @@ where
                 let _d = decl.visit(visitor)?.modifying(decl);
                 visitor.finish_global_decl(decl)
             }),
-            Decl::Implement(_) => todo!(),
+            Decl::Implement(decl) => visitor.begin_implement_decl(decl)?.and_then(|_| {
+                let n = decl.name.visit(visitor)?.modifying(&mut decl.name)?;
+                let params = decl
+                    .params
+                    .as_mut()
+                    .map(|mut p| p.visit(visitor)?.modifying(&mut p))
+                    .transpose()?;
+                let ret = decl
+                    .ret
+                    .as_mut()
+                    .map(|mut r| r.visit(visitor)?.modifying(&mut r))
+                    .transpose()?;
+                let body = decl
+                    .body
+                    .as_mut()
+                    .map(|mut b| b.visit(visitor)?.modifying(&mut b))
+                    .transpose()?;
+
+                visitor.finish_implement_decl(decl, n, params, ret, body)
+            }),
             Decl::Implementation(decl) => visitor.begin_implementation_decl(decl)?.and_then(|_| {
                 let _d = decl.visit(visitor)?.modifying(decl);
                 visitor.finish_implementation_decl(decl)

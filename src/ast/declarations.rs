@@ -15,7 +15,7 @@ pub type DeclRet = Option<Param>;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MixinSig {
     pub name: Ident,
-    pub params: ParamList,
+    pub params: Option<ParamList>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -63,7 +63,7 @@ pub struct ImportDecl {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ImplementDecl {
     pub name: Ident,
-    pub params: ParamList,
+    pub params: Option<ParamList>,
     pub ret: Option<Param>,
     pub body: Option<Vec<Stmt>>,
 }

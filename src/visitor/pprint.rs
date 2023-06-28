@@ -313,9 +313,9 @@ impl<W: Write> Visitor<()> for PrettyPrinter<W> {
         self.write_str("implement ")?;
         self.identifier(&mut ast.name)?;
 
-        if ast.params.len() > 0 {
+        if let Some(params) = &mut ast.params {
             self.write_str("(")?;
-            self.write_separated(&mut ast.params, ", ")?;
+            self.write_separated(params, ", ")?;
             self.write_str(")")?;
         }
 

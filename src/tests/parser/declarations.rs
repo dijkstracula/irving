@@ -110,7 +110,7 @@ mod tests {
     }
 
     #[test]
-    fn parse_implentation_decl() {
+    fn parse_implementation_decl() {
         let fragment = "implementation {
             instance sock : net.socket;
             after init { };
