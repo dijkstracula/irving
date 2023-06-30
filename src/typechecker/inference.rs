@@ -13,7 +13,7 @@ use crate::{
         expressions::{self, Expr, Symbol},
         statements::Stmt,
     },
-    typechecker::TypeError,
+    typechecker::{sorts, TypeError},
     visitor::{
         control::ControlMut,
         visitor::{Visitable, Visitor},
@@ -320,6 +320,8 @@ impl Visitor<IvySort> for TypeChecker {
         Ok(ControlMut::Produce(IvySort::Unit))
     }
 
+    // decls
+
     fn begin_implement_decl(
         &mut self,
         ast: &mut declarations::ImplementDecl,
@@ -361,7 +363,39 @@ impl Visitor<IvySort> for TypeChecker {
         self.bindings.pop_scope();
         Ok(ControlMut::Produce(IvySort::Unit))
     }
-    // decls
+
+    fn begin_module_decl(
+        &mut self,
+        ast: &mut declarations::ModuleDecl,
+    ) -> VisitorResult<IvySort, declarations::Decl> {
+        let v = self.bindings.new_sortvar();
+        self.bindings.append(ast.name.clone(), v)?;
+        Ok(ControlMut::Produce(IvySort::Unit))
+    }
+    fn finish_module_decl(
+        &mut self,
+        ast: &mut declarations::ModuleDecl,
+        n: IvySort,
+        p: Vec<IvySort>,
+        b: Vec<IvySort>,
+    ) -> VisitorResult<IvySort, declarations::Decl> {
+        let args = ast
+            .params
+            .iter()
+            .zip(p.into_iter())
+            .map(|(n, s)| (n.id.clone(), s))
+            .collect::<Vec<_>>();
+
+        let actual_sort = IvySort::Process(sorts::Process {
+            args,
+            impl_fields: todo!(),
+            spec_fields: todo!(),
+            commonspec_fields: todo!(),
+        });
+        let _unifed = self.bindings.unify(&n, &actual_sort)?;
+
+        Ok(ControlMut::Produce(IvySort::Unit))
+    }
 
     fn begin_relation(
         &mut self,

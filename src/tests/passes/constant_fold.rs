@@ -2,7 +2,7 @@
 mod tests {
     use crate::ast::expressions::*;
     use crate::parser::ivy::{IvyParser, Rule};
-    use crate::visitor::constant_fold::ConstantFold;
+    use crate::passes::constant_fold::ConstantFold;
     use crate::visitor::visitor::Visitable;
     use pest_consume::Parser;
 

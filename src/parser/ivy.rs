@@ -351,7 +351,7 @@ impl IvyParser {
         )
     }
 
-    pub fn extract_decl(input: Node) -> Result<IsolateDecl> {
+    pub fn isolate_decl(input: Node) -> Result<IsolateDecl> {
         match_nodes!(
         input.into_children();
         [decl_sig(DeclSig{name, params}), decl_block(body)] =>
@@ -440,12 +440,12 @@ impl IvyParser {
         [before_decl(decl)]    => Ok(Decl::BeforeAction(decl)),
         [common_decl(decls)] => Ok(Decl::Common(decls)),
         [export_decl(fmla)]   => Ok(Decl::Export(fmla)),
-        [extract_decl(decl)]  => Ok(Decl::Isolate(decl)),
         [global_decl(decls)]  => Ok(Decl::Globals(decls)),
         [function_decl(decl)] => Ok(Decl::Function(decl)),
         [implement_action_decl(decl)] => Ok(Decl::Implement(decl)),
         [implementation_decl(decls)] => Ok(Decl::Implementation(decls)),
         [import_decl(decl)]    => Ok(Decl::Import(decl)),
+        [isolate_decl(decl)]  => Ok(Decl::Isolate(decl)),
         [include_decl(module)] => Ok(Decl::Include(module)),
         [invariant_decl(fmla)] => Ok(Decl::Invariant(fmla)),
         [instance_decl(decl)] => Ok(Decl::Instance(decl)),

@@ -1,9 +1,6 @@
-use self::control::ControlMut;
-
-pub mod constant_fold;
 pub mod control;
-pub(crate) mod global_lowerer;
-pub(crate) mod pprint;
-pub(crate) mod visitor;
+pub mod visitor;
+pub(crate) use crate::visitor::visitor::Visitor;
+pub(crate) use control::ControlMut;
 
 pub type VisitorResult<T, Node> = anyhow::Result<ControlMut<T, Node>>;

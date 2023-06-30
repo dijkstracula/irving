@@ -83,7 +83,7 @@ RETURN = _{" return "}
 // The semantics of these are slightly different in real-Ivy but I'm
 // somewhat sure that for our purposes they're equivalent, at least right
 // now.  
-EXTRACT      = _{ "extract" | "process" | "isolate" }
+ISOLATE      = _{ "extract" | "process" | "isolate" }
 
 boollit = { "true" | "false" }
 
@@ -122,7 +122,7 @@ reserved = {
 | WHILE
 | RETURN
 | BEFORE
-| EXTRACT
+| ISOLATE
 | boollit
 | EXISTS
 | FORALL

@@ -220,7 +220,13 @@ where
     fn begin_module_decl(&mut self, _ast: &mut ModuleDecl) -> VisitorResult<T, Decl> {
         Ok(ControlMut::Produce(T::default()))
     }
-    fn finish_module_decl(&mut self, _ast: &mut ModuleDecl) -> VisitorResult<T, Decl> {
+    fn finish_module_decl(
+        &mut self,
+        _ast: &mut ModuleDecl,
+        _n: T,
+        _p: Vec<T>,
+        _b: Vec<T>,
+    ) -> VisitorResult<T, Decl> {
         Ok(ControlMut::Produce(T::default()))
     }
 
@@ -668,10 +674,10 @@ where
                 visitor.finish_invariant_decl(decl)
             }),
             Decl::Module(decl) => visitor.begin_module_decl(decl)?.and_then(|_| {
-                let _n = decl.name.visit(visitor)?.modifying(&mut decl.name);
-                let _p = decl.params.visit(visitor)?.modifying(&mut decl.params);
-                let _b = decl.body.visit(visitor)?.modifying(&mut decl.body);
-                visitor.finish_module_decl(decl)
+                let n = decl.name.visit(visitor)?.modifying(&mut decl.name)?;
+                let p = decl.params.visit(visitor)?.modifying(&mut decl.params)?;
+                let b = decl.body.visit(visitor)?.modifying(&mut decl.body)?;
+                visitor.finish_module_decl(decl, n, p, b)
             }),
             Decl::Object(decl) => visitor.begin_object_decl(decl)?.and_then(|_| {
                 let _n = decl.name.visit(visitor)?.modifying(&mut decl.name);
