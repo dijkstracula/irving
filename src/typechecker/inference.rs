@@ -377,7 +377,7 @@ impl Visitor<IvySort> for TypeChecker {
         ast: &mut declarations::ModuleDecl,
         n: IvySort,
         p: Vec<IvySort>,
-        b: Vec<IvySort>,
+        _b: Vec<IvySort>,
     ) -> VisitorResult<IvySort, declarations::Decl> {
         let args = ast
             .params

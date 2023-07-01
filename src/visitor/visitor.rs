@@ -594,7 +594,7 @@ where
                 visitor.finish_before_decl(decl)
             }),
             Decl::Common(decl) => visitor.begin_common_decl(decl)?.and_then(|_| {
-                let _d = decl.visit(visitor)?.modifying(decl);
+                let _d = decl.visit(visitor)?.modifying(decl)?;
                 visitor.finish_common_decl(decl)
             }),
             Decl::Export(decl) => visitor.begin_export_decl(decl)?.and_then(|_| match decl {
@@ -644,7 +644,7 @@ where
                 visitor.finish_implement_decl(decl, n, params, ret, body)
             }),
             Decl::Implementation(decl) => visitor.begin_implementation_decl(decl)?.and_then(|_| {
-                let _d = decl.visit(visitor)?.modifying(decl);
+                let _d = decl.visit(visitor)?.modifying(decl)?;
                 visitor.finish_implementation_decl(decl)
             }),
             Decl::Import(decl) => visitor.begin_import_decl(decl)?.and_then(|_| {
@@ -679,6 +679,7 @@ where
                 let b = decl.body.visit(visitor)?.modifying(&mut decl.body)?;
                 visitor.finish_module_decl(decl, n, p, b)
             }),
+            Decl::Noop => return Ok(ControlMut::Produce(T::default())),
             Decl::Object(decl) => visitor.begin_object_decl(decl)?.and_then(|_| {
                 let _n = decl.name.visit(visitor)?.modifying(&mut decl.name);
                 let _p = decl.params.visit(visitor)?.modifying(&mut decl.params);
@@ -691,7 +692,7 @@ where
                 visitor.finish_relation(decl, n, p)
             }),
             Decl::Specification(decl) => visitor.begin_specification(decl)?.and_then(|_| {
-                let _d = decl.visit(visitor)?.modifying(decl);
+                let _d = decl.visit(visitor)?.modifying(decl)?;
                 visitor.finish_specification(decl)
             }),
             Decl::Stmts(stmts) => {
@@ -786,6 +787,9 @@ where
                     res.push(t);
                     break;
                 }
+                ControlMut::Mutation(Stmt::ActionSequence(actions), t) if actions.len() == 0 => {
+                    continue;
+                }
                 ControlMut::Mutation(repl, t) => {
                     *node = repl;
                     res.push(t);
@@ -808,6 +812,14 @@ where
                 ControlMut::SkipSiblings(t) => {
                     res.push(t);
                     break;
+                }
+                ControlMut::Mutation(Decl::Common(decls), t)
+                | ControlMut::Mutation(Decl::Globals(decls), t)
+                | ControlMut::Mutation(Decl::Implementation(decls), t)
+                | ControlMut::Mutation(Decl::Specification(decls), t)
+                    if decls.len() == 0 =>
+                {
+                    continue;
                 }
                 ControlMut::Mutation(repl, t) => {
                     *node = repl;

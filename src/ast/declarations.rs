@@ -90,6 +90,12 @@ pub struct ModuleDecl {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct NormalizedModuleDecl {
+    pub name: Symbol,
+    pub params: ParamList,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ObjectDecl {
     pub name: Symbol,
     pub params: ParamList,
@@ -144,6 +150,8 @@ pub enum Decl {
     Invariant(Fmla),
 
     Module(ModuleDecl),
+
+    Noop,
 
     Object(ObjectDecl),
 
