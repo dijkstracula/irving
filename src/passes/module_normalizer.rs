@@ -125,7 +125,11 @@ impl Visitor<()> for ModuleNormalizer {
         Ok(ControlMut::Produce(()))
     }
     fn finish_implementation_decl(&mut self, ast: &mut Vec<Decl>) -> VisitorResult<(), Decl> {
-        println!("NBT: finish_impl {:?}", ast);
+        ast.retain(|decl| match decl {
+            Decl::Noop => false,
+            _ => true,
+        });
+
         if self.in_common {
             self.common_impls.append(ast);
         } else {
@@ -154,6 +158,11 @@ impl Visitor<()> for ModuleNormalizer {
         Ok(ControlMut::Produce(()))
     }
     fn finish_specification(&mut self, ast: &mut Vec<Decl>) -> VisitorResult<(), Decl> {
+        ast.retain(|decl| match decl {
+            Decl::Noop => false,
+            _ => true,
+        });
+
         if self.in_common {
             self.common_specs.append(ast);
         } else {
@@ -176,9 +185,6 @@ impl Visitor<()> for ModuleNormalizer {
         Ok(ControlMut::Produce(()))
     }
     fn finish_common_decl(&mut self, ast: &mut Vec<Decl>) -> VisitorResult<(), Decl> {
-        self.in_common = false;
-        println!("NBT: finish_common {:?}", ast);
-
         ast.retain(|decl| match decl {
             Decl::Noop => false,
             _ => true,
@@ -190,6 +196,7 @@ impl Visitor<()> for ModuleNormalizer {
             self.common_impls.append(ast);
         }
 
+        self.in_common = false;
         Ok(ControlMut::Mutation(Decl::Noop, ()))
     }
 

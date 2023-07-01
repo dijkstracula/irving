@@ -184,4 +184,27 @@ mod tests {
         ast.visit(&mut mn).expect("traversal");
         assert_eq!(ast, expected_ast);
     }
+
+    #[test]
+    fn normalize_idempotent() {
+        let mut ast = decl_from_src(
+            "module foo = {
+            implementation {
+                common {
+                    instance net: sock.net;
+                }
+            }
+            specification {
+                common {
+                    var is_up: bool;
+                }
+            }
+        }",
+        );
+        let expected_ast = ast.clone();
+
+        let mut mn = ModuleNormalizer::new();
+        ast.visit(&mut mn).expect("traversal");
+        assert_eq!(ast, expected_ast);
+    }
 }

@@ -13,6 +13,7 @@ use crate::{
         expressions::{self, Expr, Symbol},
         statements::Stmt,
     },
+    passes::module_normalizer::ModuleNormalizer,
     typechecker::{sorts, TypeError},
     visitor::{
         control::ControlMut,
@@ -370,6 +371,8 @@ impl Visitor<IvySort> for TypeChecker {
     ) -> VisitorResult<IvySort, declarations::Decl> {
         let v = self.bindings.new_sortvar();
         self.bindings.append(ast.name.clone(), v)?;
+
+        let normalizer = ModuleNormalizer::new();
         Ok(ControlMut::Produce(IvySort::Unit))
     }
     fn finish_module_decl(

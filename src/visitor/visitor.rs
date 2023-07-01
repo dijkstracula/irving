@@ -807,6 +807,10 @@ where
     fn visit(&mut self, visitor: &mut dyn Visitor<T>) -> VisitorResult<Vec<T>, Self> {
         let mut res = vec![];
         for node in self {
+            match node {
+                Decl::Noop => continue,
+                _ => (),
+            };
             match node.visit(visitor)? {
                 ControlMut::Produce(t) => res.push(t),
                 ControlMut::SkipSiblings(t) => {
