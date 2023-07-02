@@ -230,6 +230,25 @@ where
         Ok(ControlMut::Produce(T::default()))
     }
 
+    fn begin_normalized_module_decl(
+        &mut self,
+        _ast: &mut NormalizedModuleDecl,
+    ) -> VisitorResult<T, Decl> {
+        Ok(ControlMut::Produce(T::default()))
+    }
+    fn finish_normalized_module_decl(
+        &mut self,
+        _ast: &mut NormalizedModuleDecl,
+        _n: T,
+        _p: Vec<T>,
+        _i: Vec<T>,
+        _s: Vec<T>,
+        _ci: Vec<T>,
+        _cs: Vec<T>,
+    ) -> VisitorResult<T, Decl> {
+        Ok(ControlMut::Produce(T::default()))
+    }
+
     fn begin_object_decl(&mut self, _ast: &mut ObjectDecl) -> VisitorResult<T, Decl> {
         Ok(ControlMut::Produce(T::default()))
     }
@@ -680,6 +699,31 @@ where
                 visitor.finish_module_decl(decl, n, p, b)
             }),
             Decl::Noop => return Ok(ControlMut::Produce(T::default())),
+
+            Decl::NormalizedModule(decl) => {
+                visitor.begin_normalized_module_decl(decl)?.and_then(|_| {
+                    let n = decl.name.visit(visitor)?.modifying(&mut decl.name)?;
+                    let p = decl.params.visit(visitor)?.modifying(&mut decl.params)?;
+
+                    let i = decl
+                        .impl_decls
+                        .visit(visitor)?
+                        .modifying(&mut decl.impl_decls)?;
+                    let s = decl
+                        .spec_decls
+                        .visit(visitor)?
+                        .modifying(&mut decl.spec_decls)?;
+                    let ci = decl
+                        .common_impl_decls
+                        .visit(visitor)?
+                        .modifying(&mut decl.impl_decls)?;
+                    let cs = decl
+                        .common_spec_decls
+                        .visit(visitor)?
+                        .modifying(&mut decl.spec_decls)?;
+                    visitor.finish_normalized_module_decl(decl, n, p, i, s, ci, cs)
+                })
+            }
             Decl::Object(decl) => visitor.begin_object_decl(decl)?.and_then(|_| {
                 let _n = decl.name.visit(visitor)?.modifying(&mut decl.name);
                 let _p = decl.params.visit(visitor)?.modifying(&mut decl.params);

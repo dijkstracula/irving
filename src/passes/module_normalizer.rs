@@ -84,27 +84,17 @@ impl Visitor<()> for ModuleNormalizer {
         _p: Vec<()>,
         _b: Vec<()>,
     ) -> VisitorResult<(), Decl> {
-        let mut body = vec![];
-
-        if self.common_impls.len() > 0 {
-            self.impls
-                .push(Decl::Common(std::mem::take(&mut self.common_impls)));
-        }
-        if self.common_specs.len() > 0 {
-            self.specs
-                .push(Decl::Common(std::mem::take(&mut self.common_specs)));
-        }
-
-        if self.impls.len() > 0 {
-            body.push(Decl::Implementation(std::mem::take(&mut self.impls)));
-        }
-        if self.specs.len() > 0 {
-            body.push(Decl::Specification(std::mem::take(&mut self.specs)));
-        }
-        ast.body = body;
+        let normalized = NormalizedModuleDecl {
+            name: ast.name.clone(),
+            params: ast.params.clone(),
+            impl_decls: std::mem::take(&mut self.impls),
+            spec_decls: std::mem::take(&mut self.specs),
+            common_spec_decls: std::mem::take(&mut self.common_specs),
+            common_impl_decls: std::mem::take(&mut self.common_impls),
+        };
 
         self.curr_module_params = None;
-        Ok(ControlMut::Produce(()))
+        Ok(ControlMut::Mutation(Decl::NormalizedModule(normalized), ()))
     }
 
     fn begin_implementation_decl(&mut self, _ast: &mut Vec<Decl>) -> VisitorResult<(), Decl> {

@@ -1,17 +1,17 @@
 #[cfg(test)]
 mod tests {
-    use crate::ast::declarations::Decl;
+    use crate::ast::declarations::{Decl, NormalizedModuleDecl};
     use crate::parser::ivy::{IvyParser, Rule};
     use crate::passes::module_normalizer::{ModuleNormalizer, NormalizerError};
     use crate::visitor::visitor::Visitable;
     use pest_consume::Parser;
 
     fn decl_from_src(prog: &str) -> Decl {
-        let res = IvyParser::parse(Rule::module_decl, &prog)
+        let res = IvyParser::parse(Rule::decl, &prog)
             .expect("Parsing failed")
             .single()
             .unwrap();
-        Decl::Module(IvyParser::module_decl(res).expect("AST generation failed"))
+        IvyParser::decl(res).expect("AST generation failed")
     }
 
     #[test]
@@ -19,9 +19,16 @@ mod tests {
         let mut ast = decl_from_src("module foo = {}");
         let mut mn = ModuleNormalizer::new();
 
-        let original_ast = ast.clone();
+        let expected_ast = Decl::NormalizedModule(NormalizedModuleDecl {
+            name: "foo".into(),
+            params: vec![],
+            impl_decls: vec![],
+            spec_decls: vec![],
+            common_spec_decls: vec![],
+            common_impl_decls: vec![],
+        });
         ast.visit(&mut mn).expect("traversal");
-        assert_eq!(original_ast, ast);
+        assert_eq!(ast, expected_ast);
     }
 
     #[test]
@@ -32,14 +39,18 @@ mod tests {
             instance net: sock.net;
         }",
         );
-        let expected_ast = decl_from_src(
-            "module foo = {
-            implementation {
-                var is_up: bool;
-                instance net: sock.net;
-            }
-        }",
-        );
+        let expected_ast = Decl::NormalizedModule(NormalizedModuleDecl {
+            name: "foo".into(),
+            params: vec![],
+            impl_decls: [
+                decl_from_src("var is_up: bool"),
+                decl_from_src("instance net: sock.net"),
+            ]
+            .into(),
+            spec_decls: vec![],
+            common_spec_decls: vec![],
+            common_impl_decls: vec![],
+        });
 
         let mut mn = ModuleNormalizer::new();
         ast.visit(&mut mn).expect("traversal");
@@ -57,14 +68,18 @@ mod tests {
             }
         }",
         );
-        let expected_ast = decl_from_src(
-            "module foo = {
-            implementation {
-                instance net: sock.net;
-                var is_up: bool;
-            }
-        }",
-        );
+        let expected_ast = Decl::NormalizedModule(NormalizedModuleDecl {
+            name: "foo".into(),
+            params: vec![],
+            impl_decls: [
+                decl_from_src("instance net: sock.net"),
+                decl_from_src("var is_up: bool"),
+            ]
+            .into(),
+            spec_decls: vec![],
+            common_spec_decls: vec![],
+            common_impl_decls: vec![],
+        });
 
         let mut mn = ModuleNormalizer::new();
         ast.visit(&mut mn).expect("traversal");
@@ -84,14 +99,18 @@ mod tests {
             }
         }",
         );
-        let expected_ast = decl_from_src(
-            "module foo = {
-            implementation {
-                instance net: sock.net;
-                var is_up: bool;
-            }
-        }",
-        );
+        let expected_ast = Decl::NormalizedModule(NormalizedModuleDecl {
+            name: "foo".into(),
+            params: vec![],
+            impl_decls: [
+                decl_from_src("instance net: sock.net"),
+                decl_from_src("var is_up: bool"),
+            ]
+            .into(),
+            spec_decls: vec![],
+            common_spec_decls: vec![],
+            common_impl_decls: vec![],
+        });
 
         let mut mn = ModuleNormalizer::new();
         ast.visit(&mut mn).expect("traversal");
@@ -135,17 +154,18 @@ mod tests {
             }
         }",
         );
-        let expected_ast = decl_from_src(
-            "module foo = {
-            implementation {
-                common {
-                    var is_up: bool;
-                    instance net: sock.net;
-                }
-            }    
-        }",
-        );
-
+        let expected_ast = Decl::NormalizedModule(NormalizedModuleDecl {
+            name: "foo".into(),
+            params: vec![],
+            impl_decls: vec![],
+            spec_decls: vec![],
+            common_spec_decls: vec![],
+            common_impl_decls: [
+                decl_from_src("var is_up: bool"),
+                decl_from_src("instance net: sock.net"),
+            ]
+            .into(),
+        });
         let mut mn = ModuleNormalizer::new();
         ast.visit(&mut mn).expect("traversal");
         assert_eq!(ast, expected_ast);
@@ -165,43 +185,14 @@ mod tests {
             }
         }",
         );
-        let expected_ast = decl_from_src(
-            "module foo = {
-            implementation {
-                common {
-                    instance net: sock.net;
-                }
-            }
-            specification {
-                common {
-                    var is_up: bool;
-                }
-            }
-        }",
-        );
-
-        let mut mn = ModuleNormalizer::new();
-        ast.visit(&mut mn).expect("traversal");
-        assert_eq!(ast, expected_ast);
-    }
-
-    #[test]
-    fn normalize_idempotent() {
-        let mut ast = decl_from_src(
-            "module foo = {
-            implementation {
-                common {
-                    instance net: sock.net;
-                }
-            }
-            specification {
-                common {
-                    var is_up: bool;
-                }
-            }
-        }",
-        );
-        let expected_ast = ast.clone();
+        let expected_ast = Decl::NormalizedModule(NormalizedModuleDecl {
+            name: "foo".into(),
+            params: vec![],
+            impl_decls: vec![],
+            spec_decls: vec![],
+            common_spec_decls: [decl_from_src("var is_up: bool")].into(),
+            common_impl_decls: [decl_from_src("instance net: sock.net")].into(),
+        });
 
         let mut mn = ModuleNormalizer::new();
         ast.visit(&mut mn).expect("traversal");

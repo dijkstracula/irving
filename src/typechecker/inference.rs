@@ -372,7 +372,27 @@ impl Visitor<IvySort> for TypeChecker {
         let v = self.bindings.new_sortvar();
         self.bindings.append(ast.name.clone(), v)?;
 
-        let normalizer = ModuleNormalizer::new();
+        // At this point the module normalizer should have run as a previous
+        // pass.  A normalized module can't have any other declarations than
+        // these ones.
+        if let Some(bad_decl) = ast.body.iter().find_map(|d| match d {
+            declarations::Decl::Common(_)
+            | declarations::Decl::Implementation(_)
+            | declarations::Decl::Specification(_) => None,
+            _ => Some(d),
+        }) {
+            bail!(TypeError::UnnormalizedModule(bad_decl.clone()))
+        }
+
+        let impl_block = ast.body.iter_mut().find_map(|d| match d {
+            declarations::Decl::Implementation(decls) => Some(decls),
+            _ => None,
+        });
+        let spec_block = ast.body.iter_mut().find_map(|d| match d {
+            declarations::Decl::Specification(decls) => Some(decls),
+            _ => None,
+        });
+
         Ok(ControlMut::Produce(IvySort::Unit))
     }
     fn finish_module_decl(

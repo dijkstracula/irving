@@ -4,6 +4,8 @@ use super::expressions::*;
 use super::logic::Fmla;
 use super::statements::*;
 
+// Syntactic AST nodes
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DeclSig {
     pub name: Symbol,
@@ -90,12 +92,6 @@ pub struct ModuleDecl {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct NormalizedModuleDecl {
-    pub name: Symbol,
-    pub params: ParamList,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ObjectDecl {
     pub name: Symbol,
     pub params: ParamList,
@@ -106,6 +102,19 @@ pub struct ObjectDecl {
 pub struct Relation {
     pub name: Symbol,
     pub params: ParamList,
+}
+
+// Transformed AST nodes
+
+/// Created by the ModuleNormalizer pass.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct NormalizedModuleDecl {
+    pub name: Symbol,
+    pub params: ParamList,
+    pub impl_decls: Vec<Decl>,
+    pub spec_decls: Vec<Decl>,
+    pub common_spec_decls: Vec<Decl>,
+    pub common_impl_decls: Vec<Decl>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -150,6 +159,8 @@ pub enum Decl {
     Invariant(Fmla),
 
     Module(ModuleDecl),
+
+    NormalizedModule(NormalizedModuleDecl),
 
     Noop,
 

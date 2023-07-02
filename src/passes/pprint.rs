@@ -419,6 +419,49 @@ impl<W: Write> Visitor<()> for PrettyPrinter<W> {
         Ok(ControlMut::SkipSiblings(()))
     }
 
+    fn begin_normalized_module_decl(
+        &mut self,
+        module: &mut declarations::NormalizedModuleDecl,
+    ) -> VisitorResult<(), declarations::Decl> {
+        self.out
+            .write_fmt(format_args!("process {}", module.name))?;
+
+        if module.params.len() > 0 {
+            self.write_str("(")?;
+            module.params.visit(self)?;
+            self.write_str(")")?;
+        }
+        self.write_str(" {\n")?;
+
+        if module.impl_decls.len() > 0 {
+            self.write_str("implementation {\n")?;
+            module.impl_decls.visit(self)?;
+            self.write_str("\n}\n")?;
+        }
+        if module.spec_decls.len() > 0 {
+            self.write_str("specification {\n")?;
+            module.spec_decls.visit(self)?;
+            self.write_str("\n}\n")?;
+        }
+        if module.common_spec_decls.len() > 0 && module.common_impl_decls.len() > 0 {
+            self.write_str("common {\n")?;
+            if module.impl_decls.len() > 0 {
+                self.write_str("implementation {\n")?;
+                module.impl_decls.visit(self)?;
+                self.write_str("\n}\n")?;
+            }
+            if module.spec_decls.len() > 0 {
+                self.write_str("specification {\n")?;
+                module.spec_decls.visit(self)?;
+                self.write_str("\n}\n")?;
+            }
+            self.write_str("\n}\n")?;
+        }
+
+        self.write_str("\n}\n")?;
+        Ok(ControlMut::SkipSiblings(()))
+    }
+
     fn begin_object_decl(
         &mut self,
         ast: &mut declarations::ObjectDecl,
