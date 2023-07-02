@@ -351,14 +351,6 @@ impl IvyParser {
         )
     }
 
-    pub fn isolate_decl(input: Node) -> Result<IsolateDecl> {
-        match_nodes!(
-        input.into_children();
-        [decl_sig(DeclSig{name, params}), decl_block(body)] =>
-            Ok(IsolateDecl{name, params, body})
-        )
-    }
-
     pub fn module_decl(input: Node) -> Result<ModuleDecl> {
         match_nodes!(
         input.into_children();
@@ -445,7 +437,6 @@ impl IvyParser {
         [implement_action_decl(decl)] => Ok(Decl::Implement(decl)),
         [implementation_decl(decls)] => Ok(Decl::Implementation(decls)),
         [import_decl(decl)]    => Ok(Decl::Import(decl)),
-        [isolate_decl(decl)]  => Ok(Decl::Isolate(decl)),
         [include_decl(module)] => Ok(Decl::Include(module)),
         [invariant_decl(fmla)] => Ok(Decl::Invariant(fmla)),
         [instance_decl(decl)] => Ok(Decl::Instance(decl)),
@@ -596,15 +587,12 @@ impl IvyParser {
     pub fn prog(input: Node) -> Result<Prog> {
         match_nodes!(
         input.into_children();
-        [langver((major, minor)), decl(decls).., EOI(())] => {
-            Ok(Prog {
+        [langver((major, minor)), decl(decls).., EOI(())] => Ok(
+            Prog {
                 major_version: major,
                 minor_version: minor,
-                top: IsolateDecl{
-                    name: "this".into(),
-                    params: vec!(),
-                    body: decls.collect()
-                }})
-        })
+                top: decls.collect::<Vec<_>>(),
+            })
+        )
     }
 }

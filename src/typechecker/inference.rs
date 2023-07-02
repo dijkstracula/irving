@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use anyhow::bail;
 
 use super::{
-    sorts::{Fargs, IvySort},
+    sorts::{Fargs, IvySort, Process},
     unifier::Resolver,
 };
 use crate::{
@@ -13,7 +13,6 @@ use crate::{
         expressions::{self, Expr, Symbol},
         statements::Stmt,
     },
-    passes::module_normalizer::ModuleNormalizer,
     typechecker::{sorts, TypeError},
     visitor::{
         control::ControlMut,
@@ -211,7 +210,7 @@ impl Visitor<IvySort> for TypeChecker {
             .impl_fields
             .get(rhs)
             .or(recordsort.spec_fields.get(rhs))
-            .or(recordsort.commonspec_fields.get(rhs))
+            .or(recordsort.common_spec_fields.get(rhs))
         {
             Some(sort) => Ok(ControlMut::SkipSiblings(sort.clone())),
             None => bail!(TypeError::UnboundVariable(rhs.clone())),
@@ -369,54 +368,72 @@ impl Visitor<IvySort> for TypeChecker {
         &mut self,
         ast: &mut declarations::ModuleDecl,
     ) -> VisitorResult<IvySort, declarations::Decl> {
+        bail!(TypeError::UnnormalizedModule(ast.clone()))
+    }
+
+    fn begin_normalized_module_decl(
+        &mut self,
+        ast: &mut declarations::NormalizedModuleDecl,
+    ) -> VisitorResult<IvySort, declarations::Decl> {
         let v = self.bindings.new_sortvar();
         self.bindings.append(ast.name.clone(), v)?;
 
-        // At this point the module normalizer should have run as a previous
-        // pass.  A normalized module can't have any other declarations than
-        // these ones.
-        if let Some(bad_decl) = ast.body.iter().find_map(|d| match d {
-            declarations::Decl::Common(_)
-            | declarations::Decl::Implementation(_)
-            | declarations::Decl::Specification(_) => None,
-            _ => Some(d),
-        }) {
-            bail!(TypeError::UnnormalizedModule(bad_decl.clone()))
-        }
-
-        let impl_block = ast.body.iter_mut().find_map(|d| match d {
-            declarations::Decl::Implementation(decls) => Some(decls),
-            _ => None,
-        });
-        let spec_block = ast.body.iter_mut().find_map(|d| match d {
-            declarations::Decl::Specification(decls) => Some(decls),
-            _ => None,
-        });
-
         Ok(ControlMut::Produce(IvySort::Unit))
     }
-    fn finish_module_decl(
+    fn finish_normalized_module_decl(
         &mut self,
-        ast: &mut declarations::ModuleDecl,
-        n: IvySort,
-        p: Vec<IvySort>,
-        _b: Vec<IvySort>,
+        ast: &mut declarations::NormalizedModuleDecl,
+        decl_sort: IvySort,
+        param_sorts: Vec<IvySort>,
+        impl_sorts: Vec<IvySort>,
+        spec_sorts: Vec<IvySort>,
+        common_impl_sorts: Vec<IvySort>,
+        common_spec_sorts: Vec<IvySort>,
     ) -> VisitorResult<IvySort, declarations::Decl> {
         let args = ast
             .params
             .iter()
-            .zip(p.into_iter())
-            .map(|(n, s)| (n.id.clone(), s))
+            .zip(param_sorts.into_iter())
+            .map(|(name, sort)| (name.id.clone(), sort))
             .collect::<Vec<_>>();
 
-        let actual_sort = IvySort::Process(sorts::Process {
-            args,
-            impl_fields: todo!(),
-            spec_fields: todo!(),
-            commonspec_fields: todo!(),
-        });
-        let _unifed = self.bindings.unify(&n, &actual_sort)?;
+        let impl_fields = ast
+            .impl_decls
+            .iter()
+            .zip(impl_sorts.into_iter())
+            .filter_map(|(decl, sort)| decl.name_for_binding().map(|n| (n.clone(), sort)))
+            .collect::<HashMap<_, _>>();
 
+        let spec_fields = ast
+            .spec_decls
+            .iter()
+            .zip(spec_sorts.into_iter())
+            .filter_map(|(decl, sort)| decl.name_for_binding().map(|n| (n.clone(), sort)))
+            .collect::<HashMap<_, _>>();
+
+        let common_impl_fields = ast
+            .common_impl_decls
+            .iter()
+            .zip(common_impl_sorts.into_iter())
+            .filter_map(|(decl, sort)| decl.name_for_binding().map(|n| (n.clone(), sort)))
+            .collect::<HashMap<_, _>>();
+
+        let common_spec_fields = ast
+            .common_spec_decls
+            .iter()
+            .zip(common_spec_sorts.into_iter())
+            .filter_map(|(decl, sort)| decl.name_for_binding().map(|n| (n.clone(), sort)))
+            .collect::<HashMap<_, _>>();
+
+        let proc = IvySort::Process(Process {
+            args,
+            impl_fields,
+            spec_fields,
+            common_impl_fields,
+            common_spec_fields,
+        });
+
+        let _unifed = self.bindings.unify(&decl_sort, &proc)?;
         Ok(ControlMut::Produce(IvySort::Unit))
     }
 

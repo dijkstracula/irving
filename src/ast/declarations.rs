@@ -176,3 +176,44 @@ pub enum Decl {
 
     Type(Type),
 }
+
+impl Decl {
+    /// For declarations that bind a new name, produce that name.
+    /// TODO: https://github.com/dijkstracula/irving/issues/19
+    pub fn name_for_binding(&self) -> Option<&Symbol> {
+        match self {
+            Decl::Action(a) => Some(&a.name),
+            Decl::AfterAction(_) => None,
+            Decl::Alias(name, _) => Some(&name),
+            Decl::Attribute(_) => None,
+            Decl::Axiom(_) => None,
+            Decl::BeforeAction(_) => None,
+            Decl::Common(_) => None,
+            Decl::Export(_) => None,
+            Decl::Function(f) => Some(&f.name),
+            Decl::Globals(_) => None,
+            Decl::Implement(_) => None,
+            Decl::Implementation(_) => None,
+            Decl::Import(_) => None,
+            Decl::Isolate(i) => Some(&i.name),
+            Decl::Include(_) => None,
+            Decl::Instance(i) => Some(&i.name),
+            Decl::Instantiate { .. } => None,
+            Decl::Interpretation { .. } => None,
+            Decl::Invariant(_) => None,
+            Decl::Module(m) => Some(&m.name),
+            Decl::NormalizedModule(n) => Some(&n.name),
+            Decl::Noop => None,
+            Decl::Object(o) => Some(&o.name),
+            Decl::Relation(r) => Some(&r.name),
+            Decl::Specification(_) => None,
+            Decl::Stmts(_) => None,
+            Decl::Var(v) => Some(&v.id),
+            Decl::Type(Type {
+                ident: TypeName::Name(n),
+                ..
+            }) => Some(&n),
+            Decl::Type(_) => None,
+        }
+    }
+}

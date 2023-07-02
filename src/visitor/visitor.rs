@@ -405,7 +405,7 @@ where
 {
     fn visit(&mut self, visitor: &mut dyn Visitor<T>) -> VisitorResult<T, Self> {
         visitor.begin_prog(self)?.and_then(|_| {
-            let _d = self.top.body.visit(visitor)?.modifying(&mut self.top.body);
+            let _d = self.top.visit(visitor)?.modifying(&mut self.top);
             visitor.finish_prog(self)
         })
     }

@@ -46,7 +46,6 @@ relation_decl     = { RELATION ~ decl_sig }
 global_decl       = { GLOBAL ~ decl_block }
 module_decl       = { MODULE ~ decl_sig ~ "=" ~ decl_block }
 object_decl       = { OBJECT ~ decl_sig ~ "=" ~ decl_block }
-isolate_decl      = { ISOLATE ~ decl_sig ~ "=" ~ decl_block }
 
 import_decl       = { IMPORT ~ ACTION ~ decl_sig }
 export_decl       = { EXPORT ~ (symbol | action_decl) }
@@ -98,7 +97,6 @@ decl = {
     | export_decl
     | after_decl
     | before_decl
-    | isolate_decl
     | type_decl
 
     | (stmt ~ (";" ~ stmt)* )

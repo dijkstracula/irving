@@ -85,7 +85,7 @@ impl<W: Write> Visitor<()> for PrettyPrinter<W> {
             "#lang ivy{}.{}\n\n",
             p.major_version, p.minor_version
         ))?;
-        self.write_separated(&mut p.top.body, "\n")?;
+        self.write_separated(&mut p.top, "\n")?;
         Ok(ControlMut::SkipSiblings(()))
     }
 

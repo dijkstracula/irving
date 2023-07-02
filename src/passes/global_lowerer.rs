@@ -20,7 +20,7 @@ impl GlobalLowerer {
     pub fn visit(prog: &mut Prog) -> Result<()> {
         let mut g = Self::new();
         prog.visit(&mut g)?;
-        prog.top.body.push(Decl::Globals(g.globals));
+        prog.top.push(Decl::Globals(g.globals));
         Ok(())
     }
 }

@@ -9,7 +9,8 @@ pub struct Process {
     pub args: Vec<(Symbol, IvySort)>,
     pub impl_fields: HashMap<Symbol, IvySort>,
     pub spec_fields: HashMap<Symbol, IvySort>,
-    pub commonspec_fields: HashMap<Symbol, IvySort>,
+    pub common_impl_fields: HashMap<Symbol, IvySort>,
+    pub common_spec_fields: HashMap<Symbol, IvySort>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

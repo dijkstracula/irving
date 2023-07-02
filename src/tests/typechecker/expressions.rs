@@ -190,7 +190,8 @@ mod tests {
             args: vec![],
             impl_fields: HashMap::from([("b".into(), IvySort::Bool)]),
             spec_fields: HashMap::from([]),
-            commonspec_fields: HashMap::from([]),
+            common_impl_fields: HashMap::from([]),
+            common_spec_fields: HashMap::from([]),
         };
 
         let mut tc = TypeChecker::new();
