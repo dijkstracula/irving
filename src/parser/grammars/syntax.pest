@@ -32,6 +32,8 @@ decl_ret   = { "returns" ~ "(" ~ param ~ ")" } //TODO: needs to be a paramlist
 decl_sig =  { symbol ~ ("(" ~ paramlist ~ ")")? }
 decl_block = { "{" ~ (decl ~ ";"?)* ~ "}" }
 
+mod_sig = { symbol ~ ( "(" ~ symbol ~ ("," ~ symbol)? ~ ")")? }
+
 include_decl      = { INCLUDE ~ symbol }
 var_decl          = { VAR ~ term }
 
@@ -44,12 +46,13 @@ function_decl     = { FUNCTION ~ decl_sig ~ ":" ~ symbol }
 relation_decl     = { RELATION ~ decl_sig }
 
 global_decl       = { GLOBAL ~ decl_block }
-module_decl       = { MODULE ~ decl_sig ~ "=" ~ decl_block }
+isolate_decl       = { ISOLATE ~ decl_sig ~ "=" ~ decl_block }
 object_decl       = { OBJECT ~ decl_sig ~ "=" ~ decl_block }
-extract_decl      = { EXTRACT ~ decl_sig ~ "=" ~ decl_block }
 
 import_decl       = { IMPORT ~ ACTION ~ decl_sig }
 export_decl       = { EXPORT ~ (symbol | action_decl) }
+
+module_decl       = { MODULE ~ mod_sig ~ "=" ~ decl_block }
 
 instance_decl     = { INSTANCE ~ symbol ~ ":" ~ mixin_sig }
 
@@ -89,8 +92,9 @@ decl = {
     | instance_decl
     | interpret_decl
     | invariant_decl
-    | module_decl
+    | isolate_decl
     | instantiate_decl
+    | module_decl
     | object_decl
     | instance_decl
     | autoinstance_decl
@@ -98,7 +102,6 @@ decl = {
     | export_decl
     | after_decl
     | before_decl
-    | extract_decl
     | type_decl
 
     | (stmt ~ (";" ~ stmt)* )

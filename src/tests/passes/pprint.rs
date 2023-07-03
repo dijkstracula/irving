@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use crate::visitor::pprint::PrettyPrinter;
+    use crate::passes::pprint::PrettyPrinter;
     use crate::visitor::visitor::Visitable;
     use crate::{
         ast::{expressions::Expr, logic::Fmla},

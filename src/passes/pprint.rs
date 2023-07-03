@@ -8,9 +8,10 @@ use crate::{
         logic, statements, toplevels,
     },
     typechecker::sorts::IvySort,
+    visitor::visitor::Visitable,
 };
 
-use super::{control::ControlMut, visitor::*, VisitorResult};
+use crate::visitor::*;
 
 pub struct PrettyPrinter<W>
 where
@@ -40,6 +41,7 @@ where
 }
 
 impl PrettyPrinter<String> {
+    #[allow(dead_code)]
     pub fn new() -> Self {
         Self {
             out: String::new(),
@@ -83,7 +85,7 @@ impl<W: Write> Visitor<()> for PrettyPrinter<W> {
             "#lang ivy{}.{}\n\n",
             p.major_version, p.minor_version
         ))?;
-        self.write_separated(&mut p.top.body, "\n")?;
+        self.write_separated(&mut p.top, "\n")?;
         Ok(ControlMut::SkipSiblings(()))
     }
 
@@ -345,6 +347,8 @@ impl<W: Write> Visitor<()> for PrettyPrinter<W> {
     fn finish_import_decl(
         &mut self,
         _ast: &mut declarations::ImportDecl,
+        _n: (),
+        _p: Vec<()>,
     ) -> VisitorResult<(), declarations::Decl> {
         self.write_str(")")?;
         Ok(ControlMut::Produce(()))
@@ -414,6 +418,49 @@ impl<W: Write> Visitor<()> for PrettyPrinter<W> {
         self.write_separated(&mut module.body, "\n")?;
         self.write_str("\n}\n")?;
 
+        Ok(ControlMut::SkipSiblings(()))
+    }
+
+    fn begin_normalized_module_decl(
+        &mut self,
+        module: &mut declarations::NormalizedIsolateDecl,
+    ) -> VisitorResult<(), declarations::Decl> {
+        self.out
+            .write_fmt(format_args!("process {}", module.name))?;
+
+        if module.params.len() > 0 {
+            self.write_str("(")?;
+            module.params.visit(self)?;
+            self.write_str(")")?;
+        }
+        self.write_str(" {\n")?;
+
+        if module.impl_decls.len() > 0 {
+            self.write_str("implementation {\n")?;
+            module.impl_decls.visit(self)?;
+            self.write_str("\n}\n")?;
+        }
+        if module.spec_decls.len() > 0 {
+            self.write_str("specification {\n")?;
+            module.spec_decls.visit(self)?;
+            self.write_str("\n}\n")?;
+        }
+        if module.common_spec_decls.len() > 0 && module.common_impl_decls.len() > 0 {
+            self.write_str("common {\n")?;
+            if module.impl_decls.len() > 0 {
+                self.write_str("implementation {\n")?;
+                module.impl_decls.visit(self)?;
+                self.write_str("\n}\n")?;
+            }
+            if module.spec_decls.len() > 0 {
+                self.write_str("specification {\n")?;
+                module.spec_decls.visit(self)?;
+                self.write_str("\n}\n")?;
+            }
+            self.write_str("\n}\n")?;
+        }
+
+        self.write_str("\n}\n")?;
         Ok(ControlMut::SkipSiblings(()))
     }
 

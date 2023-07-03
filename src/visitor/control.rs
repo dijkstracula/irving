@@ -49,46 +49,4 @@ impl<T, Node> ControlMut<T, Node> {
             }
         })
     }
-
-    /*
-    /// Mutates the node if we received `Change` from the Visitor.
-    pub fn change_expr(self, target: &mut Expr) -> VisitorResult<T> {
-        Ok(match self {
-            Control::ChangeExpr(modified, t) => {
-                *target = modified;
-                Self::Produce(t)
-            }
-            ctrl => ctrl,
-        })
-    }
-
-    /// Mutates the node if we received `Change` from the Visitor.
-    pub fn change_stmt(self, target: &mut Stmt) -> VisitorResult<T> {
-        Ok(match self {
-            Control::ChangeStmt(modified, t) => {
-                *target = modified;
-                Self::Produce(t)
-            }
-            ctrl => ctrl,
-        })
-    }
-
-    /// Mutates the node if we received `Change` from the Visitor.
-    pub fn change_decl(self, target: &mut Decl) -> VisitorResult<T> {
-        Ok(match self {
-            Control::ChangeDecl(modified, t) => {
-                *target = modified;
-                Self::Produce(t)
-            }
-            ctrl => ctrl,
-        })
-    }
-    /// Delineates when we've finished traversing the children of a node.
-    pub fn children_end(self) -> Self {
-        match self {
-            Control::SkipSiblings(t) => Control::Produce(t),
-            ctrl => ctrl,
-        }
-    }
-    */
 }

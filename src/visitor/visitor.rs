@@ -185,7 +185,12 @@ where
     fn begin_import_decl(&mut self, _ast: &mut ImportDecl) -> VisitorResult<T, Decl> {
         Ok(ControlMut::Produce(T::default()))
     }
-    fn finish_import_decl(&mut self, _ast: &mut ImportDecl) -> VisitorResult<T, Decl> {
+    fn finish_import_decl(
+        &mut self,
+        _ast: &mut ImportDecl,
+        _n: T,
+        _p: Vec<T>,
+    ) -> VisitorResult<T, Decl> {
         Ok(ControlMut::Produce(T::default()))
     }
 
@@ -213,14 +218,45 @@ where
     fn begin_isolate_decl(&mut self, _ast: &mut IsolateDecl) -> VisitorResult<T, Decl> {
         Ok(ControlMut::Produce(T::default()))
     }
-    fn finish_isolate_decl(&mut self, _ast: &mut IsolateDecl) -> VisitorResult<T, Decl> {
+    fn finish_isolate_decl(
+        &mut self,
+        _ast: &mut IsolateDecl,
+        _n: T,
+        _p: Vec<T>,
+        _b: Vec<T>,
+    ) -> VisitorResult<T, Decl> {
         Ok(ControlMut::Produce(T::default()))
     }
 
     fn begin_module_decl(&mut self, _ast: &mut ModuleDecl) -> VisitorResult<T, Decl> {
         Ok(ControlMut::Produce(T::default()))
     }
-    fn finish_module_decl(&mut self, _ast: &mut ModuleDecl) -> VisitorResult<T, Decl> {
+    fn finish_module_decl(
+        &mut self,
+        _ast: &mut ModuleDecl,
+        _n: T,
+        _p: Vec<T>,
+        _b: Vec<T>,
+    ) -> VisitorResult<T, Decl> {
+        Ok(ControlMut::Produce(T::default()))
+    }
+
+    fn begin_normalized_module_decl(
+        &mut self,
+        _ast: &mut NormalizedIsolateDecl,
+    ) -> VisitorResult<T, Decl> {
+        Ok(ControlMut::Produce(T::default()))
+    }
+    fn finish_normalized_module_decl(
+        &mut self,
+        _ast: &mut NormalizedIsolateDecl,
+        _n: T,
+        _p: Vec<T>,
+        _i: Vec<T>,
+        _s: Vec<T>,
+        _ci: Vec<T>,
+        _cs: Vec<T>,
+    ) -> VisitorResult<T, Decl> {
         Ok(ControlMut::Produce(T::default()))
     }
 
@@ -380,7 +416,7 @@ where
 {
     fn visit(&mut self, visitor: &mut dyn Visitor<T>) -> VisitorResult<T, Self> {
         visitor.begin_prog(self)?.and_then(|_| {
-            let _d = self.top.body.visit(visitor)?.modifying(&mut self.top.body);
+            let _d = self.top.visit(visitor)?.modifying(&mut self.top);
             visitor.finish_prog(self)
         })
     }
@@ -588,7 +624,7 @@ where
                 visitor.finish_before_decl(decl)
             }),
             Decl::Common(decl) => visitor.begin_common_decl(decl)?.and_then(|_| {
-                let _d = decl.visit(visitor)?.modifying(decl);
+                let _d = decl.visit(visitor)?.modifying(decl)?;
                 visitor.finish_common_decl(decl)
             }),
             Decl::Export(decl) => visitor.begin_export_decl(decl)?.and_then(|_| match decl {
@@ -638,19 +674,19 @@ where
                 visitor.finish_implement_decl(decl, n, params, ret, body)
             }),
             Decl::Implementation(decl) => visitor.begin_implementation_decl(decl)?.and_then(|_| {
-                let _d = decl.visit(visitor)?.modifying(decl);
+                let _d = decl.visit(visitor)?.modifying(decl)?;
                 visitor.finish_implementation_decl(decl)
             }),
             Decl::Import(decl) => visitor.begin_import_decl(decl)?.and_then(|_| {
-                let _n = decl.name.visit(visitor)?.modifying(&mut decl.name);
-                let _p = decl.params.visit(visitor)?.modifying(&mut decl.params);
-                visitor.finish_import_decl(decl)
+                let n = decl.name.visit(visitor)?.modifying(&mut decl.name)?;
+                let p = decl.params.visit(visitor)?.modifying(&mut decl.params)?;
+                visitor.finish_import_decl(decl, n, p)
             }),
             Decl::Isolate(decl) => visitor.begin_isolate_decl(decl)?.and_then(|_| {
-                let _n = decl.name.visit(visitor)?.modifying(&mut decl.name);
-                let _p = decl.params.visit(visitor)?.modifying(&mut decl.params);
-                let _b = decl.body.visit(visitor)?.modifying(&mut decl.body);
-                visitor.finish_isolate_decl(decl)
+                let _n = decl.name.visit(visitor)?.modifying(&mut decl.name)?;
+                let _p = decl.params.visit(visitor)?.modifying(&mut decl.params)?;
+                let _b = decl.body.visit(visitor)?.modifying(&mut decl.body)?;
+                visitor.finish_isolate_decl(decl, _n, _p, _b)
             }),
             Decl::Include(decl) => visitor
                 .begin_include_decl(decl)?
@@ -668,11 +704,40 @@ where
                 visitor.finish_invariant_decl(decl)
             }),
             Decl::Module(decl) => visitor.begin_module_decl(decl)?.and_then(|_| {
-                let _n = decl.name.visit(visitor)?.modifying(&mut decl.name);
-                let _p = decl.params.visit(visitor)?.modifying(&mut decl.params);
-                let _b = decl.body.visit(visitor)?.modifying(&mut decl.body);
-                visitor.finish_module_decl(decl)
+                let n = decl.name.visit(visitor)?.modifying(&mut decl.name)?;
+                let p = decl
+                    .params
+                    .iter_mut()
+                    .map(|p| p.visit(visitor)?.modifying(p))
+                    .collect::<Result<Vec<_>, _>>()?;
+                let b = decl.body.visit(visitor)?.modifying(&mut decl.body)?;
+                visitor.finish_module_decl(decl, n, p, b)
             }),
+            Decl::Noop => return Ok(ControlMut::Produce(T::default())),
+            Decl::NormalizedIsolate(decl) => {
+                visitor.begin_normalized_module_decl(decl)?.and_then(|_| {
+                    let n = decl.name.visit(visitor)?.modifying(&mut decl.name)?;
+                    let p = decl.params.visit(visitor)?.modifying(&mut decl.params)?;
+
+                    let i = decl
+                        .impl_decls
+                        .visit(visitor)?
+                        .modifying(&mut decl.impl_decls)?;
+                    let s = decl
+                        .spec_decls
+                        .visit(visitor)?
+                        .modifying(&mut decl.spec_decls)?;
+                    let ci = decl
+                        .common_impl_decls
+                        .visit(visitor)?
+                        .modifying(&mut decl.impl_decls)?;
+                    let cs = decl
+                        .common_spec_decls
+                        .visit(visitor)?
+                        .modifying(&mut decl.spec_decls)?;
+                    visitor.finish_normalized_module_decl(decl, n, p, i, s, ci, cs)
+                })
+            }
             Decl::Object(decl) => visitor.begin_object_decl(decl)?.and_then(|_| {
                 let _n = decl.name.visit(visitor)?.modifying(&mut decl.name);
                 let _p = decl.params.visit(visitor)?.modifying(&mut decl.params);
@@ -685,7 +750,7 @@ where
                 visitor.finish_relation(decl, n, p)
             }),
             Decl::Specification(decl) => visitor.begin_specification(decl)?.and_then(|_| {
-                let _d = decl.visit(visitor)?.modifying(decl);
+                let _d = decl.visit(visitor)?.modifying(decl)?;
                 visitor.finish_specification(decl)
             }),
             Decl::Stmts(stmts) => {
@@ -780,6 +845,9 @@ where
                     res.push(t);
                     break;
                 }
+                ControlMut::Mutation(Stmt::ActionSequence(actions), t) if actions.len() == 0 => {
+                    continue;
+                }
                 ControlMut::Mutation(repl, t) => {
                     *node = repl;
                     res.push(t);
@@ -797,11 +865,23 @@ where
     fn visit(&mut self, visitor: &mut dyn Visitor<T>) -> VisitorResult<Vec<T>, Self> {
         let mut res = vec![];
         for node in self {
+            match node {
+                Decl::Noop => continue,
+                _ => (),
+            };
             match node.visit(visitor)? {
                 ControlMut::Produce(t) => res.push(t),
                 ControlMut::SkipSiblings(t) => {
                     res.push(t);
                     break;
+                }
+                ControlMut::Mutation(Decl::Common(decls), t)
+                | ControlMut::Mutation(Decl::Globals(decls), t)
+                | ControlMut::Mutation(Decl::Implementation(decls), t)
+                | ControlMut::Mutation(Decl::Specification(decls), t)
+                    if decls.len() == 0 =>
+                {
+                    continue;
                 }
                 ControlMut::Mutation(repl, t) => {
                     *node = repl;

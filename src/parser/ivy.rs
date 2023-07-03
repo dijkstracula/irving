@@ -181,6 +181,14 @@ impl IvyParser {
         })
     }
 
+    pub fn mod_sig(input: Node) -> Result<ModSig> {
+        match_nodes!(
+        input.into_children();
+        [symbol(name), symbol(params)..] => {
+            Ok(ModSig{name, params: params.collect()})
+        })
+    }
+
     // Mixins and Actions
 
     pub fn mixin_sig(input: Node) -> Result<MixinSig> {
@@ -351,18 +359,18 @@ impl IvyParser {
         )
     }
 
-    pub fn extract_decl(input: Node) -> Result<IsolateDecl> {
+    pub fn isolate_decl(input: Node) -> Result<IsolateDecl> {
         match_nodes!(
         input.into_children();
-        [decl_sig(DeclSig{name, params}), decl_block(body)] =>
-            Ok(IsolateDecl{name, params, body})
-        )
+        [decl_sig(DeclSig{name, params}), decl_block(body)] => Ok(
+            IsolateDecl{name, params, body}
+        ))
     }
 
     pub fn module_decl(input: Node) -> Result<ModuleDecl> {
         match_nodes!(
         input.into_children();
-        [decl_sig(DeclSig{name, params}), decl_block(body)] => Ok(
+        [mod_sig(ModSig{name, params}), decl_block(body)] => Ok(
             ModuleDecl{name, params, body}
         ))
     }
@@ -440,7 +448,6 @@ impl IvyParser {
         [before_decl(decl)]    => Ok(Decl::BeforeAction(decl)),
         [common_decl(decls)] => Ok(Decl::Common(decls)),
         [export_decl(fmla)]   => Ok(Decl::Export(fmla)),
-        [extract_decl(decl)]  => Ok(Decl::Isolate(decl)),
         [global_decl(decls)]  => Ok(Decl::Globals(decls)),
         [function_decl(decl)] => Ok(Decl::Function(decl)),
         [implement_action_decl(decl)] => Ok(Decl::Implement(decl)),
@@ -450,6 +457,7 @@ impl IvyParser {
         [invariant_decl(fmla)] => Ok(Decl::Invariant(fmla)),
         [instance_decl(decl)] => Ok(Decl::Instance(decl)),
         [module_decl(decl)]   => Ok(Decl::Module(decl)),
+        [isolate_decl(decl)]   => Ok(Decl::Isolate(decl)),
         [object_decl(decl)]   => Ok(Decl::Object(decl)),
         [relation_decl(decl)] => Ok(Decl::Relation(decl)),
         [specification_decl(decls)] => Ok(Decl::Specification(decls)),
@@ -596,15 +604,12 @@ impl IvyParser {
     pub fn prog(input: Node) -> Result<Prog> {
         match_nodes!(
         input.into_children();
-        [langver((major, minor)), decl(decls).., EOI(())] => {
-            Ok(Prog {
+        [langver((major, minor)), decl(decls).., EOI(())] => Ok(
+            Prog {
                 major_version: major,
                 minor_version: minor,
-                top: IsolateDecl{
-                    name: "this".into(),
-                    params: vec!(),
-                    body: decls.collect()
-                }})
-        })
+                top: decls.collect::<Vec<_>>(),
+            })
+        )
     }
 }

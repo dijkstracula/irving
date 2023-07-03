@@ -2,7 +2,7 @@
 
 use thiserror::Error;
 
-use crate::ast::expressions::Symbol;
+use crate::ast::{declarations::ModuleDecl, expressions::Symbol};
 
 use self::sorts::IvySort;
 
@@ -29,6 +29,9 @@ pub enum TypeError {
 
     #[error("Sort {0:?} mismatches {1:?}")]
     UnificationError(IvySort, IvySort),
+
+    #[error("Got declaration {0:?}; did the module normalization pass run?")]
+    UnnormalizedModule(ModuleDecl),
 
     #[error("Sort sequence {0:?} mismatches {1:?}")]
     LenMismatch(Vec<IvySort>, Vec<IvySort>),

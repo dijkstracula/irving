@@ -28,7 +28,13 @@ mod tests {
             .expect("visit")
             .modifying(&mut decl_ast)
             .unwrap();
-        assert_eq!(res, IvySort::Unit);
+        assert_eq!(
+            res,
+            IvySort::Function(
+                Fargs::List(vec!(IvySort::SortVar(1), IvySort::SortVar(2))),
+                Box::new(IvySort::Bool)
+            )
+        );
 
         assert_eq!(
             tc.bindings.lookup(&"is_up".to_owned()),
@@ -55,7 +61,13 @@ mod tests {
             .expect("visit")
             .modifying(&mut decl_ast)
             .unwrap();
-        assert_eq!(res, IvySort::Unit);
+        assert_eq!(
+            res,
+            IvySort::Function(
+                Fargs::List(vec!(IvySort::Bool, IvySort::Bool)),
+                Box::new(IvySort::Bool)
+            )
+        );
 
         assert_eq!(
             tc.bindings.lookup(&"is_up".to_owned()),
@@ -82,7 +94,7 @@ mod tests {
             .expect("visit")
             .modifying(&mut decl_ast)
             .unwrap();
-        assert_eq!(res, IvySort::Unit);
+        assert_eq!(res, IvySort::Uninterpreted);
 
         assert_eq!(
             tc.bindings.lookup(&"node".to_owned()),
@@ -106,7 +118,7 @@ mod tests {
             .expect("visit")
             .modifying(&mut decl_ast)
             .unwrap();
-        assert_eq!(res, IvySort::Unit);
+        assert_eq!(res, IvySort::Enum(["on".into(), "off".into()].into()));
 
         assert_eq!(
             tc.bindings.lookup(&"status".to_owned()),
@@ -130,7 +142,10 @@ mod tests {
             .expect("visit")
             .modifying(&mut decl_ast)
             .unwrap();
-        assert_eq!(res, IvySort::Unit);
+        assert_eq!(
+            res,
+            IvySort::Range(Box::new(Expr::Number(0)), Box::new(Expr::Number(100)))
+        );
 
         assert_eq!(
             tc.bindings.lookup(&"numbers".to_owned()),
@@ -157,7 +172,7 @@ mod tests {
             .expect("visit")
             .modifying(&mut decl_ast)
             .unwrap();
-        assert_eq!(res, IvySort::Unit);
+        assert_eq!(res, IvySort::SortVar(0));
 
         assert_eq!(
             tc.bindings.lookup(&"i".to_owned()),
@@ -181,8 +196,7 @@ mod tests {
             .expect("visit")
             .modifying(&mut decl_ast)
             .unwrap();
-        assert_eq!(res, IvySort::Unit);
-
+        assert_eq!(res, IvySort::Bool);
         assert_eq!(tc.bindings.lookup(&"b".to_owned()), Some(IvySort::Bool))
     }
 }

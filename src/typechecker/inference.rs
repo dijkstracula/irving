@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use anyhow::bail;
 
 use super::{
-    sorts::{Fargs, IvySort},
+    sorts::{Fargs, IvySort, Process},
     unifier::Resolver,
 };
 use crate::{
@@ -210,7 +210,7 @@ impl Visitor<IvySort> for TypeChecker {
             .impl_fields
             .get(rhs)
             .or(recordsort.spec_fields.get(rhs))
-            .or(recordsort.commonspec_fields.get(rhs))
+            .or(recordsort.common_spec_fields.get(rhs))
         {
             Some(sort) => Ok(ControlMut::SkipSiblings(sort.clone())),
             None => bail!(TypeError::UnboundVariable(rhs.clone())),
@@ -320,6 +320,8 @@ impl Visitor<IvySort> for TypeChecker {
         Ok(ControlMut::Produce(IvySort::Unit))
     }
 
+    // decls
+
     fn begin_implement_decl(
         &mut self,
         ast: &mut declarations::ImplementDecl,
@@ -361,7 +363,111 @@ impl Visitor<IvySort> for TypeChecker {
         self.bindings.pop_scope();
         Ok(ControlMut::Produce(IvySort::Unit))
     }
-    // decls
+
+    fn begin_import_decl(
+        &mut self,
+        ast: &mut declarations::ImportDecl,
+    ) -> VisitorResult<IvySort, declarations::Decl> {
+        let v = self.bindings.new_sortvar();
+        self.bindings.append(ast.name.clone(), v.clone())?;
+
+        Ok(ControlMut::Produce(v))
+    }
+    fn finish_import_decl(
+        &mut self,
+        _ast: &mut declarations::ImportDecl,
+        decl_sortvar: IvySort,
+        param_sorts: Vec<IvySort>,
+    ) -> VisitorResult<IvySort, declarations::Decl> {
+        let relsort = IvySort::Function(Fargs::List(param_sorts), Box::new(IvySort::Unit));
+        let unifed = self.bindings.unify(&decl_sortvar, &relsort)?;
+        Ok(ControlMut::Produce(unifed))
+    }
+
+    fn begin_module_decl(
+        &mut self,
+        ast: &mut declarations::ModuleDecl,
+    ) -> VisitorResult<IvySort, declarations::Decl> {
+        bail!(TypeError::UnnormalizedModule(ast.clone()))
+    }
+
+    fn begin_normalized_module_decl(
+        &mut self,
+        ast: &mut declarations::NormalizedIsolateDecl,
+    ) -> VisitorResult<IvySort, declarations::Decl> {
+        let v = self.bindings.new_sortvar();
+        self.bindings.append(ast.name.clone(), v.clone())?;
+
+        Ok(ControlMut::Produce(v))
+    }
+    fn finish_normalized_module_decl(
+        &mut self,
+        ast: &mut declarations::NormalizedIsolateDecl,
+        decl_sort: IvySort,
+        param_sorts: Vec<IvySort>,
+        impl_sorts: Vec<IvySort>,
+        spec_sorts: Vec<IvySort>,
+        common_impl_sorts: Vec<IvySort>,
+        common_spec_sorts: Vec<IvySort>,
+    ) -> VisitorResult<IvySort, declarations::Decl> {
+        let args = ast
+            .params
+            .iter()
+            .zip(param_sorts.iter())
+            .map(|(name, sort)| (name.id.clone(), self.bindings.resolve(sort)))
+            .collect::<Vec<_>>();
+
+        let impl_fields = ast
+            .impl_decls
+            .iter()
+            .zip(impl_sorts.iter())
+            .filter_map(|(decl, sort)| {
+                decl.name_for_binding()
+                    .map(|n| (n.clone(), self.bindings.resolve(sort)))
+            })
+            .collect::<HashMap<_, _>>();
+
+        let spec_fields = ast
+            .spec_decls
+            .iter()
+            .zip(spec_sorts.iter())
+            .filter_map(|(decl, sort)| {
+                decl.name_for_binding()
+                    .map(|n| (n.clone(), self.bindings.resolve(sort)))
+            })
+            .collect::<HashMap<_, _>>();
+
+        let common_impl_fields = ast
+            .common_impl_decls
+            .iter()
+            .zip(common_impl_sorts.iter())
+            .filter_map(|(decl, sort)| {
+                decl.name_for_binding()
+                    .map(|n| (n.clone(), self.bindings.resolve(sort)))
+            })
+            .collect::<HashMap<_, _>>();
+
+        let common_spec_fields = ast
+            .common_spec_decls
+            .iter()
+            .zip(common_spec_sorts.iter())
+            .filter_map(|(decl, sort)| {
+                decl.name_for_binding()
+                    .map(|n| (n.clone(), self.bindings.resolve(sort)))
+            })
+            .collect::<HashMap<_, _>>();
+
+        let proc = IvySort::Process(Process {
+            args,
+            impl_fields,
+            spec_fields,
+            common_impl_fields,
+            common_spec_fields,
+        });
+
+        let unifed = self.bindings.unify(&decl_sort, &proc)?;
+        Ok(ControlMut::Produce(unifed))
+    }
 
     fn begin_relation(
         &mut self,
@@ -369,8 +475,8 @@ impl Visitor<IvySort> for TypeChecker {
     ) -> VisitorResult<IvySort, declarations::Decl> {
         // Bind the name to _something_; we'll unify this value with a function sort when finishing the visit.
         let v = self.bindings.new_sortvar();
-        self.bindings.append(ast.name.clone(), v)?;
-        Ok(ControlMut::Produce(IvySort::Unit))
+        self.bindings.append(ast.name.clone(), v.clone())?;
+        Ok(ControlMut::Produce(v))
     }
     fn finish_relation(
         &mut self,
@@ -383,8 +489,8 @@ impl Visitor<IvySort> for TypeChecker {
         // extraction code uses.
 
         let relsort = IvySort::Function(Fargs::List(paramsorts), Box::new(IvySort::Bool));
-        let _unifed = self.bindings.unify(&n, &relsort)?;
-        Ok(ControlMut::Produce(IvySort::Unit))
+        let unifed = self.bindings.unify(&n, &relsort)?;
+        Ok(ControlMut::Produce(unifed))
     }
 
     fn begin_typedecl(
@@ -396,7 +502,7 @@ impl Visitor<IvySort> for TypeChecker {
             expressions::TypeName::This => todo!(),
         };
         self.bindings.append(sortname.clone(), ast.sort.clone())?;
-        Ok(ControlMut::SkipSiblings(IvySort::Unit))
+        Ok(ControlMut::SkipSiblings(ast.sort.clone()))
     }
 
     fn begin_vardecl(
@@ -416,7 +522,9 @@ impl Visitor<IvySort> for TypeChecker {
     ) -> VisitorResult<IvySort, declarations::Decl> {
         if let Some(s2) = resolved_sort {
             self.bindings.unify(&id_sort, &s2)?;
+            Ok(ControlMut::Produce(s2))
+        } else {
+            Ok(ControlMut::Produce(id_sort.clone()))
         }
-        Ok(ControlMut::Produce(IvySort::Unit))
     }
 }

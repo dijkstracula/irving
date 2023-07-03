@@ -4,6 +4,8 @@ use super::expressions::*;
 use super::logic::Fmla;
 use super::statements::*;
 
+// Syntactic AST nodes
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DeclSig {
     pub name: Symbol,
@@ -11,6 +13,12 @@ pub struct DeclSig {
 }
 
 pub type DeclRet = Option<Param>;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ModSig {
+    pub name: Symbol,
+    pub params: Vec<Symbol>,
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MixinSig {
@@ -85,7 +93,7 @@ pub struct IsolateDecl {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ModuleDecl {
     pub name: Symbol,
-    pub params: ParamList,
+    pub params: Vec<Symbol>,
     pub body: Vec<Decl>,
 }
 
@@ -100,6 +108,19 @@ pub struct ObjectDecl {
 pub struct Relation {
     pub name: Symbol,
     pub params: ParamList,
+}
+
+// Transformed AST nodes
+
+/// Created by the ModuleNormalizer pass.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct NormalizedIsolateDecl {
+    pub name: Symbol,
+    pub params: ParamList,
+    pub impl_decls: Vec<Decl>,
+    pub spec_decls: Vec<Decl>,
+    pub common_spec_decls: Vec<Decl>,
+    pub common_impl_decls: Vec<Decl>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -145,6 +166,10 @@ pub enum Decl {
 
     Module(ModuleDecl),
 
+    NormalizedIsolate(NormalizedIsolateDecl),
+
+    Noop,
+
     Object(ObjectDecl),
 
     Relation(Relation),
@@ -156,4 +181,45 @@ pub enum Decl {
     Var(Term),
 
     Type(Type),
+}
+
+impl Decl {
+    /// For declarations that bind a new name, produce that name.
+    /// TODO: https://github.com/dijkstracula/irving/issues/19
+    pub fn name_for_binding(&self) -> Option<&Symbol> {
+        match self {
+            Decl::Action(a) => Some(&a.name),
+            Decl::AfterAction(_) => None,
+            Decl::Alias(name, _) => Some(&name),
+            Decl::Attribute(_) => None,
+            Decl::Axiom(_) => None,
+            Decl::BeforeAction(_) => None,
+            Decl::Common(_) => None,
+            Decl::Export(_) => None,
+            Decl::Function(f) => Some(&f.name),
+            Decl::Globals(_) => None,
+            Decl::Implement(_) => None,
+            Decl::Implementation(_) => None,
+            Decl::Import(_) => None,
+            Decl::Isolate(i) => Some(&i.name),
+            Decl::Include(_) => None,
+            Decl::Instance(i) => Some(&i.name),
+            Decl::Instantiate { .. } => None,
+            Decl::Interpretation { .. } => None,
+            Decl::Invariant(_) => None,
+            Decl::Module(m) => Some(&m.name),
+            Decl::NormalizedIsolate(n) => Some(&n.name),
+            Decl::Noop => None,
+            Decl::Object(o) => Some(&o.name),
+            Decl::Relation(r) => Some(&r.name),
+            Decl::Specification(_) => None,
+            Decl::Stmts(_) => None,
+            Decl::Var(v) => Some(&v.id),
+            Decl::Type(Type {
+                ident: TypeName::Name(n),
+                ..
+            }) => Some(&n),
+            Decl::Type(_) => None,
+        }
+    }
 }
