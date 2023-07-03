@@ -65,8 +65,9 @@ IMPLEMENT       = _{ "implement" }
 INTERPRET       = _{ "interpret" }
 INVARIANT       = _{ "invariant" }
 INSTANTIATE     = _{ "instantiate" }
-OBJECT          = _{ "object"   }
 INSTANCE        = _{ "instance" }
+MODULE          = _{ "module "}
+OBJECT          = _{ "object"   }
 AUTOINSTANCE    = _{ "autoinstance" }
 IMPORT          = _{ "import" }
 EXPORT          = _{ "export" }
@@ -82,7 +83,7 @@ RETURN = _{" return "}
 // The semantics of these are slightly different in real-Ivy but I'm
 // somewhat sure that for our purposes they're equivalent, at least right
 // now.  
-MODULE      = _{ "module" | "extract" | "process" | "isolate" }
+ISOLATE      = _{ "extract" | "process" | "isolate" }
 
 boollit = { "true" | "false" }
 
@@ -107,8 +108,9 @@ reserved = {
 | IMPLEMENT
 | INTERPRET
 | INVARIANT
-| MODULE
+| ISOLATE
 | INSTANTIATE
+| MODULE
 | OBJECT
 | INSTANCE
 | AUTOINSTANCE

@@ -15,6 +15,12 @@ pub struct DeclSig {
 pub type DeclRet = Option<Param>;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ModSig {
+    pub name: Symbol,
+    pub params: Vec<Symbol>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MixinSig {
     pub name: Ident,
     pub params: Option<ParamList>,
@@ -87,7 +93,7 @@ pub struct IsolateDecl {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ModuleDecl {
     pub name: Symbol,
-    pub params: ParamList,
+    pub params: Vec<Symbol>,
     pub body: Vec<Decl>,
 }
 
@@ -108,7 +114,7 @@ pub struct Relation {
 
 /// Created by the ModuleNormalizer pass.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct NormalizedModuleDecl {
+pub struct NormalizedIsolateDecl {
     pub name: Symbol,
     pub params: ParamList,
     pub impl_decls: Vec<Decl>,
@@ -160,7 +166,7 @@ pub enum Decl {
 
     Module(ModuleDecl),
 
-    NormalizedModule(NormalizedModuleDecl),
+    NormalizedIsolate(NormalizedIsolateDecl),
 
     Noop,
 
@@ -202,7 +208,7 @@ impl Decl {
             Decl::Interpretation { .. } => None,
             Decl::Invariant(_) => None,
             Decl::Module(m) => Some(&m.name),
-            Decl::NormalizedModule(n) => Some(&n.name),
+            Decl::NormalizedIsolate(n) => Some(&n.name),
             Decl::Noop => None,
             Decl::Object(o) => Some(&o.name),
             Decl::Relation(r) => Some(&r.name),

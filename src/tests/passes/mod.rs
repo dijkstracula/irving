@@ -1,4 +1,4 @@
 mod constant_fold;
 //mod global_lowerer;
-mod module_normalizer;
+mod isolate_normalizer;
 mod pprint;

@@ -13,7 +13,7 @@ use crate::{
         expressions::{self, Expr, Symbol},
         statements::Stmt,
     },
-    typechecker::{sorts, TypeError},
+    typechecker::TypeError,
     visitor::{
         control::ControlMut,
         visitor::{Visitable, Visitor},
@@ -364,6 +364,26 @@ impl Visitor<IvySort> for TypeChecker {
         Ok(ControlMut::Produce(IvySort::Unit))
     }
 
+    fn begin_import_decl(
+        &mut self,
+        ast: &mut declarations::ImportDecl,
+    ) -> VisitorResult<IvySort, declarations::Decl> {
+        let v = self.bindings.new_sortvar();
+        self.bindings.append(ast.name.clone(), v.clone())?;
+
+        Ok(ControlMut::Produce(v))
+    }
+    fn finish_import_decl(
+        &mut self,
+        _ast: &mut declarations::ImportDecl,
+        decl_sortvar: IvySort,
+        param_sorts: Vec<IvySort>,
+    ) -> VisitorResult<IvySort, declarations::Decl> {
+        let relsort = IvySort::Function(Fargs::List(param_sorts), Box::new(IvySort::Unit));
+        let unifed = self.bindings.unify(&decl_sortvar, &relsort)?;
+        Ok(ControlMut::Produce(unifed))
+    }
+
     fn begin_module_decl(
         &mut self,
         ast: &mut declarations::ModuleDecl,
@@ -373,16 +393,16 @@ impl Visitor<IvySort> for TypeChecker {
 
     fn begin_normalized_module_decl(
         &mut self,
-        ast: &mut declarations::NormalizedModuleDecl,
+        ast: &mut declarations::NormalizedIsolateDecl,
     ) -> VisitorResult<IvySort, declarations::Decl> {
         let v = self.bindings.new_sortvar();
-        self.bindings.append(ast.name.clone(), v)?;
+        self.bindings.append(ast.name.clone(), v.clone())?;
 
-        Ok(ControlMut::Produce(IvySort::Unit))
+        Ok(ControlMut::Produce(v))
     }
     fn finish_normalized_module_decl(
         &mut self,
-        ast: &mut declarations::NormalizedModuleDecl,
+        ast: &mut declarations::NormalizedIsolateDecl,
         decl_sort: IvySort,
         param_sorts: Vec<IvySort>,
         impl_sorts: Vec<IvySort>,
@@ -455,8 +475,8 @@ impl Visitor<IvySort> for TypeChecker {
     ) -> VisitorResult<IvySort, declarations::Decl> {
         // Bind the name to _something_; we'll unify this value with a function sort when finishing the visit.
         let v = self.bindings.new_sortvar();
-        self.bindings.append(ast.name.clone(), v)?;
-        Ok(ControlMut::Produce(IvySort::Unit))
+        self.bindings.append(ast.name.clone(), v.clone())?;
+        Ok(ControlMut::Produce(v))
     }
     fn finish_relation(
         &mut self,

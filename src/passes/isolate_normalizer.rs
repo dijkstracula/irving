@@ -2,7 +2,7 @@
 #![allow(unused_variables)]
 
 /* Raises declarations from implementation/specification/common blocks
- * within a ModuleDecl to the top level.
+ * within an IsolateDecl to the top level.
  */
 
 use anyhow::bail;
@@ -13,7 +13,7 @@ use crate::ast::expressions::Param;
 
 use crate::visitor::*;
 
-pub struct ModuleNormalizer {
+pub struct IsolateNormalizer {
     /// All common actions will need to have the parameter list prepended to them, since
     /// they do not close over their enclosing module's arguments.
     curr_module_params: Option<Vec<Param>>,
@@ -34,9 +34,9 @@ pub struct ModuleNormalizer {
     in_common: bool,
 }
 
-impl ModuleNormalizer {
+impl IsolateNormalizer {
     pub fn new() -> Self {
-        ModuleNormalizer {
+        IsolateNormalizer {
             curr_module_params: None,
 
             impls: vec![],
@@ -51,11 +51,11 @@ impl ModuleNormalizer {
     }
 }
 
-impl Visitor<()> for ModuleNormalizer {
-    fn begin_module_decl(&mut self, ast: &mut ModuleDecl) -> VisitorResult<(), Decl> {
+impl Visitor<()> for IsolateNormalizer {
+    fn begin_isolate_decl(&mut self, ast: &mut IsolateDecl) -> VisitorResult<(), Decl> {
         if self.curr_module_params.is_some() {
             panic!(
-                "Nested module declarations?  What should we do here, a stack of the pass' state?"
+                "Nested isolate declarations?  What should we do here, a stack of the pass' state?"
             );
         }
 
@@ -77,14 +77,14 @@ impl Visitor<()> for ModuleNormalizer {
 
         Ok(ControlMut::Produce(()))
     }
-    fn finish_module_decl(
+    fn finish_isolate_decl(
         &mut self,
-        ast: &mut ModuleDecl,
+        ast: &mut IsolateDecl,
         _n: (),
         _p: Vec<()>,
         _b: Vec<()>,
     ) -> VisitorResult<(), Decl> {
-        let normalized = NormalizedModuleDecl {
+        let normalized = NormalizedIsolateDecl {
             name: ast.name.clone(),
             params: ast.params.clone(),
             impl_decls: std::mem::take(&mut self.impls),
@@ -94,7 +94,10 @@ impl Visitor<()> for ModuleNormalizer {
         };
 
         self.curr_module_params = None;
-        Ok(ControlMut::Mutation(Decl::NormalizedModule(normalized), ()))
+        Ok(ControlMut::Mutation(
+            Decl::NormalizedIsolate(normalized),
+            (),
+        ))
     }
 
     fn begin_implementation_decl(&mut self, _ast: &mut Vec<Decl>) -> VisitorResult<(), Decl> {

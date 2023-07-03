@@ -197,7 +197,6 @@ mod tests {
             .modifying(&mut decl_ast)
             .unwrap();
         assert_eq!(res, IvySort::Bool);
-
         assert_eq!(tc.bindings.lookup(&"b".to_owned()), Some(IvySort::Bool))
     }
 }

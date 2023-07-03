@@ -1,6 +1,9 @@
 #[cfg(test)]
 mod tests {
-    use crate::parser::ivy::{IvyParser, Rule};
+    use crate::{
+        ast::declarations::{Decl, ModuleDecl},
+        parser::ivy::{IvyParser, Rule},
+    };
     use pest_consume::Parser;
 
     // Declarations
@@ -124,23 +127,20 @@ mod tests {
     }
 
     #[test]
-    fn parse_module_decl() {
-        let fragment = "module net(pid: node) = { }";
-        let res = IvyParser::parse(Rule::decl, fragment)
-            .expect("Parsing failed")
-            .single()
-            .unwrap();
-        assert!(IvyParser::decl(res).is_ok());
-    }
-
-    #[test]
     fn parse_module_decl_1() {
         let fragment = "module net(pid) = { }";
         let res = IvyParser::parse(Rule::decl, fragment)
             .expect("Parsing failed")
             .single()
             .unwrap();
-        assert!(IvyParser::decl(res).is_ok());
+        assert_eq!(
+            IvyParser::decl(res).unwrap(),
+            Decl::Module(ModuleDecl {
+                name: "net".into(),
+                params: vec!("pid".into()),
+                body: vec!()
+            })
+        );
     }
 
     #[test]
@@ -149,11 +149,7 @@ mod tests {
             action foo(a: int) = { }
         }
         ";
-        let res = IvyParser::parse(Rule::decl, fragment)
-            .expect("Parsing failed")
-            .single()
-            .unwrap();
-        assert!(IvyParser::decl(res).is_ok());
+        IvyParser::parse(Rule::decl, fragment).expect_err("Parsing succeeded");
     }
 
     #[test]

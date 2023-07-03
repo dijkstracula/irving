@@ -26,6 +26,8 @@ pub enum IvySort {
     Top,
     Bool,
     Number,
+    BitVec(u8),
+    Vector(Box<IvySort>),
     Range(Box<Expr>, Box<Expr>),
     Enum(Vec<Symbol>),
     Function(Fargs, Box<IvySort>),

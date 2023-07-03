@@ -347,6 +347,8 @@ impl<W: Write> Visitor<()> for PrettyPrinter<W> {
     fn finish_import_decl(
         &mut self,
         _ast: &mut declarations::ImportDecl,
+        _n: (),
+        _p: Vec<()>,
     ) -> VisitorResult<(), declarations::Decl> {
         self.write_str(")")?;
         Ok(ControlMut::Produce(()))
@@ -421,7 +423,7 @@ impl<W: Write> Visitor<()> for PrettyPrinter<W> {
 
     fn begin_normalized_module_decl(
         &mut self,
-        module: &mut declarations::NormalizedModuleDecl,
+        module: &mut declarations::NormalizedIsolateDecl,
     ) -> VisitorResult<(), declarations::Decl> {
         self.out
             .write_fmt(format_args!("process {}", module.name))?;

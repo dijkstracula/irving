@@ -49,7 +49,7 @@ mod tests {
     fn parse_less_trivial_prog() {
         let body = "
 #lang ivy2
-module net(pid: node) = { 
+isolate net(pid: node) = { 
     action send(msg: msg_t) = {
         a := 41 + 2;
     }
