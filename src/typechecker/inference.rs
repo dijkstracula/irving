@@ -393,36 +393,48 @@ impl Visitor<IvySort> for TypeChecker {
         let args = ast
             .params
             .iter()
-            .zip(param_sorts.into_iter())
-            .map(|(name, sort)| (name.id.clone(), sort))
+            .zip(param_sorts.iter())
+            .map(|(name, sort)| (name.id.clone(), self.bindings.resolve(sort)))
             .collect::<Vec<_>>();
 
         let impl_fields = ast
             .impl_decls
             .iter()
-            .zip(impl_sorts.into_iter())
-            .filter_map(|(decl, sort)| decl.name_for_binding().map(|n| (n.clone(), sort)))
+            .zip(impl_sorts.iter())
+            .filter_map(|(decl, sort)| {
+                decl.name_for_binding()
+                    .map(|n| (n.clone(), self.bindings.resolve(sort)))
+            })
             .collect::<HashMap<_, _>>();
 
         let spec_fields = ast
             .spec_decls
             .iter()
-            .zip(spec_sorts.into_iter())
-            .filter_map(|(decl, sort)| decl.name_for_binding().map(|n| (n.clone(), sort)))
+            .zip(spec_sorts.iter())
+            .filter_map(|(decl, sort)| {
+                decl.name_for_binding()
+                    .map(|n| (n.clone(), self.bindings.resolve(sort)))
+            })
             .collect::<HashMap<_, _>>();
 
         let common_impl_fields = ast
             .common_impl_decls
             .iter()
-            .zip(common_impl_sorts.into_iter())
-            .filter_map(|(decl, sort)| decl.name_for_binding().map(|n| (n.clone(), sort)))
+            .zip(common_impl_sorts.iter())
+            .filter_map(|(decl, sort)| {
+                decl.name_for_binding()
+                    .map(|n| (n.clone(), self.bindings.resolve(sort)))
+            })
             .collect::<HashMap<_, _>>();
 
         let common_spec_fields = ast
             .common_spec_decls
             .iter()
-            .zip(common_spec_sorts.into_iter())
-            .filter_map(|(decl, sort)| decl.name_for_binding().map(|n| (n.clone(), sort)))
+            .zip(common_spec_sorts.iter())
+            .filter_map(|(decl, sort)| {
+                decl.name_for_binding()
+                    .map(|n| (n.clone(), self.bindings.resolve(sort)))
+            })
             .collect::<HashMap<_, _>>();
 
         let proc = IvySort::Process(Process {
@@ -433,8 +445,8 @@ impl Visitor<IvySort> for TypeChecker {
             common_spec_fields,
         });
 
-        let _unifed = self.bindings.unify(&decl_sort, &proc)?;
-        Ok(ControlMut::Produce(IvySort::Unit))
+        let unifed = self.bindings.unify(&decl_sort, &proc)?;
+        Ok(ControlMut::Produce(unifed))
     }
 
     fn begin_relation(
@@ -457,8 +469,8 @@ impl Visitor<IvySort> for TypeChecker {
         // extraction code uses.
 
         let relsort = IvySort::Function(Fargs::List(paramsorts), Box::new(IvySort::Bool));
-        let _unifed = self.bindings.unify(&n, &relsort)?;
-        Ok(ControlMut::Produce(IvySort::Unit))
+        let unifed = self.bindings.unify(&n, &relsort)?;
+        Ok(ControlMut::Produce(unifed))
     }
 
     fn begin_typedecl(
@@ -470,7 +482,7 @@ impl Visitor<IvySort> for TypeChecker {
             expressions::TypeName::This => todo!(),
         };
         self.bindings.append(sortname.clone(), ast.sort.clone())?;
-        Ok(ControlMut::SkipSiblings(IvySort::Unit))
+        Ok(ControlMut::SkipSiblings(ast.sort.clone()))
     }
 
     fn begin_vardecl(
@@ -490,7 +502,9 @@ impl Visitor<IvySort> for TypeChecker {
     ) -> VisitorResult<IvySort, declarations::Decl> {
         if let Some(s2) = resolved_sort {
             self.bindings.unify(&id_sort, &s2)?;
+            Ok(ControlMut::Produce(s2))
+        } else {
+            Ok(ControlMut::Produce(id_sort.clone()))
         }
-        Ok(ControlMut::Produce(IvySort::Unit))
     }
 }
