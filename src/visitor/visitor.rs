@@ -119,6 +119,19 @@ where
         Ok(ControlMut::Produce(T::default()))
     }
 
+    fn begin_alias_decl(&mut self, _sym: &mut Symbol, _e: &mut Expr) -> VisitorResult<T, Decl> {
+        Ok(ControlMut::Produce(T::default()))
+    }
+    fn finish_alias_decl(
+        &mut self,
+        _sym: &mut Symbol,
+        _e: &mut Expr,
+        _sym_res: T,
+        _e_res: T,
+    ) -> VisitorResult<T, Decl> {
+        Ok(ControlMut::Produce(T::default()))
+    }
+
     fn begin_attribute_decl(&mut self, _ast: &mut Expr) -> VisitorResult<T, Decl> {
         Ok(ControlMut::Produce(T::default()))
     }
@@ -518,7 +531,7 @@ where
                 let _ = t.sort.as_mut().map(|s| s.visit(visitor)?.modifying(s));
                 visitor.finish_term(t)
             }),
-            Expr::This => todo!(),
+            Expr::This => Expr::Symbol("this".into()).visit(visitor),
         }?
         .modifying(self)?;
         Ok(ControlMut::Produce(t))
@@ -608,7 +621,11 @@ where
                 let _b = decl.body.visit(visitor)?.modifying(&mut decl.body)?;
                 visitor.finish_after_decl(decl)
             }),
-            Decl::Alias(_, _) => todo!(),
+            Decl::Alias(sym, expr) => visitor.begin_alias_decl(sym, expr)?.and_then(|_| {
+                let s = sym.visit(visitor)?.modifying(sym)?;
+                let e = expr.visit(visitor)?.modifying(expr)?;
+                visitor.finish_alias_decl(sym, expr, s, e)
+            }),
             Decl::Attribute(decl) => visitor.begin_attribute_decl(decl)?.and_then(|_| {
                 let _d = decl.visit(visitor)?.modifying(decl);
                 visitor.finish_attribute_decl(decl)

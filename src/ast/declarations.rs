@@ -186,7 +186,7 @@ pub enum Decl {
 impl Decl {
     /// For declarations that bind a new name, produce that name.
     /// TODO: https://github.com/dijkstracula/irving/issues/19
-    pub fn name_for_binding(&self) -> Option<&Symbol> {
+    pub fn name_for_binding(&self) -> Option<&str> {
         match self {
             Decl::Action(a) => Some(&a.name),
             Decl::AfterAction(_) => None,
@@ -219,7 +219,10 @@ impl Decl {
                 ident: TypeName::Name(n),
                 ..
             }) => Some(&n),
-            Decl::Type(_) => None,
+            Decl::Type(Type {
+                ident: TypeName::This,
+                ..
+            }) => Some("this".into()),
         }
     }
 }

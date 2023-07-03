@@ -9,11 +9,11 @@ use super::{
 use crate::{
     ast::{
         actions::Action,
-        declarations,
-        expressions::{self, Expr, Symbol},
+        declarations::{self, ModuleDecl},
+        expressions::{self, Expr, Symbol, TypeName},
         statements::Stmt,
     },
-    typechecker::TypeError,
+    typechecker::{sorts::Module, TypeError},
     visitor::{
         control::ControlMut,
         visitor::{Visitable, Visitor},
@@ -293,6 +293,26 @@ impl Visitor<IvySort> for TypeChecker {
         Ok(ControlMut::Produce(IvySort::Unit))
     }
 
+    fn begin_alias_decl(
+        &mut self,
+        sym: &mut Symbol,
+        _e: &mut Expr,
+    ) -> VisitorResult<IvySort, declarations::Decl> {
+        let v = self.bindings.new_sortvar();
+        self.bindings.append(sym.clone(), v.clone())?;
+        Ok(ControlMut::Produce(v))
+    }
+    fn finish_alias_decl(
+        &mut self,
+        sym: &mut Symbol,
+        e: &mut Expr,
+        sym_sort: IvySort,
+        expr_sort: IvySort,
+    ) -> VisitorResult<IvySort, declarations::Decl> {
+        let unifed = self.bindings.unify(&sym_sort, &expr_sort)?;
+        Ok(ControlMut::Produce(unifed))
+    }
+
     fn begin_before_decl(
         &mut self,
         ast: &mut declarations::BeforeDecl,
@@ -388,7 +408,64 @@ impl Visitor<IvySort> for TypeChecker {
         &mut self,
         ast: &mut declarations::ModuleDecl,
     ) -> VisitorResult<IvySort, declarations::Decl> {
-        bail!(TypeError::UnnormalizedModule(ast.clone()))
+        let v = self.bindings.new_sortvar();
+        self.bindings.append(ast.name.clone(), v.clone())?;
+
+        self.bindings.push_scope();
+        self.bindings.append("this".into(), v.clone())?;
+
+        for sortarg in &ast.params {
+            let s = self.bindings.new_sortvar();
+            self.bindings.append(sortarg.clone(), s)?;
+        }
+
+        // TODO: possibly this could be its own pass.
+        for decl in &ast.body {
+            if decl.name_for_binding().is_none() {
+                bail!(TypeError::NonBindingDecl(decl.clone()));
+            }
+        }
+        Ok(ControlMut::Produce(v))
+    }
+    fn finish_module_decl(
+        &mut self,
+        ast: &mut declarations::ModuleDecl,
+        mod_sort: IvySort,
+        param_sorts: Vec<IvySort>,
+        field_sorts: Vec<IvySort>,
+    ) -> VisitorResult<IvySort, declarations::Decl> {
+        let args = ast
+            .params
+            .iter()
+            .zip(param_sorts.iter())
+            .map(|(name, sort)| (name.clone(), self.bindings.resolve(sort)))
+            .collect::<Vec<_>>();
+
+        let fields = ast
+            .body
+            .iter()
+            .zip(field_sorts.iter())
+            .map(|(decl, sort)| {
+                (
+                    decl.name_for_binding().unwrap().into(),
+                    self.bindings.resolve(sort),
+                )
+            })
+            .collect::<HashMap<_, _>>();
+
+        let module = IvySort::Module(Module { args, fields });
+        let unifed = self.bindings.unify(&mod_sort, &module)?;
+
+        self.bindings.pop_scope();
+
+        Ok(ControlMut::Produce(unifed))
+    }
+
+    fn begin_isolate_decl(
+        &mut self,
+        ast: &mut declarations::IsolateDecl,
+    ) -> VisitorResult<IvySort, declarations::Decl> {
+        bail!(TypeError::UnnormalizedIsolate(ast.clone()))
     }
 
     fn begin_normalized_module_decl(
@@ -397,6 +474,9 @@ impl Visitor<IvySort> for TypeChecker {
     ) -> VisitorResult<IvySort, declarations::Decl> {
         let v = self.bindings.new_sortvar();
         self.bindings.append(ast.name.clone(), v.clone())?;
+
+        self.bindings.push_scope();
+        self.bindings.append("this".into(), v.clone())?;
 
         Ok(ControlMut::Produce(v))
     }
@@ -423,7 +503,7 @@ impl Visitor<IvySort> for TypeChecker {
             .zip(impl_sorts.iter())
             .filter_map(|(decl, sort)| {
                 decl.name_for_binding()
-                    .map(|n| (n.clone(), self.bindings.resolve(sort)))
+                    .map(|n| (n.into(), self.bindings.resolve(sort)))
             })
             .collect::<HashMap<_, _>>();
 
@@ -433,7 +513,7 @@ impl Visitor<IvySort> for TypeChecker {
             .zip(spec_sorts.iter())
             .filter_map(|(decl, sort)| {
                 decl.name_for_binding()
-                    .map(|n| (n.clone(), self.bindings.resolve(sort)))
+                    .map(|n| (n.into(), self.bindings.resolve(sort)))
             })
             .collect::<HashMap<_, _>>();
 
@@ -443,7 +523,7 @@ impl Visitor<IvySort> for TypeChecker {
             .zip(common_impl_sorts.iter())
             .filter_map(|(decl, sort)| {
                 decl.name_for_binding()
-                    .map(|n| (n.clone(), self.bindings.resolve(sort)))
+                    .map(|n| (n.into(), self.bindings.resolve(sort)))
             })
             .collect::<HashMap<_, _>>();
 
@@ -453,7 +533,7 @@ impl Visitor<IvySort> for TypeChecker {
             .zip(common_spec_sorts.iter())
             .filter_map(|(decl, sort)| {
                 decl.name_for_binding()
-                    .map(|n| (n.clone(), self.bindings.resolve(sort)))
+                    .map(|n| (n.into(), self.bindings.resolve(sort)))
             })
             .collect::<HashMap<_, _>>();
 
@@ -466,6 +546,9 @@ impl Visitor<IvySort> for TypeChecker {
         });
 
         let unifed = self.bindings.unify(&decl_sort, &proc)?;
+
+        self.bindings.pop_scope();
+
         Ok(ControlMut::Produce(unifed))
     }
 
@@ -497,12 +580,14 @@ impl Visitor<IvySort> for TypeChecker {
         &mut self,
         ast: &mut expressions::Type,
     ) -> VisitorResult<IvySort, declarations::Decl> {
-        let sortname = match &ast.ident {
-            expressions::TypeName::Name(n) => n,
-            expressions::TypeName::This => todo!(),
+        let sort = match &ast.ident {
+            TypeName::Name(n) => {
+                self.bindings.append(n.clone(), ast.sort.clone())?;
+                ast.sort.clone()
+            }
+            TypeName::This => self.bindings.lookup(&"this".into()).unwrap(),
         };
-        self.bindings.append(sortname.clone(), ast.sort.clone())?;
-        Ok(ControlMut::SkipSiblings(ast.sort.clone()))
+        Ok(ControlMut::SkipSiblings(sort))
     }
 
     fn begin_vardecl(

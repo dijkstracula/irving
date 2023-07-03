@@ -232,6 +232,16 @@ impl<W: Write> Visitor<()> for PrettyPrinter<W> {
         Ok(ControlMut::SkipSiblings(()))
     }
 
+    fn begin_alias_decl(
+        &mut self,
+        sym: &mut expressions::Symbol,
+        e: &mut expressions::Expr,
+    ) -> VisitorResult<(), declarations::Decl> {
+        self.write_fmt(format_args!("alias {} = ", sym))?;
+        e.visit(self)?;
+        Ok(ControlMut::SkipSiblings(()))
+    }
+
     fn begin_attribute_decl(
         &mut self,
         _ast: &mut expressions::Expr,

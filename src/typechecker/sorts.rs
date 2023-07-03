@@ -13,6 +13,14 @@ pub struct Process {
     pub common_spec_fields: HashMap<Symbol, IvySort>,
 }
 
+// TODO: this module is non-monomorphized (e.g. module type parameters are
+// still in the argument list).  We're good with this??
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Module {
+    pub args: Vec<(Symbol, IvySort)>, // Each of these will be SortVars
+    pub fields: HashMap<Symbol, IvySort>,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Fargs {
     Unknown, /* Still to be unified. */
@@ -33,6 +41,7 @@ pub enum IvySort {
     Function(Fargs, Box<IvySort>),
     Relation(Vec<IvySort>),
     Subclass(Symbol),
+    Module(Module),
     Process(Process),
 
     // A SortVar contains the index of its referrent into the typing context.

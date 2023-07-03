@@ -2,7 +2,10 @@
 
 use thiserror::Error;
 
-use crate::ast::{declarations::ModuleDecl, expressions::Symbol};
+use crate::ast::{
+    declarations::{Decl, IsolateDecl, ModuleDecl},
+    expressions::Symbol,
+};
 
 use self::sorts::IvySort;
 
@@ -18,6 +21,9 @@ pub enum TypeError {
     #[error("Expected {expected:?}, got {actual:?}")]
     SortMismatch { expected: IvySort, actual: IvySort },
 
+    #[error("Declaration {0:?} doesn't bind a name")]
+    NonBindingDecl(Decl),
+
     #[error("{0:?} is not an action or function")]
     NotAFunction(IvySort),
 
@@ -30,8 +36,8 @@ pub enum TypeError {
     #[error("Sort {0:?} mismatches {1:?}")]
     UnificationError(IvySort, IvySort),
 
-    #[error("Got declaration {0:?}; did the module normalization pass run?")]
-    UnnormalizedModule(ModuleDecl),
+    #[error("Got isolate declaration {0:?}; did the normalization pass run?")]
+    UnnormalizedIsolate(IsolateDecl),
 
     #[error("Sort sequence {0:?} mismatches {1:?}")]
     LenMismatch(Vec<IvySort>, Vec<IvySort>),
