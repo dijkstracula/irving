@@ -7,7 +7,7 @@ mod tests {
         parser::ivy::{IvyParser, Rule},
         typechecker::{
             inference::TypeChecker,
-            sorts::{IvySort, Module},
+            sorts::{Fargs, IvySort, Module},
         },
         visitor::visitor::Visitable,
     };
@@ -71,6 +71,9 @@ mod tests {
         let mut iso = module_from_src(
             "module array(domain, range) = { 
             type this
+
+            action get(a:this,x:domain) returns (y:range)
+            action set(a:this,x:domain,y:range) returns (a:this)
         }",
         );
 
@@ -79,11 +82,33 @@ mod tests {
                 ("domain".into(), IvySort::SortVar(1)),
                 ("range".into(), IvySort::SortVar(2)),
             ],
-            fields: [("this".into(), IvySort::SortVar(0))].into(),
+            fields: [
+                ("this".into(), IvySort::SortVar(0)),
+                (
+                    "get".into(),
+                    IvySort::Function(
+                        Fargs::List(vec![IvySort::SortVar(0), IvySort::SortVar(1)]),
+                        Box::new(IvySort::SortVar(2)),
+                    ),
+                ),
+                (
+                    "set".into(),
+                    IvySort::Function(
+                        Fargs::List(vec![
+                            IvySort::SortVar(0),
+                            IvySort::SortVar(1),
+                            IvySort::SortVar(2),
+                        ]),
+                        Box::new(IvySort::SortVar(0)),
+                    ),
+                ),
+            ]
+            .into(),
         });
 
         let mut tc = TypeChecker::new();
         let res = iso.visit(&mut tc).unwrap().modifying(&mut iso).unwrap();
+
         assert_eq!(res, sort);
         assert_eq!(tc.bindings.lookup(&"array".to_owned()), Some(sort));
 

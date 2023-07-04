@@ -66,36 +66,30 @@ impl Visitor<IvySort> for TypeChecker {
     }
 
     fn param(&mut self, p: &mut expressions::Param) -> VisitorResult<IvySort, expressions::Param> {
-        match &mut p.sort {
+        let sort = match &mut p.sort {
             Some(idents) => {
                 // TODO: I don't know how to do instance resolution yet, argh
                 assert!(idents.len() == 1);
                 let sym = idents.get_mut(0).unwrap();
-                sym.visit(self)?
-                    .modifying(sym)
-                    .map(|s| ControlMut::Produce(s))
+                sym.visit(self)?.modifying(sym)?
             }
-            None => Ok(ControlMut::Produce(self.bindings.new_sortvar())),
-        }
+            None => self.bindings.new_sortvar(),
+        };
+        self.bindings.append(p.id.clone(), sort.clone())?;
+        Ok(ControlMut::Produce(sort))
     }
 
     fn symbol(
         &mut self,
         sym: &mut expressions::Symbol,
     ) -> VisitorResult<IvySort, expressions::Symbol> {
-        println!("NBT: symbol: {sym:?}");
         match sym.as_str() {
             "bool" => Ok(ControlMut::Produce(IvySort::Bool)),
             // TODO: and of course other builtins.
-            _ => {
-                let sort = self.bindings.lookup(sym);
-
-                match sort {
-                    // XXX: ST: wtf???
-                    Some(sort) => Ok(ControlMut::Produce(sort.clone())),
-                    None => bail!(TypeError::UnboundVariable(sym.clone())),
-                }
-            }
+            _ => match self.bindings.lookup(sym) {
+                Some(sort) => Ok(ControlMut::Produce(sort.clone())),
+                None => bail!(TypeError::UnboundVariable(sym.clone())),
+            },
         }
     }
 
@@ -228,15 +222,6 @@ impl Visitor<IvySort> for TypeChecker {
         self.bindings.append(ast.name.clone(), v)?;
         self.bindings.push_scope();
 
-        for param in &ast.params {
-            let s = self.bindings.new_sortvar();
-            self.bindings.append(param.id.clone(), s)?;
-        }
-        if let Some(param) = &ast.ret {
-            let s = self.bindings.new_sortvar();
-            self.bindings.append(param.id.clone(), s)?;
-        }
-
         Ok(ControlMut::Produce(IvySort::Unit))
     }
     fn finish_action_decl(
@@ -254,21 +239,22 @@ impl Visitor<IvySort> for TypeChecker {
         self.action_locals.insert(ast.name.clone(), locals);
 
         let retsort = match ret {
-            None => self.bindings.new_sortvar(),
+            None => IvySort::Unit,
             Some(s) => s,
         };
         let actsort = IvySort::Function(Fargs::List(params), Box::new(retsort));
-        let _unifed = self.bindings.unify(&name, &actsort)?;
+        let unified = self.bindings.unify(&name, &actsort)?;
 
         self.bindings.pop_scope();
 
-        Ok(ControlMut::Produce(IvySort::Unit))
+        Ok(ControlMut::Produce(unified))
     }
 
     fn begin_after_decl(
         &mut self,
         ast: &mut declarations::AfterDecl,
     ) -> VisitorResult<IvySort, declarations::Decl> {
+        // XXX: this feels like a hack for something, but I've forgotten for what.
         if let Some(sym) = ast.name.first() {
             self.bindings.push_scope();
 
@@ -288,9 +274,26 @@ impl Visitor<IvySort> for TypeChecker {
     fn finish_after_decl(
         &mut self,
         _ast: &mut declarations::AfterDecl,
+        action_sort: IvySort,
+        after_params_sort: Option<Vec<IvySort>>,
+        after_ret_sort: Option<IvySort>,
+        _after_body_sort: Vec<IvySort>,
     ) -> VisitorResult<IvySort, declarations::Decl> {
         self.bindings.pop_scope();
-        Ok(ControlMut::Produce(IvySort::Unit))
+
+        println!("{:?}, {:?}", after_params_sort, after_ret_sort);
+
+        let mixin_sort = match (after_params_sort, after_ret_sort) {
+            (None, None) => self.bindings.new_sortvar(),
+            (Some(params), None) => {
+                IvySort::Function(Fargs::List(params), Box::new(self.bindings.new_sortvar()))
+            }
+            (None, Some(ret)) => IvySort::Function(Fargs::Unknown, Box::new(ret)),
+            (Some(params), Some(ret)) => IvySort::Function(Fargs::List(params), Box::new(ret)),
+        };
+
+        let unified = self.bindings.unify(&action_sort, &mixin_sort)?;
+        Ok(ControlMut::Produce(unified))
     }
 
     fn begin_alias_decl(
@@ -335,9 +338,21 @@ impl Visitor<IvySort> for TypeChecker {
     fn finish_before_decl(
         &mut self,
         _ast: &mut declarations::BeforeDecl,
+        action_sort: IvySort,
+        param_sort: Option<Vec<IvySort>>,
+        _body_sorts: Vec<IvySort>,
     ) -> VisitorResult<IvySort, declarations::Decl> {
         self.bindings.pop_scope();
-        Ok(ControlMut::Produce(IvySort::Unit))
+
+        let mixin_sort = match param_sort {
+            None => IvySort::Function(Fargs::Unknown, Box::new(self.bindings.new_sortvar())),
+            Some(params) => {
+                IvySort::Function(Fargs::List(params), Box::new(self.bindings.new_sortvar()))
+            }
+        };
+
+        let unified = self.bindings.unify(&action_sort, &mixin_sort)?;
+        Ok(ControlMut::Produce(unified))
     }
 
     // decls
@@ -414,7 +429,9 @@ impl Visitor<IvySort> for TypeChecker {
         self.bindings.push_scope();
         self.bindings.append("this".into(), v.clone())?;
 
-        for sortarg in &ast.params {
+        // Note: we have to pull the sort arguments into scope explicitly
+        // unlike action decls since the argument list aren't parameters.
+        for sortarg in &ast.sortsyms {
             let s = self.bindings.new_sortvar();
             self.bindings.append(sortarg.clone(), s)?;
         }
@@ -435,7 +452,7 @@ impl Visitor<IvySort> for TypeChecker {
         field_sorts: Vec<IvySort>,
     ) -> VisitorResult<IvySort, declarations::Decl> {
         let args = ast
-            .params
+            .sortsyms
             .iter()
             .zip(param_sorts.iter())
             .map(|(name, sort)| (name.clone(), self.bindings.resolve(sort)))
@@ -468,7 +485,7 @@ impl Visitor<IvySort> for TypeChecker {
         bail!(TypeError::UnnormalizedIsolate(ast.clone()))
     }
 
-    fn begin_normalized_module_decl(
+    fn begin_normalized_isolate_decl(
         &mut self,
         ast: &mut declarations::NormalizedIsolateDecl,
     ) -> VisitorResult<IvySort, declarations::Decl> {
@@ -480,7 +497,7 @@ impl Visitor<IvySort> for TypeChecker {
 
         Ok(ControlMut::Produce(v))
     }
-    fn finish_normalized_module_decl(
+    fn finish_normalized_isolate_decl(
         &mut self,
         ast: &mut declarations::NormalizedIsolateDecl,
         decl_sort: IvySort,

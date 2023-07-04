@@ -108,7 +108,14 @@ where
     fn begin_after_decl(&mut self, _ast: &mut AfterDecl) -> VisitorResult<T, Decl> {
         Ok(ControlMut::Produce(T::default()))
     }
-    fn finish_after_decl(&mut self, _ast: &mut AfterDecl) -> VisitorResult<T, Decl> {
+    fn finish_after_decl(
+        &mut self,
+        _ast: &mut AfterDecl,
+        _n: T,
+        _p: Option<Vec<T>>,
+        _r: Option<T>,
+        _b: Vec<T>,
+    ) -> VisitorResult<T, Decl> {
         Ok(ControlMut::Produce(T::default()))
     }
 
@@ -142,7 +149,13 @@ where
     fn begin_before_decl(&mut self, _ast: &mut BeforeDecl) -> VisitorResult<T, Decl> {
         Ok(ControlMut::Produce(T::default()))
     }
-    fn finish_before_decl(&mut self, _ast: &mut BeforeDecl) -> VisitorResult<T, Decl> {
+    fn finish_before_decl(
+        &mut self,
+        _ast: &mut BeforeDecl,
+        _n: T,
+        _p: Option<Vec<T>>,
+        _b: Vec<T>,
+    ) -> VisitorResult<T, Decl> {
         Ok(ControlMut::Produce(T::default()))
     }
 
@@ -254,13 +267,13 @@ where
         Ok(ControlMut::Produce(T::default()))
     }
 
-    fn begin_normalized_module_decl(
+    fn begin_normalized_isolate_decl(
         &mut self,
         _ast: &mut NormalizedIsolateDecl,
     ) -> VisitorResult<T, Decl> {
         Ok(ControlMut::Produce(T::default()))
     }
-    fn finish_normalized_module_decl(
+    fn finish_normalized_isolate_decl(
         &mut self,
         _ast: &mut NormalizedIsolateDecl,
         _n: T,
@@ -613,13 +626,19 @@ where
                 visitor.finish_action_decl(decl, n, params, ret, body)
             }),
             Decl::AfterAction(decl) => visitor.begin_after_decl(decl)?.and_then(|_| {
-                let _n = decl.name.visit(visitor)?.modifying(&mut decl.name)?;
-                let _p = decl
+                let n = decl.name.visit(visitor)?.modifying(&mut decl.name)?;
+                let p = decl
                     .params
                     .as_mut()
-                    .map(|ps| ps.visit(visitor)?.modifying(ps));
-                let _b = decl.body.visit(visitor)?.modifying(&mut decl.body)?;
-                visitor.finish_after_decl(decl)
+                    .map(|ps| Ok::<Vec<T>, anyhow::Error>(ps.visit(visitor)?.modifying(ps)?))
+                    .transpose()?;
+                let r = decl
+                    .ret
+                    .as_mut()
+                    .map(|r| r.visit(visitor)?.modifying(r))
+                    .transpose()?;
+                let b = decl.body.visit(visitor)?.modifying(&mut decl.body)?;
+                visitor.finish_after_decl(decl, n, p, r, b)
             }),
             Decl::Alias(sym, expr) => visitor.begin_alias_decl(sym, expr)?.and_then(|_| {
                 let s = sym.visit(visitor)?.modifying(sym)?;
@@ -635,10 +654,14 @@ where
                 visitor.finish_axiom_decl(fmla)
             }),
             Decl::BeforeAction(decl) => visitor.begin_before_decl(decl)?.and_then(|_| {
-                let _n = decl.name.visit(visitor)?.modifying(&mut decl.name);
-                let _p = decl.params.as_mut().map(|p| p.visit(visitor)?.modifying(p));
-                let _b = decl.body.visit(visitor)?.modifying(&mut decl.body);
-                visitor.finish_before_decl(decl)
+                let n = decl.name.visit(visitor)?.modifying(&mut decl.name)?;
+                let p = decl
+                    .params
+                    .as_mut()
+                    .map(|ps| Ok::<Vec<T>, anyhow::Error>(ps.visit(visitor)?.modifying(ps)?))
+                    .transpose()?;
+                let b = decl.body.visit(visitor)?.modifying(&mut decl.body)?;
+                visitor.finish_before_decl(decl, n, p, b)
             }),
             Decl::Common(decl) => visitor.begin_common_decl(decl)?.and_then(|_| {
                 let _d = decl.visit(visitor)?.modifying(decl)?;
@@ -700,10 +723,10 @@ where
                 visitor.finish_import_decl(decl, n, p)
             }),
             Decl::Isolate(decl) => visitor.begin_isolate_decl(decl)?.and_then(|_| {
-                let _n = decl.name.visit(visitor)?.modifying(&mut decl.name)?;
-                let _p = decl.params.visit(visitor)?.modifying(&mut decl.params)?;
-                let _b = decl.body.visit(visitor)?.modifying(&mut decl.body)?;
-                visitor.finish_isolate_decl(decl, _n, _p, _b)
+                let n = decl.name.visit(visitor)?.modifying(&mut decl.name)?;
+                let p = decl.params.visit(visitor)?.modifying(&mut decl.params)?;
+                let b = decl.body.visit(visitor)?.modifying(&mut decl.body)?;
+                visitor.finish_isolate_decl(decl, n, p, b)
             }),
             Decl::Include(decl) => visitor
                 .begin_include_decl(decl)?
@@ -723,7 +746,7 @@ where
             Decl::Module(decl) => visitor.begin_module_decl(decl)?.and_then(|_| {
                 let n = decl.name.visit(visitor)?.modifying(&mut decl.name)?;
                 let p = decl
-                    .params
+                    .sortsyms
                     .iter_mut()
                     .map(|p| p.visit(visitor)?.modifying(p))
                     .collect::<Result<Vec<_>, _>>()?;
@@ -732,7 +755,7 @@ where
             }),
             Decl::Noop => return Ok(ControlMut::Produce(T::default())),
             Decl::NormalizedIsolate(decl) => {
-                visitor.begin_normalized_module_decl(decl)?.and_then(|_| {
+                visitor.begin_normalized_isolate_decl(decl)?.and_then(|_| {
                     let n = decl.name.visit(visitor)?.modifying(&mut decl.name)?;
                     let p = decl.params.visit(visitor)?.modifying(&mut decl.params)?;
 
@@ -752,7 +775,7 @@ where
                         .common_spec_decls
                         .visit(visitor)?
                         .modifying(&mut decl.spec_decls)?;
-                    visitor.finish_normalized_module_decl(decl, n, p, i, s, ci, cs)
+                    visitor.finish_normalized_isolate_decl(decl, n, p, i, s, ci, cs)
                 })
             }
             Decl::Object(decl) => visitor.begin_object_decl(decl)?.and_then(|_| {

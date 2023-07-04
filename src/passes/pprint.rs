@@ -419,9 +419,9 @@ impl<W: Write> Visitor<()> for PrettyPrinter<W> {
         self.out
             .write_fmt(format_args!("isolate {}", module.name))?;
 
-        if module.params.len() > 0 {
+        if module.sortsyms.len() > 0 {
             self.write_str("(")?;
-            module.params.visit(self)?;
+            module.sortsyms.visit(self)?;
             self.write_str(")")?;
         }
         self.write_str(" {\n")?;
@@ -431,7 +431,7 @@ impl<W: Write> Visitor<()> for PrettyPrinter<W> {
         Ok(ControlMut::SkipSiblings(()))
     }
 
-    fn begin_normalized_module_decl(
+    fn begin_normalized_isolate_decl(
         &mut self,
         module: &mut declarations::NormalizedIsolateDecl,
     ) -> VisitorResult<(), declarations::Decl> {

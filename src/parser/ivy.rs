@@ -184,8 +184,8 @@ impl IvyParser {
     pub fn mod_sig(input: Node) -> Result<ModSig> {
         match_nodes!(
         input.into_children();
-        [symbol(name), symbol(params)..] => {
-            Ok(ModSig{name, params: params.collect()})
+        [symbol(name), symbol(sortsyms)..] => {
+            Ok(ModSig{name, sortsyms: sortsyms.collect()})
         })
     }
 
@@ -370,8 +370,8 @@ impl IvyParser {
     pub fn module_decl(input: Node) -> Result<ModuleDecl> {
         match_nodes!(
         input.into_children();
-        [mod_sig(ModSig{name, params}), decl_block(body)] => Ok(
-            ModuleDecl{name, params, body}
+        [mod_sig(ModSig{name, sortsyms}), decl_block(body)] => Ok(
+            ModuleDecl{name, sortsyms, body}
         ))
     }
 

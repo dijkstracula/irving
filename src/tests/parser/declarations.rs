@@ -137,7 +137,7 @@ mod tests {
             IvyParser::decl(res).unwrap(),
             Decl::Module(ModuleDecl {
                 name: "net".into(),
-                params: vec!("pid".into()),
+                sortsyms: vec!("pid".into()),
                 body: vec!()
             })
         );

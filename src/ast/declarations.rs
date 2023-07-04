@@ -17,7 +17,7 @@ pub type DeclRet = Option<Param>;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ModSig {
     pub name: Symbol,
-    pub params: Vec<Symbol>,
+    pub sortsyms: Vec<Symbol>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -93,7 +93,7 @@ pub struct IsolateDecl {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ModuleDecl {
     pub name: Symbol,
-    pub params: Vec<Symbol>,
+    pub sortsyms: Vec<Symbol>,
     pub body: Vec<Decl>,
 }
 
