@@ -8,7 +8,7 @@ mod tests {
         passes::isolate_normalizer::IsolateNormalizer,
         typechecker::{
             inference::TypeChecker,
-            sorts::{IvySort, Process},
+            sorts::{IvySort, Module, Process},
         },
         visitor::visitor::Visitable,
     };
@@ -43,6 +43,24 @@ mod tests {
             .append("byte".into(), IvySort::BitVec(8))
             .unwrap();
 
+        tc.bindings
+            .append(
+                "sock".into(),
+                IvySort::Module(Module {
+                    args: [].into(),
+                    fields: [].into(),
+                }),
+            )
+            .unwrap();
+        tc.bindings
+            .append(
+                "file".into(),
+                IvySort::Module(Module {
+                    args: [].into(),
+                    fields: [].into(),
+                }),
+            )
+            .unwrap();
         tc
     }
 
@@ -62,7 +80,7 @@ mod tests {
         let res = iso.visit(&mut tc).unwrap().modifying(&mut iso).unwrap();
         assert_eq!(res, sort);
 
-        assert_eq!(tc.bindings.lookup(&"p".to_owned()), Some(sort));
+        assert_eq!(tc.bindings.lookup_sym(&"p".to_owned()), Some(&sort));
     }
 
     #[test]
@@ -83,7 +101,7 @@ mod tests {
         let res = iso.visit(&mut tc).unwrap().modifying(&mut iso).unwrap();
         assert_eq!(res, sort);
 
-        assert_eq!(tc.bindings.lookup(&"host".to_owned()), Some(sort));
+        assert_eq!(tc.bindings.lookup_sym(&"host".to_owned()), Some(&sort));
     }
 
     #[test]
@@ -108,32 +126,32 @@ mod tests {
         let res = iso.visit(&mut tc).unwrap().modifying(&mut iso).unwrap();
         assert_eq!(res, sort);
 
-        assert_eq!(tc.bindings.lookup(&"host".to_owned()), Some(sort),);
+        assert_eq!(tc.bindings.lookup_sym(&"host".to_owned()), Some(&sort),);
     }
 
-    //#[test]
+    #[test]
     fn test_append1_host() {
         let mut iso = isolate_from_src(
             "process host(self:pid) = {
-            export action append(val: byte)
-            import action show(content: file)
-            instance sock: net.socket
-            var contents: file
+                export action append(val: byte)
+                import action show(content: file)
+                instance sock: net.socket
+                var contents: file
 
-            after init {
-                contents := file.empty;
-            }
+                after init {
+                    contents := file.empty;
+                }
 
-            implement append {
-                contents := contents.append(val);
-                sock.send(host(1-self).sock.id, val);
-                show(contents);
-            }
+                implement append {
+                    contents := contents.append(val);
+                    sock.send(host(1-self).sock.id, val);
+                    show(contents);
+                }
 
-            implement sock.recv(src: tcp.endpoint, val:byte) {
-                contents := contents.append(val);
-                show(contents);
-            }
+                implement sock.recv(src: tcp.endpoint, val:byte) {
+                    contents := contents.append(val);
+                    show(contents);
+                }
         }",
         );
 

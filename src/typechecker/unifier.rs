@@ -39,16 +39,12 @@ impl Resolver {
         }
     }
 
-    // TODO: I wonder what we need to do in order to support annotations, which are qualified
-    // identifiers.  Maybe it's its own kind of constraint?
-    pub fn lookup(&mut self, sym: &Symbol) -> Option<IvySort> {
-        let unresolved = self
-            .sorts
+    pub fn lookup_sym(&self, sym: &Symbol) -> Option<&IvySort> {
+        self.sorts
             .iter()
             .rfind(|scope| scope.contains_key(sym))
             .and_then(|scope| scope.get(sym))
-            .map(|s| s.clone());
-        unresolved.map(|s| self.resolve(&s))
+            .map(|s| self.resolve(s))
     }
 
     pub fn append(&mut self, sym: Symbol, sort: IvySort) -> Result<(), TypeError> {
@@ -72,7 +68,7 @@ impl Resolver {
 
     // Unification
 
-    pub fn resolve(&mut self, sort: &IvySort) -> IvySort {
+    pub fn resolve<'a>(&'a self, sort: &'a IvySort) -> &'a IvySort {
         if let IvySort::SortVar(original_id) = sort {
             let mut curr_id = *original_id;
             let mut next_sort = &self.ctx[curr_id];
@@ -85,9 +81,9 @@ impl Resolver {
                 curr_id = *new_id;
                 next_sort = &self.ctx[curr_id];
             }
-            next_sort.clone()
+            next_sort
         } else {
-            sort.clone()
+            sort
         }
     }
 
@@ -111,8 +107,8 @@ impl Resolver {
     }
 
     pub fn unify(&mut self, lhs: &IvySort, rhs: &IvySort) -> Result<IvySort, TypeError> {
-        let lhs = self.resolve(lhs);
-        let rhs = self.resolve(rhs);
+        let lhs = self.resolve(lhs).clone();
+        let rhs = self.resolve(rhs).clone();
         println!("unify({:?}, {:?})", lhs, rhs);
         match (&lhs, &rhs) {
             (IvySort::SortVar(i), IvySort::SortVar(j)) => {

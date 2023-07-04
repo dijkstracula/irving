@@ -25,7 +25,7 @@ mod tests {
         let res = decl.visit(&mut tc).unwrap().modifying(&mut decl).unwrap();
         assert_eq!(res, sort);
 
-        assert_eq!(tc.bindings.lookup(&"a".to_owned()), Some(sort));
+        assert_eq!(tc.bindings.lookup_sym(&"a".to_owned()), Some(&sort));
     }
 
     #[test]
@@ -45,7 +45,7 @@ mod tests {
         );
 
         // Make sure that `b` does not escape the local context.
-        assert_eq!(tc.bindings.lookup(&"b".to_owned()), None);
+        assert_eq!(tc.bindings.lookup_sym(&"b".to_owned()), None);
     }
 
     #[test]
@@ -65,16 +65,16 @@ mod tests {
         );
 
         assert_eq!(
-            tc.bindings.lookup(&"id".to_owned()),
-            Some(IvySort::Function(
+            tc.bindings.lookup_sym(&"id".to_owned()),
+            Some(&IvySort::Function(
                 Fargs::List(vec!(IvySort::Bool)),
                 Box::new(IvySort::Bool)
             ))
         );
 
         // Make sure that `x` and `b` do not escape the local context.
-        assert_eq!(tc.bindings.lookup(&"b".to_owned()), None);
-        assert_eq!(tc.bindings.lookup(&"x".to_owned()), None);
+        assert_eq!(tc.bindings.lookup_sym(&"b".to_owned()), None);
+        assert_eq!(tc.bindings.lookup_sym(&"x".to_owned()), None);
     }
 
     #[test]
@@ -107,8 +107,8 @@ mod tests {
             .unwrap();
 
         assert_eq!(
-            tc.bindings.lookup(&"id".to_owned()),
-            Some(IvySort::Function(
+            tc.bindings.lookup_sym(&"id".to_owned()),
+            Some(&IvySort::Function(
                 Fargs::List(vec!(IvySort::Bool)),
                 Box::new(IvySort::Bool)
             ))
@@ -190,16 +190,16 @@ mod tests {
             .unwrap();
 
         assert_eq!(
-            tc.bindings.lookup(&"id".to_owned()),
-            Some(IvySort::Function(
+            tc.bindings.lookup_sym(&"id".to_owned()),
+            Some(&IvySort::Function(
                 Fargs::List(vec!(IvySort::Bool)),
                 Box::new(IvySort::Bool)
             ))
         );
 
         // Make sure that `a` and `b` do not escape the local context.
-        assert_eq!(tc.bindings.lookup(&"b".to_owned()), None);
-        assert_eq!(tc.bindings.lookup(&"a".to_owned()), None);
+        assert_eq!(tc.bindings.lookup_sym(&"b".to_owned()), None);
+        assert_eq!(tc.bindings.lookup_sym(&"a".to_owned()), None);
     }
 
     #[test]

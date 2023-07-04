@@ -86,7 +86,7 @@ impl Visitor<IvySort> for TypeChecker {
         match sym.as_str() {
             "bool" => Ok(ControlMut::Produce(IvySort::Bool)),
             // TODO: and of course other builtins.
-            _ => match self.bindings.lookup(sym) {
+            _ => match self.bindings.lookup_sym(sym) {
                 Some(sort) => Ok(ControlMut::Produce(sort.clone())),
                 None => bail!(TypeError::UnboundVariable(sym.clone())),
             },
@@ -281,8 +281,6 @@ impl Visitor<IvySort> for TypeChecker {
     ) -> VisitorResult<IvySort, declarations::Decl> {
         self.bindings.pop_scope();
 
-        println!("{:?}, {:?}", after_params_sort, after_ret_sort);
-
         let mixin_sort = match (after_params_sort, after_ret_sort) {
             (None, None) => self.bindings.new_sortvar(),
             (Some(params), None) => {
@@ -455,7 +453,7 @@ impl Visitor<IvySort> for TypeChecker {
             .sortsyms
             .iter()
             .zip(param_sorts.iter())
-            .map(|(name, sort)| (name.clone(), self.bindings.resolve(sort)))
+            .map(|(name, sort)| (name.clone(), self.bindings.resolve(sort).clone()))
             .collect::<Vec<_>>();
 
         let fields = ast
@@ -465,7 +463,7 @@ impl Visitor<IvySort> for TypeChecker {
             .map(|(decl, sort)| {
                 (
                     decl.name_for_binding().unwrap().into(),
-                    self.bindings.resolve(sort),
+                    self.bindings.resolve(sort).clone(),
                 )
             })
             .collect::<HashMap<_, _>>();
@@ -511,7 +509,7 @@ impl Visitor<IvySort> for TypeChecker {
             .params
             .iter()
             .zip(param_sorts.iter())
-            .map(|(name, sort)| (name.id.clone(), self.bindings.resolve(sort)))
+            .map(|(name, sort)| (name.id.clone(), self.bindings.resolve(sort).clone()))
             .collect::<Vec<_>>();
 
         let impl_fields = ast
@@ -520,7 +518,7 @@ impl Visitor<IvySort> for TypeChecker {
             .zip(impl_sorts.iter())
             .filter_map(|(decl, sort)| {
                 decl.name_for_binding()
-                    .map(|n| (n.into(), self.bindings.resolve(sort)))
+                    .map(|n| (n.into(), self.bindings.resolve(sort).clone()))
             })
             .collect::<HashMap<_, _>>();
 
@@ -530,7 +528,7 @@ impl Visitor<IvySort> for TypeChecker {
             .zip(spec_sorts.iter())
             .filter_map(|(decl, sort)| {
                 decl.name_for_binding()
-                    .map(|n| (n.into(), self.bindings.resolve(sort)))
+                    .map(|n| (n.into(), self.bindings.resolve(sort).clone()))
             })
             .collect::<HashMap<_, _>>();
 
@@ -540,7 +538,7 @@ impl Visitor<IvySort> for TypeChecker {
             .zip(common_impl_sorts.iter())
             .filter_map(|(decl, sort)| {
                 decl.name_for_binding()
-                    .map(|n| (n.into(), self.bindings.resolve(sort)))
+                    .map(|n| (n.into(), self.bindings.resolve(sort).clone()))
             })
             .collect::<HashMap<_, _>>();
 
@@ -550,7 +548,7 @@ impl Visitor<IvySort> for TypeChecker {
             .zip(common_spec_sorts.iter())
             .filter_map(|(decl, sort)| {
                 decl.name_for_binding()
-                    .map(|n| (n.into(), self.bindings.resolve(sort)))
+                    .map(|n| (n.into(), self.bindings.resolve(sort).clone()))
             })
             .collect::<HashMap<_, _>>();
 
@@ -602,7 +600,7 @@ impl Visitor<IvySort> for TypeChecker {
                 self.bindings.append(n.clone(), ast.sort.clone())?;
                 ast.sort.clone()
             }
-            TypeName::This => self.bindings.lookup(&"this".into()).unwrap(),
+            TypeName::This => self.bindings.lookup_sym(&"this".into()).unwrap().clone(),
         };
         Ok(ControlMut::SkipSiblings(sort))
     }

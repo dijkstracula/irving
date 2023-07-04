@@ -33,7 +33,7 @@ mod tests {
         let mut tc = TypeChecker::new();
         let res = iso.visit(&mut tc).unwrap().modifying(&mut iso).unwrap();
         assert_eq!(res, sort);
-        assert_eq!(tc.bindings.lookup(&"m".to_owned()), Some(sort));
+        assert_eq!(tc.bindings.lookup_sym(&"m".to_owned()), Some(&sort));
     }
 
     #[test]
@@ -60,10 +60,10 @@ mod tests {
         let mut tc = TypeChecker::new();
         let res = iso.visit(&mut tc).unwrap().modifying(&mut iso).unwrap();
         assert_eq!(res, sort);
-        assert_eq!(tc.bindings.lookup(&"array".to_owned()), Some(sort));
+        assert_eq!(tc.bindings.lookup_sym(&"array".to_owned()), Some(&sort));
 
         // `this` should not escape its scope.
-        assert_eq!(tc.bindings.lookup(&"this".to_owned()), None);
+        assert_eq!(tc.bindings.lookup_sym(&"this".to_owned()), None);
     }
 
     #[test]
@@ -110,9 +110,9 @@ mod tests {
         let res = iso.visit(&mut tc).unwrap().modifying(&mut iso).unwrap();
 
         assert_eq!(res, sort);
-        assert_eq!(tc.bindings.lookup(&"array".to_owned()), Some(sort));
+        assert_eq!(tc.bindings.lookup_sym(&"array".to_owned()), Some(&sort));
 
         // `this` should not escape its scope.
-        assert_eq!(tc.bindings.lookup(&"this".to_owned()), None);
+        assert_eq!(tc.bindings.lookup_sym(&"this".to_owned()), None);
     }
 }
