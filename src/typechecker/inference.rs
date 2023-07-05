@@ -50,14 +50,16 @@ impl Visitor<IvySort> for TypeChecker {
         &mut self,
         i: &mut expressions::Ident,
     ) -> VisitorResult<IvySort, expressions::Ident> {
-        // TODO: we'll have to walk each element in the identifier, and ensure
-        // that all but the final value is a Module.
+        // XXX: This is a hack for built-ins like `bool` that we shouldn't have to
+        // special-case in this way.
         if i.len() == 1 {
             let mut s = i.get_mut(0).unwrap();
             Ok(ControlMut::Produce(s.visit(self)?.modifying(&mut s)?))
         } else {
-            // ???
-            todo!()
+            // XXX: we always set include_spec to true.  Suggests we need to also
+            // return an annotation indicating if this was a spec/common/etc. decl.
+            let resolved = self.bindings.lookup_ident(i, true)?;
+            Ok(ControlMut::Produce(resolved.clone()))
         }
     }
 
@@ -305,8 +307,8 @@ impl Visitor<IvySort> for TypeChecker {
     }
     fn finish_alias_decl(
         &mut self,
-        sym: &mut Symbol,
-        e: &mut Expr,
+        _sym: &mut Symbol,
+        _e: &mut Expr,
         sym_sort: IvySort,
         expr_sort: IvySort,
     ) -> VisitorResult<IvySort, declarations::Decl> {
@@ -591,6 +593,37 @@ impl Visitor<IvySort> for TypeChecker {
         Ok(ControlMut::Produce(unifed))
     }
 
+    fn begin_instance_decl(
+        &mut self,
+        ast: &mut declarations::InstanceDecl,
+    ) -> VisitorResult<IvySort, declarations::Decl> {
+        let v = self.bindings.new_sortvar();
+        self.bindings.append(ast.name.clone(), v)?;
+        Ok(ControlMut::Produce(IvySort::Unit))
+    }
+    fn finish_instance_decl(
+        &mut self,
+        ast: &mut declarations::InstanceDecl,
+        decl_sort: IvySort,
+        module_sort: IvySort,
+        mod_args_sorts: Vec<IvySort>,
+    ) -> VisitorResult<IvySort, declarations::Decl> {
+        if mod_args_sorts.len() > 0 {
+            // Will have to monomorphize with the module instantiation pass.
+            todo!()
+        }
+        if let IvySort::Module(Module { args, fields }) = module_sort {
+            let modsort = IvySort::Module(Module {
+                args: vec![],
+                fields: fields,
+            });
+            let unifed = self.bindings.unify(&decl_sort, &modsort)?;
+            Ok(ControlMut::Produce(unifed))
+        } else {
+            bail!(TypeError::NotInstanceable(module_sort.clone()))
+        }
+    }
+
     fn begin_typedecl(
         &mut self,
         ast: &mut expressions::Type,
@@ -600,7 +633,7 @@ impl Visitor<IvySort> for TypeChecker {
                 self.bindings.append(n.clone(), ast.sort.clone())?;
                 ast.sort.clone()
             }
-            TypeName::This => self.bindings.lookup_sym(&"this".into()).unwrap().clone(),
+            TypeName::This => self.bindings.lookup_sym("this").unwrap().clone(),
         };
         Ok(ControlMut::SkipSiblings(sort))
     }

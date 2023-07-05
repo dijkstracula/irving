@@ -1,6 +1,9 @@
-use std::{collections::HashMap, vec};
+use std::{collections::HashMap, io, vec};
 
-use crate::{ast::expressions::*, typechecker::sorts::Fargs};
+use crate::{
+    ast::expressions::*,
+    typechecker::sorts::{Fargs, Module, Process},
+};
 
 use super::{sorts::IvySort, TypeError};
 
@@ -39,12 +42,38 @@ impl Resolver {
         }
     }
 
-    pub fn lookup_sym(&self, sym: &Symbol) -> Option<&IvySort> {
+    pub fn lookup_sym(&self, sym: &str) -> Option<&IvySort> {
         self.sorts
             .iter()
             .rfind(|scope| scope.contains_key(sym))
             .and_then(|scope| scope.get(sym))
             .map(|s| self.resolve(s))
+    }
+
+    pub fn lookup_ident(&self, id: &Ident, _include_spec: bool) -> Result<&IvySort, TypeError> {
+        let mut idents = id.iter();
+
+        let mut curr_sym = idents.next().unwrap();
+        let mut curr_sort = self.lookup_sym(curr_sym);
+
+        for field in idents {
+            match curr_sort {
+                Some(IvySort::Module(Module { fields, .. })) => {
+                    curr_sym = field;
+                    curr_sort = fields.get(field);
+                }
+                Some(IvySort::Process(_)) => todo!(),
+                Some(sort) => {
+                    return Err(TypeError::NotARecord(sort.clone()));
+                }
+                None => return Err(TypeError::UnboundVariable(curr_sym.clone())),
+            }
+        }
+
+        match curr_sort {
+            None => Err(TypeError::UnboundVariable(curr_sym.clone())),
+            Some(s) => Ok(s),
+        }
     }
 
     pub fn append(&mut self, sym: Symbol, sort: IvySort) -> Result<(), TypeError> {

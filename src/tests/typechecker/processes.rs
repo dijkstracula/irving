@@ -45,10 +45,10 @@ mod tests {
 
         tc.bindings
             .append(
-                "sock".into(),
+                "net".into(),
                 IvySort::Module(Module {
                     args: [].into(),
-                    fields: [].into(),
+                    fields: [("socket".into(), IvySort::Number)].into(),
                 }),
             )
             .unwrap();

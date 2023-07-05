@@ -230,7 +230,13 @@ where
     fn begin_instance_decl(&mut self, _ast: &mut InstanceDecl) -> VisitorResult<T, Decl> {
         Ok(ControlMut::Produce(T::default()))
     }
-    fn finish_instance_decl(&mut self, _ast: &mut InstanceDecl) -> VisitorResult<T, Decl> {
+    fn finish_instance_decl(
+        &mut self,
+        _ast: &mut InstanceDecl,
+        _n: T,
+        _s: T,
+        _a: Vec<T>,
+    ) -> VisitorResult<T, Decl> {
         Ok(ControlMut::Produce(T::default()))
     }
 
@@ -411,7 +417,11 @@ where
         Ok(ControlMut::Produce(T::default()))
     }
 
-    fn param(&mut self, _p: &mut Param) -> VisitorResult<T, Param> {
+    fn param(&mut self, p: &mut Param) -> VisitorResult<T, Param> {
+        self.symbol(&mut p.id)?.modifying(&mut p.id)?;
+        if let Some(sort) = &mut p.sort {
+            self.identifier(sort)?.modifying(sort)?;
+        }
         Ok(ControlMut::Produce(T::default()))
     }
 
@@ -732,10 +742,10 @@ where
                 .begin_include_decl(decl)?
                 .and_then(|_| visitor.finish_include_decl(decl)),
             Decl::Instance(decl) => visitor.begin_instance_decl(decl)?.and_then(|_| {
-                let _n = decl.name.visit(visitor)?.modifying(&mut decl.name);
-                let _s = decl.sort.visit(visitor)?.modifying(&mut decl.sort);
-                let _a = decl.args.visit(visitor)?.modifying(&mut decl.args);
-                visitor.finish_instance_decl(decl)
+                let n = decl.name.visit(visitor)?.modifying(&mut decl.name)?;
+                let s = decl.sort.visit(visitor)?.modifying(&mut decl.sort)?;
+                let a = decl.args.visit(visitor)?.modifying(&mut decl.args)?;
+                visitor.finish_instance_decl(decl, n, s, a)
             }),
             Decl::Instantiate { name, prms } => todo!(),
             Decl::Interpretation { itype, ctype } => todo!(),
@@ -809,7 +819,7 @@ where
             Decl::Type(decl) => visitor.begin_typedecl(decl)?.and_then(|_| {
                 let _i = match &mut decl.ident {
                     TypeName::Name(n) => n.visit(visitor)?.modifying(n),
-                    TypeName::This => todo!(),
+                    TypeName::This => Ok(T::default()),
                 }?;
                 let _s = visitor.sort(&mut decl.sort)?.modifying(&mut decl.sort);
                 visitor.finish_typedecl(decl)
