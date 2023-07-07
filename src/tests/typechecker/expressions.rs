@@ -187,7 +187,7 @@ mod tests {
 
         // Accessing 'b' should be fine when 'a' is bound to a Process.
         let procsort = Process {
-            args: vec![],
+            args: HashMap::from([]),
             impl_fields: HashMap::from([("b".into(), IvySort::Bool)]),
             spec_fields: HashMap::from([]),
             common_impl_fields: HashMap::from([]),

@@ -9,7 +9,7 @@ use super::{
 use crate::{
     ast::{
         actions::Action,
-        declarations::{self, ModuleDecl},
+        declarations::{self, AfterDecl, BeforeDecl, ImplementDecl},
         expressions::{self, Expr, Symbol, TypeName},
         statements::Stmt,
     },
@@ -87,6 +87,7 @@ impl Visitor<IvySort> for TypeChecker {
     ) -> VisitorResult<IvySort, expressions::Symbol> {
         match sym.as_str() {
             "bool" => Ok(ControlMut::Produce(IvySort::Bool)),
+            "unbounded_sequence" => Ok(ControlMut::Produce(IvySort::Number)),
             // TODO: and of course other builtins.
             _ => match self.bindings.lookup_sym(sym) {
                 Some(sort) => Ok(ControlMut::Produce(sort.clone())),
@@ -113,10 +114,11 @@ impl Visitor<IvySort> for TypeChecker {
     ) -> VisitorResult<IvySort, Expr> {
         let retsort = self.bindings.new_sortvar();
         let expected_sort = IvySort::Function(Fargs::List(argsorts), Box::new(retsort));
-        if let Ok(IvySort::Function(_, ret)) = self.bindings.unify(&fsort, &expected_sort) {
-            Ok(ControlMut::Produce(*ret.clone()))
-        } else {
-            bail!(TypeError::InvalidApplication(fsort))
+        let unified = self.bindings.unify(&fsort, &expected_sort);
+        match unified {
+            Ok(IvySort::Function(_, ret)) => Ok(ControlMut::Produce(*ret.clone())),
+            Ok(unified) => bail!(TypeError::InvalidApplication(unified)),
+            _ => bail!(TypeError::InvalidApplication(fsort)),
         }
     }
 
@@ -197,17 +199,20 @@ impl Visitor<IvySort> for TypeChecker {
         lhs: &mut Expr,
         rhs: &mut expressions::Symbol,
     ) -> VisitorResult<IvySort, Expr> {
-        let recordsort = match lhs.visit(self)?.modifying(lhs)? {
-            IvySort::Process(proc) => proc,
-            sort => bail!(TypeError::NotARecord(sort)),
+        let lhs_sort = lhs.visit(self)?.modifying(lhs)?;
+
+        let recordsort = match &lhs_sort {
+            IvySort::Module(module) => module.fields.get(rhs),
+            IvySort::Process(proc) => proc
+                .impl_fields
+                .get(rhs)
+                .or(proc.spec_fields.get(rhs))
+                .or(proc.common_spec_fields.get(rhs)),
+
+            sort => bail!(TypeError::NotARecord(sort.clone())),
         };
 
-        match recordsort
-            .impl_fields
-            .get(rhs)
-            .or(recordsort.spec_fields.get(rhs))
-            .or(recordsort.common_spec_fields.get(rhs))
-        {
+        match recordsort {
             Some(sort) => Ok(ControlMut::SkipSiblings(sort.clone())),
             None => bail!(TypeError::UnboundVariable(rhs.clone())),
         }
@@ -428,20 +433,22 @@ impl Visitor<IvySort> for TypeChecker {
 
         self.bindings.push_scope();
         self.bindings.append("this".into(), v.clone())?;
+        self.bindings
+            .append("init".into(), Module::init_action_sort())?;
 
         // Note: we have to pull the sort arguments into scope explicitly
-        // unlike action decls since the argument list aren't parameters.
+        // unlike action decls since the argument list AST isn't a Vec<Param>.
         for sortarg in &ast.sortsyms {
             let s = self.bindings.new_sortvar();
             self.bindings.append(sortarg.clone(), s)?;
         }
 
         // TODO: possibly this could be its own pass.
-        for decl in &ast.body {
-            if decl.name_for_binding().is_none() {
-                bail!(TypeError::NonBindingDecl(decl.clone()));
-            }
-        }
+        //        for decl in &ast.body {
+        //           if decl.name_for_binding().is_none() {
+        //              bail!(TypeError::NonBindingDecl(decl.clone()));
+        //         }
+        //    }
         Ok(ControlMut::Produce(v))
     }
     fn finish_module_decl(
@@ -458,17 +465,44 @@ impl Visitor<IvySort> for TypeChecker {
             .map(|(name, sort)| (name.clone(), self.bindings.resolve(sort).clone()))
             .collect::<Vec<_>>();
 
-        let fields = ast
+        // A module's fields are all the declarations that bind a name.
+        let mut fields = ast
             .body
             .iter()
             .zip(field_sorts.iter())
-            .map(|(decl, sort)| {
-                (
-                    decl.name_for_binding().unwrap().into(),
-                    self.bindings.resolve(sort).clone(),
-                )
+            .filter_map(|(decl, sort)| {
+                decl.name_for_binding()
+                    .map(|n| (n.into(), self.bindings.resolve(sort).clone()))
             })
             .collect::<HashMap<_, _>>();
+        // Every module has an implicit "init" action.
+        fields.insert("init".into(), Module::init_action_sort());
+
+        // A module's declaration list may also include other declarations that
+        // do not bind a new name - in particular, `after` and `before`, which
+        // refer to (potentially non-local) identifiers defined elsewhere.  We
+        // will have to actually mix these declarations in with their
+        // definitions in a later pass; for now, just confirm that their
+        // signatures are consistent with each other.
+        let _ = ast
+            .body
+            .iter()
+            .zip(field_sorts.iter())
+            .filter_map(|(decl, curr_sort)| match decl {
+                declarations::Decl::AfterAction(AfterDecl { name, .. })
+                | declarations::Decl::BeforeAction(BeforeDecl { name, .. })
+                | declarations::Decl::Implement(ImplementDecl { name, .. }) => {
+                    Some((name, curr_sort))
+                }
+                _ => None,
+            })
+            .map(|(name, curr_sort)| {
+                // XXX: Can I avoid this clone, despite unify() requring a mutable
+                // reference to `self.bindings`?
+                let prev_sort = self.bindings.lookup_ident(name, true)?.clone();
+                self.bindings.unify(&prev_sort, curr_sort)
+            })
+            .collect::<Result<Vec<_>, _>>()?;
 
         let module = IvySort::Module(Module { args, fields });
         let unifed = self.bindings.unify(&mod_sort, &module)?;
@@ -494,6 +528,8 @@ impl Visitor<IvySort> for TypeChecker {
 
         self.bindings.push_scope();
         self.bindings.append("this".into(), v.clone())?;
+        self.bindings
+            .append("init".into(), Module::init_action_sort())?;
 
         Ok(ControlMut::Produce(v))
     }
@@ -512,9 +548,9 @@ impl Visitor<IvySort> for TypeChecker {
             .iter()
             .zip(param_sorts.iter())
             .map(|(name, sort)| (name.id.clone(), self.bindings.resolve(sort).clone()))
-            .collect::<Vec<_>>();
+            .collect::<HashMap<_, _>>();
 
-        let impl_fields = ast
+        let mut impl_fields = ast
             .impl_decls
             .iter()
             .zip(impl_sorts.iter())
@@ -523,6 +559,8 @@ impl Visitor<IvySort> for TypeChecker {
                     .map(|n| (n.into(), self.bindings.resolve(sort).clone()))
             })
             .collect::<HashMap<_, _>>();
+        // Every module has an implicit "init" action.
+        impl_fields.insert("init".into(), Module::init_action_sort());
 
         let spec_fields = ast
             .spec_decls
@@ -603,7 +641,7 @@ impl Visitor<IvySort> for TypeChecker {
     }
     fn finish_instance_decl(
         &mut self,
-        ast: &mut declarations::InstanceDecl,
+        _ast: &mut declarations::InstanceDecl,
         decl_sort: IvySort,
         module_sort: IvySort,
         mod_args_sorts: Vec<IvySort>,

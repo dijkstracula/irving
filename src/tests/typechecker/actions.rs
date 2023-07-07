@@ -1,7 +1,9 @@
 #[cfg(test)]
 mod tests {
     use crate::{
+        ast::declarations::Decl,
         parser::ivy::{IvyParser, Rule},
+        passes::isolate_normalizer::IsolateNormalizer,
         typechecker::{
             inference::TypeChecker,
             sorts::{Fargs, IvySort},
@@ -11,14 +13,31 @@ mod tests {
     };
     use pest_consume::Parser;
 
-    #[test]
-    fn test_noop_action_decl() {
-        let prog = "action a() {}";
-        let parsed = IvyParser::parse(Rule::decl, &prog)
+    fn isolate_from_src(prog: &str) -> Decl {
+        let res = IvyParser::parse(Rule::isolate_decl, &prog)
             .expect("Parsing failed")
             .single()
             .unwrap();
-        let mut decl = IvyParser::decl(parsed).expect("AST generation failed");
+        let mut proc = Decl::Isolate(IvyParser::isolate_decl(res).expect("AST generation failed"));
+
+        // Since we'll be assuming that the normalizer has run prior to
+        // typechecking, enforce it here.
+        let mut norm = IsolateNormalizer::new();
+        proc.visit(&mut norm).unwrap().modifying(&mut proc).unwrap();
+        proc
+    }
+
+    fn decl_from_src(src: &str) -> Decl {
+        let parsed = IvyParser::parse(Rule::decl, &src)
+            .expect("Parsing failed")
+            .single()
+            .unwrap();
+        IvyParser::decl(parsed).expect("AST generation failed")
+    }
+
+    #[test]
+    fn test_noop_action_decl() {
+        let mut decl = decl_from_src("action a() {}");
         let sort = IvySort::Function(Fargs::List(vec![]), Box::new(IvySort::Unit));
 
         let mut tc = TypeChecker::new();
@@ -30,12 +49,7 @@ mod tests {
 
     #[test]
     fn test_noop_action_decl_with_local() {
-        let prog = "action a() { var b = 42 } ";
-        let parsed = IvyParser::parse(Rule::decl, &prog)
-            .expect("Parsing failed")
-            .single()
-            .unwrap();
-        let mut decl = IvyParser::decl(parsed).expect("AST generation failed");
+        let mut decl = decl_from_src("action a() { var b = 42 } ");
 
         let mut tc = TypeChecker::new();
         let res = decl.visit(&mut tc).unwrap().modifying(&mut decl).unwrap();
@@ -50,12 +64,7 @@ mod tests {
 
     #[test]
     fn test_ident_action_decl() {
-        let prog = "action id(x: bool) returns (b: bool) = { b := x }";
-        let parsed = IvyParser::parse(Rule::decl, &prog)
-            .expect("Parsing failed")
-            .single()
-            .unwrap();
-        let mut decl = IvyParser::decl(parsed).expect("AST generation failed");
+        let mut decl = decl_from_src("action id(x: bool) returns (b: bool) = { b := x }");
 
         let mut tc = TypeChecker::new();
         let res = decl.visit(&mut tc).unwrap().modifying(&mut decl).unwrap();
@@ -79,19 +88,8 @@ mod tests {
 
     #[test]
     fn test_action_forward_ref() {
-        let prog = "action id(a: bool) returns (b: bool)";
-        let parsed = IvyParser::parse(Rule::decl, &prog)
-            .expect("Parsing failed")
-            .single()
-            .unwrap();
-        let mut action_decl = IvyParser::decl(parsed).expect("AST generation failed");
-
-        let prog = "implement id { b := a }";
-        let parsed = IvyParser::parse(Rule::decl, &prog)
-            .expect("Parsing failed")
-            .single()
-            .unwrap();
-        let mut imp_decl = IvyParser::decl(parsed).expect("AST generation failed");
+        let mut action_decl = decl_from_src("action id(a: bool) returns (b: bool)");
+        let mut imp_decl = decl_from_src("implement id { b := a }");
 
         let mut tc = TypeChecker::new();
 
@@ -117,19 +115,8 @@ mod tests {
 
     #[test]
     fn test_unknown_ident_in_action_impl() {
-        let prog = "action id(a: bool) returns (b: bool)";
-        let parsed = IvyParser::parse(Rule::decl, &prog)
-            .expect("Parsing failed")
-            .single()
-            .unwrap();
-        let mut action_decl = IvyParser::decl(parsed).expect("AST generation failed");
-
-        let prog = "implement id { foo := a }";
-        let parsed = IvyParser::parse(Rule::decl, &prog)
-            .expect("Parsing failed")
-            .single()
-            .unwrap();
-        let mut imp_decl = IvyParser::decl(parsed).expect("AST generation failed");
+        let mut action_decl = decl_from_src("action id(a: bool) returns (b: bool)");
+        let mut imp_decl = decl_from_src("implement id { foo := a }");
 
         let mut tc = TypeChecker::new();
 
@@ -151,25 +138,9 @@ mod tests {
 
     #[test]
     fn test_action_before_after() {
-        let prog = "action id(a: bool) returns (b: bool) { b := a }";
-        let parsed = IvyParser::parse(Rule::decl, &prog)
-            .expect("Parsing failed")
-            .single()
-            .unwrap();
-        let mut action_decl = IvyParser::decl(parsed).expect("AST generation failed");
-
-        let prog = "before id { require a = false | a = true }";
-        let parsed = IvyParser::parse(Rule::decl, &prog)
-            .expect("Parsing failed")
-            .single()
-            .unwrap();
-        let mut before_decl = IvyParser::decl(parsed).expect("AST generation failed");
-        let prog = "after id { ensure a = b }";
-        let parsed = IvyParser::parse(Rule::decl, &prog)
-            .expect("Parsing failed")
-            .single()
-            .unwrap();
-        let mut after_decl = IvyParser::decl(parsed).expect("AST generation failed");
+        let mut action_decl = decl_from_src("action id(a: bool) returns (b: bool) { b := a }");
+        let mut before_decl = decl_from_src("before id { require a = false | a = true }");
+        let mut after_decl = decl_from_src("after id { ensure a = b }");
 
         let mut tc = TypeChecker::new();
 
@@ -204,19 +175,8 @@ mod tests {
 
     #[test]
     fn test_inconsistent_mixin() {
-        let prog = "action const_true returns (b: bool) { b := true }";
-        let parsed = IvyParser::parse(Rule::decl, &prog)
-            .expect("Parsing failed")
-            .single()
-            .unwrap();
-        let mut action_decl = IvyParser::decl(parsed).expect("AST generation failed");
-
-        let prog = "after const_true(uhoh: bool) { }";
-        let parsed = IvyParser::parse(Rule::decl, &prog)
-            .expect("Parsing failed")
-            .single()
-            .unwrap();
-        let mut before_decl = IvyParser::decl(parsed).expect("AST generation failed");
+        let mut action_decl = decl_from_src("action const_true returns (b: bool) { b := true }");
+        let mut before_decl = decl_from_src("after const_true(uhoh: bool) { }");
 
         let mut tc = TypeChecker::new();
 
@@ -227,5 +187,29 @@ mod tests {
             .unwrap();
 
         before_decl.visit(&mut tc).unwrap_err();
+    }
+
+    #[test]
+    fn test_action_call() {
+        let mut prog = isolate_from_src(
+            "process m = {
+            type this
+            alias t = this
+            action doit(x: t) returns (y: t)
+        }",
+        );
+
+        let mut tc = TypeChecker::new();
+        prog.visit(&mut tc).unwrap().modifying(&mut prog).unwrap();
+
+        let process_sort = tc
+            .bindings
+            .lookup_ident(&vec!["m".into(), "doit".into()], true)
+            .unwrap();
+        println!("NBT: {:?}", process_sort);
+        assert_eq!(
+            process_sort,
+            &IvySort::function_sort(vec![process_sort.clone()], process_sort.clone())
+        );
     }
 }

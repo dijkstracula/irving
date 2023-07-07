@@ -1,4 +1,4 @@
-use std::{collections::HashMap, io, vec};
+use std::{collections::HashMap, vec};
 
 use crate::{
     ast::expressions::*,
@@ -50,7 +50,7 @@ impl Resolver {
             .map(|s| self.resolve(s))
     }
 
-    pub fn lookup_ident(&self, id: &Ident, _include_spec: bool) -> Result<&IvySort, TypeError> {
+    pub fn lookup_ident(&self, id: &Ident, include_spec: bool) -> Result<&IvySort, TypeError> {
         let mut idents = id.iter();
 
         let mut curr_sym = idents.next().unwrap();
@@ -59,15 +59,31 @@ impl Resolver {
         for field in idents {
             match curr_sort {
                 Some(IvySort::Module(Module { fields, .. })) => {
-                    curr_sym = field;
                     curr_sort = fields.get(field);
                 }
-                Some(IvySort::Process(_)) => todo!(),
+                Some(IvySort::Process(Process {
+                    args,
+                    impl_fields,
+                    spec_fields,
+                    common_impl_fields,
+                    common_spec_fields,
+                })) => {
+                    curr_sort = args
+                        .get(field)
+                        .or(impl_fields.get(field))
+                        .or(common_impl_fields.get(field));
+                    if include_spec {
+                        curr_sort = curr_sort
+                            .or(spec_fields.get(field))
+                            .or(common_spec_fields.get(field))
+                    }
+                }
                 Some(sort) => {
                     return Err(TypeError::NotARecord(sort.clone()));
                 }
                 None => return Err(TypeError::UnboundVariable(curr_sym.clone())),
             }
+            curr_sym = field;
         }
 
         match curr_sort {

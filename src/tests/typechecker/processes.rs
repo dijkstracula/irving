@@ -1,11 +1,13 @@
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
+    use std::{collections::HashMap, vec};
 
     use crate::{
         ast::{declarations::Decl, expressions::Expr},
         parser::ivy::{IvyParser, Rule},
-        passes::isolate_normalizer::IsolateNormalizer,
+        passes::{
+            isolate_normalizer::IsolateNormalizer, module_instantiation::ModuleInstantiation,
+        },
         typechecker::{
             inference::TypeChecker,
             sorts::{IvySort, Module, Process},
@@ -48,19 +50,50 @@ mod tests {
                 "net".into(),
                 IvySort::Module(Module {
                     args: [].into(),
-                    fields: [("socket".into(), IvySort::Number)].into(),
+                    fields: [(
+                        "socket".into(),
+                        IvySort::Module(Module {
+                            args: vec![],
+                            fields: [("fd".into(), IvySort::Number)].into(),
+                        }),
+                    )]
+                    .into(),
                 }),
             )
             .unwrap();
-        tc.bindings
-            .append(
-                "file".into(),
-                IvySort::Module(Module {
-                    args: [].into(),
-                    fields: [].into(),
-                }),
-            )
+
+        // TODO: this would be a good test for the module instantiator in its own right.
+        let vecimpl = "module vec(t) = {
+            type this
+            alias t = this
+
+            action empty returns (a: t)
+
+            action append(a:t,v:unbounded_sequence) returns (a:t)
+        }";
+        let parsed = IvyParser::parse(Rule::module_decl, &vecimpl)
+            .expect("Parsing failed")
+            .single()
             .unwrap();
+        let vecdecl = Decl::Module(IvyParser::module_decl(parsed).expect("AST generation failed"));
+
+        let mut filedecl = vecdecl.clone();
+        let mut mr = ModuleInstantiation::new([("t".into(), vec!["byte".into()])].into());
+        filedecl
+            .visit(&mut mr)
+            .unwrap()
+            .modifying(&mut filedecl)
+            .unwrap();
+
+        let filesort = filedecl
+            .visit(&mut tc)
+            .unwrap()
+            .modifying(&mut filedecl)
+            .unwrap();
+
+        println!("{:?}", filesort);
+
+        tc.bindings.append("file".into(), filesort).unwrap();
         tc
     }
 
@@ -69,8 +102,8 @@ mod tests {
         let mut iso = isolate_from_src("process p = { }");
 
         let sort = IvySort::Process(Process {
-            args: vec![],
-            impl_fields: HashMap::new(),
+            args: HashMap::from([]),
+            impl_fields: [("init".to_owned(), Module::init_action_sort())].into(),
             spec_fields: HashMap::new(),
             common_impl_fields: HashMap::new(),
             common_spec_fields: HashMap::new(),
@@ -87,11 +120,12 @@ mod tests {
     fn test_proc_with_params() {
         let mut iso = isolate_from_src("process host(self:pid) = {}");
         let sort = IvySort::Process(Process {
-            args: vec![(
+            args: [(
                 "self".into(),
                 IvySort::Range(Box::new(Expr::Number(0)), Box::new(Expr::Number(3))),
-            )],
-            impl_fields: HashMap::new(),
+            )]
+            .into(),
+            impl_fields: [("init".to_owned(), Module::init_action_sort())].into(),
             spec_fields: HashMap::new(),
             common_impl_fields: HashMap::new(),
             common_spec_fields: HashMap::new(),
@@ -112,11 +146,16 @@ mod tests {
         }",
         );
         let sort = IvySort::Process(Process {
-            args: vec![(
+            args: [(
                 "self".into(),
                 IvySort::Range(Box::new(Expr::Number(0)), Box::new(Expr::Number(3))),
-            )],
-            impl_fields: [("is_up".into(), IvySort::Bool)].into(),
+            )]
+            .into(),
+            impl_fields: [
+                ("is_up".into(), IvySort::Bool),
+                ("init".to_owned(), Module::init_action_sort()),
+            ]
+            .into(),
             spec_fields: HashMap::new(),
             common_impl_fields: HashMap::new(),
             common_spec_fields: HashMap::new(),
