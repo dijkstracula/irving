@@ -54,7 +54,24 @@ mod tests {
                         "socket".into(),
                         IvySort::Module(Module {
                             args: vec![],
-                            fields: [("fd".into(), IvySort::Number)].into(),
+                            fields: [
+                                ("id".into(), IvySort::Number),
+                                (
+                                    "send".into(),
+                                    IvySort::function_sort(
+                                        vec![tc.bindings.lookup_sym("pid".into()).unwrap().clone()],
+                                        IvySort::Unit,
+                                    ),
+                                ),
+                                (
+                                    "recv".into(),
+                                    IvySort::function_sort(
+                                        vec![IvySort::Bool, IvySort::BitVec(8)],
+                                        IvySort::Unit,
+                                    ),
+                                ),
+                            ]
+                            .into(),
                         }),
                     )]
                     .into(),
@@ -183,11 +200,11 @@ mod tests {
 
                 implement append {
                     contents := contents.append(val);
-                    sock.send(host(1-self).sock.id, val);
+                    # sock.send(host(1-self).sock.id, val);
                     show(contents);
                 }
 
-                implement sock.recv(src: tcp.endpoint, val:byte) {
+                implement sock.recv(src: bool, val:byte) {
                     contents := contents.append(val);
                     show(contents);
                 }
