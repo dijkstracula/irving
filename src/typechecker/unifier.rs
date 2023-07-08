@@ -1,6 +1,9 @@
 use std::{collections::HashMap, vec};
 
-use crate::{ast::expressions::*, typechecker::sorts::Fargs};
+use crate::{
+    ast::expressions::*,
+    typechecker::sorts::{Fargs, Module, Process},
+};
 
 use super::{sorts::IvySort, TypeError};
 
@@ -39,16 +42,54 @@ impl Resolver {
         }
     }
 
-    // TODO: I wonder what we need to do in order to support annotations, which are qualified
-    // identifiers.  Maybe it's its own kind of constraint?
-    pub fn lookup(&mut self, sym: &Symbol) -> Option<IvySort> {
-        let unresolved = self
-            .sorts
+    pub fn lookup_sym(&self, sym: &str) -> Option<&IvySort> {
+        self.sorts
             .iter()
             .rfind(|scope| scope.contains_key(sym))
             .and_then(|scope| scope.get(sym))
-            .map(|s| s.clone());
-        unresolved.map(|s| self.resolve(&s))
+            .map(|s| self.resolve(s))
+    }
+
+    pub fn lookup_ident(&self, id: &Ident, include_spec: bool) -> Result<&IvySort, TypeError> {
+        let mut idents = id.iter();
+
+        let mut curr_sym = idents.next().unwrap();
+        let mut curr_sort = self.lookup_sym(curr_sym);
+
+        for field in idents {
+            match curr_sort {
+                Some(IvySort::Module(Module { fields, .. })) => {
+                    curr_sort = fields.get(field);
+                }
+                Some(IvySort::Process(Process {
+                    args,
+                    impl_fields,
+                    spec_fields,
+                    common_impl_fields,
+                    common_spec_fields,
+                })) => {
+                    curr_sort = args
+                        .get(field)
+                        .or(impl_fields.get(field))
+                        .or(common_impl_fields.get(field));
+                    if include_spec {
+                        curr_sort = curr_sort
+                            .or(spec_fields.get(field))
+                            .or(common_spec_fields.get(field))
+                    }
+                }
+                Some(sort) => {
+                    return Err(TypeError::NotARecord(sort.clone()));
+                }
+                None => return Err(TypeError::UnboundVariable(curr_sym.clone())),
+            }
+            curr_sym = field;
+        }
+
+        match curr_sort {
+            None => Err(TypeError::UnboundVariable(curr_sym.clone())),
+            Some(s) => Ok(s),
+        }
     }
 
     pub fn append(&mut self, sym: Symbol, sort: IvySort) -> Result<(), TypeError> {
@@ -72,22 +113,23 @@ impl Resolver {
 
     // Unification
 
-    pub fn resolve(&mut self, sort: &IvySort) -> IvySort {
+    pub fn resolve<'a>(&'a self, sort: &'a IvySort) -> &'a IvySort {
         if let IvySort::SortVar(original_id) = sort {
             let mut curr_id = *original_id;
             let mut next_sort = &self.ctx[curr_id];
 
             while let IvySort::SortVar(new_id) = next_sort {
-                if new_id == original_id {
+                //eprintln!("resolve: {:?}", self.ctx);
+                if new_id == &curr_id {
                     //TODO: occurs check?
                     break;
                 }
                 curr_id = *new_id;
                 next_sort = &self.ctx[curr_id];
             }
-            next_sort.clone()
+            next_sort
         } else {
-            sort.clone()
+            sort
         }
     }
 
@@ -111,16 +153,16 @@ impl Resolver {
     }
 
     pub fn unify(&mut self, lhs: &IvySort, rhs: &IvySort) -> Result<IvySort, TypeError> {
-        let lhs = self.resolve(lhs);
-        let rhs = self.resolve(rhs);
-        println!("unify({:?}, {:?})", lhs, rhs);
+        let lhs = self.resolve(lhs).clone();
+        let rhs = self.resolve(rhs).clone();
+        println!("unify({:?}, {:?}", lhs, rhs);
         match (&lhs, &rhs) {
             (IvySort::SortVar(i), IvySort::SortVar(j)) => {
                 if i < j {
-                    self.ctx[*j] = rhs.clone();
+                    self.ctx[*j] = lhs.clone();
                     Ok(lhs)
                 } else if i > j {
-                    self.ctx[*i] = lhs.clone();
+                    self.ctx[*i] = rhs.clone();
                     Ok(rhs)
                 } else {
                     Ok(lhs)

@@ -68,10 +68,20 @@ where
         Ok(ControlMut::Produce(T::default()))
     }
 
-    fn begin_call(&mut self, _ast: &mut AppExpr) -> VisitorResult<T, Expr> {
-        Ok(ControlMut::Produce(T::default()))
+    fn begin_call(&mut self, ast: &mut AppExpr) -> VisitorResult<T, Action> {
+        let res: VisitorResult<T, Action> = self.begin_app(ast).map(|ctrl| match ctrl {
+            ControlMut::Produce(t) => ControlMut::Produce(t),
+            ControlMut::SkipSiblings(t) => ControlMut::SkipSiblings(t),
+            ControlMut::Mutation(_, _) => todo!(), // XXX: stupid hack that will bite me later,  but not today satan!
+        });
+        res
     }
-    fn finish_call(&mut self, _ast: &mut AppExpr) -> VisitorResult<T, Expr> {
+    fn finish_call(
+        &mut self,
+        _ast: &mut AppExpr,
+        _f: T,
+        _args: Vec<T>,
+    ) -> VisitorResult<T, Action> {
         Ok(ControlMut::Produce(T::default()))
     }
 
@@ -230,7 +240,13 @@ where
     fn begin_instance_decl(&mut self, _ast: &mut InstanceDecl) -> VisitorResult<T, Decl> {
         Ok(ControlMut::Produce(T::default()))
     }
-    fn finish_instance_decl(&mut self, _ast: &mut InstanceDecl) -> VisitorResult<T, Decl> {
+    fn finish_instance_decl(
+        &mut self,
+        _ast: &mut InstanceDecl,
+        _n: T,
+        _s: T,
+        _a: Vec<T>,
+    ) -> VisitorResult<T, Decl> {
         Ok(ControlMut::Produce(T::default()))
     }
 
@@ -372,7 +388,13 @@ where
     fn begin_field_access(&mut self, _lhs: &mut Expr, rhs: &mut Symbol) -> VisitorResult<T, Expr> {
         Ok(ControlMut::Produce(T::default()))
     }
-    fn finish_field_access(&mut self, _lhs: &mut Expr, rhs: &mut Symbol) -> VisitorResult<T, Expr> {
+    fn finish_field_access(
+        &mut self,
+        _lhs: &mut Expr,
+        rhs: &mut Symbol,
+        _lhs_res: T,
+        _rhs_res: T,
+    ) -> VisitorResult<T, Expr> {
         Ok(ControlMut::Produce(T::default()))
     }
 
@@ -411,7 +433,11 @@ where
         Ok(ControlMut::Produce(T::default()))
     }
 
-    fn param(&mut self, _p: &mut Param) -> VisitorResult<T, Param> {
+    fn param(&mut self, p: &mut Param) -> VisitorResult<T, Param> {
+        self.symbol(&mut p.id)?.modifying(&mut p.id)?;
+        if let Some(sort) = &mut p.sort {
+            self.identifier(sort)?.modifying(sort)?;
+        }
         Ok(ControlMut::Produce(T::default()))
     }
 
@@ -420,6 +446,10 @@ where
     }
 
     fn symbol(&mut self, _s: &mut Symbol) -> VisitorResult<T, Symbol> {
+        Ok(ControlMut::Produce(T::default()))
+    }
+
+    fn this(&mut self) -> VisitorResult<T, Expr> {
         Ok(ControlMut::Produce(T::default()))
     }
 
@@ -469,14 +499,11 @@ where
                 .begin_assume(action)?
                 .map(|_| action.pred.visit(visitor)?.modifying(&mut action.pred))?
                 .and_then(|_| visitor.finish_assume(action)),
-            Action::Call(action) => todo!(),
-            /*
-            visitor
-                .begin_call(action)?
-                .map(|_| action.func.visit(visitor)?.modifying(&mut action.func))?
-                .map(|f| action.args.visit(visitor)?.modifying(&mut action.args))?
-                .map(|a| visitor.finish_call(action)?.modifying(self)),
-                */
+            Action::Call(expr) => visitor.begin_call(expr)?.and_then(|_| {
+                let func = expr.func.visit(visitor)?.modifying(&mut expr.func)?;
+                let args = expr.args.visit(visitor)?.modifying(&mut expr.args)?;
+                visitor.finish_call(expr, func, args)
+            }),
             Action::Ensure(action) => visitor
                 .begin_ensure(action)?
                 .map(|_| action.pred.visit(visitor)?.modifying(&mut action.pred))?
@@ -514,9 +541,9 @@ where
                 ref mut record,
                 ref mut field,
             }) => visitor.begin_field_access(record, field)?.and_then(|_| {
-                let r = record.visit(visitor)?.modifying(record);
-                let f = field.visit(visitor)?.modifying(field);
-                visitor.finish_field_access(record, field)
+                let r = record.visit(visitor)?.modifying(record)?;
+                let f = field.visit(visitor)?.modifying(field)?;
+                visitor.finish_field_access(record, field, r, f)
             }),
             Expr::Index(expr) => visitor
                 .begin_index(expr)?
@@ -544,7 +571,7 @@ where
                 let _ = t.sort.as_mut().map(|s| s.visit(visitor)?.modifying(s));
                 visitor.finish_term(t)
             }),
-            Expr::This => Expr::Symbol("this".into()).visit(visitor),
+            Expr::This => visitor.this(),
         }?
         .modifying(self)?;
         Ok(ControlMut::Produce(t))
@@ -732,10 +759,10 @@ where
                 .begin_include_decl(decl)?
                 .and_then(|_| visitor.finish_include_decl(decl)),
             Decl::Instance(decl) => visitor.begin_instance_decl(decl)?.and_then(|_| {
-                let _n = decl.name.visit(visitor)?.modifying(&mut decl.name);
-                let _s = decl.sort.visit(visitor)?.modifying(&mut decl.sort);
-                let _a = decl.args.visit(visitor)?.modifying(&mut decl.args);
-                visitor.finish_instance_decl(decl)
+                let n = decl.name.visit(visitor)?.modifying(&mut decl.name)?;
+                let s = decl.sort.visit(visitor)?.modifying(&mut decl.sort)?;
+                let a = decl.args.visit(visitor)?.modifying(&mut decl.args)?;
+                visitor.finish_instance_decl(decl, n, s, a)
             }),
             Decl::Instantiate { name, prms } => todo!(),
             Decl::Interpretation { itype, ctype } => todo!(),
@@ -809,7 +836,7 @@ where
             Decl::Type(decl) => visitor.begin_typedecl(decl)?.and_then(|_| {
                 let _i = match &mut decl.ident {
                     TypeName::Name(n) => n.visit(visitor)?.modifying(n),
-                    TypeName::This => todo!(),
+                    TypeName::This => Ok(T::default()),
                 }?;
                 let _s = visitor.sort(&mut decl.sort)?.modifying(&mut decl.sort);
                 visitor.finish_typedecl(decl)

@@ -3,7 +3,7 @@
 use thiserror::Error;
 
 use crate::ast::{
-    declarations::{Decl, IsolateDecl, ModuleDecl},
+    declarations::{Decl, IsolateDecl},
     expressions::Symbol,
 };
 
@@ -27,7 +27,10 @@ pub enum TypeError {
     #[error("{0:?} is not an action or function")]
     NotAFunction(IvySort),
 
-    #[error("{0:?} is not a field-haver")]
+    #[error("{0:?} cannot be instantiated (did you mean to use `var`?)")]
+    NotInstanceable(IvySort),
+
+    #[error("{0:?} cannot be indexed into with `.`")]
     NotARecord(IvySort),
 
     #[error("Unbound variable {0}")]

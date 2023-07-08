@@ -609,11 +609,9 @@ impl<W: Write> Visitor<()> for PrettyPrinter<W> {
         Ok(ControlMut::SkipSiblings(()))
     }
 
-    fn begin_call(
-        &mut self,
-        ast: &mut expressions::AppExpr,
-    ) -> VisitorResult<(), expressions::Expr> {
-        self.begin_app(ast)
+    fn begin_call(&mut self, ast: &mut expressions::AppExpr) -> VisitorResult<(), actions::Action> {
+        self.begin_app(ast)?;
+        Ok(ControlMut::SkipSiblings(()))
     }
 
     fn begin_field_access(
@@ -698,8 +696,14 @@ impl<W: Write> Visitor<()> for PrettyPrinter<W> {
         }
         Ok(ControlMut::Produce(()))
     }
+
     fn symbol(&mut self, s: &mut expressions::Symbol) -> VisitorResult<(), expressions::Symbol> {
         self.write_str(s)?;
+        Ok(ControlMut::Produce(()))
+    }
+
+    fn this(&mut self) -> VisitorResult<(), expressions::Expr> {
+        self.write_str("this")?;
         Ok(ControlMut::Produce(()))
     }
 }

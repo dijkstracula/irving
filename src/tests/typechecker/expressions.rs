@@ -14,6 +14,24 @@ mod tests {
     use pest_consume::Parser;
 
     #[test]
+    fn test_unbound_this() {
+        let prog = "this";
+        let parsed = IvyParser::parse(Rule::expr, &prog)
+            .expect("Parsing failed")
+            .single()
+            .unwrap();
+        let mut binop = IvyParser::expr(parsed).expect("AST generation failed");
+        let mut tc = TypeChecker::new();
+
+        // `this` has to be explicitly bound from the enclosing context.
+        let res = binop.visit(&mut tc).expect_err("visit");
+        assert_eq!(
+            res.downcast::<TypeError>().unwrap(),
+            TypeError::UnboundVariable("this".into())
+        );
+    }
+
+    #[test]
     fn test_bool_binop() {
         let prog = "1 < 2";
         let parsed = IvyParser::parse(Rule::expr, &prog)
@@ -173,7 +191,13 @@ mod tests {
             .unwrap_err()
             .downcast::<TypeError>()
             .unwrap();
-        assert_eq!(res, TypeError::InvalidApplication(IvySort::Number))
+        assert_eq!(
+            res,
+            TypeError::UnificationError(
+                IvySort::Number,
+                IvySort::function_sort(vec!(), IvySort::SortVar(0))
+            )
+        )
     }
 
     #[test]
@@ -187,7 +211,7 @@ mod tests {
 
         // Accessing 'b' should be fine when 'a' is bound to a Process.
         let procsort = Process {
-            args: vec![],
+            args: HashMap::from([]),
             impl_fields: HashMap::from([("b".into(), IvySort::Bool)]),
             spec_fields: HashMap::from([]),
             common_impl_fields: HashMap::from([]),

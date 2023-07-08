@@ -1,14 +1,16 @@
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
+    use std::{collections::HashMap, vec};
 
     use crate::{
         ast::{declarations::Decl, expressions::Expr},
         parser::ivy::{IvyParser, Rule},
-        passes::isolate_normalizer::IsolateNormalizer,
+        passes::{
+            isolate_normalizer::IsolateNormalizer, module_instantiation::ModuleInstantiation,
+        },
         typechecker::{
             inference::TypeChecker,
-            sorts::{IvySort, Process},
+            sorts::{IvySort, Module, Process},
         },
         visitor::visitor::Visitable,
     };
@@ -43,6 +45,72 @@ mod tests {
             .append("byte".into(), IvySort::BitVec(8))
             .unwrap();
 
+        tc.bindings
+            .append(
+                "net".into(),
+                IvySort::Module(Module {
+                    args: [].into(),
+                    fields: [(
+                        "socket".into(),
+                        IvySort::Module(Module {
+                            args: vec![],
+                            fields: [
+                                ("id".into(), IvySort::Number),
+                                (
+                                    "send".into(),
+                                    IvySort::function_sort(
+                                        vec![tc.bindings.lookup_sym("pid".into()).unwrap().clone()],
+                                        IvySort::Unit,
+                                    ),
+                                ),
+                                (
+                                    "recv".into(),
+                                    IvySort::function_sort(
+                                        vec![IvySort::Bool, IvySort::BitVec(8)],
+                                        IvySort::Unit,
+                                    ),
+                                ),
+                            ]
+                            .into(),
+                        }),
+                    )]
+                    .into(),
+                }),
+            )
+            .unwrap();
+
+        // TODO: this would be a good test for the module instantiator in its own right.
+        let vecimpl = "module vec(elems) = {
+            type this
+            alias t = this
+
+            action empty returns (a: t)
+
+            action append(a:t,e:elems) returns (b:t)
+        }";
+        let parsed = IvyParser::parse(Rule::module_decl, &vecimpl)
+            .expect("Parsing failed")
+            .single()
+            .unwrap();
+        let vecdecl = Decl::Module(IvyParser::module_decl(parsed).expect("AST generation failed"));
+
+        let mut filedecl = vecdecl.clone();
+        let mut mr = ModuleInstantiation::new([("elems".into(), vec!["byte".into()])].into());
+        filedecl
+            .visit(&mut mr)
+            .unwrap()
+            .modifying(&mut filedecl)
+            .unwrap();
+
+        let filesort = filedecl
+            .visit(&mut tc)
+            .unwrap()
+            .modifying(&mut filedecl)
+            .unwrap();
+
+        println!("NBT: A file is a {:?}\n", filesort);
+
+        tc.bindings.append("file".into(), filesort).unwrap();
         tc
     }
 
@@ -51,8 +119,8 @@ mod tests {
         let mut iso = isolate_from_src("process p = { }");
 
         let sort = IvySort::Process(Process {
-            args: vec![],
-            impl_fields: HashMap::new(),
+            args: HashMap::from([]),
+            impl_fields: [("init".to_owned(), Module::init_action_sort())].into(),
             spec_fields: HashMap::new(),
             common_impl_fields: HashMap::new(),
             common_spec_fields: HashMap::new(),
@@ -62,18 +130,19 @@ mod tests {
         let res = iso.visit(&mut tc).unwrap().modifying(&mut iso).unwrap();
         assert_eq!(res, sort);
 
-        assert_eq!(tc.bindings.lookup(&"p".to_owned()), Some(sort));
+        assert_eq!(tc.bindings.lookup_sym(&"p".to_owned()), Some(&sort));
     }
 
     #[test]
     fn test_proc_with_params() {
         let mut iso = isolate_from_src("process host(self:pid) = {}");
         let sort = IvySort::Process(Process {
-            args: vec![(
+            args: [(
                 "self".into(),
                 IvySort::Range(Box::new(Expr::Number(0)), Box::new(Expr::Number(3))),
-            )],
-            impl_fields: HashMap::new(),
+            )]
+            .into(),
+            impl_fields: [("init".to_owned(), Module::init_action_sort())].into(),
             spec_fields: HashMap::new(),
             common_impl_fields: HashMap::new(),
             common_spec_fields: HashMap::new(),
@@ -83,7 +152,7 @@ mod tests {
         let res = iso.visit(&mut tc).unwrap().modifying(&mut iso).unwrap();
         assert_eq!(res, sort);
 
-        assert_eq!(tc.bindings.lookup(&"host".to_owned()), Some(sort));
+        assert_eq!(tc.bindings.lookup_sym(&"host".to_owned()), Some(&sort));
     }
 
     #[test]
@@ -94,11 +163,16 @@ mod tests {
         }",
         );
         let sort = IvySort::Process(Process {
-            args: vec![(
+            args: [(
                 "self".into(),
                 IvySort::Range(Box::new(Expr::Number(0)), Box::new(Expr::Number(3))),
-            )],
-            impl_fields: [("is_up".into(), IvySort::Bool)].into(),
+            )]
+            .into(),
+            impl_fields: [
+                ("is_up".into(), IvySort::Bool),
+                ("init".to_owned(), Module::init_action_sort()),
+            ]
+            .into(),
             spec_fields: HashMap::new(),
             common_impl_fields: HashMap::new(),
             common_spec_fields: HashMap::new(),
@@ -108,32 +182,32 @@ mod tests {
         let res = iso.visit(&mut tc).unwrap().modifying(&mut iso).unwrap();
         assert_eq!(res, sort);
 
-        assert_eq!(tc.bindings.lookup(&"host".to_owned()), Some(sort),);
+        assert_eq!(tc.bindings.lookup_sym(&"host".to_owned()), Some(&sort),);
     }
 
-    //#[test]
+    #[test]
     fn test_append1_host() {
         let mut iso = isolate_from_src(
             "process host(self:pid) = {
-            export action append(val: byte)
-            import action show(content: file)
-            instance sock: net.socket
-            var contents: file
+                export action append(val: byte)
+                import action show(content: file)
+                instance sock: net.socket
+                var contents: file
 
-            after init {
-                contents := file.empty;
-            }
+                after init {
+                    contents := file.empty;
+                }
 
-            implement append {
-                contents := contents.append(val);
-                sock.send(host(1-self).sock.id, val);
-                show(contents);
-            }
+                implement append {
+                    contents := contents.append(val);
+                    # sock.send(host(1-self).sock.id, val);
+                    show(contents);
+                }
 
-            implement sock.recv(src: tcp.endpoint, val:byte) {
-                contents := contents.append(val);
-                show(contents);
-            }
+                implement sock.recv(src: bool, val:byte) {
+                    contents := contents.append(val);
+                    show(contents);
+                }
         }",
         );
 

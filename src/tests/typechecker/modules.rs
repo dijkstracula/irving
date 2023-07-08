@@ -1,7 +1,5 @@
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
-
     use crate::{
         ast::declarations::Decl,
         parser::ivy::{IvyParser, Rule},
@@ -27,13 +25,32 @@ mod tests {
 
         let sort = IvySort::Module(Module {
             args: vec![],
-            fields: HashMap::new(),
+            fields: [("init".into(), Module::init_action_sort())].into(),
         });
 
         let mut tc = TypeChecker::new();
         let res = iso.visit(&mut tc).unwrap().modifying(&mut iso).unwrap();
         assert_eq!(res, sort);
-        assert_eq!(tc.bindings.lookup(&"m".to_owned()), Some(sort));
+        assert_eq!(tc.bindings.lookup_sym(&"m".to_owned()), Some(&sort));
+    }
+
+    #[test]
+    fn test_after_init() {
+        let mut iso = module_from_src(
+            "module m = { 
+            after init { }
+        }",
+        );
+
+        let sort = IvySort::Module(Module {
+            args: vec![],
+            fields: [("init".into(), Module::init_action_sort())].into(),
+        });
+
+        let mut tc = TypeChecker::new();
+        let res = iso.visit(&mut tc).unwrap().modifying(&mut iso).unwrap();
+        assert_eq!(res, sort);
+        assert_eq!(tc.bindings.lookup_sym(&"m".to_owned()), Some(&sort));
     }
 
     #[test]
@@ -53,6 +70,7 @@ mod tests {
             fields: [
                 ("this".into(), IvySort::SortVar(0)),
                 ("t".into(), IvySort::SortVar(0)),
+                ("init".into(), Module::init_action_sort()),
             ]
             .into(),
         });
@@ -60,10 +78,10 @@ mod tests {
         let mut tc = TypeChecker::new();
         let res = iso.visit(&mut tc).unwrap().modifying(&mut iso).unwrap();
         assert_eq!(res, sort);
-        assert_eq!(tc.bindings.lookup(&"array".to_owned()), Some(sort));
+        assert_eq!(tc.bindings.lookup_sym(&"array".to_owned()), Some(&sort));
 
         // `this` should not escape its scope.
-        assert_eq!(tc.bindings.lookup(&"this".to_owned()), None);
+        assert_eq!(tc.bindings.lookup_sym(&"this".to_owned()), None);
     }
 
     #[test]
@@ -102,6 +120,7 @@ mod tests {
                         Box::new(IvySort::SortVar(0)),
                     ),
                 ),
+                ("init".into(), Module::init_action_sort()),
             ]
             .into(),
         });
@@ -110,9 +129,9 @@ mod tests {
         let res = iso.visit(&mut tc).unwrap().modifying(&mut iso).unwrap();
 
         assert_eq!(res, sort);
-        assert_eq!(tc.bindings.lookup(&"array".to_owned()), Some(sort));
+        assert_eq!(tc.bindings.lookup_sym(&"array".to_owned()), Some(&sort));
 
         // `this` should not escape its scope.
-        assert_eq!(tc.bindings.lookup(&"this".to_owned()), None);
+        assert_eq!(tc.bindings.lookup_sym(&"this".to_owned()), None);
     }
 }
