@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
     use crate::{
-        ast::declarations::Decl,
+        ast::{declarations::Decl, expressions::Expr},
         parser::ivy::{IvyParser, Rule},
         passes::isolate_normalizer::IsolateNormalizer,
         typechecker::{
@@ -33,6 +33,14 @@ mod tests {
             .single()
             .unwrap();
         IvyParser::decl(parsed).expect("AST generation failed")
+    }
+
+    fn expr_from_src(src: &str) -> Expr {
+        let parsed = IvyParser::parse(Rule::expr, &src)
+            .expect("Parsing failed")
+            .single()
+            .unwrap();
+        IvyParser::expr(parsed).expect("AST generation failed")
     }
 
     #[test]
@@ -190,26 +198,125 @@ mod tests {
     }
 
     #[test]
-    fn test_action_call() {
+    fn test_action_call_nullary_action() {
         let mut prog = isolate_from_src(
             "process m = {
             type this
             alias t = this
-            action doit(x: t) returns (y: t)
+
+            # doit's first argument is not `this`, so field access
+            # should not modify the action signature.
+            action doit returns (y: bool)
         }",
         );
 
         let mut tc = TypeChecker::new();
-        prog.visit(&mut tc).unwrap().modifying(&mut prog).unwrap();
+        let _ = prog.visit(&mut tc).unwrap().modifying(&mut prog).unwrap();
 
-        let process_sort = tc
+        // The type of the action should be nullary to a bool.
+        let action_sort = tc
             .bindings
             .lookup_ident(&vec!["m".into(), "doit".into()], true)
+            .unwrap()
+            .clone();
+        assert_eq!(action_sort, IvySort::function_sort(vec![], IvySort::Bool));
+
+        // Applying the action should produce a bool.
+        let mut action_app = expr_from_src("m.doit()");
+        let res = action_app
+            .visit(&mut tc)
+            .unwrap()
+            .modifying(&mut action_app)
             .unwrap();
-        println!("NBT: {:?}", process_sort);
+        assert_eq!(res, IvySort::Bool);
+    }
+
+    #[test]
+    fn test_action_call_unary() {
+        let mut prog = isolate_from_src(
+            "process m = {
+            type this
+            alias t = this
+            action doit(x: bool) returns (y: bool)
+        }",
+        );
+
+        let mut tc = TypeChecker::new();
+        let _ = prog.visit(&mut tc).unwrap().modifying(&mut prog).unwrap();
+
+        let action_sort = tc
+            .bindings
+            .lookup_ident(&vec!["m".into(), "doit".into()], true)
+            .unwrap()
+            .clone();
         assert_eq!(
-            process_sort,
-            &IvySort::function_sort(vec![process_sort.clone()], process_sort.clone())
+            action_sort,
+            IvySort::function_sort(vec![IvySort::Bool], IvySort::Bool)
+        );
+
+        let mut action_app = expr_from_src("m.doit()");
+        let err = action_app.visit(&mut tc).unwrap_err();
+        assert_eq!(
+            err.downcast::<TypeError>().unwrap(),
+            TypeError::LenMismatch([IvySort::Bool].into(), vec!())
+        );
+
+        let mut action_app = expr_from_src("m.doit(42)");
+        let err = action_app.visit(&mut tc).unwrap_err();
+        assert_eq!(
+            err.downcast::<TypeError>().unwrap(),
+            TypeError::UnificationError(IvySort::Bool, IvySort::Number)
+        );
+
+        let mut action_app = expr_from_src("m.doit(true)");
+        let res = action_app
+            .visit(&mut tc)
+            .unwrap()
+            .modifying(&mut action_app)
+            .unwrap();
+        assert_eq!(res, IvySort::Bool);
+    }
+
+    #[test]
+    fn test_action_call_curry_this() {
+        let mut prog = isolate_from_src(
+            "process m = {
+            type this
+            alias t = this
+
+            # Note that the first argument being `this` means that it is
+            # morally a `() -> bool`, since the LHS of a field access to
+            # make the call is implicitly going to be the first argument.
+            action doit(x: t) returns (y: bool)
+        }",
+        );
+
+        let mut tc = TypeChecker::new();
+        let isolate_sort = prog.visit(&mut tc).unwrap().modifying(&mut prog).unwrap();
+
+        let action_sort = tc
+            .bindings
+            .lookup_ident(&vec!["m".into(), "doit".into()], true)
+            .unwrap()
+            .clone();
+        assert_eq!(
+            action_sort,
+            IvySort::function_sort(vec![IvySort::SortVar(0)], IvySort::Bool)
+        );
+
+        let mut action_app = expr_from_src("m.doit()");
+        let res = action_app
+            .visit(&mut tc)
+            .unwrap()
+            .modifying(&mut action_app)
+            .unwrap();
+        assert_eq!(res, IvySort::Bool);
+
+        let mut action_app = expr_from_src("m.doit(m)");
+        let err = action_app.visit(&mut tc).unwrap_err();
+        assert_eq!(
+            err.downcast::<TypeError>().unwrap(),
+            TypeError::LenMismatch(vec!(), [isolate_sort].into())
         );
     }
 }

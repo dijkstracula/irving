@@ -378,7 +378,13 @@ where
     fn begin_field_access(&mut self, _lhs: &mut Expr, rhs: &mut Symbol) -> VisitorResult<T, Expr> {
         Ok(ControlMut::Produce(T::default()))
     }
-    fn finish_field_access(&mut self, _lhs: &mut Expr, rhs: &mut Symbol) -> VisitorResult<T, Expr> {
+    fn finish_field_access(
+        &mut self,
+        _lhs: &mut Expr,
+        rhs: &mut Symbol,
+        _lhs_res: T,
+        _rhs_res: T,
+    ) -> VisitorResult<T, Expr> {
         Ok(ControlMut::Produce(T::default()))
     }
 
@@ -430,6 +436,10 @@ where
     }
 
     fn symbol(&mut self, _s: &mut Symbol) -> VisitorResult<T, Symbol> {
+        Ok(ControlMut::Produce(T::default()))
+    }
+
+    fn this(&mut self) -> VisitorResult<T, Expr> {
         Ok(ControlMut::Produce(T::default()))
     }
 
@@ -524,9 +534,9 @@ where
                 ref mut record,
                 ref mut field,
             }) => visitor.begin_field_access(record, field)?.and_then(|_| {
-                let r = record.visit(visitor)?.modifying(record);
-                let f = field.visit(visitor)?.modifying(field);
-                visitor.finish_field_access(record, field)
+                let r = record.visit(visitor)?.modifying(record)?;
+                let f = field.visit(visitor)?.modifying(field)?;
+                visitor.finish_field_access(record, field, r, f)
             }),
             Expr::Index(expr) => visitor
                 .begin_index(expr)?
@@ -554,7 +564,7 @@ where
                 let _ = t.sort.as_mut().map(|s| s.visit(visitor)?.modifying(s));
                 visitor.finish_term(t)
             }),
-            Expr::This => Expr::Symbol("this".into()).visit(visitor),
+            Expr::This => visitor.this(),
         }?
         .modifying(self)?;
         Ok(ControlMut::Produce(t))

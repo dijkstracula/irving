@@ -119,7 +119,8 @@ impl Resolver {
             let mut next_sort = &self.ctx[curr_id];
 
             while let IvySort::SortVar(new_id) = next_sort {
-                if new_id == original_id {
+                //eprintln!("resolve: {:?}", self.ctx);
+                if new_id == &curr_id {
                     //TODO: occurs check?
                     break;
                 }
@@ -154,14 +155,14 @@ impl Resolver {
     pub fn unify(&mut self, lhs: &IvySort, rhs: &IvySort) -> Result<IvySort, TypeError> {
         let lhs = self.resolve(lhs).clone();
         let rhs = self.resolve(rhs).clone();
-        println!("unify({:?}, {:?})", lhs, rhs);
+        println!("unify({:?}, {:?}", lhs, rhs);
         match (&lhs, &rhs) {
             (IvySort::SortVar(i), IvySort::SortVar(j)) => {
                 if i < j {
-                    self.ctx[*j] = rhs.clone();
+                    self.ctx[*j] = lhs.clone();
                     Ok(lhs)
                 } else if i > j {
-                    self.ctx[*i] = lhs.clone();
+                    self.ctx[*i] = rhs.clone();
                     Ok(rhs)
                 } else {
                     Ok(lhs)

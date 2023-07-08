@@ -698,8 +698,14 @@ impl<W: Write> Visitor<()> for PrettyPrinter<W> {
         }
         Ok(ControlMut::Produce(()))
     }
+
     fn symbol(&mut self, s: &mut expressions::Symbol) -> VisitorResult<(), expressions::Symbol> {
         self.write_str(s)?;
+        Ok(ControlMut::Produce(()))
+    }
+
+    fn this(&mut self) -> VisitorResult<(), expressions::Expr> {
+        self.write_str("this")?;
         Ok(ControlMut::Produce(()))
     }
 }

@@ -96,6 +96,13 @@ impl Visitor<IvySort> for TypeChecker {
         }
     }
 
+    fn this(&mut self) -> VisitorResult<IvySort, Expr> {
+        match self.bindings.lookup_sym("this") {
+            None => bail!(TypeError::UnboundVariable("this".into())),
+            Some(t) => Ok(ControlMut::Produce(t.clone())),
+        }
+    }
+
     //
 
     fn action_seq(&mut self, ast: &mut Vec<Action>) -> VisitorResult<IvySort, Stmt> {
@@ -118,7 +125,7 @@ impl Visitor<IvySort> for TypeChecker {
         match unified {
             Ok(IvySort::Function(_, ret)) => Ok(ControlMut::Produce(*ret.clone())),
             Ok(unified) => bail!(TypeError::InvalidApplication(unified)),
-            _ => bail!(TypeError::InvalidApplication(fsort)),
+            Err(e) => bail!(e),
         }
     }
 
@@ -201,18 +208,40 @@ impl Visitor<IvySort> for TypeChecker {
     ) -> VisitorResult<IvySort, Expr> {
         let lhs_sort = lhs.visit(self)?.modifying(lhs)?;
 
-        let recordsort = match &lhs_sort {
-            IvySort::Module(module) => module.fields.get(rhs),
-            IvySort::Process(proc) => proc
-                .impl_fields
-                .get(rhs)
-                .or(proc.spec_fields.get(rhs))
-                .or(proc.common_spec_fields.get(rhs)),
+        let rhs_sort = match &lhs_sort {
+            IvySort::Module(module) => Ok(module.fields.get(rhs).map(|s| s.clone())),
+            IvySort::Process(proc) => {
+                let mut s = proc.impl_fields.get(rhs).or(proc.spec_fields.get(rhs));
+                let is_common = s.is_none();
+                s = s
+                    .or(proc.common_impl_fields.get(rhs))
+                    .or(proc.common_spec_fields.get(rhs));
 
+                // XXX: Lots of cloning in here that should be improved somehow.
+                let s = s.map(|s| s.clone());
+                s.map(|s| match s {
+                    IvySort::Function(Fargs::List(args), ret) if !is_common => {
+                        // A slightly hacky thing that should probably live elsewhere:
+                        // if the rhs is a non-common action, and the first
+                        // argument is `this`, we need to curry it.
+                        let first_arg = args.get(0).map(|s| self.bindings.resolve(s));
+                        if first_arg == Some(&lhs_sort) {
+                            let remaining_args =
+                                args.clone().into_iter().skip(1).collect::<Vec<_>>();
+                            Ok(IvySort::function_sort(remaining_args, *ret))
+                        } else {
+                            Ok::<_, TypeError>(IvySort::function_sort(args, *ret))
+                        }
+                    }
+                    _ => Ok(s),
+                })
+                .transpose()
+            }
             sort => bail!(TypeError::NotARecord(sort.clone())),
-        };
-
-        match recordsort {
+        }?
+        .map(|s| self.bindings.resolve(&s).clone());
+        println!("NBT: {:?}", rhs_sort);
+        match rhs_sort {
             Some(sort) => Ok(ControlMut::SkipSiblings(sort.clone())),
             None => bail!(TypeError::UnboundVariable(rhs.clone())),
         }
@@ -600,11 +629,13 @@ impl Visitor<IvySort> for TypeChecker {
             common_spec_fields,
         });
 
-        let unifed = self.bindings.unify(&decl_sort, &proc)?;
-
+        // XXX: Can I avoid this clone?
+        let this = self.bindings.lookup_sym("this").unwrap().clone();
+        let _ = self.bindings.unify(&this, &proc)?;
+        let unified = self.bindings.unify(&decl_sort, &proc)?;
         self.bindings.pop_scope();
 
-        Ok(ControlMut::Produce(unifed))
+        Ok(ControlMut::Produce(unified))
     }
 
     fn begin_relation(
@@ -650,7 +681,7 @@ impl Visitor<IvySort> for TypeChecker {
             // Will have to monomorphize with the module instantiation pass.
             todo!()
         }
-        if let IvySort::Module(Module { args, fields }) = module_sort {
+        if let IvySort::Module(Module { args: _, fields }) = module_sort {
             let modsort = IvySort::Module(Module {
                 args: vec![],
                 fields: fields,
