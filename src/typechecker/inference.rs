@@ -208,39 +208,36 @@ impl Visitor<IvySort> for TypeChecker {
     ) -> VisitorResult<IvySort, Expr> {
         let lhs_sort = lhs.visit(self)?.modifying(lhs)?;
 
-        let rhs_sort = match &lhs_sort {
-            IvySort::Module(module) => Ok(module.fields.get(rhs).map(|s| s.clone())),
-            IvySort::Process(proc) => {
-                let mut s = proc.impl_fields.get(rhs).or(proc.spec_fields.get(rhs));
-                let is_common = s.is_none();
-                s = s
-                    .or(proc.common_impl_fields.get(rhs))
-                    .or(proc.common_spec_fields.get(rhs));
+        let mut is_common = false;
 
-                // XXX: Lots of cloning in here that should be improved somehow.
-                let s = s.map(|s| s.clone());
-                s.map(|s| match s {
-                    IvySort::Function(Fargs::List(args), ret) if !is_common => {
-                        // A slightly hacky thing that should probably live elsewhere:
-                        // if the rhs is a non-common action, and the first
-                        // argument is `this`, we need to curry it.
-                        let first_arg = args.get(0).map(|s| self.bindings.resolve(s));
-                        if first_arg == Some(&lhs_sort) {
-                            let remaining_args =
-                                args.clone().into_iter().skip(1).collect::<Vec<_>>();
-                            Ok(IvySort::function_sort(remaining_args, *ret))
-                        } else {
-                            Ok::<_, TypeError>(IvySort::function_sort(args, *ret))
-                        }
-                    }
-                    _ => Ok(s),
-                })
-                .transpose()
+        let rhs_sort = match &lhs_sort {
+            IvySort::Module(module) => Ok::<Option<&IvySort>, TypeError>(module.fields.get(rhs)),
+            IvySort::Process(proc) => {
+                let s = proc.impl_fields.get(rhs).or(proc.spec_fields.get(rhs));
+                is_common = s.is_none();
+                Ok(s.or(proc.common_impl_fields.get(rhs))
+                    .or(proc.common_spec_fields.get(rhs)))
             }
             sort => bail!(TypeError::NotARecord(sort.clone())),
         }?
-        .map(|s| self.bindings.resolve(&s).clone());
-        println!("NBT: {:?}", rhs_sort);
+        .map(|s| self.bindings.resolve(&s).clone())
+        .map(|s| match s {
+            // A slightly hacky thing that should probably live elsewhere:
+            // if the rhs is a non-common action, and the first
+            // argument is `this`, we need to curry it.
+            IvySort::Function(Fargs::List(args), ret) if !is_common => {
+                let first_arg = args.get(0).map(|s| self.bindings.resolve(s));
+                println!("NBT: first_arg = {:?}", first_arg);
+                if first_arg == Some(&lhs_sort) {
+                    let remaining_args = args.clone().into_iter().skip(1).collect::<Vec<_>>();
+                    Ok(IvySort::function_sort(remaining_args, *ret))
+                } else {
+                    Ok::<_, TypeError>(IvySort::function_sort(args, *ret))
+                }
+            }
+            _ => Ok(s),
+        })
+        .transpose()?;
         match rhs_sort {
             Some(sort) => Ok(ControlMut::SkipSiblings(sort.clone())),
             None => bail!(TypeError::UnboundVariable(rhs.clone())),

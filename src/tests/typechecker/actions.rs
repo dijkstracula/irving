@@ -287,6 +287,7 @@ mod tests {
             # Note that the first argument being `this` means that it is
             # morally a `() -> bool`, since the LHS of a field access to
             # make the call is implicitly going to be the first argument.
+
             action doit(x: t) returns (y: bool)
         }",
         );

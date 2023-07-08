@@ -63,13 +63,13 @@ mod tests {
             .unwrap();
 
         // TODO: this would be a good test for the module instantiator in its own right.
-        let vecimpl = "module vec(t) = {
+        let vecimpl = "module vec(elems) = {
             type this
             alias t = this
 
             action empty returns (a: t)
 
-            action append(a:t,v:unbounded_sequence) returns (a:t)
+            action append(a:t,e:elems) returns (b:t)
         }";
         let parsed = IvyParser::parse(Rule::module_decl, &vecimpl)
             .expect("Parsing failed")
@@ -78,7 +78,7 @@ mod tests {
         let vecdecl = Decl::Module(IvyParser::module_decl(parsed).expect("AST generation failed"));
 
         let mut filedecl = vecdecl.clone();
-        let mut mr = ModuleInstantiation::new([("t".into(), vec!["byte".into()])].into());
+        let mut mr = ModuleInstantiation::new([("elems".into(), vec!["byte".into()])].into());
         filedecl
             .visit(&mut mr)
             .unwrap()
@@ -91,7 +91,7 @@ mod tests {
             .modifying(&mut filedecl)
             .unwrap();
 
-        println!("{:?}", filesort);
+        println!("NBT: A file is a {:?}\n", filesort);
 
         tc.bindings.append("file".into(), filesort).unwrap();
         tc

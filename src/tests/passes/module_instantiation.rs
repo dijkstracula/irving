@@ -1,8 +1,10 @@
+use thiserror::Error;
+
 #[cfg(test)]
 mod tests {
     use crate::ast::declarations::Decl;
     use crate::parser::ivy::{IvyParser, Rule};
-    use crate::passes::module_instantiation::ModuleInstantiation;
+    use crate::passes::module_instantiation::{ModuleInstantiation, ModuleInstantiationError};
     use crate::visitor::visitor::Visitable;
     use pest_consume::Parser;
 
@@ -43,5 +45,28 @@ mod tests {
 
         iso.visit(&mut mi).unwrap().modifying(&mut iso).unwrap();
         assert_eq!(iso, expected);
+    }
+
+    #[test]
+    fn test_module_name_collision() {
+        let vecimpl = "module vec(t) = {
+            type this
+
+            # Note that the LHS of this alias is bound to a module parameter
+            alias t = this
+        }";
+        let parsed = IvyParser::parse(Rule::module_decl, &vecimpl)
+            .expect("Parsing failed")
+            .single()
+            .unwrap();
+        let mut vecdecl =
+            Decl::Module(IvyParser::module_decl(parsed).expect("AST generation failed"));
+
+        let mut mi = ModuleInstantiation::new([("t".into(), ["int".into()].into())].into());
+        let err = vecdecl.visit(&mut mi).unwrap_err();
+        assert_eq!(
+            err.downcast::<ModuleInstantiationError>().unwrap(),
+            ModuleInstantiationError::ModuleArgumentRebinding("t".into())
+        );
     }
 }

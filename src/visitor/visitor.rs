@@ -68,10 +68,20 @@ where
         Ok(ControlMut::Produce(T::default()))
     }
 
-    fn begin_call(&mut self, _ast: &mut AppExpr) -> VisitorResult<T, Expr> {
-        Ok(ControlMut::Produce(T::default()))
+    fn begin_call(&mut self, ast: &mut AppExpr) -> VisitorResult<T, Action> {
+        let res: VisitorResult<T, Action> = self.begin_app(ast).map(|ctrl| match ctrl {
+            ControlMut::Produce(t) => ControlMut::Produce(t),
+            ControlMut::SkipSiblings(t) => ControlMut::SkipSiblings(t),
+            ControlMut::Mutation(_, _) => todo!(), // XXX: stupid hack that will bite me later,  but not today satan!
+        });
+        res
     }
-    fn finish_call(&mut self, _ast: &mut AppExpr) -> VisitorResult<T, Expr> {
+    fn finish_call(
+        &mut self,
+        _ast: &mut AppExpr,
+        _f: T,
+        _args: Vec<T>,
+    ) -> VisitorResult<T, Action> {
         Ok(ControlMut::Produce(T::default()))
     }
 
@@ -489,14 +499,11 @@ where
                 .begin_assume(action)?
                 .map(|_| action.pred.visit(visitor)?.modifying(&mut action.pred))?
                 .and_then(|_| visitor.finish_assume(action)),
-            Action::Call(action) => todo!(),
-            /*
-            visitor
-                .begin_call(action)?
-                .map(|_| action.func.visit(visitor)?.modifying(&mut action.func))?
-                .map(|f| action.args.visit(visitor)?.modifying(&mut action.args))?
-                .map(|a| visitor.finish_call(action)?.modifying(self)),
-                */
+            Action::Call(expr) => visitor.begin_call(expr)?.and_then(|_| {
+                let func = expr.func.visit(visitor)?.modifying(&mut expr.func)?;
+                let args = expr.args.visit(visitor)?.modifying(&mut expr.args)?;
+                visitor.finish_call(expr, func, args)
+            }),
             Action::Ensure(action) => visitor
                 .begin_ensure(action)?
                 .map(|_| action.pred.visit(visitor)?.modifying(&mut action.pred))?

@@ -1,7 +1,11 @@
 use std::collections::HashMap;
 
+use anyhow::bail;
+use thiserror::Error;
+
 use crate::{
     ast::expressions::{Ident, Symbol},
+    typechecker::TypeError,
     visitor::*,
 };
 
@@ -31,6 +35,19 @@ impl Visitor<()> for ModuleInstantiation {
         }
     }
 
+    fn begin_alias_decl(
+        &mut self,
+        sym: &mut Symbol,
+        _e: &mut crate::ast::expressions::Expr,
+    ) -> VisitorResult<(), crate::ast::declarations::Decl> {
+        match self.mapping.get(&vec![sym.clone()]) {
+            None => Ok(ControlMut::Produce(())),
+            Some(_) => bail!(ModuleInstantiationError::ModuleArgumentRebinding(
+                sym.clone()
+            )),
+        }
+    }
+
     fn finish_module_decl(
         &mut self,
         ast: &mut crate::ast::declarations::ModuleDecl,
@@ -41,4 +58,10 @@ impl Visitor<()> for ModuleInstantiation {
         ast.sortsyms = vec![];
         Ok(ControlMut::Produce(()))
     }
+}
+
+#[derive(Debug, Error, Clone, PartialEq, Eq)]
+pub enum ModuleInstantiationError {
+    #[error("Symbol {0:?} is a free variable in the module argument list")]
+    ModuleArgumentRebinding(Symbol),
 }
