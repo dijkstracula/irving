@@ -181,6 +181,35 @@ impl Resolver {
                 let ret = self.unify(&lhsret, &rhsret)?;
                 Ok(IvySort::Function(args, Box::new(ret)))
             }
+
+            // This subtyping relationship is fine, because Ivy's range datatype
+            // saturates arithmetic operations.
+            (IvySort::Number, IvySort::Range(lo, hi))
+            | (IvySort::Range(lo, hi), IvySort::Number) => {
+                Ok(IvySort::Range(lo.clone(), hi.clone()))
+            }
+
+            // This subtyping relationship is for indexing into an isolate
+            // definition by its arguments.
+            (
+                IvySort::Function(Fargs::List(fargs), fret),
+                p @ IvySort::Process(Process { args, .. }),
+            )
+            | (
+                p @ IvySort::Process(Process { args, .. }),
+                IvySort::Function(Fargs::List(fargs), fret),
+            ) => {
+                let unified = self.unify(fret, p)?;
+
+                // XXX: args is unordered so we can't unify them in the multiple argument case.
+                // see https://github.com/dijkstracula/irving/issues/25 .
+                if fargs.len() != args.len() && fargs.len() > 1 {
+                    let pargs = args.iter().map(|(_, v)| v.clone()).collect::<Vec<_>>();
+                    return Err(TypeError::LenMismatch(fargs.clone(), pargs));
+                }
+                Ok(unified)
+            }
+
             (t1, t2) => {
                 if t1 == t2 {
                     Ok(lhs)

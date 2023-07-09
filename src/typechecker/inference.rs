@@ -210,17 +210,22 @@ impl Visitor<IvySort> for TypeChecker {
 
         let mut is_common = false;
 
+        // XXX: awkward amounts of cloning in here.
         let rhs_sort = match &lhs_sort {
-            IvySort::Module(module) => Ok::<Option<&IvySort>, TypeError>(module.fields.get(rhs)),
-            IvySort::Process(proc) => {
-                let s = proc.impl_fields.get(rhs).or(proc.spec_fields.get(rhs));
-                is_common = s.is_none();
-                Ok(s.or(proc.common_impl_fields.get(rhs))
-                    .or(proc.common_spec_fields.get(rhs)))
+            IvySort::Module(module) => {
+                Ok::<Option<IvySort>, TypeError>(module.fields.get(rhs).map(|s| s.clone()))
             }
+            IvySort::Process(proc) => {
+                let mut s = proc.impl_fields.get(rhs).or(proc.spec_fields.get(rhs));
+                is_common = s.is_none();
+                s = s
+                    .or(proc.common_impl_fields.get(rhs))
+                    .or(proc.common_spec_fields.get(rhs));
+                Ok(s.map(|s| s.clone()))
+            }
+            IvySort::SortVar(_) => Ok(Some(self.bindings.new_sortvar())),
             sort => bail!(TypeError::NotARecord(sort.clone())),
         }?
-        .map(|s| self.bindings.resolve(&s).clone())
         .map(|s| match s {
             // A slightly hacky thing that should probably live elsewhere:
             // if the rhs is a non-common action, and the first

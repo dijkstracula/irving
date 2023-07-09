@@ -55,11 +55,11 @@ mod tests {
                         IvySort::Module(Module {
                             args: vec![],
                             fields: [
-                                ("id".into(), IvySort::Number),
+                                ("id".into(), tc.bindings.lookup_sym("pid").unwrap().clone()),
                                 (
                                     "send".into(),
                                     IvySort::function_sort(
-                                        vec![tc.bindings.lookup_sym("pid".into()).unwrap().clone()],
+                                        vec![tc.bindings.lookup_sym("pid").unwrap().clone()],
                                         IvySort::Unit,
                                     ),
                                 ),
@@ -200,7 +200,7 @@ mod tests {
 
                 implement append {
                     contents := contents.append(val);
-                    # sock.send(host(1-self).sock.id, val);
+                    sock.send(host(1-self).sock.id, val);
                     show(contents);
                 }
 
