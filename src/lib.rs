@@ -1,7 +1,8 @@
 mod ast;
-mod parser;
-mod passes;
+pub mod cli;
+pub mod parser;
+pub mod passes;
 mod rewriter;
 mod tests;
 mod typechecker;
-mod visitor;
+pub mod visitor;

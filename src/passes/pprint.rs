@@ -1,5 +1,5 @@
 use core::fmt::Result;
-use std::fmt::Write;
+use std::{fmt::Write, io::Stdout};
 
 use crate::{
     ast::{

@@ -1,5 +1,3 @@
-use thiserror::Error;
-
 #[cfg(test)]
 mod tests {
     use crate::ast::declarations::Decl;
