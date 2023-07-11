@@ -1,12 +1,10 @@
-use std::path::Path;
-
 use clap::Parser;
 use irving::visitor::visitor::Visitable;
 use irving::{
     cli::{Cli, Commands},
     passes::pprint::PrettyPrinter,
 };
-use std::io::{self, Write};
+use std::io::Write;
 
 fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();

@@ -1,5 +1,5 @@
 use core::fmt::Result;
-use std::{fmt::Write, io::Stdout};
+use std::fmt::Write;
 
 use crate::{
     ast::{
@@ -57,6 +57,7 @@ impl<W: Write> Write for PrettyPrinter<W> {
         let lines = s.split("\n").enumerate().collect::<Vec<_>>();
 
         for (i, line) in &lines {
+            println!("{i} {line} {}", self.indent);
             self.indent -= line.matches("}").count();
             self.indent -= line.matches(")").count();
             if line.len() > 0 && !self.curr_line_is_indented {
