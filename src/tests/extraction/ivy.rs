@@ -2,7 +2,7 @@
 mod tests {
     use std::fs::read_to_string;
 
-    use crate::passes::pprint::PrettyPrinter;
+    use crate::extraction::ivy::Extractor;
     use crate::tests::helpers::prog_from_filename;
     use crate::visitor::visitor::Visitable;
     use crate::{
@@ -29,42 +29,42 @@ mod tests {
 
     #[test]
     fn pprint_fnapp() {
-        let mut pp = PrettyPrinter::<String>::new();
+        let mut e = Extractor::<String>::new();
 
         let fragment = "foo(a, b, c)";
         let mut ast = parse_expr(fragment).expect("Parsing failed");
-        ast.visit(&mut pp).expect("traversal failed");
-        assert_eq!(fragment, pp.out);
+        ast.visit(&mut e).expect("traversal failed");
+        assert_eq!(fragment, e.pp.out);
     }
 
     #[test]
     fn pprint_arith() {
-        let mut pp = PrettyPrinter::<String>::new();
+        let mut e = Extractor::<String>::new();
 
         let fragment = "43 - 1";
         let mut ast = parse_expr(fragment).expect("Parsing failed");
-        ast.visit(&mut pp).expect("traversal failed");
-        assert_eq!(fragment, pp.out);
+        ast.visit(&mut e).expect("traversal failed");
+        assert_eq!(fragment, e.pp.out);
     }
 
     #[test]
     fn pprint_complex_expr() {
-        let mut pp = PrettyPrinter::<String>::new();
+        let mut e = Extractor::<String>::new();
 
         let fragment = "sock.send(host(1 - self).sock.id, val)";
         let mut ast = parse_expr(fragment).expect("Parsing failed");
-        ast.visit(&mut pp).expect("traversal failed");
-        assert_eq!(fragment, pp.out);
+        ast.visit(&mut e).expect("traversal failed");
+        assert_eq!(fragment, e.pp.out);
     }
 
     #[test]
     fn pprint_formula() {
-        let mut pp = PrettyPrinter::<String>::new();
+        let mut e = Extractor::<String>::new();
 
         let fragment = "forall X: node, Y, Z . X = Y & Y = Z -> X = Y";
         let mut ast = parse_fmla(fragment).expect("Parsing failed");
-        ast.visit(&mut pp).expect("traversal failed");
-        assert_eq!(fragment, pp.out);
+        ast.visit(&mut e).expect("traversal failed");
+        assert_eq!(fragment, e.pp.out);
     }
 
     #[test]
@@ -73,13 +73,13 @@ mod tests {
 
         let mut ast = prog_from_filename(path);
 
-        let mut pp = PrettyPrinter::<String>::new();
-        ast.visit(&mut pp).expect("traversal failed");
+        let mut e = Extractor::<String>::new();
+        ast.visit(&mut e).expect("traversal failed");
 
         // The pretty printer won't get my formatting exactly right, and that's
         // fine.  Strip out extraneous newlines on my end.
-        println!("{}", pp.out);
+        println!("{}", e.pp.out);
         let prog = read_to_string(path).unwrap();
-        assert_eq!(prog.replace("\n\n", "\n"), pp.out.replace("\n\n", "\n"));
+        assert_eq!(prog.replace("\n\n", "\n"), e.pp.out.replace("\n\n", "\n"));
     }
 }

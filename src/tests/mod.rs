@@ -1,3 +1,4 @@
+mod extraction;
 mod parser;
 mod passes;
 mod programs;

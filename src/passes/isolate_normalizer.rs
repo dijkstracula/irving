@@ -1,5 +1,4 @@
 #![allow(dead_code)]
-#![allow(unused_variables)]
 
 /* Raises declarations from implementation/specification/common blocks
  * within an IsolateDecl to the top level.

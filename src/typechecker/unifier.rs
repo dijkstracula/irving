@@ -203,7 +203,7 @@ impl Resolver {
 
                 // XXX: args is unordered so we can't unify them in the multiple argument case.
                 // see https://github.com/dijkstracula/irving/issues/25 .
-                if fargs.len() != args.len() && fargs.len() > 1 {
+                if fargs.len() != args.len() || fargs.len() > 1 {
                     let pargs = args.iter().map(|(_, v)| v.clone()).collect::<Vec<_>>();
                     return Err(TypeError::LenMismatch(fargs.clone(), pargs));
                 }

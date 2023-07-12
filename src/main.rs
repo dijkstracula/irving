@@ -1,9 +1,7 @@
 use clap::Parser;
+use irving::cli::{Cli, Commands};
+use irving::extraction::ivy::Extractor;
 use irving::visitor::visitor::Visitable;
-use irving::{
-    cli::{Cli, Commands},
-    passes::pprint::PrettyPrinter,
-};
 use std::io::Write;
 
 fn main() -> anyhow::Result<()> {
@@ -14,11 +12,11 @@ fn main() -> anyhow::Result<()> {
 
     match cli.cmd {
         Commands::PPrint => {
-            let mut pp = PrettyPrinter::<String>::new();
-            prog.visit(&mut pp)?;
+            let mut e = Extractor::<String>::new();
+            prog.visit(&mut e)?;
 
             let mut stdout = std::io::stdout().lock();
-            stdout.write(pp.out.as_bytes())?;
+            stdout.write(e.pp.out.as_bytes())?;
         }
     }
     Ok(())
