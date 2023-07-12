@@ -119,7 +119,6 @@ where
         &mut self,
         ast: &mut actions::AssignAction,
     ) -> VisitorResult<(), actions::Action> {
-        println!("{:?}", ast);
         ast.lhs.visit(self)?;
         self.pp.write_str(" := ")?;
         ast.rhs.visit(self)?;
@@ -171,7 +170,6 @@ where
         }
         if let Some(stmts) = &mut ast.body {
             self.pp.write_str(" = {\n")?;
-            println!("{:?}", stmts);
             self.write_separated(stmts, ";\n")?;
             self.pp.write_str("\n}\n")?;
         }
@@ -579,11 +577,18 @@ where
             Verb::And => "&",
             Verb::Or => "|",
             _ => {
-                println!("Uh oh!: {:?}", ast.op);
+                eprintln!("Uh oh!: {:?}", ast.op);
                 unimplemented!()
             }
         };
-        self.pp.write_fmt(format_args!(" {} ", op_str))?;
+        match ast.op {
+            Verb::Dot => {
+                self.pp.write_str(op_str)?;
+            }
+            _ => {
+                self.pp.write_fmt(format_args!(" {} ", op_str))?;
+            }
+        }
         ast.rhs.visit(self)?;
 
         Ok(ControlMut::SkipSiblings(()))
