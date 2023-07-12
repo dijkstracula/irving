@@ -1,6 +1,9 @@
 #[cfg(test)]
 mod tests {
+    use std::fs::read_to_string;
+
     use crate::passes::pprint::PrettyPrinter;
+    use crate::tests::helpers::prog_from_filename;
     use crate::visitor::visitor::Visitable;
     use crate::{
         ast::{expressions::Expr, logic::Fmla},
@@ -66,19 +69,17 @@ mod tests {
 
     #[test]
     fn pprint_prog() {
-        let prog = include_str!("../programs/002_safety_and_invariants.ivy");
-        let res = IvyParser::parse(Rule::prog, &prog)
-            .expect("Parsing failed")
-            .single()
-            .unwrap();
-        let mut ast = IvyParser::prog(res).expect("AST generation failed");
+        let path = "programs/002_safety_and_invariants.ivy";
+
+        let mut ast = prog_from_filename(path);
 
         let mut pp = PrettyPrinter::<String>::new();
         ast.visit(&mut pp).expect("traversal failed");
 
         // The pretty printer won't get my formatting exactly right, and that's
         // fine.  Strip out extraneous newlines on my end.
-        //println!("{}", pp.out);
-        //assert_eq!(prog.replace("\n\n", "\n"), pp.out.replace("\n\n", "\n"));
+        println!("{}", pp.out);
+        let prog = read_to_string(path).unwrap();
+        assert_eq!(prog.replace("\n\n", "\n"), pp.out.replace("\n\n", "\n"));
     }
 }

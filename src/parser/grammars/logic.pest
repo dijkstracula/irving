@@ -3,6 +3,8 @@
 LOGICVAR = @{ !reserved ~ ASCII_ALPHA_UPPER ~ ("_" | ASCII_ALPHANUMERIC)* }
 
 // aka simplevar in ivy_logic_utils
+// TODO: The sort ought to be an ident, I think
+// https://github.com/dijkstracula/irving/issues/27
 logicvar         = { LOGICVAR ~ (":" ~ symbol)? }
 
 fmla             =  { 

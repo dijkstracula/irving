@@ -12,29 +12,29 @@ after init {
 }
 
 action connect(x: client, y: server) = {
-  require semaphore(y);
-  link(x, y) := true;
-  semaphore(y) := false
+    require semaphore(y);
+    link(x, y) := true;
+    semaphore(y) := false
 }
 
 action disconnect(x: client, y: server) = {
-  require link(x,y);
-  link(x, y) := false;
-  semaphore(y) := true
+    require link(x, y);
+    link(x, y) := false;
+    semaphore(y) := true
 }
 
 export connect
 export disconnect
 
 action test = {
-  ensure link(X, Y) & z
+    ensure link(X, Y) & z
 }
 
 export test
 
-invariant X = Z | ~link(X,Y) | ~link(Z,Y)
-invariant link(X,Y)
+invariant X = Z | ~link(X, Y) | ~link(Z, Y)
+invariant link(X, Y)
 
 axiom X:id < Y & Y < Z -> X < Z
-axiom ~(X: id < X)
-axiom X: id < Y | X = Y | Y < X
+axiom ~(X:id < X)
+axiom X:id < Y | X = Y | Y < X

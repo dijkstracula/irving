@@ -62,7 +62,6 @@ impl<W: Write> Write for PrettyPrinter<W> {
                 self.curr_line_is_indented = false;
             }
 
-            println!("{i} \"{line}\" {}", self.indent);
             self.indent -= line.matches("}").count();
             self.indent -= line.matches(")").count();
             if line.len() > 0 && !self.curr_line_is_indented {
@@ -620,7 +619,7 @@ impl<W: Write> Visitor<()> for PrettyPrinter<W> {
             Verb::Arrow => "->",
 
             Verb::And => "&",
-            Verb::Or => "&",
+            Verb::Or => "|",
             _ => {
                 println!("Uh oh!: {:?}", ast.op);
                 unimplemented!()
@@ -654,6 +653,36 @@ impl<W: Write> Visitor<()> for PrettyPrinter<W> {
         expr.idx.visit(self)?;
         self.write_str("]")?;
         Ok(ControlMut::SkipSiblings(()))
+    }
+
+    fn begin_term(&mut self, expr: &mut expressions::Term) -> VisitorResult<(), expressions::Expr> {
+        expr.id.visit(self)?;
+        if let Some(sort) = &mut expr.sort {
+            self.write_str(":")?;
+            sort.visit(self)?;
+        }
+        Ok(ControlMut::SkipSiblings(()))
+    }
+
+    fn begin_unary_op(
+        &mut self,
+        op: &mut Verb,
+        rhs: &mut expressions::Expr,
+    ) -> VisitorResult<(), expressions::Expr> {
+        match op {
+            Verb::Not => {
+                self.write_str("~")?;
+                if let expressions::Expr::BinOp(_) = rhs {
+                    self.write_str("(")?;
+                    rhs.visit(self)?.modifying(rhs)?;
+                    self.write_str(")")?;
+                    Ok(ControlMut::SkipSiblings(()))
+                } else {
+                    Ok(ControlMut::Produce(()))
+                }
+            }
+            _ => unimplemented!(),
+        }
     }
 
     // Terminals
