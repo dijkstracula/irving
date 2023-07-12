@@ -1,5 +1,7 @@
 use std::fmt::Write;
 
+use thiserror::Error;
+
 use crate::{
     ast::{
         actions,
@@ -129,15 +131,14 @@ where
             Verb::Dot => ".",
 
             Verb::Equals => "=",
+            Verb::Notequals => "!=",
             Verb::Lt => "<",
             Verb::Le => "<=",
             Verb::Gt => ">",
             Verb::Ge => ">=",
 
-            Verb::Arrow => "->",
-
-            Verb::And => "&",
-            Verb::Or => "&",
+            Verb::And => "&&",
+            Verb::Or => "||",
             _ => {
                 unimplemented!()
             }
@@ -192,24 +193,18 @@ where
         Ok(ControlMut::Produce(()))
     }
 
-    fn param(
-        &mut self,
-        p: &mut expressions::AnnotatedSymbol,
-    ) -> VisitorResult<(), expressions::AnnotatedSymbol> {
-        p.id.visit(self)?;
-
-        match &mut p.sort {
-            expressions::Sort::ToBeInferred => (),
-            expressions::Sort::Annotated(_) | expressions::Sort::Resolved(_) => {
-                self.pp.write_str(":")?;
-                self.sort(&mut p.sort)?;
-            }
-        }
+    fn param(&mut self, p: &mut expressions::AnnotatedSymbol) -> VisitorResult<(), expressions::AnnotatedSymbol> {
+        self.sort(&mut p.sort)?;
+        self.pp.write_str(" ")?;
+        self.pp.write_str(&p.id)?;
         Ok(ControlMut::Produce(()))
     }
 
-    fn sort(&mut self, _s: &mut expressions::Sort) -> VisitorResult<(), expressions::Sort> {
-        todo!()
+    fn sort(&mut self, s: &mut expressions::Sort) -> VisitorResult<(), expressions::Sort> {
+        match s {
+            _ => todo!(),
+        }
+        Ok(ControlMut::Produce(()))
     }
 
     fn symbol(&mut self, s: &mut expressions::Symbol) -> VisitorResult<(), expressions::Symbol> {
@@ -221,4 +216,10 @@ where
         self.pp.write_str("this")?;
         Ok(ControlMut::Produce(()))
     }
+}
+
+#[derive(Debug, Error, Clone, PartialEq, Eq)]
+pub enum JExtractionError {
+    #[error("Symbol {0:?} failed to have a type inferred (did the typechecking pass run?)")]
+    UnresolvedType(expressions::Symbol),
 }

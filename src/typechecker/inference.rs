@@ -226,11 +226,6 @@ impl Visitor<IvySort> for TypeChecker {
                 println!("NBT: dot");
                 Ok(ControlMut::Produce(rhs_sort))
             }
-
-            _ => {
-                eprintln!("{:?}", ast.op);
-                unimplemented!()
-            }
         }
     }
 

@@ -29,7 +29,7 @@ mod tests {
 
     #[test]
     fn test_module_instantiation() {
-        let mut module = sort_from_module_src(
+        let module = sort_from_module_src(
             "module array(domain, range) = { 
             type this
 
