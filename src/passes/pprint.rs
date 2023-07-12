@@ -127,7 +127,7 @@ impl<W: Write> Visitor<()> for PrettyPrinter<W> {
             self.write_str("} else {\n")?;
             self.write_separated(stmts, ";\n")?;
         }
-        self.write_str("}\n")?;
+        self.write_str("\n}\n")?;
 
         Ok(ControlMut::SkipSiblings(()))
     }
@@ -392,10 +392,12 @@ impl<W: Write> Visitor<()> for PrettyPrinter<W> {
 
     fn begin_implementation_decl(
         &mut self,
-        _ast: &mut Vec<declarations::Decl>,
+        ast: &mut Vec<declarations::Decl>,
     ) -> VisitorResult<(), declarations::Decl> {
-        self.write_str("implementation {")?;
-        Ok(ControlMut::Produce(()))
+        self.write_str("specification {\n")?;
+        self.write_separated(ast, "\n")?;
+        self.write_str("\n}")?;
+        Ok(ControlMut::SkipSiblings(()))
     }
     fn finish_implementation_decl(
         &mut self,
@@ -518,17 +520,12 @@ impl<W: Write> Visitor<()> for PrettyPrinter<W> {
 
     fn begin_specification(
         &mut self,
-        _ast: &mut Vec<declarations::Decl>,
+        ast: &mut Vec<declarations::Decl>,
     ) -> VisitorResult<(), declarations::Decl> {
-        self.write_str("specification {")?;
-        Ok(ControlMut::Produce(()))
-    }
-    fn finish_specification(
-        &mut self,
-        _ast: &mut Vec<declarations::Decl>,
-    ) -> VisitorResult<(), declarations::Decl> {
-        self.write_str("}")?;
-        Ok(ControlMut::Produce(()))
+        self.write_str("specification {\n")?;
+        self.write_separated(ast, "\n")?;
+        self.write_str("\n}")?;
+        Ok(ControlMut::SkipSiblings(()))
     }
 
     fn begin_relation(
@@ -614,6 +611,7 @@ impl<W: Write> Visitor<()> for PrettyPrinter<W> {
             Verb::Dot => ".",
 
             Verb::Equals => "=",
+            Verb::Notequals => "~=",
             Verb::Lt => "<",
             Verb::Le => "<=",
             Verb::Gt => ">",
