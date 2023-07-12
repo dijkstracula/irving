@@ -54,10 +54,15 @@ impl PrettyPrinter<String> {
 impl<W: Write> Write for PrettyPrinter<W> {
     fn write_str(&mut self, s: &str) -> Result {
         // TODO: can I do this without allocation?
-        let lines = s.split("\n").enumerate().collect::<Vec<_>>();
+        let lines = s.split("\n").enumerate();
 
-        for (i, line) in &lines {
-            println!("{i} {line} {}", self.indent);
+        for (i, line) in lines {
+            if i > 0 {
+                self.out.write_str("\n")?;
+                self.curr_line_is_indented = false;
+            }
+
+            println!("{i} \"{line}\" {}", self.indent);
             self.indent -= line.matches("}").count();
             self.indent -= line.matches(")").count();
             if line.len() > 0 && !self.curr_line_is_indented {
@@ -71,12 +76,15 @@ impl<W: Write> Write for PrettyPrinter<W> {
 
             self.indent += line.matches("{").count();
             self.indent += line.matches("(").count();
-            if *i < lines.len() - 1 {
-                self.out.write_str("\n")?;
-                self.curr_line_is_indented = false;
-            }
         }
         Ok(())
+    }
+
+    fn write_fmt(&mut self, args: std::fmt::Arguments<'_>) -> Result {
+        // XXX: ugh.
+        let mut buf = String::new();
+        buf.write_fmt(args)?;
+        self.write_str(&buf)
     }
 }
 
@@ -86,7 +94,10 @@ impl<W: Write> Visitor<()> for PrettyPrinter<W> {
             "#lang ivy{}.{}\n\n",
             p.major_version, p.minor_version
         ))?;
-        self.write_separated(&mut p.top, "\n")?;
+        for top in &mut p.top {
+            top.visit(self)?.modifying(top)?;
+            self.write_str("\n")?;
+        }
         Ok(ControlMut::SkipSiblings(()))
     }
 
@@ -146,6 +157,7 @@ impl<W: Write> Visitor<()> for PrettyPrinter<W> {
         &mut self,
         ast: &mut actions::AssignAction,
     ) -> VisitorResult<(), actions::Action> {
+        println!("{:?}", ast);
         ast.lhs.visit(self)?;
         self.write_str(" := ")?;
         ast.rhs.visit(self)?;
@@ -306,17 +318,31 @@ impl<W: Write> Visitor<()> for PrettyPrinter<W> {
 
     fn begin_global_decl(
         &mut self,
-        _ast: &mut Vec<declarations::Decl>,
+        ast: &mut Vec<declarations::Decl>,
     ) -> VisitorResult<(), declarations::Decl> {
-        self.write_str("global {")?;
-        Ok(ControlMut::Produce(()))
-    }
-    fn finish_global_decl(
-        &mut self,
-        _ast: &mut Vec<declarations::Decl>,
-    ) -> VisitorResult<(), declarations::Decl> {
+        self.write_str("global {\n")?;
+        for decl in ast {
+            decl.visit(self)?.modifying(decl)?;
+            self.write_str("\n")?;
+        }
         self.write_str("}")?;
-        Ok(ControlMut::Produce(()))
+        Ok(ControlMut::SkipSiblings(()))
+    }
+
+    fn begin_instance_decl(
+        &mut self,
+        ast: &mut declarations::InstanceDecl,
+    ) -> VisitorResult<(), declarations::Decl> {
+        self.write_str("instance ")?;
+        ast.name.visit(self)?.modifying(&mut ast.name)?;
+        self.write_str(" = ")?;
+        ast.sort.visit(self)?.modifying(&mut ast.sort)?;
+        if !ast.args.is_empty() {
+            self.write_str("(")?;
+            ast.args.visit(self)?.modifying(&mut ast.args)?;
+            self.write_str(")")?;
+        }
+        Ok(ControlMut::SkipSiblings(()))
     }
 
     fn begin_implement_decl(
@@ -343,7 +369,6 @@ impl<W: Write> Visitor<()> for PrettyPrinter<W> {
             self.write_separated(stmts, "\n")?;
             self.write_str("\n}\n")?;
         }
-        self.write_str("}\n")?;
 
         Ok(ControlMut::SkipSiblings(()))
     }
@@ -400,7 +425,7 @@ impl<W: Write> Visitor<()> for PrettyPrinter<W> {
         &mut self,
         inst: &mut declarations::IsolateDecl,
     ) -> VisitorResult<(), declarations::Decl> {
-        self.out.write_fmt(format_args!("isolate {}", inst.name))?;
+        self.write_fmt(format_args!("isolate {}", inst.name))?;
         if inst.params.len() > 0 {
             self.write_str("(")?;
             inst.params.visit(self)?;
@@ -417,8 +442,7 @@ impl<W: Write> Visitor<()> for PrettyPrinter<W> {
         &mut self,
         module: &mut declarations::ModuleDecl,
     ) -> VisitorResult<(), declarations::Decl> {
-        self.out
-            .write_fmt(format_args!("isolate {}", module.name))?;
+        self.write_fmt(format_args!("isolate {}", module.name))?;
 
         if module.sortsyms.len() > 0 {
             self.write_str("(")?;
@@ -436,8 +460,7 @@ impl<W: Write> Visitor<()> for PrettyPrinter<W> {
         &mut self,
         module: &mut declarations::NormalizedIsolateDecl,
     ) -> VisitorResult<(), declarations::Decl> {
-        self.out
-            .write_fmt(format_args!("process {}", module.name))?;
+        self.write_fmt(format_args!("process {}", module.name))?;
 
         if module.params.len() > 0 {
             self.write_str("(")?;
@@ -479,7 +502,7 @@ impl<W: Write> Visitor<()> for PrettyPrinter<W> {
         &mut self,
         ast: &mut declarations::ObjectDecl,
     ) -> VisitorResult<(), declarations::Decl> {
-        self.out.write_fmt(format_args!("object {}", ast.name))?;
+        self.write_fmt(format_args!("object {}", ast.name))?;
 
         if ast.params.len() > 0 {
             self.write_str("(")?;
@@ -601,6 +624,7 @@ impl<W: Write> Visitor<()> for PrettyPrinter<W> {
             Verb::And => "&",
             Verb::Or => "&",
             _ => {
+                println!("Uh oh!: {:?}", ast.op);
                 unimplemented!()
             }
         };
@@ -621,7 +645,8 @@ impl<W: Write> Visitor<()> for PrettyPrinter<W> {
         rhs: &mut expressions::Symbol,
     ) -> VisitorResult<(), expressions::Expr> {
         lhs.visit(self)?;
-        self.write_fmt(format_args!(".{}", rhs))?;
+        self.write_str(".")?;
+        rhs.visit(self)?;
         Ok(ControlMut::SkipSiblings(()))
     }
 
@@ -661,7 +686,7 @@ impl<W: Write> Visitor<()> for PrettyPrinter<W> {
             self.write_str(": ")?;
             self.identifier(sort)?;
         }
-        Ok(ControlMut::Produce(()))
+        Ok(ControlMut::SkipSiblings(()))
     }
 
     fn sort(&mut self, s: &mut IvySort) -> VisitorResult<(), IvySort> {
