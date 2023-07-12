@@ -488,13 +488,11 @@ where
                 .begin_assert(action)?
                 .map(|_| action.pred.visit(visitor)?.modifying(&mut action.pred))?
                 .and_then(|_| visitor.finish_assert(action)),
-            Action::Assign(action) => visitor
-                .begin_assign(action)?
-                .map::<_, T, expressions::Expr>(|_| {
-                    action.lhs.visit(visitor)?.modifying(&mut action.lhs)
-                })
-                .map(|_| action.rhs.visit(visitor)?.modifying(&mut action.rhs))?
-                .and_then(|_| visitor.finish_assign(action)),
+            Action::Assign(action) => visitor.begin_assign(action)?.and_then(|_| {
+                let _ = action.lhs.visit(visitor)?.modifying(&mut action.lhs)?;
+                let _ = action.rhs.visit(visitor)?.modifying(&mut action.rhs)?;
+                visitor.finish_assign(action)
+            }),
             Action::Assume(action) => visitor
                 .begin_assume(action)?
                 .map(|_| action.pred.visit(visitor)?.modifying(&mut action.pred))?
@@ -755,9 +753,10 @@ where
                 let b = decl.body.visit(visitor)?.modifying(&mut decl.body)?;
                 visitor.finish_isolate_decl(decl, n, p, b)
             }),
-            Decl::Include(decl) => visitor
-                .begin_include_decl(decl)?
-                .and_then(|_| visitor.finish_include_decl(decl)),
+            Decl::Include(decl) => visitor.begin_include_decl(decl)?.and_then(|_| {
+                let _ = decl.visit(visitor)?.modifying(decl)?;
+                visitor.finish_include_decl(decl)
+            }),
             Decl::Instance(decl) => visitor.begin_instance_decl(decl)?.and_then(|_| {
                 let n = decl.name.visit(visitor)?.modifying(&mut decl.name)?;
                 let s = decl.sort.visit(visitor)?.modifying(&mut decl.sort)?;

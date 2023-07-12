@@ -5,7 +5,6 @@ use thiserror::Error;
 
 use crate::{
     ast::expressions::{Ident, Symbol},
-    typechecker::TypeError,
     visitor::*,
 };
 
