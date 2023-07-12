@@ -49,6 +49,7 @@ impl Visitor<()> for ModuleInstantiation {
 
     fn finish_module_decl(
         &mut self,
+        _node: &mut Symbol,
         ast: &mut crate::ast::declarations::ModuleDecl,
         _n: (),
         _p: Vec<()>,

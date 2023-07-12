@@ -36,6 +36,7 @@ pub enum Fargs {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum IvySort {
     Uninterpreted,
+    This,
     Unit,
     Top,
     Bool,

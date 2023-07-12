@@ -1,5 +1,7 @@
 #![allow(dead_code)]
 
+use crate::typechecker::sorts::IvySort;
+
 use super::expressions::*;
 use super::logic::Fmla;
 use super::statements::*;
@@ -28,7 +30,6 @@ pub struct MixinSig {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ActionDecl {
-    pub name: Symbol,
     pub params: ParamList,
     pub ret: Option<Param>,
     pub body: Option<Vec<Stmt>>,
@@ -51,14 +52,13 @@ pub struct BeforeDecl {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FunctionDecl {
-    pub name: Symbol,
     pub params: ParamList,
     pub ret: Symbol, // Am I an idiot? Where's the bee^W body
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ExportDecl {
-    Action(ActionDecl),
+    Action(Binding<ActionDecl>),
     ForwardRef(Symbol),
 }
 
@@ -78,35 +78,30 @@ pub struct ImplementDecl {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct InstanceDecl {
-    pub name: Symbol,
     pub sort: Ident,
     pub args: ParamList,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct IsolateDecl {
-    pub name: Symbol,
     pub params: ParamList,
     pub body: Vec<Decl>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ModuleDecl {
-    pub name: Symbol,
     pub sortsyms: Vec<Symbol>,
     pub body: Vec<Decl>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ObjectDecl {
-    pub name: Symbol,
     pub params: ParamList,
     pub body: Vec<Decl>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Relation {
-    pub name: Symbol,
     pub params: ParamList,
 }
 
@@ -115,7 +110,6 @@ pub struct Relation {
 /// Created by the ModuleNormalizer pass.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NormalizedIsolateDecl {
-    pub name: Symbol,
     pub params: ParamList,
     pub impl_decls: Vec<Decl>,
     pub spec_decls: Vec<Decl>,
@@ -124,13 +118,25 @@ pub struct NormalizedIsolateDecl {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Binding<T> {
+    pub name: String,
+    pub decl: T,
+}
+
+impl<T> Binding<T> {
+    pub fn from(name: String, decl: T) -> Self {
+        Self { name, decl }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(clippy::large_enum_variant)]
 pub enum Decl {
-    Action(ActionDecl),
+    Action(Binding<ActionDecl>),
 
     AfterAction(AfterDecl),
 
-    Alias(Symbol, Expr),
+    Alias(Binding<Expr>),
 
     Attribute(Expr),
 
@@ -142,7 +148,7 @@ pub enum Decl {
 
     Export(ExportDecl),
 
-    Function(FunctionDecl),
+    Function(Binding<FunctionDecl>),
 
     Globals(Vec<Decl>),
 
@@ -152,11 +158,11 @@ pub enum Decl {
 
     Import(ImportDecl),
 
-    Isolate(IsolateDecl),
+    Isolate(Binding<IsolateDecl>),
 
     Include(Symbol),
 
-    Instance(InstanceDecl),
+    Instance(Binding<InstanceDecl>),
 
     Instantiate { name: Expr, prms: Vec<Expr> },
 
@@ -164,23 +170,23 @@ pub enum Decl {
 
     Invariant(Fmla),
 
-    Module(ModuleDecl),
+    Module(Binding<ModuleDecl>),
 
-    NormalizedIsolate(NormalizedIsolateDecl),
+    NormalizedIsolate(Binding<NormalizedIsolateDecl>),
 
     Noop,
 
-    Object(ObjectDecl),
+    Object(Binding<ObjectDecl>),
 
-    Relation(Relation),
+    Relation(Binding<Relation>),
 
     Specification(Vec<Decl>),
 
     Stmts(Vec<Stmt>),
 
-    Var(Term),
+    Var(Binding<Option<Ident>>),
 
-    Type(Type),
+    Type(Binding<IvySort>),
 }
 
 impl Decl {
@@ -188,41 +194,34 @@ impl Decl {
     /// TODO: https://github.com/dijkstracula/irving/issues/19
     pub fn name_for_binding(&self) -> Option<&str> {
         match self {
-            Decl::Action(a) => Some(&a.name),
+            Decl::Action(Binding { name, .. }) => Some(&name),
             Decl::AfterAction(_) => None,
-            Decl::Alias(name, _) => Some(&name),
+            Decl::Alias(Binding { name, .. }) => Some(&name),
             Decl::Attribute(_) => None,
             Decl::Axiom(_) => None,
             Decl::BeforeAction(_) => None,
             Decl::Common(_) => None,
             Decl::Export(_) => None,
-            Decl::Function(f) => Some(&f.name),
+            Decl::Function(Binding { name, .. }) => Some(&name),
             Decl::Globals(_) => None,
             Decl::Implement(_) => None,
             Decl::Implementation(_) => None,
             Decl::Import(_) => None,
-            Decl::Isolate(i) => Some(&i.name),
+            Decl::Isolate(Binding { name, .. }) => Some(&name),
             Decl::Include(_) => None,
             Decl::Instance(i) => Some(&i.name),
             Decl::Instantiate { .. } => None,
             Decl::Interpretation { .. } => None,
             Decl::Invariant(_) => None,
-            Decl::Module(m) => Some(&m.name),
-            Decl::NormalizedIsolate(n) => Some(&n.name),
+            Decl::Module(Binding { name, .. }) => Some(&name),
+            Decl::NormalizedIsolate(Binding { name, .. }) => Some(&name),
             Decl::Noop => None,
-            Decl::Object(o) => Some(&o.name),
-            Decl::Relation(r) => Some(&r.name),
+            Decl::Object(Binding { name, .. }) => Some(&name),
+            Decl::Relation(Binding { name, .. }) => Some(&name),
             Decl::Specification(_) => None,
             Decl::Stmts(_) => None,
-            Decl::Var(v) => Some(&v.id),
-            Decl::Type(Type {
-                ident: TypeName::Name(n),
-                ..
-            }) => Some(&n),
-            Decl::Type(Type {
-                ident: TypeName::This,
-                ..
-            }) => Some("this".into()),
+            Decl::Var(Binding { name, .. }) => Some(&name),
+            Decl::Type(Binding { name, .. }) => Some(&name),
         }
     }
 }

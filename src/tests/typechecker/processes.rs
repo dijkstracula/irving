@@ -108,8 +108,6 @@ mod tests {
             .modifying(&mut filedecl)
             .unwrap();
 
-        println!("NBT: A file is a {:?}\n", filesort);
-
         tc.bindings.append("file".into(), filesort).unwrap();
         tc
     }

@@ -2,9 +2,9 @@ use std::fmt::Write;
 
 use crate::{
     ast::{
-        actions, declarations,
+        actions,
         expressions::{self, IndexExpr, Verb},
-        logic, statements, toplevels,
+        statements, toplevels,
     },
     extraction::pprint::PrettyPrinter,
     typechecker::sorts::IvySort,

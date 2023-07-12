@@ -46,7 +46,7 @@ impl Mixin {
 
     pub fn from_decl(decl: Decl) -> Self {
         match decl {
-            Decl::Action(actiondecl) => Self::from_action(actiondecl),
+            Decl::Action(actiondecl) => Self::from_action(actiondecl.val),
             Decl::BeforeAction(pre) => Self::from_before(pre),
             Decl::AfterAction(post) => Self::from_after(post),
             _ => unreachable!(),

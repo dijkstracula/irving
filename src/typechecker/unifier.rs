@@ -210,6 +210,13 @@ impl Resolver {
                 Ok(unified)
             }
 
+            // This subtyping relationship says that `this` shoudl only
+            // unify with processes or modules.
+            (IvySort::This, s @ IvySort::Process(_))
+            | (IvySort::This, s @ IvySort::Module(_))
+            | (s @ IvySort::Module(_), IvySort::This)
+            | (s @ IvySort::Process(_), IvySort::This) => Ok(s.clone()),
+
             (t1, t2) => {
                 if t1 == t2 {
                     Ok(lhs)

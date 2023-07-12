@@ -202,28 +202,28 @@ impl IvyParser {
         })
     }
 
-    pub fn action_decl(input: Node) -> Result<ActionDecl> {
+    pub fn action_decl(input: Node) -> Result<Binding<ActionDecl>> {
         match_nodes!(
         input.into_children();
             [decl_sig(DeclSig{name, params}), decl_ret(ret), stmt_block(body)] => Ok(
-                ActionDecl{name, params, ret, body: Some(body)}
+                Binding::from(name, ActionDecl{params, ret, body: Some(body)})
             ),
             [decl_sig(DeclSig{name, params}), stmt_block(body)] => Ok(
-                ActionDecl{name, params, ret: None, body: Some(body)}
+                Binding::from(name, ActionDecl{params, ret: None, body: Some(body)})
             ),
             [decl_sig(DeclSig{name, params}), decl_ret(ret)] => Ok(
-                ActionDecl{name, params, ret, body: None}
+                Binding::from(name, ActionDecl{params, ret, body: None})
             ),
             [decl_sig(DeclSig{name, params})] => Ok(
-                ActionDecl{name, params, ret: None, body: None}
+                Binding::from(name, ActionDecl{params, ret: None, body: None})
             ),
         )
     }
 
-    pub fn alias_decl(input: Node) -> Result<(Symbol, Expr)> {
+    pub fn alias_decl(input: Node) -> Result<Binding<Expr>> {
         match_nodes!(
         input.into_children();
-        [symbol(lhs), expr(rhs)] => Ok((lhs, rhs)))
+        [symbol(lhs), expr(rhs)] => Ok(Binding::from(lhs, rhs)))
     }
 
     pub fn attribute_decl(input: Node) -> Result<Expr> {
@@ -287,17 +287,17 @@ impl IvyParser {
             [symbol(name)] => Ok(
                 ExportDecl::ForwardRef(name)
             ),
-            [action_decl(decl)] => Ok(
-                ExportDecl::Action(decl)
+            [action_decl(binding)] => Ok(
+                ExportDecl::Action(binding)
             ),
         )
     }
 
-    pub fn function_decl(input: Node) -> Result<FunctionDecl> {
+    pub fn function_decl(input: Node) -> Result<Binding<FunctionDecl>> {
         match_nodes!(
         input.into_children();
             [decl_sig(DeclSig{name, params}), symbol(ret)] => Ok(
-                FunctionDecl{name, params, ret}
+                Binding::from(name, FunctionDecl { params, ret })
             ),
         )
     }
@@ -344,11 +344,11 @@ impl IvyParser {
         )
     }
 
-    pub fn instance_decl(input: Node) -> Result<InstanceDecl> {
+    pub fn instance_decl(input: Node) -> Result<Binding<InstanceDecl>> {
         match_nodes!(
         input.into_children();
         [symbol(name), mixin_sig(MixinSig{name: sort, params: sort_args})] =>
-            Ok(InstanceDecl{name, sort, args: sort_args.unwrap_or_default()})
+            Ok(Binding::from(name, InstanceDecl{sort, args: sort_args.unwrap_or_default()}))
         )
     }
 
@@ -359,28 +359,26 @@ impl IvyParser {
         )
     }
 
-    pub fn isolate_decl(input: Node) -> Result<IsolateDecl> {
+    pub fn isolate_decl(input: Node) -> Result<Binding<IsolateDecl>> {
         match_nodes!(
         input.into_children();
         [decl_sig(DeclSig{name, params}), decl_block(body)] => Ok(
-            IsolateDecl{name, params, body}
+            Binding::from(name, IsolateDecl{params, body})
         ))
     }
 
-    pub fn module_decl(input: Node) -> Result<ModuleDecl> {
+    pub fn module_decl(input: Node) -> Result<Binding<ModuleDecl>> {
         match_nodes!(
         input.into_children();
         [mod_sig(ModSig{name, sortsyms}), decl_block(body)] => Ok(
-            ModuleDecl{name, sortsyms, body}
-        ))
+            Binding::from(name, ModuleDecl{sortsyms, body})))
     }
 
-    pub fn object_decl(input: Node) -> Result<ObjectDecl> {
+    pub fn object_decl(input: Node) -> Result<Binding<ObjectDecl>> {
         match_nodes!(
         input.into_children();
         [decl_sig(DeclSig{name, params}), decl_block(body)] => Ok(
-            ObjectDecl{name, params, body}
-        ))
+            Binding::from(name, ObjectDecl{params, body})))
     }
 
     pub fn range_decl(input: Node) -> Result<(Expr, Expr)> {
@@ -390,11 +388,11 @@ impl IvyParser {
         )
     }
 
-    pub fn relation_decl(input: Node) -> Result<Relation> {
+    pub fn relation_decl(input: Node) -> Result<Binding<Relation>> {
         match_nodes!(
         input.into_children();
             [decl_sig(DeclSig{name, params})] => Ok(
-                Relation{name, params}
+                Binding::from(name, Relation{params})
             ),
         )
     }
@@ -406,63 +404,49 @@ impl IvyParser {
         )
     }
 
-    pub fn type_decl(input: Node) -> Result<Type> {
+    pub fn type_decl(input: Node) -> Result<Binding<IvySort>> {
         match_nodes!(
         input.into_children();
-        [type_name(ident), enum_decl(cstrs)] => Ok(
-            Type {ident, sort: IvySort::Enum(cstrs) }
-        ),
-        [type_name(ident), range_decl((lo, hi))] => Ok(
-            Type {ident, sort: IvySort::Range(Box::new(lo), Box::new(hi)) }
-        ),
-        [type_name(ident), symbol(supr)] => Ok(
-            Type {ident, sort: IvySort::Subclass(supr) }
-        ),
-        [type_name(ident)] => Ok(
-            Type {ident, sort: IvySort::Uninterpreted }
-        ))
-    }
-
-    pub fn type_name(input: Node) -> Result<TypeName> {
-        match_nodes!(
-        input.into_children();
-        [symbol(sym)] => Ok(TypeName::Name(sym)),
-        [THIS(_)] => Ok(TypeName::This),
+        [symbol(sym), enum_decl(cstrs)] => Ok(Binding::from(sym, IvySort::Enum(cstrs))),
+        [symbol(sym), range_decl((lo, hi))] => Ok(Binding::from(sym, IvySort::Range(Box::new(lo), Box::new(hi)))),
+        [symbol(sym), symbol(supr)] => Ok(Binding::from(sym, IvySort::Subclass(supr))),
+        [symbol(sym)] => Ok(Binding::from(sym, IvySort::Uninterpreted)),
+        [_THIS] => Ok(Binding::from("this".into(), IvySort::This))
         )
     }
 
-    pub fn var_decl(input: Node) -> Result<Term> {
+    pub fn var_decl(input: Node) -> Result<Binding<Option<Ident>>> {
         match_nodes!(
         input.into_children();
-        [term(term)] => Ok(term))
+        [term(Term { id, sort })] => Ok(Binding::from(id, sort)))
     }
 
     pub fn decl(input: Node) -> Result<Decl> {
         match_nodes!(
         input.into_children();
-        [action_decl(decl)]   => Ok(Decl::Action(decl)),
+        [action_decl(binding)]   => Ok(Decl::Action(binding)),
         [after_decl(decl)]    => Ok(Decl::AfterAction(decl)),
-        [alias_decl((l,r))]   => Ok(Decl::Alias(l, r)),
+        [alias_decl(binding)]   => Ok(Decl::Alias(binding)),
         [attribute_decl(expr)] => Ok(Decl::Attribute(expr)),
         [axiom_decl(fmla)]    => Ok(Decl::Axiom(fmla)),
         [before_decl(decl)]    => Ok(Decl::BeforeAction(decl)),
         [common_decl(decls)] => Ok(Decl::Common(decls)),
         [export_decl(fmla)]   => Ok(Decl::Export(fmla)),
         [global_decl(decls)]  => Ok(Decl::Globals(decls)),
-        [function_decl(decl)] => Ok(Decl::Function(decl)),
-        [implement_action_decl(decl)] => Ok(Decl::Implement(decl)),
+        [function_decl(binding)] => Ok(Decl::Function(binding)),
+        [implement_action_decl(binding)] => Ok(Decl::Implement(binding)),
         [implementation_decl(decls)] => Ok(Decl::Implementation(decls)),
         [import_decl(decl)]    => Ok(Decl::Import(decl)),
         [include_decl(module)] => Ok(Decl::Include(module)),
         [invariant_decl(fmla)] => Ok(Decl::Invariant(fmla)),
-        [instance_decl(decl)] => Ok(Decl::Instance(decl)),
+        [instance_decl(binding)] => Ok(Decl::Instance(binding)),
         [module_decl(decl)]   => Ok(Decl::Module(decl)),
-        [isolate_decl(decl)]   => Ok(Decl::Isolate(decl)),
-        [object_decl(decl)]   => Ok(Decl::Object(decl)),
-        [relation_decl(decl)] => Ok(Decl::Relation(decl)),
+        [isolate_decl(binding)]   => Ok(Decl::Isolate(binding)),
+        [object_decl(binding)]   => Ok(Decl::Object(binding)),
+        [relation_decl(binding)] => Ok(Decl::Relation(binding)),
         [specification_decl(decls)] => Ok(Decl::Specification(decls)),
-        [type_decl(decl)]     => Ok(Decl::Type(decl)),
-        [var_decl(decl)]      => Ok(Decl::Var(decl)),
+        [type_decl(binding)]     => Ok(Decl::Type(binding)),
+        [var_decl(binding)]      => Ok(Decl::Var(binding)),
         [stmt(stmts)..]       => Ok(Decl::Stmts(stmts.collect()))
         )
     }
@@ -490,8 +474,8 @@ impl IvyParser {
     pub fn assign_action(input: Node) -> Result<AssignAction> {
         match_nodes!(
         input.into_children();
-        [var_decl(Term{id, sort}), expr(rhs)] => Ok(
-            AssignAction{lhs: Expr::Term(Term{id, sort}), rhs}
+        [var_decl(Binding{name, decl}), expr(rhs)] => Ok(
+            AssignAction{lhs: Expr::Term(Term{id: name, sort: decl}), rhs}
         ),
         [expr(lhs), expr(rhs)] => match lhs {
             Expr::App(_) | Expr::FieldAccess(_) | Expr::Index(_) | Expr::Symbol(_) | Expr::This => Ok(AssignAction{lhs, rhs}),

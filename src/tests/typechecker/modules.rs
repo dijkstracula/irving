@@ -68,8 +68,8 @@ mod tests {
                 ("range".into(), IvySort::SortVar(2)),
             ],
             fields: [
-                ("this".into(), IvySort::SortVar(0)),
-                ("t".into(), IvySort::SortVar(0)),
+                ("this".into(), IvySort::This),
+                ("t".into(), IvySort::This),
                 ("init".into(), Module::init_action_sort()),
             ]
             .into(),
@@ -101,11 +101,11 @@ mod tests {
                 ("range".into(), IvySort::SortVar(2)),
             ],
             fields: [
-                ("this".into(), IvySort::SortVar(0)),
+                ("this".into(), IvySort::This),
                 (
                     "get".into(),
                     IvySort::Function(
-                        Fargs::List(vec![IvySort::SortVar(0), IvySort::SortVar(1)]),
+                        Fargs::List(vec![IvySort::This, IvySort::SortVar(1)]),
                         Box::new(IvySort::SortVar(2)),
                     ),
                 ),
@@ -113,11 +113,11 @@ mod tests {
                     "set".into(),
                     IvySort::Function(
                         Fargs::List(vec![
-                            IvySort::SortVar(0),
+                            IvySort::This,
                             IvySort::SortVar(1),
                             IvySort::SortVar(2),
                         ]),
-                        Box::new(IvySort::SortVar(0)),
+                        Box::new(IvySort::This),
                     ),
                 ),
                 ("init".into(), Module::init_action_sort()),

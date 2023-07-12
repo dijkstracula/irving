@@ -61,8 +61,8 @@ specification_decl     = { SPECIFICATION ~ decl_block }
 common_decl            = { COMMON ~ decl_block }
 
 // TODO: struct decl
-type_name         = { symbol | THIS }
-type_decl         = { TYPE ~ type_name ~ (("=" ~ (range_decl | enum_decl)) | ("of" ~ symbol))? } // superclass might have to be more than a symbol
+//type_name         = { symbol | THIS }
+type_decl         = { TYPE ~ (THIS | (symbol ~ (("=" ~ (range_decl | enum_decl)) | ("of" ~ symbol))?)) } // superclass might have to be more than a symbol
 
 invariant_decl    = { INVARIANT ~ fmla }
 

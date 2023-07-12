@@ -8,7 +8,7 @@ use anyhow::bail;
 use thiserror::Error;
 
 use crate::ast::declarations::*;
-use crate::ast::expressions::Param;
+use crate::ast::expressions::{Param, Symbol};
 
 use crate::visitor::*;
 
@@ -51,7 +51,11 @@ impl IsolateNormalizer {
 }
 
 impl Visitor<()> for IsolateNormalizer {
-    fn begin_isolate_decl(&mut self, ast: &mut IsolateDecl) -> VisitorResult<(), Decl> {
+    fn begin_isolate_decl(
+        &mut self,
+        _name: &mut Symbol,
+        ast: &mut IsolateDecl,
+    ) -> VisitorResult<(), Decl> {
         if self.curr_module_params.is_some() {
             panic!(
                 "Nested isolate declarations?  What should we do here, a stack of the pass' state?"
@@ -78,13 +82,13 @@ impl Visitor<()> for IsolateNormalizer {
     }
     fn finish_isolate_decl(
         &mut self,
+        name: &mut Symbol,
         ast: &mut IsolateDecl,
         _n: (),
         _p: Vec<()>,
         _b: Vec<()>,
     ) -> VisitorResult<(), Decl> {
         let normalized = NormalizedIsolateDecl {
-            name: ast.name.clone(),
             params: ast.params.clone(),
             impl_decls: std::mem::take(&mut self.impls),
             spec_decls: std::mem::take(&mut self.specs),
@@ -94,7 +98,10 @@ impl Visitor<()> for IsolateNormalizer {
 
         self.curr_module_params = None;
         Ok(ControlMut::Mutation(
-            Decl::NormalizedIsolate(normalized),
+            Decl::NormalizedIsolate(Binding {
+                name: name.to_owned(),
+                decl: normalized,
+            }),
             (),
         ))
     }

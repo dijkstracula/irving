@@ -177,6 +177,29 @@ mod tests {
     }
 
     #[test]
+    fn test_typedecl_this() {
+        let prog = "type this";
+
+        let parsed = IvyParser::parse(Rule::decl, &prog)
+            .expect("Parsing failed")
+            .single()
+            .unwrap();
+        let mut decl_ast = IvyParser::decl(parsed).expect("AST generation failed");
+
+        let mut tc = TypeChecker::new();
+        let res = decl_ast
+            .visit(&mut tc)
+            .expect("visit")
+            .modifying(&mut decl_ast)
+            .unwrap();
+        assert_eq!(res, IvySort::This);
+        assert_eq!(
+            tc.bindings.lookup_sym(&"this".to_owned()),
+            Some(&IvySort::This)
+        )
+    }
+
+    #[test]
     fn test_typedecl_uninterp() {
         let prog = "type node";
 
@@ -199,7 +222,6 @@ mod tests {
             Some(&IvySort::Uninterpreted)
         )
     }
-
     #[test]
     fn test_typedecl_enum() {
         let prog = "type status = {on, off}";

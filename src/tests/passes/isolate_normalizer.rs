@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use crate::ast::declarations::{Decl, NormalizedIsolateDecl};
+    use crate::ast::declarations::{Binding, Decl, NormalizedIsolateDecl};
     use crate::parser::ivy::{IvyParser, Rule};
     use crate::passes::isolate_normalizer::{IsolateNormalizer, NormalizerError};
     use crate::visitor::visitor::Visitable;
@@ -19,14 +19,16 @@ mod tests {
         let mut ast = decl_from_src("isolate foo = {}");
         let mut mn = IsolateNormalizer::new();
 
-        let expected_ast = Decl::NormalizedIsolate(NormalizedIsolateDecl {
-            name: "foo".into(),
-            params: vec![],
-            impl_decls: vec![],
-            spec_decls: vec![],
-            common_spec_decls: vec![],
-            common_impl_decls: vec![],
-        });
+        let expected_ast = Decl::NormalizedIsolate(Binding::from(
+            "foo".into(),
+            NormalizedIsolateDecl {
+                params: vec![],
+                impl_decls: vec![],
+                spec_decls: vec![],
+                common_spec_decls: vec![],
+                common_impl_decls: vec![],
+            },
+        ));
         ast.visit(&mut mn).expect("traversal");
         assert_eq!(ast, expected_ast);
     }
@@ -39,18 +41,20 @@ mod tests {
             instance net: sock.net;
         }",
         );
-        let expected_ast = Decl::NormalizedIsolate(NormalizedIsolateDecl {
-            name: "foo".into(),
-            params: vec![],
-            impl_decls: [
-                decl_from_src("var is_up: bool"),
-                decl_from_src("instance net: sock.net"),
-            ]
-            .into(),
-            spec_decls: vec![],
-            common_spec_decls: vec![],
-            common_impl_decls: vec![],
-        });
+        let expected_ast = Decl::NormalizedIsolate(Binding::from(
+            "foo".into(),
+            NormalizedIsolateDecl {
+                params: vec![],
+                impl_decls: [
+                    decl_from_src("var is_up: bool"),
+                    decl_from_src("instance net: sock.net"),
+                ]
+                .into(),
+                spec_decls: vec![],
+                common_spec_decls: vec![],
+                common_impl_decls: vec![],
+            },
+        ));
 
         let mut mn = IsolateNormalizer::new();
         ast.visit(&mut mn).expect("traversal");
@@ -68,18 +72,20 @@ mod tests {
             }
         }",
         );
-        let expected_ast = Decl::NormalizedIsolate(NormalizedIsolateDecl {
-            name: "foo".into(),
-            params: vec![],
-            impl_decls: [
-                decl_from_src("instance net: sock.net"),
-                decl_from_src("var is_up: bool"),
-            ]
-            .into(),
-            spec_decls: vec![],
-            common_spec_decls: vec![],
-            common_impl_decls: vec![],
-        });
+        let expected_ast = Decl::NormalizedIsolate(Binding::from(
+            "foo".into(),
+            NormalizedIsolateDecl {
+                params: vec![],
+                impl_decls: [
+                    decl_from_src("instance net: sock.net"),
+                    decl_from_src("var is_up: bool"),
+                ]
+                .into(),
+                spec_decls: vec![],
+                common_spec_decls: vec![],
+                common_impl_decls: vec![],
+            },
+        ));
 
         let mut mn = IsolateNormalizer::new();
         ast.visit(&mut mn).expect("traversal");
@@ -99,18 +105,20 @@ mod tests {
             }
         }",
         );
-        let expected_ast = Decl::NormalizedIsolate(NormalizedIsolateDecl {
-            name: "foo".into(),
-            params: vec![],
-            impl_decls: [
-                decl_from_src("instance net: sock.net"),
-                decl_from_src("var is_up: bool"),
-            ]
-            .into(),
-            spec_decls: vec![],
-            common_spec_decls: vec![],
-            common_impl_decls: vec![],
-        });
+        let expected_ast = Decl::NormalizedIsolate(Binding::from(
+            "foo".into(),
+            NormalizedIsolateDecl {
+                params: vec![],
+                impl_decls: [
+                    decl_from_src("instance net: sock.net"),
+                    decl_from_src("var is_up: bool"),
+                ]
+                .into(),
+                spec_decls: vec![],
+                common_spec_decls: vec![],
+                common_impl_decls: vec![],
+            },
+        ));
 
         let mut mn = IsolateNormalizer::new();
         ast.visit(&mut mn).expect("traversal");
@@ -154,18 +162,20 @@ mod tests {
             }
         }",
         );
-        let expected_ast = Decl::NormalizedIsolate(NormalizedIsolateDecl {
-            name: "foo".into(),
-            params: vec![],
-            impl_decls: vec![],
-            spec_decls: vec![],
-            common_spec_decls: vec![],
-            common_impl_decls: [
-                decl_from_src("var is_up: bool"),
-                decl_from_src("instance net: sock.net"),
-            ]
-            .into(),
-        });
+        let expected_ast = Decl::NormalizedIsolate(Binding::from(
+            "foo".into(),
+            NormalizedIsolateDecl {
+                params: vec![],
+                impl_decls: vec![],
+                spec_decls: vec![],
+                common_spec_decls: vec![],
+                common_impl_decls: [
+                    decl_from_src("var is_up: bool"),
+                    decl_from_src("instance net: sock.net"),
+                ]
+                .into(),
+            },
+        ));
         let mut mn = IsolateNormalizer::new();
         ast.visit(&mut mn).expect("traversal");
         assert_eq!(ast, expected_ast);
@@ -185,14 +195,16 @@ mod tests {
             }
         }",
         );
-        let expected_ast = Decl::NormalizedIsolate(NormalizedIsolateDecl {
-            name: "foo".into(),
-            params: vec![],
-            impl_decls: vec![],
-            spec_decls: vec![],
-            common_spec_decls: [decl_from_src("var is_up: bool")].into(),
-            common_impl_decls: [decl_from_src("instance net: sock.net")].into(),
-        });
+        let expected_ast = Decl::NormalizedIsolate(Binding::from(
+            "foo".into(),
+            NormalizedIsolateDecl {
+                params: vec![],
+                impl_decls: vec![],
+                spec_decls: vec![],
+                common_spec_decls: [decl_from_src("var is_up: bool")].into(),
+                common_impl_decls: [decl_from_src("instance net: sock.net")].into(),
+            },
+        ));
 
         let mut mn = IsolateNormalizer::new();
         ast.visit(&mut mn).expect("traversal");

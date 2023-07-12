@@ -3,7 +3,7 @@ use std::fmt::Write;
 use crate::{
     ast::{
         actions, declarations,
-        expressions::{self, IndexExpr, Verb},
+        expressions::{self, IndexExpr, Symbol, Verb},
         logic, statements, toplevels,
     },
     typechecker::sorts::IvySort,
@@ -154,9 +154,10 @@ where
 
     fn begin_action_decl(
         &mut self,
+        name: &mut Symbol,
         ast: &mut declarations::ActionDecl,
     ) -> VisitorResult<(), declarations::Decl> {
-        self.pp.write_fmt(format_args!("action {}", ast.name))?;
+        self.pp.write_fmt(format_args!("action {}", name))?;
         if ast.params.len() > 0 {
             self.pp.write_str("(")?;
             self.write_separated(&mut ast.params, ", ")?;
@@ -291,10 +292,11 @@ where
 
     fn begin_instance_decl(
         &mut self,
+        name: &mut Symbol,
         ast: &mut declarations::InstanceDecl,
     ) -> VisitorResult<(), declarations::Decl> {
         self.pp.write_str("instance ")?;
-        ast.name.visit(self)?.modifying(&mut ast.name)?;
+        name.visit(self)?.modifying(name)?;
         self.pp.write_str(" = ")?;
         ast.sort.visit(self)?.modifying(&mut ast.sort)?;
         if !ast.args.is_empty() {
@@ -379,9 +381,10 @@ where
 
     fn begin_isolate_decl(
         &mut self,
+        name: &mut Symbol,
         inst: &mut declarations::IsolateDecl,
     ) -> VisitorResult<(), declarations::Decl> {
-        self.pp.write_fmt(format_args!("isolate {}", inst.name))?;
+        self.pp.write_fmt(format_args!("isolate {}", name))?;
         if inst.params.len() > 0 {
             self.pp.write_str("(")?;
             inst.params.visit(self)?;
@@ -396,9 +399,10 @@ where
 
     fn begin_module_decl(
         &mut self,
+        name: &mut Symbol,
         module: &mut declarations::ModuleDecl,
     ) -> VisitorResult<(), declarations::Decl> {
-        self.pp.write_fmt(format_args!("isolate {}", module.name))?;
+        self.pp.write_fmt(format_args!("isolate {}", name))?;
 
         if module.sortsyms.len() > 0 {
             self.pp.write_str("(")?;
@@ -414,9 +418,10 @@ where
 
     fn begin_normalized_isolate_decl(
         &mut self,
+        name: &mut Symbol,
         module: &mut declarations::NormalizedIsolateDecl,
     ) -> VisitorResult<(), declarations::Decl> {
-        self.pp.write_fmt(format_args!("process {}", module.name))?;
+        self.pp.write_fmt(format_args!("process {}", name))?;
 
         if module.params.len() > 0 {
             self.pp.write_str("(")?;
@@ -456,9 +461,10 @@ where
 
     fn begin_object_decl(
         &mut self,
+        name: &mut Symbol,
         ast: &mut declarations::ObjectDecl,
     ) -> VisitorResult<(), declarations::Decl> {
-        self.pp.write_fmt(format_args!("object {}", ast.name))?;
+        self.pp.write_fmt(format_args!("object {}", name))?;
 
         if ast.params.len() > 0 {
             self.pp.write_str("(")?;
@@ -484,9 +490,10 @@ where
 
     fn begin_relation(
         &mut self,
+        name: &mut Symbol,
         ast: &mut declarations::Relation,
     ) -> VisitorResult<(), declarations::Decl> {
-        self.pp.write_fmt(format_args!("relation {}(", ast.name))?;
+        self.pp.write_fmt(format_args!("relation {}(", name))?;
         self.write_separated(&mut ast.params, ", ")?;
         self.pp.write_str(")")?;
         Ok(ControlMut::SkipSiblings(()))
@@ -494,26 +501,20 @@ where
 
     fn begin_typedecl(
         &mut self,
-        ast: &mut expressions::Type,
+        name: &mut Symbol,
+        _ast: &mut IvySort,
     ) -> VisitorResult<(), declarations::Decl> {
-        self.pp.write_str("type ")?;
-        match &ast.ident {
-            expressions::TypeName::Name(n) => {
-                self.pp.write_str(n)?;
-            }
-            expressions::TypeName::This => {
-                self.pp.write_str("this")?;
-            }
-        }
+        self.pp.write_fmt(format_args!("type {}", name))?;
         Ok(ControlMut::SkipSiblings(()))
     }
 
     fn begin_vardecl(
         &mut self,
-        term: &mut expressions::Term,
+        name: &mut Symbol,
+        sort: &mut Option<expressions::Ident>,
     ) -> VisitorResult<(), declarations::Decl> {
-        self.pp.write_fmt(format_args!("var {}", term.id))?;
-        if let Some(sort) = &mut term.sort {
+        self.pp.write_fmt(format_args!("var {}", name))?;
+        if let Some(sort) = sort {
             self.pp.write_str(": ")?;
             self.identifier(sort)?;
         }

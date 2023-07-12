@@ -20,6 +20,7 @@ impl From<IvySort> for JavaType {
         match value {
             IvySort::Uninterpreted => Self::Long,
             IvySort::Unit => Self::Void,
+            IvySort::This => todo!(),
             IvySort::Top => Self::object("Object".into()),
             IvySort::Bool => Self::Boolean,
             IvySort::Number => Self::Long,

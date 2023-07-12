@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
     use crate::{
-        ast::declarations::{Decl, ModuleDecl},
+        ast::declarations::{Binding, Decl, ModuleDecl},
         parser::ivy::{IvyParser, Rule},
     };
     use pest_consume::Parser;
@@ -135,11 +135,13 @@ mod tests {
             .unwrap();
         assert_eq!(
             IvyParser::decl(res).unwrap(),
-            Decl::Module(ModuleDecl {
-                name: "net".into(),
-                sortsyms: vec!("pid".into()),
-                body: vec!()
-            })
+            Decl::Module(Binding::from(
+                "net".into(),
+                ModuleDecl {
+                    sortsyms: vec!("pid".into()),
+                    body: vec!()
+                }
+            ))
         );
     }
 

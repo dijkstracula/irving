@@ -302,7 +302,7 @@ mod tests {
             .clone();
         assert_eq!(
             action_sort,
-            IvySort::function_sort(vec![IvySort::SortVar(0)], IvySort::Bool)
+            IvySort::function_sort(vec![IvySort::This], IvySort::Bool)
         );
 
         let mut action_app = expr_from_src("m.doit()");

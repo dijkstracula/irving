@@ -58,16 +58,18 @@ mod tests {
 
         assert_eq!(
             IvyParser::action_decl(res),
-            Ok(ActionDecl {
-                name: "foo".into(),
-                params: [Param {
-                    id: "a".into(),
-                    sort: Some(["int".into()].into())
-                }]
-                .into(),
-                ret: None,
-                body: None,
-            })
+            Ok(Binding::from(
+                "foo".into(),
+                ActionDecl {
+                    params: [Param {
+                        id: "a".into(),
+                        sort: Some(["int".into()].into())
+                    }]
+                    .into(),
+                    ret: None,
+                    body: None,
+                }
+            ))
         );
     }
 
@@ -80,16 +82,18 @@ mod tests {
             .unwrap();
         assert_eq!(
             IvyParser::action_decl(res),
-            Ok(ActionDecl {
-                name: "foo".into(),
-                params: [Param {
-                    id: "a".into(),
-                    sort: Some(["int".into()].into())
-                }]
-                .into(),
-                ret: None,
-                body: Some(vec![])
-            })
+            Ok(Binding::from(
+                "foo".into(),
+                ActionDecl {
+                    params: [Param {
+                        id: "a".into(),
+                        sort: Some(["int".into()].into())
+                    }]
+                    .into(),
+                    ret: None,
+                    body: Some(vec![])
+                }
+            ))
         );
     }
 
@@ -103,7 +107,7 @@ mod tests {
             .single()
             .unwrap();
         // This assert indicates that parsing the action stopped when we hit the second action (i.e. what follows is invalid).
-        assert!(IvyParser::action_decl(res).unwrap().body == None);
+        assert!(IvyParser::action_decl(res).unwrap().decl.body == None);
     }
 
     #[test]
@@ -116,19 +120,21 @@ mod tests {
 
         assert_eq!(
             IvyParser::action_decl(res),
-            Ok(ActionDecl {
-                name: "foo".into(),
-                params: [Param {
-                    id: "a".into(),
-                    sort: Some(["int".into()].into())
-                }]
-                .into(),
-                ret: Some(Param {
-                    id: "b".into(),
-                    sort: Some(["int".into()].into())
-                }),
-                body: None
-            })
+            Ok(Binding::from(
+                "foo".into(),
+                ActionDecl {
+                    params: [Param {
+                        id: "a".into(),
+                        sort: Some(["int".into()].into())
+                    }]
+                    .into(),
+                    ret: Some(Param {
+                        id: "b".into(),
+                        sort: Some(["int".into()].into())
+                    }),
+                    body: None
+                }
+            ))
         );
     }
 
