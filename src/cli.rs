@@ -14,6 +14,19 @@ pub struct Cli {
     pub cmd: Commands,
 }
 
+#[derive(Subcommand)]
+pub enum Commands {
+    #[command(subcommand)]
+    Extract(ExtractTarget),
+}
+
+#[derive(Subcommand)]
+pub enum ExtractTarget {
+    Ivy,
+
+    Java,
+}
+
 impl Cli {
     pub fn read_ivy_file(&self) -> Result<String, clap::Error> {
         std::fs::read_to_string(&self.ivy_file).map_err(|e| {
@@ -25,12 +38,4 @@ impl Cli {
             )
         })
     }
-}
-
-#[derive(Subcommand)]
-pub enum Commands {
-    /// Pretty-prints the input file
-    /// TODO: this will become Extract with a subcommand
-    /// for each language.
-    PPrint,
 }

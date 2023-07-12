@@ -1,5 +1,7 @@
 use std::fmt::Write;
 
+use thiserror::Error;
+
 use crate::{
     ast::{
         actions,
@@ -130,15 +132,14 @@ where
             Verb::Dot => ".",
 
             Verb::Equals => "=",
+            Verb::Notequals => "!=",
             Verb::Lt => "<",
             Verb::Le => "<=",
             Verb::Gt => ">",
             Verb::Ge => ">=",
 
-            Verb::Arrow => "->",
-
-            Verb::And => "&",
-            Verb::Or => "&",
+            Verb::And => "&&",
+            Verb::Or => "||",
             _ => {
                 unimplemented!()
             }
@@ -194,47 +195,22 @@ where
     }
 
     fn param(&mut self, p: &mut expressions::Param) -> VisitorResult<(), expressions::Param> {
-        p.id.visit(self)?;
-
-        if let Some(sort) = &mut p.sort {
-            self.pp.write_str(": ")?;
-            self.identifier(sort)?;
+        match &p.sort {
+            None => Err(JExtractionError::UnresolvedType(p.id.clone()).into()),
+            Some(s) => {
+                self.pp.write_str("int ")?; // TODO
+                self.pp.write_str(" ")?;
+                self.pp.write_str(&p.id)?;
+                Ok(ControlMut::Produce(()))
+            }
         }
-        Ok(ControlMut::Produce(()))
     }
 
     fn sort(&mut self, s: &mut IvySort) -> VisitorResult<(), IvySort> {
         match s {
-            // These are inferred, usually, I suppose.
-            IvySort::Range(min, max) => {
-                self.pp.write_str(" = {")?;
-                min.visit(self)?;
-                self.pp.write_str("..")?;
-                max.visit(self)?;
-                self.pp.write_str("}")?;
-            }
-            IvySort::Enum(_) => {
-                self.pp.write_str(" = {")?;
-                //self.write_separated(branches, ", ")?;
-                self.pp.write_str(" }")?;
-            }
-            IvySort::Subclass(s) => {
-                self.pp.write_fmt(format_args!(" of {}", s))?;
-            }
-            IvySort::Process(_proc) => {
-                self.pp.write_str(" = {\n")?;
-                self.pp.write_str("implementation {\n")?;
-                self.pp.write_str("}\n")?;
-                self.pp.write_str("specification {\n")?;
-                self.pp.write_str("common {\n")?;
-                self.pp.write_str("}\n")?;
-                self.pp.write_str("}\n")?;
-                self.pp.write_str("}")?;
-            }
-            IvySort::Uninterpreted => {}
             _ => todo!(),
         }
-        Ok(ControlMut::Produce(()))
+        //Ok(ControlMut::Produce(()))
     }
 
     fn symbol(&mut self, s: &mut expressions::Symbol) -> VisitorResult<(), expressions::Symbol> {
@@ -246,4 +222,10 @@ where
         self.pp.write_str("this")?;
         Ok(ControlMut::Produce(()))
     }
+}
+
+#[derive(Debug, Error, Clone, PartialEq, Eq)]
+pub enum JExtractionError {
+    #[error("Symbol {0:?} failed to have a type inferred (did the typechecking pass run?)")]
+    UnresolvedType(expressions::Symbol),
 }
