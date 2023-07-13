@@ -677,6 +677,7 @@ impl Visitor<IvySort> for TypeChecker {
         // Bind the name to _something_; we'll unify this value with a function sort when finishing the visit.
         let v = self.bindings.new_sortvar();
         self.bindings.append(name.clone(), v.clone())?;
+        self.bindings.push_scope();
         Ok(ControlMut::Produce(v))
     }
     fn finish_relation(
@@ -692,6 +693,7 @@ impl Visitor<IvySort> for TypeChecker {
 
         let relsort = IvySort::Function(Fargs::List(paramsorts), Box::new(IvySort::Bool));
         let unifed = self.bindings.unify(&n, &relsort)?;
+        self.bindings.pop_scope();
         Ok(ControlMut::Produce(unifed))
     }
 

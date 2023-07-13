@@ -322,4 +322,29 @@ mod tests {
             Some(&IvySort::Bool)
         )
     }
+
+    #[test]
+    fn test_declblock() {
+        let prog = "{
+            type client
+            type server
+
+            relation link(X:client, Y:server)
+            relation semaphore(X:server) # X was previously defined to be a client.
+        }";
+
+        let parsed = IvyParser::parse(Rule::decl_block, &prog)
+            .expect("Parsing failed")
+            .single()
+            .unwrap();
+        let mut decl_ast = IvyParser::decl_block(parsed).expect("AST generation failed");
+        println!("{:?}", decl_ast);
+
+        let mut tc = TypeChecker::new();
+        let res = decl_ast
+            .visit(&mut tc)
+            .expect("visit")
+            .modifying(&mut decl_ast)
+            .unwrap();
+    }
 }

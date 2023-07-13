@@ -1,16 +1,20 @@
 #[cfg(test)]
 mod parser {
-    use crate::tests::helpers;
+    use crate::{tests::helpers, typechecker::inference::TypeChecker, visitor::visitor::Visitable};
 
     #[test]
     fn test_state_and_actions() {
         let _ast = helpers::prog_from_filename("./programs/001_state_and_actions.ivy");
-        println!("{:?}", _ast);
+
+        // TODO: we still don't handle walking functions for some reason.
+        // So we can't typecheck this one yet.
     }
 
     #[test]
     fn test_safety_and_invariants() {
-        let _ast = helpers::prog_from_filename("programs/002_safety_and_invariants.ivy");
+        let mut ast = helpers::prog_from_filename("programs/002_safety_and_invariants.ivy");
+        let mut tc = TypeChecker::new();
+        ast.visit(&mut tc).expect("typechecking failed");
     }
 
     #[test]
