@@ -1,6 +1,9 @@
 #[cfg(test)]
 mod parser {
-    use crate::{tests::helpers, typechecker::inference::TypeChecker, visitor::visitor::Visitable};
+    use crate::{
+        passes::isolate_normalizer::IsolateNormalizer, tests::helpers,
+        typechecker::inference::TypeChecker, visitor::visitor::Visitable,
+    };
 
     #[test]
     fn test_state_and_actions() {
@@ -13,6 +16,10 @@ mod parser {
     #[test]
     fn test_safety_and_invariants() {
         let mut ast = helpers::prog_from_filename("programs/002_safety_and_invariants.ivy");
+
+        let mut nm = IsolateNormalizer::new();
+        ast.visit(&mut nm).expect("Module normalizing failed");
+
         let mut tc = TypeChecker::new();
         ast.visit(&mut tc).expect("typechecking failed");
     }

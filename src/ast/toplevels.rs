@@ -5,5 +5,5 @@ pub struct Prog {
     pub major_version: u8,
     pub minor_version: u8,
 
-    pub top: Vec<Decl>,
+    pub top: Decl,
 }

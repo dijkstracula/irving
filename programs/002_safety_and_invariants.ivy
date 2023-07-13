@@ -38,3 +38,4 @@ invariant link(X, Y)
 axiom X:id < Y & Y < Z -> X < Z
 axiom ~(X:id < X)
 axiom X:id < Y | X = Y | Y < X
+

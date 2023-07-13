@@ -20,7 +20,16 @@ impl GlobalLowerer {
     pub fn visit(prog: &mut Prog) -> Result<()> {
         let mut g = Self::new();
         prog.visit(&mut g)?;
-        prog.top.push(Decl::Globals(g.globals));
+
+        match &mut prog.top {
+            Decl::Isolate(Binding {
+                decl: IsolateDecl { body, .. },
+                ..
+            }) => {
+                body.push(Decl::Globals(g.globals));
+            }
+            _ => unreachable!(),
+        }
         Ok(())
     }
 }

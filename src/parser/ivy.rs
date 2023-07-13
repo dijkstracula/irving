@@ -584,7 +584,10 @@ impl IvyParser {
             Prog {
                 major_version: major,
                 minor_version: minor,
-                top: decls.collect::<Vec<_>>(),
+                top: Decl::Isolate(Binding::from(
+                    "top".into(),
+                    IsolateDecl { params: vec![], body: decls.collect::<Vec<_>>() }
+                ))
             })
         )
     }

@@ -70,9 +70,20 @@ where
             "#lang ivy{}.{}\n\n",
             p.major_version, p.minor_version
         ))?;
-        for top in &mut p.top {
-            top.visit(self)?.modifying(top)?;
-            self.pp.write_str("\n")?;
+
+        // The top-level isolate is anonymous so just
+        // jump straight to its body.
+        match &mut p.top {
+            declarations::Decl::Isolate(declarations::Binding {
+                decl: declarations::IsolateDecl { body, .. },
+                ..
+            }) => {
+                for decl in body {
+                    decl.visit(self)?.modifying(decl)?;
+                    self.pp.write_str("\n")?;
+                }
+            }
+            _ => unreachable!(),
         }
         Ok(ControlMut::SkipSiblings(()))
     }
