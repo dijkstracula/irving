@@ -606,7 +606,7 @@ where
                 let _ = expr.visit(visitor)?.modifying(expr)?;
                 visitor.finish_unary_op(op, expr)
             }),
-            Expr::Term(p) => visitor
+            Expr::AnnotatedSym(p) => visitor
                 .param(p)?
                 .modifying(p)
                 .map(|t| ControlMut::Produce(t)),

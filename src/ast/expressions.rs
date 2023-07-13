@@ -82,6 +82,8 @@ pub enum TypeName {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[allow(clippy::large_enum_variant)]
 pub enum Expr {
+    AnnotatedSym(Param),
+
     App(AppExpr),
 
     BinOp(BinOp),
@@ -97,8 +99,6 @@ pub enum Expr {
     Symbol(Symbol),
 
     UnaryOp { op: Verb, expr: Box<Expr> },
-
-    Term(Param), // XXX: confusing!
 
     This,
 }

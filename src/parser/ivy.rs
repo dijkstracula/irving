@@ -459,7 +459,7 @@ impl IvyParser {
         match_nodes!(
         input.into_children();
         [var_decl(Binding{name, decl}), expr(rhs)] => Ok(
-            AssignAction{lhs: Expr::Term(Param{id: name, sort: decl}), rhs}
+            AssignAction{lhs: Expr::AnnotatedSym(Param{id: name, sort: decl}), rhs}
         ),
         [expr(lhs), expr(rhs)] => match lhs {
             Expr::App(_) | Expr::FieldAccess(_) | Expr::Index(_) | Expr::Symbol(_) | Expr::This => Ok(AssignAction{lhs, rhs}),
