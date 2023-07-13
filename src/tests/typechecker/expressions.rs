@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
+    use std::collections::BTreeMap;
 
     use crate::{
         parser::ivy::{IvyParser, Rule},
@@ -211,11 +211,11 @@ mod tests {
 
         // Accessing 'b' should be fine when 'a' is bound to a Process.
         let procsort = Process {
-            args: HashMap::from([]),
-            impl_fields: HashMap::from([("b".into(), IvySort::Bool)]),
-            spec_fields: HashMap::from([]),
-            common_impl_fields: HashMap::from([]),
-            common_spec_fields: HashMap::from([]),
+            args: BTreeMap::from([]),
+            impl_fields: BTreeMap::from([("b".into(), IvySort::Bool)]),
+            spec_fields: BTreeMap::from([]),
+            common_impl_fields: BTreeMap::from([]),
+            common_spec_fields: BTreeMap::from([]),
         };
 
         let mut tc = TypeChecker::new();

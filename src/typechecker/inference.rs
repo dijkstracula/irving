@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 use anyhow::bail;
 
@@ -27,7 +27,7 @@ pub struct TypeChecker {
 
     // Remember the function signature (arguments; named ret) from the
     // function definition, so we are always sure how to bind those values locally.
-    pub action_locals: HashMap<Symbol, Vec<Symbol>>,
+    pub action_locals: BTreeMap<Symbol, Vec<Symbol>>,
 }
 
 impl TypeChecker {
@@ -36,7 +36,7 @@ impl TypeChecker {
     pub fn new() -> Self {
         TypeChecker {
             bindings: Resolver::new(),
-            action_locals: HashMap::new(),
+            action_locals: BTreeMap::new(),
         }
     }
 }
@@ -507,7 +507,7 @@ impl Visitor<IvySort> for TypeChecker {
                 decl.name_for_binding()
                     .map(|n| (n.into(), self.bindings.resolve(sort).clone()))
             })
-            .collect::<HashMap<_, _>>();
+            .collect::<BTreeMap<_, _>>();
         // Every module has an implicit "init" action.
         fields.insert("init".into(), Module::init_action_sort());
 
@@ -583,7 +583,7 @@ impl Visitor<IvySort> for TypeChecker {
             .iter()
             .zip(param_sorts.iter())
             .map(|(name, sort)| (name.id.clone(), self.bindings.resolve(sort).clone()))
-            .collect::<HashMap<_, _>>();
+            .collect::<BTreeMap<_, _>>();
 
         let mut impl_fields = ast
             .impl_decls
@@ -593,7 +593,7 @@ impl Visitor<IvySort> for TypeChecker {
                 decl.name_for_binding()
                     .map(|n| (n.into(), self.bindings.resolve(sort).clone()))
             })
-            .collect::<HashMap<_, _>>();
+            .collect::<BTreeMap<_, _>>();
         // Every module has an implicit "init" action.
         impl_fields.insert("init".into(), Module::init_action_sort());
 
@@ -605,7 +605,7 @@ impl Visitor<IvySort> for TypeChecker {
                 decl.name_for_binding()
                     .map(|n| (n.into(), self.bindings.resolve(sort).clone()))
             })
-            .collect::<HashMap<_, _>>();
+            .collect::<BTreeMap<_, _>>();
 
         let common_impl_fields = ast
             .common_impl_decls
@@ -615,7 +615,7 @@ impl Visitor<IvySort> for TypeChecker {
                 decl.name_for_binding()
                     .map(|n| (n.into(), self.bindings.resolve(sort).clone()))
             })
-            .collect::<HashMap<_, _>>();
+            .collect::<BTreeMap<_, _>>();
 
         let common_spec_fields = ast
             .common_spec_decls
@@ -625,7 +625,7 @@ impl Visitor<IvySort> for TypeChecker {
                 decl.name_for_binding()
                     .map(|n| (n.into(), self.bindings.resolve(sort).clone()))
             })
-            .collect::<HashMap<_, _>>();
+            .collect::<BTreeMap<_, _>>();
 
         let proc = IvySort::Process(Process {
             args,

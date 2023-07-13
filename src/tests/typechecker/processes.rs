@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use std::{collections::HashMap, vec};
+    use std::{collections::BTreeMap, vec};
 
     use crate::{
         ast::{declarations::Decl, expressions::Expr},
@@ -117,11 +117,11 @@ mod tests {
         let mut iso = isolate_from_src("process p = { }");
 
         let sort = IvySort::Process(Process {
-            args: HashMap::from([]),
+            args: BTreeMap::from([]),
             impl_fields: [("init".to_owned(), Module::init_action_sort())].into(),
-            spec_fields: HashMap::new(),
-            common_impl_fields: HashMap::new(),
-            common_spec_fields: HashMap::new(),
+            spec_fields: BTreeMap::new(),
+            common_impl_fields: BTreeMap::new(),
+            common_spec_fields: BTreeMap::new(),
         });
 
         let mut tc = TypeChecker::new();
@@ -141,9 +141,9 @@ mod tests {
             )]
             .into(),
             impl_fields: [("init".to_owned(), Module::init_action_sort())].into(),
-            spec_fields: HashMap::new(),
-            common_impl_fields: HashMap::new(),
-            common_spec_fields: HashMap::new(),
+            spec_fields: BTreeMap::new(),
+            common_impl_fields: BTreeMap::new(),
+            common_spec_fields: BTreeMap::new(),
         });
 
         let mut tc = typechecker_with_bindings();
@@ -171,9 +171,9 @@ mod tests {
                 ("init".to_owned(), Module::init_action_sort()),
             ]
             .into(),
-            spec_fields: HashMap::new(),
-            common_impl_fields: HashMap::new(),
-            common_spec_fields: HashMap::new(),
+            spec_fields: BTreeMap::new(),
+            common_impl_fields: BTreeMap::new(),
+            common_spec_fields: BTreeMap::new(),
         });
 
         let mut tc = typechecker_with_bindings();

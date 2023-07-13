@@ -4,14 +4,14 @@ use crate::typechecker::sorts::IvySort;
 
 /// Corresponds to a file/line pairing, and possibly additionally docstrings to
 /// be reconstructed in the extracted code.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Annotation {
     docstring: Vec<String>,
     file: String,
     line: u32,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Verb {
     Iff,
     Or,
@@ -34,32 +34,32 @@ pub enum Verb {
 pub type Symbol = String;
 pub type Ident = Vec<Symbol>;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AppExpr {
     pub func: Box<Expr>,
     pub args: Vec<Expr>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BinOp {
     pub lhs: Box<Expr>,
     pub op: Verb,
     pub rhs: Box<Expr>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FieldAccess {
     pub record: Box<Expr>,
     pub field: Symbol,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct IndexExpr {
     pub lhs: Box<Expr>,
     pub idx: Box<Expr>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Param {
     pub id: Symbol,
     pub sort: Option<Ident>,
@@ -68,18 +68,25 @@ pub struct Param {
 pub type ParamList = Vec<Param>;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Sort {
+    ToBeInferred,
+    Annotated(Ident),
+    Resolved(IvySort),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Type {
     pub ident: TypeName,
     pub sort: IvySort, /* spec: TypeSpec */
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TypeName {
     Name(Symbol),
     This,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(clippy::large_enum_variant)]
 pub enum Expr {
     AnnotatedSym(Param),

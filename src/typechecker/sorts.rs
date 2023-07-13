@@ -1,16 +1,16 @@
 #![allow(dead_code)]
 
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 use crate::ast::expressions::{Expr, Symbol};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Process {
-    pub args: HashMap<Symbol, IvySort>,
-    pub impl_fields: HashMap<Symbol, IvySort>,
-    pub spec_fields: HashMap<Symbol, IvySort>,
-    pub common_impl_fields: HashMap<Symbol, IvySort>,
-    pub common_spec_fields: HashMap<Symbol, IvySort>,
+    pub args: BTreeMap<Symbol, IvySort>,
+    pub impl_fields: BTreeMap<Symbol, IvySort>,
+    pub spec_fields: BTreeMap<Symbol, IvySort>,
+    pub common_impl_fields: BTreeMap<Symbol, IvySort>,
+    pub common_spec_fields: BTreeMap<Symbol, IvySort>,
 }
 
 // TODO: this module is non-monomorphized (e.g. module type parameters are
@@ -18,7 +18,7 @@ pub struct Process {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Module {
     pub args: Vec<(Symbol, IvySort)>, // Each of these will be SortVars
-    pub fields: HashMap<Symbol, IvySort>,
+    pub fields: BTreeMap<Symbol, IvySort>,
 }
 
 impl Module {

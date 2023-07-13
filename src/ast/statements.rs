@@ -3,7 +3,7 @@
 use super::actions::*;
 use super::expressions::*;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(clippy::large_enum_variant)]
 pub struct If {
     pub tst: Expr,
@@ -11,14 +11,14 @@ pub struct If {
     pub els: Option<Vec<Stmt>>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(clippy::large_enum_variant)]
 pub struct While {
     pub test: Expr,
     pub doit: Vec<Stmt>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(clippy::large_enum_variant)]
 pub enum Stmt {
     ActionSequence(Vec<Action>),
