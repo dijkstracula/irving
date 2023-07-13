@@ -35,6 +35,13 @@ pub type Symbol = String;
 pub type Ident = Vec<Symbol>;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AnnotatedSymbol {
+    // TODO: this should become a Symbol.
+    pub id: Symbol,
+    pub sort: Sort,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AppExpr {
     pub func: Box<Expr>,
     pub args: Vec<Expr>,
@@ -50,7 +57,7 @@ pub struct BinOp {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FieldAccess {
     pub record: Box<Expr>,
-    pub field: Symbol,
+    pub field: AnnotatedSymbol,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -59,13 +66,7 @@ pub struct IndexExpr {
     pub idx: Box<Expr>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Param {
-    pub id: Symbol,
-    pub sort: Option<Ident>,
-}
-
-pub type ParamList = Vec<Param>;
+pub type ParamList = Vec<AnnotatedSymbol>;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Sort {
@@ -89,7 +90,8 @@ pub enum TypeName {
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(clippy::large_enum_variant)]
 pub enum Expr {
-    AnnotatedSym(Param),
+    // TODO: this should become a Symbol.
+    AnnotatedSym(AnnotatedSymbol),
 
     App(AppExpr),
 
@@ -103,9 +105,22 @@ pub enum Expr {
 
     Number(i64),
 
-    Symbol(Symbol),
-
     UnaryOp { op: Verb, expr: Box<Expr> },
 
     This,
+}
+
+impl Expr {
+    pub fn inferred_symbol(s: String) -> Self {
+        Self::AnnotatedSym(AnnotatedSymbol {
+            id: s,
+            sort: Sort::ToBeInferred,
+        })
+    }
+    pub fn annotated_symbol(s: String, id: Ident) -> Self {
+        Self::AnnotatedSym(AnnotatedSymbol {
+            id: s,
+            sort: Sort::Annotated(id),
+        })
+    }
 }

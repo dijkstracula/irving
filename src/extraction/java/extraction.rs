@@ -7,7 +7,6 @@ use crate::{
         statements, toplevels,
     },
     extraction::pprint::PrettyPrinter,
-    typechecker::sorts::IvySort,
     visitor::visitor::Visitable,
 };
 
@@ -157,10 +156,10 @@ where
     fn begin_field_access(
         &mut self,
         lhs: &mut expressions::Expr,
-        rhs: &mut expressions::Symbol,
+        rhs: &mut expressions::AnnotatedSymbol,
     ) -> VisitorResult<(), expressions::Expr> {
         lhs.visit(self)?;
-        self.pp.write_fmt(format_args!(".{}", rhs))?;
+        self.pp.write_fmt(format_args!(".{}", rhs.id))?;
         Ok(ControlMut::SkipSiblings(()))
     }
 
@@ -193,48 +192,24 @@ where
         Ok(ControlMut::Produce(()))
     }
 
-    fn param(&mut self, p: &mut expressions::Param) -> VisitorResult<(), expressions::Param> {
+    fn param(
+        &mut self,
+        p: &mut expressions::AnnotatedSymbol,
+    ) -> VisitorResult<(), expressions::AnnotatedSymbol> {
         p.id.visit(self)?;
 
-        if let Some(sort) = &mut p.sort {
-            self.pp.write_str(": ")?;
-            self.identifier(sort)?;
+        match &mut p.sort {
+            expressions::Sort::ToBeInferred => (),
+            expressions::Sort::Annotated(_) | expressions::Sort::Resolved(_) => {
+                self.pp.write_str(":")?;
+                self.sort(&mut p.sort)?;
+            }
         }
         Ok(ControlMut::Produce(()))
     }
 
-    fn sort(&mut self, s: &mut IvySort) -> VisitorResult<(), IvySort> {
-        match s {
-            // These are inferred, usually, I suppose.
-            IvySort::Range(min, max) => {
-                self.pp.write_str(" = {")?;
-                min.visit(self)?;
-                self.pp.write_str("..")?;
-                max.visit(self)?;
-                self.pp.write_str("}")?;
-            }
-            IvySort::Enum(_) => {
-                self.pp.write_str(" = {")?;
-                //self.write_separated(branches, ", ")?;
-                self.pp.write_str(" }")?;
-            }
-            IvySort::Subclass(s) => {
-                self.pp.write_fmt(format_args!(" of {}", s))?;
-            }
-            IvySort::Process(_proc) => {
-                self.pp.write_str(" = {\n")?;
-                self.pp.write_str("implementation {\n")?;
-                self.pp.write_str("}\n")?;
-                self.pp.write_str("specification {\n")?;
-                self.pp.write_str("common {\n")?;
-                self.pp.write_str("}\n")?;
-                self.pp.write_str("}\n")?;
-                self.pp.write_str("}")?;
-            }
-            IvySort::Uninterpreted => {}
-            _ => todo!(),
-        }
-        Ok(ControlMut::Produce(()))
+    fn sort(&mut self, _s: &mut expressions::Sort) -> VisitorResult<(), expressions::Sort> {
+        todo!()
     }
 
     fn symbol(&mut self, s: &mut expressions::Symbol) -> VisitorResult<(), expressions::Symbol> {

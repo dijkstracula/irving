@@ -1,4 +1,4 @@
-use super::expressions::{Expr, Param};
+use super::expressions::{Expr, ParamList};
 
 /*
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -17,12 +17,12 @@ pub enum Fmla {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Exists {
-    pub vars: Vec<Param>,
+    pub vars: ParamList,
     pub fmla: Box<Fmla>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Forall {
-    pub vars: Vec<Param>,
+    pub vars: ParamList,
     pub fmla: Box<Fmla>,
 }

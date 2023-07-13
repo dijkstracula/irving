@@ -61,40 +61,40 @@ mod tests {
             ast,
             Fmla::Forall(Forall {
                 vars: [
-                    Param {
+                    AnnotatedSymbol {
                         id: "X".into(),
-                        sort: Some(["node".into()].into())
+                        sort: Sort::Annotated(["node".into()].into())
                     },
-                    Param {
+                    AnnotatedSymbol {
                         id: "Y".into(),
-                        sort: None
+                        sort: Sort::ToBeInferred,
                     },
-                    Param {
+                    AnnotatedSymbol {
                         id: "Z".into(),
-                        sort: None
+                        sort: Sort::ToBeInferred,
                     }
                 ]
                 .into(),
                 fmla: Box::new(Fmla::Pred(Expr::BinOp(BinOp {
                     lhs: Box::new(Expr::BinOp(BinOp {
                         lhs: Box::new(Expr::BinOp(BinOp {
-                            lhs: Box::new(Expr::Symbol("X".into())),
+                            lhs: Box::new(Expr::inferred_symbol("X".into())),
                             op: Verb::Equals,
                             rhs: Box::new(Expr::BinOp(BinOp {
-                                lhs: Box::new(Expr::Symbol("Y".into())),
+                                lhs: Box::new(Expr::inferred_symbol("Y".into())),
                                 op: Verb::And,
-                                rhs: Box::new(Expr::Symbol("Y".into()))
+                                rhs: Box::new(Expr::inferred_symbol("Y".into()))
                             }))
                         })),
                         op: Verb::Equals,
                         rhs: Box::new(Expr::BinOp(BinOp {
-                            lhs: Box::new(Expr::Symbol("Z".into())),
+                            lhs: Box::new(Expr::inferred_symbol("Z".into())),
                             op: Verb::Arrow,
-                            rhs: Box::new(Expr::Symbol("X".into()))
+                            rhs: Box::new(Expr::inferred_symbol("X".into()))
                         }))
                     })),
                     op: Verb::Equals,
-                    rhs: Box::new(Expr::Symbol("Y".into()))
+                    rhs: Box::new(Expr::inferred_symbol("Y".into()))
                 })))
             })
         )

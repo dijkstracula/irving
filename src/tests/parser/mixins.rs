@@ -61,9 +61,9 @@ mod tests {
             Ok(Binding::from(
                 "foo".into(),
                 ActionDecl {
-                    params: [Param {
+                    params: [AnnotatedSymbol {
                         id: "a".into(),
-                        sort: Some(["int".into()].into())
+                        sort: Sort::Annotated(["int".into()].into())
                     }]
                     .into(),
                     ret: None,
@@ -85,9 +85,9 @@ mod tests {
             Ok(Binding::from(
                 "foo".into(),
                 ActionDecl {
-                    params: [Param {
+                    params: [AnnotatedSymbol {
                         id: "a".into(),
-                        sort: Some(["int".into()].into())
+                        sort: Sort::Annotated(["int".into()].into())
                     }]
                     .into(),
                     ret: None,
@@ -123,14 +123,14 @@ mod tests {
             Ok(Binding::from(
                 "foo".into(),
                 ActionDecl {
-                    params: [Param {
+                    params: [AnnotatedSymbol {
                         id: "a".into(),
-                        sort: Some(["int".into()].into())
+                        sort: Sort::Annotated(["int".into()].into())
                     }]
                     .into(),
-                    ret: Some(Param {
+                    ret: Some(AnnotatedSymbol {
                         id: "b".into(),
-                        sort: Some(["int".into()].into())
+                        sort: Sort::Annotated(["int".into()].into())
                     }),
                     body: None
                 }

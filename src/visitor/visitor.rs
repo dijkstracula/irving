@@ -366,32 +366,28 @@ where
         Ok(ControlMut::Produce(T::default()))
     }
 
-    fn begin_typedecl(&mut self, _name: &mut Symbol, _ast: &mut IvySort) -> VisitorResult<T, Decl> {
+    fn begin_typedecl(&mut self, _name: &mut Symbol, _ast: &mut Sort) -> VisitorResult<T, Decl> {
         Ok(ControlMut::Produce(T::default()))
     }
     fn finish_typedecl(
         &mut self,
         _name: &mut Symbol,
-        _ast: &mut IvySort,
+        _ast: &mut Sort,
         _n: T,
         _s: T,
     ) -> VisitorResult<T, Decl> {
         Ok(ControlMut::Produce(T::default()))
     }
 
-    fn begin_vardecl(
-        &mut self,
-        _name: &mut Symbol,
-        _ast: &mut Option<Ident>,
-    ) -> VisitorResult<T, Decl> {
+    fn begin_vardecl(&mut self, _name: &mut Symbol, _ast: &mut Sort) -> VisitorResult<T, Decl> {
         Ok(ControlMut::Produce(T::default()))
     }
     fn finish_vardecl(
         &mut self,
         _name: &mut Symbol,
-        _ast: &mut Option<Ident>,
+        _ast: &mut Sort,
         _id_t: T,
-        _sort_t: Option<T>,
+        _sort_t: T,
     ) -> VisitorResult<T, Decl> {
         Ok(ControlMut::Produce(T::default()))
     }
@@ -434,13 +430,17 @@ where
         Ok(ControlMut::Produce(T::default()))
     }
 
-    fn begin_field_access(&mut self, _lhs: &mut Expr, rhs: &mut Symbol) -> VisitorResult<T, Expr> {
+    fn begin_field_access(
+        &mut self,
+        _lhs: &mut Expr,
+        rhs: &mut AnnotatedSymbol,
+    ) -> VisitorResult<T, Expr> {
         Ok(ControlMut::Produce(T::default()))
     }
     fn finish_field_access(
         &mut self,
         _lhs: &mut Expr,
-        rhs: &mut Symbol,
+        rhs: &mut AnnotatedSymbol,
         _lhs_res: T,
         _rhs_res: T,
     ) -> VisitorResult<T, Expr> {
@@ -463,6 +463,12 @@ where
 
     // Terminals
 
+    fn annotated_symbol(&mut self, p: &mut AnnotatedSymbol) -> VisitorResult<T, AnnotatedSymbol> {
+        self.symbol(&mut p.id)?.modifying(&mut p.id)?;
+        self.sort(&mut p.sort)?.modifying(&mut p.sort)?;
+        Ok(ControlMut::Produce(T::default()))
+    }
+
     fn boolean(&mut self, b: &mut bool) -> VisitorResult<T, bool> {
         Ok(ControlMut::Produce(T::default()))
     }
@@ -475,15 +481,16 @@ where
         Ok(ControlMut::Produce(T::default()))
     }
 
-    fn param(&mut self, p: &mut Param) -> VisitorResult<T, Param> {
+    fn param(&mut self, p: &mut AnnotatedSymbol) -> VisitorResult<T, AnnotatedSymbol> {
         self.symbol(&mut p.id)?.modifying(&mut p.id)?;
-        if let Some(sort) = &mut p.sort {
-            self.identifier(sort)?.modifying(sort)?;
-        }
+        self.sort(&mut p.sort)?.modifying(&mut p.sort)?;
         Ok(ControlMut::Produce(T::default()))
     }
 
-    fn sort(&mut self, _s: &mut IvySort) -> VisitorResult<T, IvySort> {
+    fn sort(&mut self, s: &mut Sort) -> VisitorResult<T, Sort> {
+        if let Sort::Annotated(i) = s {
+            self.identifier(i)?.modifying(i)?;
+        }
         Ok(ControlMut::Produce(T::default()))
     }
 
@@ -582,7 +589,7 @@ where
                 ref mut field,
             }) => visitor.begin_field_access(record, field)?.and_then(|_| {
                 let r = record.visit(visitor)?.modifying(record)?;
-                let f = field.visit(visitor)?.modifying(field)?;
+                let f = visitor.annotated_symbol(field)?.modifying(field)?;
                 visitor.finish_field_access(record, field, r, f)
             }),
             Expr::Index(expr) => visitor
@@ -594,10 +601,6 @@ where
                 let t = visitor.number(n)?.modifying(n)?;
                 Ok(ControlMut::Produce(t))
             }
-            Expr::Symbol(i) => i
-                .visit(visitor)?
-                .modifying(i)
-                .map(|t| ControlMut::Produce(t)),
             Expr::UnaryOp {
                 ref mut op,
                 ref mut expr,
@@ -607,7 +610,7 @@ where
                 visitor.finish_unary_op(op, expr)
             }),
             Expr::AnnotatedSym(p) => visitor
-                .param(p)?
+                .annotated_symbol(p)?
                 .modifying(p)
                 .map(|t| ControlMut::Produce(t)),
             Expr::This => visitor.this(),
@@ -685,7 +688,7 @@ where
                 let ret = decl
                     .ret
                     .as_mut()
-                    .map(|mut r| r.visit(visitor)?.modifying(&mut r))
+                    .map(|r| visitor.param(r)?.modifying(r))
                     .transpose()?;
                 let body = decl
                     .body
@@ -704,7 +707,7 @@ where
                 let r = decl
                     .ret
                     .as_mut()
-                    .map(|r| r.visit(visitor)?.modifying(r))
+                    .map(|r| visitor.param(r)?.modifying(r))
                     .transpose()?;
                 let b = decl.body.visit(visitor)?.modifying(&mut decl.body)?;
                 visitor.finish_after_decl(decl, n, p, r, b)
@@ -749,7 +752,7 @@ where
                     let ret = decl
                         .ret
                         .as_mut()
-                        .map(|mut r| r.visit(visitor)?.modifying(&mut r))
+                        .map(|r| visitor.param(r)?.modifying(r))
                         .transpose()?;
                     let body = decl
                         .body
@@ -778,7 +781,7 @@ where
                 let ret = decl
                     .ret
                     .as_mut()
-                    .map(|mut r| r.visit(visitor)?.modifying(&mut r))
+                    .map(|r| visitor.param(r)?.modifying(r))
                     .transpose()?;
                 let body = decl
                     .body
@@ -895,10 +898,7 @@ where
                 ref mut decl,
             }) => visitor.begin_vardecl(name, decl)?.and_then(|_| {
                 let n = name.visit(visitor)?.modifying(name)?;
-                let s = decl
-                    .as_mut()
-                    .map(|s| s.visit(visitor)?.modifying(s))
-                    .transpose()?;
+                let s = visitor.sort(decl)?.modifying(decl)?;
                 visitor.finish_vardecl(name, decl, n, s)
             }),
             Decl::Type(Binding {
@@ -933,14 +933,16 @@ where
     }
 }
 
-impl<T> Visitable<T> for Param
+/*
+impl<T> Visitable<T> for AnnotatedSymbol
 where
     T: Default,
 {
     fn visit(&mut self, visitor: &mut dyn Visitor<T>) -> VisitorResult<T, Self> {
-        visitor.param(self)
+        visitor.annotated_symbol(self)
     }
 }
+*/
 
 // Implementations for compound nodes
 
@@ -1051,14 +1053,14 @@ where
     }
 }
 
-impl<T> Visitable<T, Vec<T>> for Vec<Param>
+impl<T> Visitable<T, Vec<T>> for ParamList
 where
     T: Default,
 {
     fn visit(&mut self, visitor: &mut dyn Visitor<T>) -> VisitorResult<Vec<T>, Self> {
         let mut res = vec![];
         for node in self {
-            match node.visit(visitor)? {
+            match visitor.param(node)? {
                 ControlMut::Produce(t) => res.push(t),
                 ControlMut::SkipSiblings(t) => {
                     res.push(t);

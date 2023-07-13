@@ -3,7 +3,7 @@ use std::fmt::Write;
 use crate::{
     ast::{
         actions, declarations,
-        expressions::{self, IndexExpr, Symbol, Verb},
+        expressions::{self, AnnotatedSymbol, IndexExpr, Sort, Symbol, Verb},
         logic, statements, toplevels,
     },
     typechecker::sorts::IvySort,
@@ -42,6 +42,20 @@ where
                 self.pp.write_str(sep)?;
             }
             u.visit(self)?;
+        }
+        Ok(ControlMut::Produce(()))
+    }
+
+    pub fn write_paramlist(
+        &mut self,
+        us: &mut expressions::ParamList,
+        sep: &str,
+    ) -> VisitorResult<(), Vec<AnnotatedSymbol>> {
+        for (i, u) in us.into_iter().enumerate() {
+            if i > 0 {
+                self.pp.write_str(sep)?;
+            }
+            self.param(u)?;
         }
         Ok(ControlMut::Produce(()))
     }
@@ -160,13 +174,13 @@ where
         self.pp.write_fmt(format_args!("action {}", name))?;
         if ast.params.len() > 0 {
             self.pp.write_str("(")?;
-            self.write_separated(&mut ast.params, ", ")?;
+            self.write_paramlist(&mut ast.params, ", ")?;
             self.pp.write_str(")")?;
         }
 
         if let Some(ret) = &mut ast.ret {
             self.pp.write_str(" returns(")?;
-            ret.visit(self)?;
+            self.param(ret)?.modifying(ret)?;
             self.pp.write_str(")")?;
         }
         if let Some(stmts) = &mut ast.body {
@@ -188,14 +202,14 @@ where
         if let Some(params) = &mut ast.params {
             if params.len() > 0 {
                 self.pp.write_str("(")?;
-                self.write_separated(params, ", ")?;
+                self.write_paramlist(params, ", ")?;
                 self.pp.write_str(")")?;
             }
         }
 
         if let Some(ret) = &mut ast.ret {
             self.pp.write_str(" returns(")?;
-            ret.visit(self)?;
+            self.param(ret)?.modifying(ret)?;
             self.pp.write_str(")")?;
         }
 
@@ -242,7 +256,7 @@ where
         if let Some(params) = &mut ast.params {
             if params.len() > 0 {
                 self.pp.write_str("(")?;
-                self.write_separated(params, ", ")?;
+                self.write_paramlist(params, ", ")?;
                 self.pp.write_str(")")?;
             }
         }
@@ -316,13 +330,13 @@ where
 
         if let Some(params) = &mut ast.params {
             self.pp.write_str("(")?;
-            self.write_separated(params, ", ")?;
+            self.write_paramlist(params, ", ")?;
             self.pp.write_str(")")?;
         }
 
         if let Some(ret) = &mut ast.ret {
             self.pp.write_str(" returns(")?;
-            ret.visit(self)?;
+            self.param(ret)?.modifying(ret)?;
             self.pp.write_str(")")?;
         }
 
@@ -494,7 +508,7 @@ where
         ast: &mut declarations::Relation,
     ) -> VisitorResult<(), declarations::Decl> {
         self.pp.write_fmt(format_args!("relation {}(", name))?;
-        self.write_separated(&mut ast.params, ", ")?;
+        self.write_paramlist(&mut ast.params, ", ")?;
         self.pp.write_str(")")?;
         Ok(ControlMut::SkipSiblings(()))
     }
@@ -502,22 +516,33 @@ where
     fn begin_typedecl(
         &mut self,
         name: &mut Symbol,
-        _ast: &mut IvySort,
+        sort: &mut Sort,
     ) -> VisitorResult<(), declarations::Decl> {
         self.pp.write_fmt(format_args!("type {}", name))?;
+
+        match sort {
+            Sort::ToBeInferred => (),
+            Sort::Annotated(_) | Sort::Resolved(_) => {
+                self.pp.write_str("= ")?;
+                self.sort(sort)?.modifying(sort)?;
+            }
+        }
         Ok(ControlMut::SkipSiblings(()))
     }
 
     fn begin_vardecl(
         &mut self,
         name: &mut Symbol,
-        sort: &mut Option<expressions::Ident>,
+        sort: &mut Sort,
     ) -> VisitorResult<(), declarations::Decl> {
         self.pp.write_fmt(format_args!("var {}", name))?;
-        if let Some(sort) = sort {
-            self.pp.write_str(": ")?;
-            self.identifier(sort)?;
-        }
+        match sort {
+            expressions::Sort::ToBeInferred => (),
+            expressions::Sort::Annotated(_) | expressions::Sort::Resolved(_) => {
+                self.pp.write_str(": ")?;
+                self.sort(sort)?.modifying(sort)?;
+            }
+        };
         Ok(ControlMut::SkipSiblings(()))
     }
 
@@ -525,7 +550,7 @@ where
 
     fn begin_forall(&mut self, fmla: &mut logic::Forall) -> VisitorResult<(), logic::Fmla> {
         self.pp.write_str("forall ")?;
-        self.write_separated(&mut fmla.vars, ", ")?;
+        self.write_paramlist(&mut fmla.vars, ", ")?;
         self.pp.write_str(" . ")?;
         fmla.fmla.visit(self)?;
         Ok(ControlMut::SkipSiblings(()))
@@ -533,7 +558,7 @@ where
 
     fn begin_exists(&mut self, fmla: &mut logic::Exists) -> VisitorResult<(), logic::Fmla> {
         self.pp.write_str("exists ")?;
-        self.write_separated(&mut fmla.vars, ", ")?;
+        self.write_paramlist(&mut fmla.vars, ", ")?;
         self.pp.write_str(" . ")?;
         fmla.fmla.visit(self)?;
         Ok(ControlMut::SkipSiblings(()))
@@ -603,11 +628,11 @@ where
     fn begin_field_access(
         &mut self,
         lhs: &mut expressions::Expr,
-        rhs: &mut expressions::Symbol,
+        rhs: &mut expressions::AnnotatedSymbol,
     ) -> VisitorResult<(), expressions::Expr> {
         lhs.visit(self)?;
         self.pp.write_str(".")?;
-        rhs.visit(self)?;
+        self.annotated_symbol(rhs)?.modifying(rhs)?;
         Ok(ControlMut::SkipSiblings(()))
     }
 
@@ -642,6 +667,22 @@ where
 
     // Terminals
 
+    fn annotated_symbol(
+        &mut self,
+        p: &mut expressions::AnnotatedSymbol,
+    ) -> VisitorResult<(), expressions::AnnotatedSymbol> {
+        p.id.visit(self)?;
+
+        match &mut p.sort {
+            expressions::Sort::ToBeInferred => (),
+            expressions::Sort::Annotated(_) | expressions::Sort::Resolved(_) => {
+                self.pp.write_str(":")?;
+                self.sort(&mut p.sort)?;
+            }
+        }
+        Ok(ControlMut::SkipSiblings(()))
+    }
+
     fn boolean(&mut self, b: &mut bool) -> VisitorResult<(), bool> {
         if *b {
             self.pp.write_str("true")?;
@@ -661,47 +702,60 @@ where
         Ok(ControlMut::Produce(()))
     }
 
-    fn param(&mut self, p: &mut expressions::Param) -> VisitorResult<(), expressions::Param> {
+    fn param(
+        &mut self,
+        p: &mut expressions::AnnotatedSymbol,
+    ) -> VisitorResult<(), expressions::AnnotatedSymbol> {
         p.id.visit(self)?;
 
-        if let Some(sort) = &mut p.sort {
-            self.pp.write_str(":")?;
-            self.identifier(sort)?;
+        match &mut p.sort {
+            expressions::Sort::ToBeInferred => (),
+            expressions::Sort::Annotated(_) | expressions::Sort::Resolved(_) => {
+                self.pp.write_str(":")?;
+                self.sort(&mut p.sort)?;
+            }
         }
         Ok(ControlMut::SkipSiblings(()))
     }
 
-    fn sort(&mut self, s: &mut IvySort) -> VisitorResult<(), IvySort> {
+    fn sort(&mut self, s: &mut Sort) -> VisitorResult<(), Sort> {
         match s {
-            // These are inferred, usually, I suppose.
-            IvySort::Range(min, max) => {
-                self.pp.write_str(" = {")?;
-                min.visit(self)?;
-                self.pp.write_str("..")?;
-                max.visit(self)?;
-                self.pp.write_str("}")?;
+            Sort::ToBeInferred => todo!(),
+            Sort::Annotated(ident) => {
+                self.identifier(ident)?;
             }
-            IvySort::Enum(_) => {
-                self.pp.write_str(" = {")?;
-                //self.write_separated(branches, ", ")?;
-                self.pp.write_str(" }")?;
-            }
-            IvySort::Subclass(s) => {
-                self.pp.write_fmt(format_args!(" of {}", s))?;
-            }
-            IvySort::Process(_proc) => {
-                self.pp.write_str(" = {\n")?;
-                self.pp.write_str("implementation {\n")?;
-                self.pp.write_str("}\n")?;
-                self.pp.write_str("specification {\n")?;
-                self.pp.write_str("common {\n")?;
-                self.pp.write_str("}\n")?;
-                self.pp.write_str("}\n")?;
-                self.pp.write_str("}")?;
-            }
-            IvySort::Uninterpreted => {}
-            _ => todo!(),
-        }
+            Sort::Resolved(ivysort) => match ivysort {
+                // These are inferred, usually, I suppose.
+                IvySort::Range(min, max) => {
+                    self.pp.write_str(" = {")?;
+                    min.visit(self)?;
+                    self.pp.write_str("..")?;
+                    max.visit(self)?;
+                    self.pp.write_str("}")?;
+                }
+                IvySort::Enum(_) => {
+                    self.pp.write_str(" = {")?;
+                    //self.write_separated(branches, ", ")?;
+                    self.pp.write_str(" }")?;
+                }
+                IvySort::Subclass(s) => {
+                    self.pp.write_fmt(format_args!(" of {}", s))?;
+                }
+                IvySort::Process(_proc) => {
+                    self.pp.write_str(" = {\n")?;
+                    self.pp.write_str("implementation {\n")?;
+                    self.pp.write_str("}\n")?;
+                    self.pp.write_str("specification {\n")?;
+                    self.pp.write_str("common {\n")?;
+                    self.pp.write_str("}\n")?;
+                    self.pp.write_str("}\n")?;
+                    self.pp.write_str("}")?;
+                }
+                IvySort::Uninterpreted => {}
+                _ => todo!(),
+            },
+        };
+
         Ok(ControlMut::Produce(()))
     }
 

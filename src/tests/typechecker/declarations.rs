@@ -215,11 +215,11 @@ mod tests {
             .expect("visit")
             .modifying(&mut decl_ast)
             .unwrap();
-        assert_eq!(res, IvySort::Uninterpreted);
+        assert_eq!(res, IvySort::SortVar(0));
 
         assert_eq!(
             tc.bindings.lookup_sym(&"node".to_owned()),
-            Some(&IvySort::Uninterpreted)
+            Some(&IvySort::SortVar(0))
         )
     }
     #[test]

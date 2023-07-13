@@ -33,6 +33,6 @@ mod tests {
         let mut cf = ConstantFold;
         ast.visit(&mut cf).unwrap();
 
-        assert_eq!(ast, Expr::Symbol("foo".into()));
+        assert_eq!(ast, Expr::inferred_symbol("foo".into()));
     }
 }

@@ -51,8 +51,11 @@ mod tests {
             Stmt::ActionSequence(
                 [Action::Assign(AssignAction {
                     lhs: Expr::FieldAccess(FieldAccess {
-                        record: Box::new(Expr::Symbol("foo".into())),
-                        field: "bar".into()
+                        record: Box::new(Expr::inferred_symbol("foo".into())),
+                        field: AnnotatedSymbol {
+                            id: "bar".into(),
+                            sort: Sort::ToBeInferred
+                        }
                     }),
                     rhs: Expr::Boolean(false)
                 })]
@@ -124,8 +127,8 @@ mod tests {
                 pred: Fmla::Pred(Expr::UnaryOp {
                     op: Verb::Not,
                     expr: Box::new(Expr::App(AppExpr {
-                        func: Box::new(Expr::Symbol("failed".to_owned())),
-                        args: [Expr::Symbol("y".into())].into()
+                        func: Box::new(Expr::inferred_symbol("failed".to_owned())),
+                        args: [Expr::inferred_symbol("y".into())].into()
                     }))
                 })
             }
@@ -144,7 +147,7 @@ mod tests {
             stmt,
             RequiresAction {
                 pred: Fmla::Pred(Expr::BinOp(BinOp {
-                    lhs: Box::new(Expr::Symbol("x".into())),
+                    lhs: Box::new(Expr::inferred_symbol("x".into())),
                     op: Verb::Ge,
                     rhs: Box::new(Expr::Number(0))
                 }))

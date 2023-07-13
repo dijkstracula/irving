@@ -8,14 +8,14 @@ use anyhow::bail;
 use thiserror::Error;
 
 use crate::ast::declarations::*;
-use crate::ast::expressions::{Param, Symbol};
+use crate::ast::expressions::{AnnotatedSymbol, Symbol};
 
 use crate::visitor::*;
 
 pub struct IsolateNormalizer {
     /// All common actions will need to have the parameter list prepended to them, since
     /// they do not close over their enclosing module's arguments.
-    curr_module_params: Option<Vec<Param>>,
+    curr_module_params: Option<Vec<AnnotatedSymbol>>,
 
     impls: Vec<Decl>,
     common_impls: Vec<Decl>,

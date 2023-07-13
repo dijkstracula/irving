@@ -18,7 +18,7 @@ pub struct Process {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Module {
     pub args: Vec<(Symbol, IvySort)>, // Each of these will be SortVars
-    pub fields: BTreeMap<Symbol, IvySort>,
+    pub fields: BTreeMap<String, IvySort>,
 }
 
 impl Module {

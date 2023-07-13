@@ -10,7 +10,7 @@ use crate::{
     ast::{
         actions::Action,
         declarations::{self, AfterDecl, BeforeDecl, ImplementDecl},
-        expressions::{self, Expr, Symbol},
+        expressions::{self, Expr, Sort, Symbol},
         statements::Stmt,
     },
     typechecker::{sorts::Module, TypeError},
@@ -67,16 +67,40 @@ impl Visitor<IvySort> for TypeChecker {
         Ok(ControlMut::Produce(IvySort::Number))
     }
 
-    fn param(&mut self, p: &mut expressions::Param) -> VisitorResult<IvySort, expressions::Param> {
+    fn param(
+        &mut self,
+        p: &mut expressions::AnnotatedSymbol,
+    ) -> VisitorResult<IvySort, expressions::AnnotatedSymbol> {
         let sort = match &mut p.sort {
-            Some(idents) => idents.visit(self)?.modifying(idents)?,
-            None => self.bindings.new_sortvar(),
+            Sort::ToBeInferred => self.bindings.new_sortvar(),
+            Sort::Annotated(id) => id.visit(self)?.modifying(id)?,
+            Sort::Resolved(ivysort) => ivysort.clone(),
         };
+        // XXX: early return if sort is already an ivyosrt?
         self.bindings.append(p.id.clone(), sort.clone())?;
+        Ok(ControlMut::Produce(sort))
+    }
 
-        let resolved = expressions::Type {
-            ident: expressions::TypeName::Name(p.id.clone()),
-            sort: sort.clone(),
+    fn sort(&mut self, s: &mut Sort) -> VisitorResult<IvySort, Sort> {
+        let sort = match s {
+            Sort::ToBeInferred => self.bindings.new_sortvar(),
+            Sort::Annotated(ident) => self.identifier(ident)?.modifying(ident)?,
+            Sort::Resolved(ivysort) => ivysort.clone(),
+        };
+        Ok(ControlMut::Produce(sort))
+    }
+
+    fn annotated_symbol(
+        &mut self,
+        p: &mut expressions::AnnotatedSymbol,
+    ) -> VisitorResult<IvySort, expressions::AnnotatedSymbol> {
+        let sort = match &mut p.sort {
+            Sort::ToBeInferred => match self.bindings.lookup_sym(&p.id) {
+                None => bail!(TypeError::UnboundVariable(p.id.clone())),
+                Some(s) => s.clone(),
+            },
+            Sort::Annotated(ident) => self.identifier(ident)?.modifying(ident)?,
+            Sort::Resolved(ivysort) => ivysort.clone(),
         };
         Ok(ControlMut::Produce(sort))
     }
@@ -88,6 +112,7 @@ impl Visitor<IvySort> for TypeChecker {
         match sym.as_str() {
             "bool" => Ok(ControlMut::Produce(IvySort::Bool)),
             "unbounded_sequence" => Ok(ControlMut::Produce(IvySort::Number)),
+            "this" => Ok(ControlMut::Produce(IvySort::This)),
             // TODO: and of course other builtins.
             _ => match self.bindings.lookup_sym(sym) {
                 Some(sort) => Ok(ControlMut::Produce(sort.clone())),
@@ -204,7 +229,7 @@ impl Visitor<IvySort> for TypeChecker {
     fn begin_field_access(
         &mut self,
         lhs: &mut Expr,
-        rhs: &mut expressions::Symbol,
+        rhs: &mut expressions::AnnotatedSymbol,
     ) -> VisitorResult<IvySort, Expr> {
         let lhs_sort = lhs.visit(self)?.modifying(lhs)?;
 
@@ -213,14 +238,17 @@ impl Visitor<IvySort> for TypeChecker {
         // XXX: awkward amounts of cloning in here.
         let rhs_sort = match &lhs_sort {
             IvySort::Module(module) => {
-                Ok::<Option<IvySort>, TypeError>(module.fields.get(rhs).map(|s| s.clone()))
+                Ok::<Option<IvySort>, TypeError>(module.fields.get(&rhs.id).map(|s| s.clone()))
             }
             IvySort::Process(proc) => {
-                let mut s = proc.impl_fields.get(rhs).or(proc.spec_fields.get(rhs));
+                let mut s = proc
+                    .impl_fields
+                    .get(&rhs.id)
+                    .or(proc.spec_fields.get(&rhs.id));
                 is_common = s.is_none();
                 s = s
-                    .or(proc.common_impl_fields.get(rhs))
-                    .or(proc.common_spec_fields.get(rhs));
+                    .or(proc.common_impl_fields.get(&rhs.id))
+                    .or(proc.common_spec_fields.get(&rhs.id));
                 Ok(s.map(|s| s.clone()))
             }
             IvySort::SortVar(_) => Ok(Some(self.bindings.new_sortvar())),
@@ -244,7 +272,7 @@ impl Visitor<IvySort> for TypeChecker {
         .transpose()?;
         match rhs_sort {
             Some(sort) => Ok(ControlMut::SkipSiblings(sort.clone())),
-            None => bail!(TypeError::UnboundVariable(rhs.clone())),
+            None => bail!(TypeError::UnboundVariable(rhs.id.clone())),
         }
     }
 
@@ -703,17 +731,22 @@ impl Visitor<IvySort> for TypeChecker {
     fn begin_typedecl(
         &mut self,
         name: &mut Symbol,
-        sort: &mut IvySort,
+        sort: &mut Sort,
     ) -> VisitorResult<IvySort, declarations::Decl> {
         println!("begin_typedecL: {:?} {:?}", name, sort);
-        self.bindings.append(name.clone(), sort.clone())?;
-        Ok(ControlMut::SkipSiblings(sort.clone()))
+        let binding = match sort {
+            Sort::ToBeInferred => self.bindings.new_sortvar(),
+            Sort::Annotated(_) => unreachable!(),
+            Sort::Resolved(sort) => sort.clone(),
+        };
+        self.bindings.append(name.clone(), binding.clone())?;
+        Ok(ControlMut::SkipSiblings(binding))
     }
 
     fn begin_vardecl(
         &mut self,
         name: &mut Symbol,
-        _ast: &mut Option<expressions::Ident>,
+        _ast: &mut Sort,
     ) -> VisitorResult<IvySort, declarations::Decl> {
         // Bind the name to _something_; we'll unify this value with its resolved sort when finishing the visit.
         let v = self.bindings.new_sortvar();
@@ -723,15 +756,12 @@ impl Visitor<IvySort> for TypeChecker {
     fn finish_vardecl(
         &mut self,
         _name: &mut Symbol,
-        _ast: &mut Option<expressions::Ident>,
+        _ast: &mut Sort,
         name_sort: IvySort,
-        resolved_sort: Option<IvySort>,
+        resolved_sort: IvySort,
     ) -> VisitorResult<IvySort, declarations::Decl> {
-        if let Some(s2) = resolved_sort {
-            self.bindings.unify(&name_sort, &s2)?;
-            Ok(ControlMut::Produce(s2))
-        } else {
-            Ok(ControlMut::Produce(name_sort))
-        }
+        println!("NBT: {name_sort:?} {resolved_sort:?}");
+        let resolved = self.bindings.unify(&name_sort, &resolved_sort)?;
+        Ok(ControlMut::Produce(resolved))
     }
 }

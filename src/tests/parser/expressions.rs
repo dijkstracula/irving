@@ -17,7 +17,13 @@ mod tests {
     #[test]
     fn parse_symbol_expr() {
         let _ast = parse_expr("a").unwrap();
-        assert_eq!(_ast, Expr::Symbol("a".into()));
+        assert_eq!(
+            _ast,
+            Expr::AnnotatedSym(AnnotatedSymbol {
+                id: "a".into(),
+                sort: Sort::ToBeInferred
+            })
+        );
     }
 
     #[test]
@@ -61,7 +67,7 @@ mod tests {
         assert_eq!(
             _ast,
             Expr::BinOp(BinOp {
-                lhs: Box::new(Expr::Symbol("i".into())),
+                lhs: Box::new(Expr::inferred_symbol("i".into())),
                 op: Verb::Gt,
                 rhs: Box::new(Expr::Number(0)),
             })
@@ -75,13 +81,13 @@ mod tests {
             _ast,
             Expr::BinOp(BinOp {
                 lhs: Box::new(Expr::BinOp(BinOp {
-                    lhs: Box::new(Expr::Symbol("b".into())),
+                    lhs: Box::new(Expr::inferred_symbol("b".into())),
                     op: Verb::Equals,
                     rhs: Box::new(Expr::Boolean(true))
                 })),
                 op: Verb::Or,
                 rhs: Box::new(Expr::BinOp(BinOp {
-                    lhs: Box::new(Expr::Symbol("b".into())),
+                    lhs: Box::new(Expr::inferred_symbol("b".into())),
                     op: Verb::Equals,
                     rhs: Box::new(Expr::Boolean(false))
                 }))
@@ -100,8 +106,11 @@ mod tests {
         assert_eq!(
             _ast,
             Expr::FieldAccess(FieldAccess {
-                record: Box::new(Expr::Symbol("a".into())),
-                field: "b".into()
+                record: Box::new(Expr::inferred_symbol("a".into())),
+                field: AnnotatedSymbol {
+                    id: "b".into(),
+                    sort: Sort::ToBeInferred
+                }
             })
         );
     }

@@ -1,7 +1,5 @@
 #![allow(dead_code)]
 
-use crate::typechecker::sorts::IvySort;
-
 use super::expressions::*;
 use super::logic::Fmla;
 use super::statements::*;
@@ -14,7 +12,7 @@ pub struct DeclSig {
     pub params: ParamList,
 }
 
-pub type DeclRet = Option<Param>;
+pub type DeclRet = Option<AnnotatedSymbol>;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ModSig {
@@ -31,7 +29,7 @@ pub struct MixinSig {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ActionDecl {
     pub params: ParamList,
-    pub ret: Option<Param>,
+    pub ret: Option<AnnotatedSymbol>,
     pub body: Option<Vec<Stmt>>,
 }
 
@@ -39,7 +37,7 @@ pub struct ActionDecl {
 pub struct AfterDecl {
     pub name: Ident,
     pub params: Option<ParamList>,
-    pub ret: Option<Param>,
+    pub ret: Option<AnnotatedSymbol>,
     pub body: Vec<Stmt>,
 }
 
@@ -72,7 +70,7 @@ pub struct ImportDecl {
 pub struct ImplementDecl {
     pub name: Ident,
     pub params: Option<ParamList>,
-    pub ret: Option<Param>,
+    pub ret: Option<AnnotatedSymbol>,
     pub body: Option<Vec<Stmt>>,
 }
 
@@ -184,9 +182,9 @@ pub enum Decl {
 
     Stmts(Vec<Stmt>),
 
-    Var(Binding<Option<Ident>>),
+    Var(Binding<Sort>),
 
-    Type(Binding<IvySort>),
+    Type(Binding<Sort>),
 }
 
 impl Decl {

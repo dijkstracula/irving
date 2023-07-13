@@ -52,15 +52,15 @@ impl IvyParser {
         Ok(input.as_str().to_owned())
     }
 
-    fn param(input: Node) -> Result<Param> {
+    fn param(input: Node) -> Result<AnnotatedSymbol> {
         match_nodes!(
         input.into_children();
-        [symbol(id), ident(sort)] => Ok(Param {id, sort: Some(sort) }),
-        [symbol(id)] => Ok(Param {id, sort: None })
+        [symbol(id), ident(sort)] => Ok(AnnotatedSymbol { id: id, sort: Sort::Annotated(sort) }),
+        [symbol(id)] => Ok(AnnotatedSymbol {id, sort: Sort::ToBeInferred })
         )
     }
 
-    pub fn paramlist(input: Node) -> Result<Vec<Param>> {
+    pub fn paramlist(input: Node) -> Result<ParamList> {
         match_nodes!(
         input.into_children();
         [param(params)..] => {
@@ -85,11 +85,11 @@ impl IvyParser {
 
     // Formulas
 
-    fn logicvar(input: Node) -> Result<Param> {
+    fn logicvar(input: Node) -> Result<AnnotatedSymbol> {
         match_nodes!(
         input.into_children();
-        [LOGICVAR(id), symbol(sort)] => Ok(Param {id, sort: Some(vec!(sort)) }),
-        [LOGICVAR(id)]               => Ok(Param {id, sort: None })
+        [LOGICVAR(id), symbol(sort)] => Ok(AnnotatedSymbol {id, sort: Sort::Annotated(vec!(sort)) }),
+        [LOGICVAR(id)]               => Ok(AnnotatedSymbol {id, sort: Sort::ToBeInferred })
         )
     }
 
@@ -388,21 +388,29 @@ impl IvyParser {
         )
     }
 
-    pub fn type_decl(input: Node) -> Result<Binding<IvySort>> {
+    pub fn type_decl(input: Node) -> Result<Binding<Sort>> {
         match_nodes!(
         input.into_children();
-        [symbol(sym), enum_decl(cstrs)] => Ok(Binding::from(sym, IvySort::Enum(cstrs))),
-        [symbol(sym), range_decl((lo, hi))] => Ok(Binding::from(sym, IvySort::Range(Box::new(lo), Box::new(hi)))),
-        [symbol(sym), symbol(supr)] => Ok(Binding::from(sym, IvySort::Subclass(supr))),
-        [symbol(sym)] => Ok(Binding::from(sym, IvySort::Uninterpreted)),
-        [_THIS] => Ok(Binding::from("this".into(), IvySort::This))
+        [symbol(sym), enum_decl(cstrs)] => Ok(Binding::from(sym, Sort::Resolved(IvySort::Enum(cstrs)))),
+        [symbol(sym), range_decl((lo, hi))] => Ok(Binding::from(sym, Sort::Resolved(IvySort::Range(Box::new(lo), Box::new(hi))))),
+        [symbol(sym), symbol(supr)] => Ok(Binding::from(sym, Sort::Resolved(IvySort::Subclass(supr)))),
+        [symbol(sym)] => Ok(Binding::from(sym, Sort::ToBeInferred)),
+        [symbol(sym)] => {
+            match sym {
+                // TODO: should we put other "known-in-advance" sorts like vector, unbound_sequence, etc., here too?
+                // That would save us having to insert stuff into the context later on, which is nice.
+                // "bool" => Ok(Binding::from(sym, Sort::Resolved(IvySort::Bool))),
+                _ => Ok(Binding::from(sym, Sort::ToBeInferred))
+            }
+        },
+        [_THIS] => Ok(Binding::from("this".into(), Sort::Resolved(IvySort::This))),
         )
     }
 
-    pub fn var_decl(input: Node) -> Result<Binding<Option<Ident>>> {
+    pub fn var_decl(input: Node) -> Result<Binding<Sort>> {
         match_nodes!(
         input.into_children();
-        [param(Param { id, sort })] => Ok(Binding::from(id, sort)))
+        [param(AnnotatedSymbol { id, sort })] => Ok(Binding::from(id, sort)))
     }
 
     pub fn decl(input: Node) -> Result<Decl> {
@@ -459,10 +467,10 @@ impl IvyParser {
         match_nodes!(
         input.into_children();
         [var_decl(Binding{name, decl}), expr(rhs)] => Ok(
-            AssignAction{lhs: Expr::AnnotatedSym(Param{id: name, sort: decl}), rhs}
+            AssignAction{lhs: Expr::AnnotatedSym(AnnotatedSymbol{id: name, sort: decl}), rhs}
         ),
         [expr(lhs), expr(rhs)] => match lhs {
-            Expr::App(_) | Expr::FieldAccess(_) | Expr::Index(_) | Expr::Symbol(_) | Expr::This => Ok(AssignAction{lhs, rhs}),
+            Expr::App(_) | Expr::FieldAccess(_) | Expr::Index(_) | Expr::AnnotatedSym(_) | Expr::This => Ok(AssignAction{lhs, rhs}),
             _ => todo!(),
         },
         )
