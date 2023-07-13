@@ -61,7 +61,7 @@ mod tests {
     fn pprint_formula() {
         let mut e = Extractor::<String>::new();
 
-        let fragment = "forall X: node, Y, Z . X = Y & Y = Z -> X = Y";
+        let fragment = "forall X:node, Y, Z . X = Y & Y = Z -> X = Y";
         let mut ast = parse_fmla(fragment).expect("Parsing failed");
         ast.visit(&mut e).expect("traversal failed");
         assert_eq!(fragment, e.pp.out);

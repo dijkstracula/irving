@@ -69,15 +69,15 @@ impl Visitor<IvySort> for TypeChecker {
 
     fn param(&mut self, p: &mut expressions::Param) -> VisitorResult<IvySort, expressions::Param> {
         let sort = match &mut p.sort {
-            Some(idents) => {
-                // TODO: I don't know how to do instance resolution yet, argh
-                assert!(idents.len() == 1);
-                let sym = idents.get_mut(0).unwrap();
-                sym.visit(self)?.modifying(sym)?
-            }
+            Some(idents) => idents.visit(self)?.modifying(idents)?,
             None => self.bindings.new_sortvar(),
         };
         self.bindings.append(p.id.clone(), sort.clone())?;
+
+        let resolved = expressions::Type {
+            ident: expressions::TypeName::Name(p.id.clone()),
+            sort: sort.clone(),
+        };
         Ok(ControlMut::Produce(sort))
     }
 

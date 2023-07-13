@@ -454,13 +454,6 @@ where
         Ok(ControlMut::Produce(T::default()))
     }
 
-    fn begin_term(&mut self, _expr: &mut Term) -> VisitorResult<T, Expr> {
-        Ok(ControlMut::Produce(T::default()))
-    }
-    fn finish_term(&mut self, _expr: &mut Term) -> VisitorResult<T, Expr> {
-        Ok(ControlMut::Produce(T::default()))
-    }
-
     fn begin_unary_op(&mut self, _op: &mut Verb, _rhs: &mut Expr) -> VisitorResult<T, Expr> {
         Ok(ControlMut::Produce(T::default()))
     }
@@ -613,11 +606,10 @@ where
                 let _ = expr.visit(visitor)?.modifying(expr)?;
                 visitor.finish_unary_op(op, expr)
             }),
-            Expr::Term(t) => visitor.begin_term(t)?.and_then(|_| {
-                let _ = t.id.visit(visitor)?.modifying(&mut t.id);
-                let _ = t.sort.as_mut().map(|s| s.visit(visitor)?.modifying(s));
-                visitor.finish_term(t)
-            }),
+            Expr::Term(p) => visitor
+                .param(p)?
+                .modifying(p)
+                .map(|t| ControlMut::Produce(t)),
             Expr::This => visitor.this(),
         }?
         .modifying(self)?;

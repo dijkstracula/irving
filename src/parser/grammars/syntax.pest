@@ -35,7 +35,7 @@ decl_block = { "{" ~ (decl ~ ";"?)* ~ "}" }
 mod_sig = { symbol ~ ( "(" ~ symbol ~ ("," ~ symbol)? ~ ")")? }
 
 include_decl      = { INCLUDE ~ symbol }
-var_decl          = { VAR ~ term }
+var_decl          = { VAR ~ param }
 
 attribute_decl    = { ATTRIBUTE ~ expr } // TODO: wildly overspecified: shoudl be constrained beyond just an expr.
 

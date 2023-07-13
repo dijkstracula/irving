@@ -134,7 +134,3 @@ symbol   = @{ !reserved ~ ASCII_ALPHA       ~ ("_" | ASCII_ALPHANUMERIC)* }
 // An identifier is a program variable, possibly qualified with a module
 // prefix.
 ident = { THIS | (symbol ~ ("." ~ symbol)*) }
-
-// A term is a fully-qualified identifier with an optional type annotation.
-term = { symbol ~ ( ":" ~ ident)? }
-termlist = { term ~ ("," ~ term)* }

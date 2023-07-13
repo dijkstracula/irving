@@ -619,15 +619,6 @@ where
         Ok(ControlMut::SkipSiblings(()))
     }
 
-    fn begin_term(&mut self, expr: &mut expressions::Term) -> VisitorResult<(), expressions::Expr> {
-        expr.id.visit(self)?;
-        if let Some(sort) = &mut expr.sort {
-            self.pp.write_str(":")?;
-            sort.visit(self)?;
-        }
-        Ok(ControlMut::SkipSiblings(()))
-    }
-
     fn begin_unary_op(
         &mut self,
         op: &mut Verb,
@@ -674,7 +665,7 @@ where
         p.id.visit(self)?;
 
         if let Some(sort) = &mut p.sort {
-            self.pp.write_str(": ")?;
+            self.pp.write_str(":")?;
             self.identifier(sort)?;
         }
         Ok(ControlMut::SkipSiblings(()))

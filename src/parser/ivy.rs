@@ -77,22 +77,6 @@ impl IvyParser {
         )
     }
 
-    fn term(input: Node) -> Result<Term> {
-        match_nodes!(
-        input.into_children();
-        [symbol(id), ident(sort)] => Ok(Term {id, sort: Some(sort) }),
-        [symbol(id)] => Ok(Term {id, sort: None })
-        )
-    }
-
-    pub fn termlist(input: Node) -> Result<Vec<Term>> {
-        match_nodes!(
-        input.into_children();
-        [term(terms)..] => {
-            Ok(terms.collect())
-        })
-    }
-
     fn THIS(input: Node) -> Result<Expr> {
         Ok(Expr::This)
     }
@@ -418,7 +402,7 @@ impl IvyParser {
     pub fn var_decl(input: Node) -> Result<Binding<Option<Ident>>> {
         match_nodes!(
         input.into_children();
-        [term(Term { id, sort })] => Ok(Binding::from(id, sort)))
+        [param(Param { id, sort })] => Ok(Binding::from(id, sort)))
     }
 
     pub fn decl(input: Node) -> Result<Decl> {
@@ -475,7 +459,7 @@ impl IvyParser {
         match_nodes!(
         input.into_children();
         [var_decl(Binding{name, decl}), expr(rhs)] => Ok(
-            AssignAction{lhs: Expr::Term(Term{id: name, sort: decl}), rhs}
+            AssignAction{lhs: Expr::Term(Param{id: name, sort: decl}), rhs}
         ),
         [expr(lhs), expr(rhs)] => match lhs {
             Expr::App(_) | Expr::FieldAccess(_) | Expr::Index(_) | Expr::Symbol(_) | Expr::This => Ok(AssignAction{lhs, rhs}),

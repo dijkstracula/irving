@@ -67,12 +67,6 @@ pub struct Param {
 
 pub type ParamList = Vec<Param>;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum TypeName {
-    Name(Symbol),
-    This,
-}
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Type {
     pub ident: TypeName,
@@ -80,10 +74,9 @@ pub struct Type {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Term {
-    pub id: Symbol,
-    pub sort: Option<Ident>,
-    //is_destructor: bool,
+pub enum TypeName {
+    Name(Symbol),
+    This,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -105,7 +98,7 @@ pub enum Expr {
 
     UnaryOp { op: Verb, expr: Box<Expr> },
 
-    Term(Term),
+    Term(Param), // XXX: confusing!
 
     This,
 }
