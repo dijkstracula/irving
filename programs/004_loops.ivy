@@ -1,5 +1,9 @@
 #lang ivy1.8
 
+var sum: unbounded_sequence
+var i: unbounded_sequence
+var x: unbounded_sequence
+
 sum := 0;
 i := x;
 while i > 0

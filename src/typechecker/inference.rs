@@ -276,7 +276,7 @@ impl Visitor<IvySort> for TypeChecker {
         }
     }
 
-    // actions
+    // actions and decls
 
     fn begin_action_decl(
         &mut self,
@@ -420,7 +420,30 @@ impl Visitor<IvySort> for TypeChecker {
         Ok(ControlMut::Produce(unified))
     }
 
-    // decls
+    fn begin_function_decl(
+        &mut self,
+        name: &mut Symbol,
+        _ast: &mut declarations::FunctionDecl,
+    ) -> VisitorResult<IvySort, declarations::Decl> {
+        let v = self.bindings.new_sortvar();
+        self.bindings.append(name.clone(), v.clone())?;
+        self.bindings.push_scope();
+        Ok(ControlMut::Produce(v))
+    }
+
+    fn finish_function_decl(
+        &mut self,
+        _name: &mut Symbol,
+        _ast: &mut declarations::FunctionDecl,
+        name_sort: IvySort,
+        param_sorts: Vec<IvySort>,
+        ret_sort: IvySort,
+    ) -> VisitorResult<IvySort, declarations::Decl> {
+        let fnsort = IvySort::function_sort(param_sorts, ret_sort);
+        let unifed = self.bindings.unify(&name_sort, &fnsort)?;
+        self.bindings.pop_scope();
+        Ok(ControlMut::Produce(unifed))
+    }
 
     fn begin_implement_decl(
         &mut self,

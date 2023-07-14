@@ -341,7 +341,7 @@ mod tests {
         println!("{:?}", decl_ast);
 
         let mut tc = TypeChecker::new();
-        let res = decl_ast
+        decl_ast
             .visit(&mut tc)
             .expect("visit")
             .modifying(&mut decl_ast)

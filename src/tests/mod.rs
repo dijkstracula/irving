@@ -9,6 +9,9 @@ mod helpers {
     use crate::{
         ast::toplevels::Prog,
         parser::ivy::{IvyParser, Rule},
+        passes::isolate_normalizer::IsolateNormalizer,
+        typechecker::inference::TypeChecker,
+        visitor::visitor::Visitable,
     };
     use pest_consume::Parser;
 
@@ -19,5 +22,29 @@ mod helpers {
             .single()
             .unwrap();
         IvyParser::prog(res).expect("AST generation failed")
+    }
+
+    #[allow(dead_code)]
+    pub fn typechecked_from_filename(path: &str) -> Prog {
+        let text = std::fs::read_to_string(path).unwrap();
+        let res = IvyParser::parse(Rule::prog, &text)
+            .expect("Parsing failed")
+            .single()
+            .unwrap();
+        let mut prog = IvyParser::prog(res).expect("AST generation failed");
+
+        let mut nm = IsolateNormalizer::new();
+        let mut tc = TypeChecker::new();
+        prog.visit(&mut nm)
+            .expect("ast normalizing")
+            .modifying(&mut prog)
+            .unwrap();
+
+        prog.visit(&mut tc)
+            .expect("typechecking")
+            .modifying(&mut prog)
+            .unwrap();
+
+        prog
     }
 }

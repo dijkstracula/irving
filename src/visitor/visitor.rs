@@ -188,10 +188,21 @@ where
         Ok(ControlMut::Produce(T::default()))
     }
 
-    fn begin_function_decl(&mut self, _ast: &mut FunctionDecl) -> VisitorResult<T, Decl> {
+    fn begin_function_decl(
+        &mut self,
+        _name: &mut Symbol,
+        _ast: &mut FunctionDecl,
+    ) -> VisitorResult<T, Decl> {
         Ok(ControlMut::Produce(T::default()))
     }
-    fn finish_function_decl(&mut self, _ast: &mut FunctionDecl) -> VisitorResult<T, Decl> {
+    fn finish_function_decl(
+        &mut self,
+        _name: &mut Symbol,
+        _ast: &mut FunctionDecl,
+        _name_t: T,
+        _sort_t: Vec<T>,
+        _ret_t: T,
+    ) -> VisitorResult<T, Decl> {
         Ok(ControlMut::Produce(T::default()))
     }
 
@@ -766,9 +777,16 @@ where
                     .modifying(sym)
                     .map(|t| ControlMut::Produce(t)),
             }),
-            Decl::Function(_) => todo!(),
+            Decl::Function(Binding { name, decl }) => {
+                visitor.begin_function_decl(name, decl)?.and_then(|_| {
+                    let n = visitor.symbol(name)?.modifying(name)?;
+                    let p = decl.params.visit(visitor)?.modifying(&mut decl.params)?;
+                    let r = decl.ret.visit(visitor)?.modifying(&mut decl.ret)?;
+                    visitor.finish_function_decl(name, decl, n, p, r)
+                })
+            }
             Decl::Globals(decl) => visitor.begin_global_decl(decl)?.and_then(|_| {
-                let _d = decl.visit(visitor)?.modifying(decl);
+                let _d = decl.visit(visitor)?.modifying(decl)?;
                 visitor.finish_global_decl(decl)
             }),
             Decl::Implement(decl) => visitor.begin_implement_decl(decl)?.and_then(|_| {
