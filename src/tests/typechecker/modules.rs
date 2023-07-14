@@ -1,6 +1,7 @@
 #[cfg(test)]
 mod tests {
     use crate::{
+        passes::isolate_normalizer::IsolateNormalizer,
         tests::helpers,
         typechecker::{
             inference::TypeChecker,
@@ -123,5 +124,31 @@ mod tests {
 
         // `this` should not escape its scope.
         assert_eq!(tc.bindings.lookup_sym(&"this".to_owned()), None);
+    }
+
+    #[test]
+    fn multimod_instantiation() {
+        // Our dependent module.
+        let mut tcp = helpers::tcp_moduledecl();
+        let mut tc = TypeChecker::new();
+        tcp.visit(&mut tc).unwrap().modifying(&mut tcp).unwrap();
+
+        let mut proc = helpers::isolate_from_src(
+            "process host = { 
+                instance net: tcp.net(unbounded_sequence)
+            }",
+        );
+
+        let mut mn = IsolateNormalizer::new();
+        proc.visit(&mut mn).unwrap().modifying(&mut proc).unwrap();
+        println!("{:?}", proc);
+
+        proc.visit(&mut tc).unwrap().modifying(&mut proc).unwrap();
+        println!(
+            "{:?}",
+            tc.bindings
+                .lookup_ident(&vec!["host".into(), "net".into()], true)
+        );
+        println!("{:?}", tc.bindings.resolve(&IvySort::SortVar(2)));
     }
 }

@@ -25,6 +25,14 @@ mod helpers {
         IvyParser::prog(res).expect("AST generation failed")
     }
 
+    pub fn isolate_from_src(prog: &str) -> Decl {
+        let res = IvyParser::parse(Rule::isolate_decl, &prog)
+            .expect("Parsing failed")
+            .single()
+            .unwrap();
+        Decl::Isolate(IvyParser::isolate_decl(res).expect("AST generation failed"))
+    }
+
     pub fn module_from_src(prog: &str) -> Decl {
         let res = IvyParser::parse(Rule::module_decl, &prog)
             .expect("Parsing failed")
@@ -33,7 +41,7 @@ mod helpers {
         Decl::Module(IvyParser::module_decl(res).expect("AST generation failed"))
     }
 
-    fn vector() -> Decl {
+    pub fn vector_moduledecl() -> Decl {
         module_from_src(
             "module vector(range) = { 
             type this
@@ -46,11 +54,11 @@ mod helpers {
         )
     }
 
-    fn tcp() -> Decl {
+    pub fn tcp_moduledecl() -> Decl {
         module_from_src(
-            "module tcp(msg) = {
+            "module tcp = {
                 type endpoint = bv[32]
-                module net = {
+                module net(msg) = {
                     module socket = {
                         var id: unbounded_sequence
 
@@ -77,12 +85,12 @@ mod helpers {
         let mut tc = TypeChecker::new();
 
         // Fake out the "standard library"
-        let mut vec = vector();
+        let mut vec = vector_moduledecl();
         vec.visit(&mut tc)
             .expect("typechecking (vector)")
             .modifying(&mut vec)
             .unwrap();
-        let mut tcp = tcp();
+        let mut tcp = tcp_moduledecl();
         tcp.visit(&mut tc)
             .expect("typechecking (tcp)")
             .modifying(&mut vec)

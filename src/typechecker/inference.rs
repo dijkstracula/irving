@@ -742,7 +742,8 @@ impl Visitor<IvySort> for TypeChecker {
     ) -> VisitorResult<IvySort, declarations::Decl> {
         if mod_args_sorts.len() > 0 {
             // Will have to monomorphize with the module instantiation pass.
-            println!("Uh oh: {:?} {:?}", _name, decl_sort);
+            let foo = self.bindings.lookup_ident(&ast.sort, true);
+            println!("Uh oh: {:?} {:?}", _name, foo);
         }
         if let IvySort::Module(Module { args: _, fields }) = module_sort {
             let modsort = IvySort::Module(Module {
