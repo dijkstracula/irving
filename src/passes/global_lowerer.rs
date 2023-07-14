@@ -13,30 +13,31 @@ pub struct GlobalLowerer {
 }
 
 impl GlobalLowerer {
-    fn new() -> Self {
+    pub fn new() -> Self {
         GlobalLowerer { globals: vec![] }
     }
+}
 
-    pub fn visit(prog: &mut Prog) -> Result<()> {
-        let mut g = Self::new();
-        prog.visit(&mut g)?;
-
+impl Visitor<()> for GlobalLowerer {
+    fn finish_prog(&mut self, prog: &mut Prog) -> VisitorResult<(), Prog> {
         match &mut prog.top {
             Decl::Isolate(Binding {
                 decl: IsolateDecl { body, .. },
                 ..
             }) => {
-                body.push(Decl::Globals(g.globals));
+                self.globals.append(body);
+                body.append(&mut self.globals);
+            }
+            Decl::NormalizedIsolate(_) => {
+                panic!("Lower globals prior to running the isolate normalizer.")
             }
             _ => unreachable!(),
         }
-        Ok(())
+        Ok(ControlMut::Produce(()))
     }
-}
 
-impl Visitor<()> for GlobalLowerer {
     fn finish_global_decl(&mut self, ast: &mut Vec<Decl>) -> VisitorResult<(), Decl> {
         self.globals.append(ast);
-        Ok(ControlMut::Mutation(Decl::Globals(vec![]), ()))
+        Ok(ControlMut::Mutation(Decl::Noop, ()))
     }
 }

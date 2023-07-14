@@ -10,12 +10,13 @@ use thiserror::Error;
 use crate::ast::declarations::*;
 use crate::ast::expressions::{AnnotatedSymbol, Symbol};
 
+use crate::visitor::visitor::Visitable;
 use crate::visitor::*;
 
-pub struct IsolateNormalizer {
+pub struct NormalizerState {
     /// All common actions will need to have the parameter list prepended to them, since
     /// they do not close over their enclosing module's arguments.
-    curr_module_params: Option<Vec<AnnotatedSymbol>>,
+    params: Vec<AnnotatedSymbol>,
 
     impls: Vec<Decl>,
     common_impls: Vec<Decl>,
@@ -33,10 +34,10 @@ pub struct IsolateNormalizer {
     in_common: bool,
 }
 
-impl IsolateNormalizer {
-    pub fn new() -> Self {
-        IsolateNormalizer {
-            curr_module_params: None,
+impl NormalizerState {
+    pub fn new(params: Vec<AnnotatedSymbol>) -> Self {
+        Self {
+            params,
 
             impls: vec![],
             common_impls: vec![],
@@ -50,20 +51,42 @@ impl IsolateNormalizer {
     }
 }
 
+pub struct IsolateNormalizer {
+    /// One for each isolate that we're currently within.
+    states: Vec<NormalizerState>,
+}
+
+impl IsolateNormalizer {
+    pub fn new() -> Self {
+        IsolateNormalizer { states: vec![] }
+    }
+
+    pub fn push_state(&mut self, params: Vec<AnnotatedSymbol>) {
+        self.states.push(NormalizerState::new(params))
+    }
+
+    pub fn pop_state(&mut self) {
+        self.states.pop().unwrap();
+    }
+
+    pub fn state(&mut self) -> &NormalizerState {
+        self.states.last().unwrap()
+    }
+
+    pub fn state_mut(&mut self) -> &mut NormalizerState {
+        self.states.last_mut().unwrap()
+    }
+}
+
 impl Visitor<()> for IsolateNormalizer {
     fn begin_isolate_decl(
         &mut self,
         _name: &mut Symbol,
         ast: &mut IsolateDecl,
     ) -> VisitorResult<(), Decl> {
-        if self.curr_module_params.is_some() {
-            panic!(
-                "Nested isolate declarations?  What should we do here, a stack of the pass' state?"
-            );
-        }
+        self.push_state(ast.params.clone());
 
-        self.curr_module_params = Some(ast.params.clone());
-
+        ast.body.visit(self)?.modifying(&mut ast.body)?;
         ast.body = std::mem::take(&mut ast.body)
             .into_iter()
             .filter_map(|decl| match decl {
@@ -72,12 +95,11 @@ impl Visitor<()> for IsolateNormalizer {
                 | Decl::Implementation(_)
                 | Decl::Specification(_) => Some(decl),
                 _ => {
-                    self.impls.push(decl);
+                    self.state_mut().impls.push(decl);
                     None
                 }
             })
             .collect::<Vec<_>>();
-
         Ok(ControlMut::Produce(()))
     }
     fn finish_isolate_decl(
@@ -90,13 +112,14 @@ impl Visitor<()> for IsolateNormalizer {
     ) -> VisitorResult<(), Decl> {
         let normalized = NormalizedIsolateDecl {
             params: ast.params.clone(),
-            impl_decls: std::mem::take(&mut self.impls),
-            spec_decls: std::mem::take(&mut self.specs),
-            common_spec_decls: std::mem::take(&mut self.common_specs),
-            common_impl_decls: std::mem::take(&mut self.common_impls),
+            impl_decls: std::mem::take(&mut self.state_mut().impls),
+            spec_decls: std::mem::take(&mut self.state_mut().specs),
+            common_spec_decls: std::mem::take(&mut self.state_mut().common_specs),
+            common_impl_decls: std::mem::take(&mut self.state_mut().common_impls),
         };
 
-        self.curr_module_params = None;
+        self.pop_state();
+
         Ok(ControlMut::Mutation(
             Decl::NormalizedIsolate(Binding {
                 name: name.to_owned(),
@@ -107,20 +130,20 @@ impl Visitor<()> for IsolateNormalizer {
     }
 
     fn begin_implementation_decl(&mut self, _ast: &mut Vec<Decl>) -> VisitorResult<(), Decl> {
-        if self.in_spec {
+        if self.state().in_spec {
             bail!(NormalizerError::BadNesting {
                 inner: "implementation",
                 outer: "specification"
             });
         }
-        if self.in_impl {
+        if self.state().in_impl {
             bail!(NormalizerError::BadNesting {
                 inner: "implementation",
                 outer: "implementation"
             });
         }
 
-        self.in_impl = true;
+        self.state_mut().in_impl = true;
         Ok(ControlMut::Produce(()))
     }
     fn finish_implementation_decl(&mut self, ast: &mut Vec<Decl>) -> VisitorResult<(), Decl> {
@@ -129,31 +152,31 @@ impl Visitor<()> for IsolateNormalizer {
             _ => true,
         });
 
-        if self.in_common {
-            self.common_impls.append(ast);
+        if self.state().in_common {
+            self.state_mut().common_impls.append(ast);
         } else {
-            self.impls.append(ast);
+            self.state_mut().impls.append(ast);
         }
 
-        self.in_impl = false;
+        self.state_mut().in_impl = false;
         Ok(ControlMut::Mutation(Decl::Noop, ()))
     }
 
     fn begin_specification(&mut self, _ast: &mut Vec<Decl>) -> VisitorResult<(), Decl> {
-        if self.in_spec {
+        if self.state().in_spec {
             bail!(NormalizerError::BadNesting {
                 inner: "specification",
                 outer: "specification"
             });
         }
-        if self.in_impl {
+        if self.state_mut().in_impl {
             bail!(NormalizerError::BadNesting {
                 inner: "specification",
                 outer: "implementation"
             });
         }
 
-        self.in_spec = true;
+        self.state_mut().in_spec = true;
         Ok(ControlMut::Produce(()))
     }
     fn finish_specification(&mut self, ast: &mut Vec<Decl>) -> VisitorResult<(), Decl> {
@@ -162,25 +185,25 @@ impl Visitor<()> for IsolateNormalizer {
             _ => true,
         });
 
-        if self.in_common {
-            self.common_specs.append(ast);
+        if self.state().in_common {
+            self.state_mut().common_specs.append(ast);
         } else {
-            self.specs.append(ast);
+            self.state_mut().specs.append(ast);
         }
 
-        self.in_spec = false;
+        self.state_mut().in_spec = false;
         Ok(ControlMut::Mutation(Decl::Noop, ()))
     }
 
     fn begin_common_decl(&mut self, _ast: &mut Vec<Decl>) -> VisitorResult<(), Decl> {
-        if self.in_common {
+        if self.state().in_common {
             bail!(NormalizerError::BadNesting {
                 inner: "common",
                 outer: "common"
             });
         }
 
-        self.in_common = true;
+        self.state_mut().in_common = true;
         Ok(ControlMut::Produce(()))
     }
     fn finish_common_decl(&mut self, ast: &mut Vec<Decl>) -> VisitorResult<(), Decl> {
@@ -189,13 +212,13 @@ impl Visitor<()> for IsolateNormalizer {
             _ => true,
         });
 
-        if self.in_spec {
-            self.common_specs.append(ast);
+        if self.state().in_spec {
+            self.state_mut().common_specs.append(ast);
         } else {
-            self.common_impls.append(ast);
+            self.state_mut().common_impls.append(ast);
         }
 
-        self.in_common = false;
+        self.state_mut().in_common = false;
         Ok(ControlMut::Mutation(Decl::Noop, ()))
     }
 

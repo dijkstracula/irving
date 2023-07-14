@@ -8,8 +8,9 @@ mod typechecker;
 mod helpers {
     use crate::{
         ast::toplevels::Prog,
+        extraction::{ivy::Extractor, pprint::PrettyPrinter},
         parser::ivy::{IvyParser, Rule},
-        passes::isolate_normalizer::IsolateNormalizer,
+        passes::{global_lowerer::GlobalLowerer, isolate_normalizer::IsolateNormalizer},
         typechecker::inference::TypeChecker,
         visitor::visitor::Visitable,
     };
@@ -33,12 +34,26 @@ mod helpers {
             .unwrap();
         let mut prog = IvyParser::prog(res).expect("AST generation failed");
 
+        let mut gl = GlobalLowerer::new();
         let mut nm = IsolateNormalizer::new();
         let mut tc = TypeChecker::new();
+
+        prog.visit(&mut gl)
+            .expect("lowering globals")
+            .modifying(&mut prog)
+            .unwrap();
+
         prog.visit(&mut nm)
             .expect("ast normalizing")
             .modifying(&mut prog)
             .unwrap();
+
+        let mut pprint = Extractor::new();
+        prog.visit(&mut pprint)
+            .expect("prettyprint")
+            .modifying(&mut prog)
+            .unwrap();
+        println!("{}", pprint.pp.out);
 
         prog.visit(&mut tc)
             .expect("typechecking")

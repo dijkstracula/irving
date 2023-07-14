@@ -2,7 +2,8 @@ use std::fmt::Write;
 
 use crate::{
     ast::{
-        actions, declarations,
+        actions,
+        declarations::{self, Binding, NormalizedIsolateDecl},
         expressions::{self, AnnotatedSymbol, IndexExpr, Sort, Symbol, Verb},
         logic, statements, toplevels,
     },
@@ -74,13 +75,45 @@ where
         // The top-level isolate is anonymous so just
         // jump straight to its body.
         match &mut p.top {
-            declarations::Decl::Isolate(declarations::Binding {
+            declarations::Decl::Isolate(Binding {
                 decl: declarations::IsolateDecl { body, .. },
                 ..
             }) => {
                 for decl in body {
                     decl.visit(self)?.modifying(decl)?;
                     self.pp.write_str("\n")?;
+                }
+            }
+            declarations::Decl::NormalizedIsolate(Binding {
+                decl:
+                    declarations::NormalizedIsolateDecl {
+                        impl_decls,
+                        spec_decls,
+                        common_spec_decls,
+                        common_impl_decls,
+                        ..
+                    },
+                ..
+            }) => {
+                self.write_separated(impl_decls, "\n")?;
+                if spec_decls.len() > 0 {
+                    self.pp.write_str("specification {\n")?;
+                    self.write_separated(spec_decls, "\n")?;
+                    self.pp.write_str("\n}\n")?;
+                }
+                if common_spec_decls.len() > 0 && common_impl_decls.len() > 0 {
+                    self.pp.write_str("common {\n")?;
+                    if common_impl_decls.len() > 0 {
+                        self.pp.write_str("implementation {\n")?;
+                        self.write_separated(common_impl_decls, "\n")?;
+                        self.pp.write_str("\n}\n")?;
+                    }
+                    if spec_decls.len() > 0 {
+                        self.pp.write_str("specification {\n")?;
+                        self.write_separated(common_spec_decls, "\n")?;
+                        self.pp.write_str("\n}\n")?;
+                    }
+                    self.pp.write_str("\n}\n")?;
                 }
             }
             _ => unreachable!(),
@@ -456,26 +489,20 @@ where
         self.pp.write_str(" {\n")?;
 
         if module.impl_decls.len() > 0 {
-            self.pp.write_str("implementation {\n")?;
-            module.impl_decls.visit(self)?;
-            self.pp.write_str("\n}\n")?;
+            self.begin_implementation_decl(&mut module.impl_decls)?;
         }
         if module.spec_decls.len() > 0 {
-            self.pp.write_str("specification {\n")?;
-            module.spec_decls.visit(self)?;
-            self.pp.write_str("\n}\n")?;
+            self.pp.write_str("\n")?;
+            self.begin_specification(&mut module.spec_decls)?;
         }
         if module.common_spec_decls.len() > 0 && module.common_impl_decls.len() > 0 {
+            self.pp.write_str("\n")?;
             self.pp.write_str("common {\n")?;
             if module.impl_decls.len() > 0 {
-                self.pp.write_str("implementation {\n")?;
-                module.impl_decls.visit(self)?;
-                self.pp.write_str("\n}\n")?;
+                self.begin_implementation_decl(&mut module.common_impl_decls)?;
             }
             if module.spec_decls.len() > 0 {
-                self.pp.write_str("specification {\n")?;
-                module.spec_decls.visit(self)?;
-                self.pp.write_str("\n}\n")?;
+                self.begin_implementation_decl(&mut module.common_spec_decls)?;
             }
             self.pp.write_str("\n}\n")?;
         }

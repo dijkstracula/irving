@@ -34,6 +34,6 @@ mod parser {
 
     #[test]
     fn test_append2() {
-        let _ast = helpers::prog_from_filename("programs/101_append2.ivy");
+        let _ast = helpers::typechecked_from_filename("programs/101_append2.ivy");
     }
 }
