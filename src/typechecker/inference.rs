@@ -112,6 +112,7 @@ impl Visitor<IvySort> for TypeChecker {
         match sym.as_str() {
             "bool" => Ok(ControlMut::Produce(IvySort::Bool)),
             "unbounded_sequence" => Ok(ControlMut::Produce(IvySort::Number)),
+
             "this" => Ok(ControlMut::Produce(IvySort::This)),
             // TODO: and of course other builtins.
             _ => match self.bindings.lookup_sym(sym) {
@@ -607,7 +608,7 @@ impl Visitor<IvySort> for TypeChecker {
     fn begin_normalized_isolate_decl(
         &mut self,
         name: &mut Symbol,
-        ast: &mut declarations::NormalizedIsolateDecl,
+        _ast: &mut declarations::NormalizedIsolateDecl,
     ) -> VisitorResult<IvySort, declarations::Decl> {
         let v = self.bindings.new_sortvar();
         self.bindings.append(name.clone(), v.clone())?;

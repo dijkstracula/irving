@@ -3,6 +3,7 @@ mod tests {
     use crate::{
         ast::expressions::Expr,
         parser::ivy::{IvyParser, Rule},
+        tests::helpers,
         typechecker::{
             inference::TypeChecker,
             sorts::{Fargs, IvySort, Module},
@@ -15,11 +16,7 @@ mod tests {
     #[test]
     fn test_instance_decl_no_args() {
         let prog = "instance socket: net.sock";
-        let parsed = IvyParser::parse(Rule::decl, &prog)
-            .expect("Parsing failed")
-            .single()
-            .unwrap();
-        let mut decl_ast = IvyParser::decl(parsed).expect("AST generation failed");
+        let mut decl_ast = helpers::decl_from_src(prog);
 
         // With an empty context, `net` should produce an unbound identifier error.
         let mut tc = TypeChecker::new();
@@ -146,12 +143,7 @@ mod tests {
     #[test]
     fn test_relation_decl_annotated() {
         let prog = "relation is_up(X: bool, Y: bool)";
-
-        let parsed = IvyParser::parse(Rule::decl, &prog)
-            .expect("Parsing failed")
-            .single()
-            .unwrap();
-        let mut decl_ast = IvyParser::decl(parsed).expect("AST generation failed");
+        let mut decl_ast = helpers::decl_from_src(prog);
 
         let mut tc = TypeChecker::new();
         let res = decl_ast
@@ -177,14 +169,35 @@ mod tests {
     }
 
     #[test]
-    fn test_typedecl_this() {
-        let prog = "type this";
+    fn test_typedecl_bv() {
+        let prog = "type addr = bv[32]";
+        let mut decl_ast = helpers::decl_from_src(prog);
 
-        let parsed = IvyParser::parse(Rule::decl, &prog)
+        let mut tc = TypeChecker::new();
+        let res = decl_ast
+            .visit(&mut tc)
+            .expect("visit")
+            .modifying(&mut decl_ast)
+            .unwrap();
+        assert_eq!(res, IvySort::BitVec(32));
+
+        assert_eq!(
+            tc.bindings.lookup_sym(&"addr".to_owned()),
+            Some(&IvySort::BitVec(32))
+        );
+
+        let prog = "type addr = bv[256]";
+        let res = IvyParser::parse(Rule::decl, &prog)
             .expect("Parsing failed")
             .single()
             .unwrap();
-        let mut decl_ast = IvyParser::decl(parsed).expect("AST generation failed");
+        IvyParser::decl(res).expect_err("Bit vectors bigger than 255 are disallowed");
+    }
+
+    #[test]
+    fn test_typedecl_this() {
+        let prog = "type this";
+        let mut decl_ast = helpers::decl_from_src(prog);
 
         let mut tc = TypeChecker::new();
         let res = decl_ast
@@ -202,12 +215,7 @@ mod tests {
     #[test]
     fn test_typedecl_uninterp() {
         let prog = "type node";
-
-        let parsed = IvyParser::parse(Rule::decl, &prog)
-            .expect("Parsing failed")
-            .single()
-            .unwrap();
-        let mut decl_ast = IvyParser::decl(parsed).expect("AST generation failed");
+        let mut decl_ast = helpers::decl_from_src(prog);
 
         let mut tc = TypeChecker::new();
         let res = decl_ast
@@ -222,15 +230,11 @@ mod tests {
             Some(&IvySort::SortVar(0))
         )
     }
+
     #[test]
     fn test_typedecl_enum() {
         let prog = "type status = {on, off}";
-
-        let parsed = IvyParser::parse(Rule::decl, &prog)
-            .expect("Parsing failed")
-            .single()
-            .unwrap();
-        let mut decl_ast = IvyParser::decl(parsed).expect("AST generation failed");
+        let mut decl_ast = helpers::decl_from_src(prog);
 
         let mut tc = TypeChecker::new();
         let res = decl_ast
@@ -249,12 +253,7 @@ mod tests {
     #[test]
     fn test_typedecl_range() {
         let prog = "type numbers = {0..100}";
-
-        let parsed = IvyParser::parse(Rule::decl, &prog)
-            .expect("Parsing failed")
-            .single()
-            .unwrap();
-        let mut decl_ast = IvyParser::decl(parsed).expect("AST generation failed");
+        let mut decl_ast = helpers::decl_from_src(prog);
 
         let mut tc = TypeChecker::new();
         let res = decl_ast
@@ -279,12 +278,7 @@ mod tests {
     #[test]
     fn test_vardecl_inferred() {
         let prog = "var i";
-
-        let parsed = IvyParser::parse(Rule::decl, &prog)
-            .expect("Parsing failed")
-            .single()
-            .unwrap();
-        let mut decl_ast = IvyParser::decl(parsed).expect("AST generation failed");
+        let mut decl_ast = helpers::decl_from_src(prog);
 
         let mut tc = TypeChecker::new();
         let res = decl_ast
@@ -303,12 +297,7 @@ mod tests {
     #[test]
     fn test_vardecl_annotated() {
         let prog = "var b: bool";
-
-        let parsed = IvyParser::parse(Rule::decl, &prog)
-            .expect("Parsing failed")
-            .single()
-            .unwrap();
-        let mut decl_ast = IvyParser::decl(parsed).expect("AST generation failed");
+        let mut decl_ast = helpers::decl_from_src(prog);
 
         let mut tc = TypeChecker::new();
         let res = decl_ast
@@ -332,7 +321,6 @@ mod tests {
             relation link(X:client, Y:server)
             relation semaphore(X:server) # X was previously defined to be a client.
         }";
-
         let parsed = IvyParser::parse(Rule::decl_block, &prog)
             .expect("Parsing failed")
             .single()

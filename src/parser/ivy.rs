@@ -251,6 +251,19 @@ impl IvyParser {
         )
     }
 
+    pub fn bv_decl(input: Node) -> Result<u8> {
+        let span = input.as_pair().as_span(); // Irritating!
+
+        match_nodes!(
+        input.into_children();
+        [number(width)] => {
+            u8::try_from(width).map_err(|_|
+                Error::new_from_span(ErrorVariant::<Rule>::CustomError { message:
+                    format!("Bit vector width {} too large", width) }, span))
+        }
+        )
+    }
+
     pub fn common_decl(input: Node) -> Result<Vec<Decl>> {
         match_nodes!(
         input.into_children();
@@ -391,6 +404,7 @@ impl IvyParser {
     pub fn type_decl(input: Node) -> Result<Binding<Sort>> {
         match_nodes!(
         input.into_children();
+        [symbol(sym), bv_decl(width)] => Ok(Binding::from(sym, Sort::Resolved(IvySort::BitVec(width)))),
         [symbol(sym), enum_decl(cstrs)] => Ok(Binding::from(sym, Sort::Resolved(IvySort::Enum(cstrs)))),
         [symbol(sym), range_decl((lo, hi))] => Ok(Binding::from(sym, Sort::Resolved(IvySort::Range(Box::new(lo), Box::new(hi))))),
         [symbol(sym), symbol(supr)] => Ok(Binding::from(sym, Sort::Resolved(IvySort::Subclass(supr)))),

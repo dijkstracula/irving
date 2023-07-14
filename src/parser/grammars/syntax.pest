@@ -23,6 +23,7 @@ index      = { "[" ~ expr ~ "]" }
 
 // Types
 
+bv_decl = { BV ~ "[" ~ number ~ "]" }
 enum_decl  = { "{" ~ symbol ~ ("," ~ symbol)* ~ "}" }
 range_decl = { "{" ~ expr ~ ".." ~ expr ~ "}" }
 
@@ -62,7 +63,11 @@ common_decl            = { COMMON ~ decl_block }
 
 // TODO: struct decl
 //type_name         = { symbol | THIS }
-type_decl         = { TYPE ~ (THIS | (symbol ~ (("=" ~ (range_decl | enum_decl)) | ("of" ~ symbol))?)) } // superclass might have to be more than a symbol
+type_decl         = { TYPE ~ (THIS | (symbol ~ (("=" ~ (
+  range_decl | 
+  enum_decl |
+  bv_decl
+)) | ("of" ~ symbol))?)) } // superclass might have to be more than a symbol
 
 invariant_decl    = { INVARIANT ~ fmla }
 

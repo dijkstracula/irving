@@ -3,20 +3,13 @@ mod tests {
     use crate::ast::declarations::{Binding, Decl, NormalizedIsolateDecl};
     use crate::parser::ivy::{IvyParser, Rule};
     use crate::passes::isolate_normalizer::{IsolateNormalizer, NormalizerError};
+    use crate::tests::helpers;
     use crate::visitor::visitor::Visitable;
     use pest_consume::Parser;
 
-    fn decl_from_src(prog: &str) -> Decl {
-        let res = IvyParser::parse(Rule::decl, &prog)
-            .expect("Parsing failed")
-            .single()
-            .unwrap();
-        IvyParser::decl(res).expect("AST generation failed")
-    }
-
     #[test]
     fn normalize_empty_module() {
-        let mut ast = decl_from_src("isolate foo = {}");
+        let mut ast = helpers::decl_from_src("isolate foo = {}");
         let mut mn = IsolateNormalizer::new();
 
         let expected_ast = Decl::NormalizedIsolate(Binding::from(
@@ -35,7 +28,7 @@ mod tests {
 
     #[test]
     fn normalize_simple_module() {
-        let mut ast = decl_from_src(
+        let mut ast = helpers::decl_from_src(
             "isolate foo = {
             var is_up: bool;
             instance net: sock.net;
@@ -46,8 +39,8 @@ mod tests {
             NormalizedIsolateDecl {
                 params: vec![],
                 impl_decls: [
-                    decl_from_src("var is_up: bool"),
-                    decl_from_src("instance net: sock.net"),
+                    helpers::decl_from_src("var is_up: bool"),
+                    helpers::decl_from_src("instance net: sock.net"),
                 ]
                 .into(),
                 spec_decls: vec![],
@@ -63,7 +56,7 @@ mod tests {
 
     #[test]
     fn normalize_impl_module() {
-        let mut ast = decl_from_src(
+        let mut ast = helpers::decl_from_src(
             "isolate foo = {
             instance net: sock.net;
 
@@ -77,8 +70,8 @@ mod tests {
             NormalizedIsolateDecl {
                 params: vec![],
                 impl_decls: [
-                    decl_from_src("var is_up: bool"),
-                    decl_from_src("instance net: sock.net"),
+                    helpers::decl_from_src("var is_up: bool"),
+                    helpers::decl_from_src("instance net: sock.net"),
                 ]
                 .into(),
                 spec_decls: vec![],
@@ -94,7 +87,7 @@ mod tests {
 
     #[test]
     fn normalize_multiple_impls() {
-        let mut ast = decl_from_src(
+        let mut ast = helpers::decl_from_src(
             "isolate foo = {
             implementation {
                 instance net: sock.net;
@@ -110,8 +103,8 @@ mod tests {
             NormalizedIsolateDecl {
                 params: vec![],
                 impl_decls: [
-                    decl_from_src("instance net: sock.net"),
-                    decl_from_src("var is_up: bool"),
+                    helpers::decl_from_src("instance net: sock.net"),
+                    helpers::decl_from_src("var is_up: bool"),
                 ]
                 .into(),
                 spec_decls: vec![],
@@ -127,7 +120,7 @@ mod tests {
 
     #[test]
     fn normalize_nested_decls() {
-        let mut ast = decl_from_src(
+        let mut ast = helpers::decl_from_src(
             "isolate foo = {
             implementation {
                 implementation {
@@ -154,7 +147,7 @@ mod tests {
 
     #[test]
     fn normalize_simple_common() {
-        let mut ast = decl_from_src(
+        let mut ast = helpers::decl_from_src(
             "isolate foo = {
             common {
                 var is_up: bool;
@@ -170,8 +163,8 @@ mod tests {
                 spec_decls: vec![],
                 common_spec_decls: vec![],
                 common_impl_decls: [
-                    decl_from_src("var is_up: bool"),
-                    decl_from_src("instance net: sock.net"),
+                    helpers::decl_from_src("var is_up: bool"),
+                    helpers::decl_from_src("instance net: sock.net"),
                 ]
                 .into(),
             },
@@ -183,7 +176,7 @@ mod tests {
 
     #[test]
     fn normalize_common() {
-        let mut ast = decl_from_src(
+        let mut ast = helpers::decl_from_src(
             "isolate foo = {
             common {
                 specification {
@@ -201,8 +194,8 @@ mod tests {
                 params: vec![],
                 impl_decls: vec![],
                 spec_decls: vec![],
-                common_spec_decls: [decl_from_src("var is_up: bool")].into(),
-                common_impl_decls: [decl_from_src("instance net: sock.net")].into(),
+                common_spec_decls: [helpers::decl_from_src("var is_up: bool")].into(),
+                common_impl_decls: [helpers::decl_from_src("instance net: sock.net")].into(),
             },
         ));
 

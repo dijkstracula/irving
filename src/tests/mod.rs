@@ -7,7 +7,7 @@ mod typechecker;
 #[cfg(test)]
 mod helpers {
     use crate::{
-        ast::toplevels::Prog,
+        ast::{declarations::Decl, toplevels::Prog},
         extraction::ivy::Extractor,
         parser::ivy::{IvyParser, Rule},
         passes::{global_lowerer::GlobalLowerer, isolate_normalizer::IsolateNormalizer},
@@ -61,5 +61,13 @@ mod helpers {
             .unwrap();
 
         prog
+    }
+
+    pub fn decl_from_src(prog: &str) -> Decl {
+        let res = IvyParser::parse(Rule::decl, &prog)
+            .expect("Parsing failed")
+            .single()
+            .unwrap();
+        IvyParser::decl(res).expect("AST generation failed")
     }
 }

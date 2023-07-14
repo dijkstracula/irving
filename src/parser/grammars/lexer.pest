@@ -52,6 +52,7 @@ ATTRIBUTE       = _{ "attribute" }
 ENSURE          = _{ "ensure"    }
 REQUIRE         = _{ "require"   }
 AXIOM           = _{ "axiom" | "property" }
+BV              = _{ "bv" /* | "strbv" | "intbv" | "uint"*/ }
 FUNCTION        = _{ "function"  }
 RELATION        = _{ "relation"  }
 INCLUDE         = _{ "include "  }
@@ -93,6 +94,7 @@ reserved = {
 | ASSERT
 | ASSUME
 | ATTRIBUTE
+| BV
 | ENSURE
 | REQUIRE
 | AXIOM
