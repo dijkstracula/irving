@@ -3,6 +3,7 @@ use pest_consume::{match_nodes, Error, Parser};
 
 use crate::ast::actions::*;
 use crate::ast::declarations::*;
+use crate::ast::expressions;
 use crate::ast::expressions::*;
 use crate::ast::logic::*;
 use crate::ast::statements::*;
@@ -138,6 +139,17 @@ impl IvyParser {
         })
     }
 
+    pub fn builtin_type(input: Node) -> Result<expressions::Sort> {
+        match_nodes!(
+        input.into_children();
+        [bv_decl(width)] => Ok(Sort::Resolved(IvySort::BitVec(width))),
+        [enum_decl(cstrs)] => Ok(Sort::Resolved(IvySort::Enum(cstrs))),
+        [range_decl((lo, hi))] => Ok(Sort::Resolved(IvySort::Range(Box::new(lo), Box::new(hi)))),
+        [symbol(supr)] => Ok(Sort::Resolved(IvySort::Subclass(supr))),
+        [_THIS] => Ok(Sort::Resolved(IvySort::This)),
+        )
+    }
+
     // Decls
 
     pub fn decl_ret(input: Node) -> Result<DeclRet> {
@@ -204,10 +216,11 @@ impl IvyParser {
         )
     }
 
-    pub fn alias_decl(input: Node) -> Result<Binding<Expr>> {
+    pub fn alias_decl(input: Node) -> Result<Binding<expressions::Sort>> {
         match_nodes!(
         input.into_children();
-        [symbol(lhs), expr(rhs)] => Ok(Binding::from(lhs, rhs)))
+        [symbol(lhs), builtin_type(rhs)] => Ok(Binding::from(lhs, rhs)),
+        )
     }
 
     pub fn attribute_decl(input: Node) -> Result<Expr> {
@@ -404,10 +417,8 @@ impl IvyParser {
     pub fn type_decl(input: Node) -> Result<Binding<Sort>> {
         match_nodes!(
         input.into_children();
-        [symbol(sym), bv_decl(width)] => Ok(Binding::from(sym, Sort::Resolved(IvySort::BitVec(width)))),
-        [symbol(sym), enum_decl(cstrs)] => Ok(Binding::from(sym, Sort::Resolved(IvySort::Enum(cstrs)))),
-        [symbol(sym), range_decl((lo, hi))] => Ok(Binding::from(sym, Sort::Resolved(IvySort::Range(Box::new(lo), Box::new(hi))))),
-        [symbol(sym), symbol(supr)] => Ok(Binding::from(sym, Sort::Resolved(IvySort::Subclass(supr)))),
+        [symbol(sym), builtin_type(resolved)] => Ok(Binding::from(sym, resolved)),
+        [symbol(lhs), symbol(rhs)] => Ok(Binding::from(lhs, Sort::Resolved(IvySort::Subclass(rhs)))),
         [symbol(sym)] => Ok(Binding::from(sym, Sort::ToBeInferred)),
         [symbol(sym)] => {
             match sym {

@@ -123,9 +123,10 @@ mod tests {
 
         assert_eq!(
             tc.bindings.append("foo".into(), IvySort::Number),
-            Err(TypeError::SortMismatch {
-                expected: IvySort::Bool,
-                actual: IvySort::Number
+            Err(TypeError::ReboundVariable {
+                sym: "foo".into(),
+                prev: IvySort::Bool,
+                new: IvySort::Number
             })
         )
     }

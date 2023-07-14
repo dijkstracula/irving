@@ -1,27 +1,17 @@
 #[cfg(test)]
 mod tests {
     use crate::{
-        ast::declarations::Decl,
-        parser::ivy::{IvyParser, Rule},
+        tests::helpers,
         typechecker::{
             inference::TypeChecker,
             sorts::{Fargs, IvySort, Module},
         },
         visitor::visitor::Visitable,
     };
-    use pest_consume::Parser;
-
-    fn module_from_src(prog: &str) -> Decl {
-        let res = IvyParser::parse(Rule::module_decl, &prog)
-            .expect("Parsing failed")
-            .single()
-            .unwrap();
-        Decl::Module(IvyParser::module_decl(res).expect("AST generation failed"))
-    }
 
     #[test]
     fn test_empty_module() {
-        let mut iso = module_from_src("module m = { }");
+        let mut iso = helpers::module_from_src("module m = { }");
 
         let sort = IvySort::Module(Module {
             args: vec![],
@@ -36,7 +26,7 @@ mod tests {
 
     #[test]
     fn test_after_init() {
-        let mut iso = module_from_src(
+        let mut iso = helpers::module_from_src(
             "module m = { 
             after init { }
         }",
@@ -55,7 +45,7 @@ mod tests {
 
     #[test]
     fn test_mod_bind_and_alias_this() {
-        let mut iso = module_from_src(
+        let mut iso = helpers::module_from_src(
             "module array(domain, range) = { 
             type this
             alias t = this
@@ -86,7 +76,7 @@ mod tests {
 
     #[test]
     fn test_mod_actions() {
-        let mut iso = module_from_src(
+        let mut iso = helpers::module_from_src(
             "module array(domain, range) = { 
             type this
 

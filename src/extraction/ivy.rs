@@ -267,10 +267,10 @@ where
     fn begin_alias_decl(
         &mut self,
         sym: &mut expressions::Symbol,
-        e: &mut expressions::Expr,
+        s: &mut expressions::Sort,
     ) -> VisitorResult<(), declarations::Decl> {
         self.pp.write_fmt(format_args!("alias {} = ", sym))?;
-        e.visit(self)?;
+        self.sort(s)?.modifying(s)?;
         Ok(ControlMut::SkipSiblings(()))
     }
 
@@ -764,6 +764,9 @@ where
             }
             Sort::Resolved(ivysort) => match ivysort {
                 // These are inferred, usually, I suppose.
+                IvySort::BitVec(width) => {
+                    self.pp.write_fmt(format_args!(" = bv[{}]", width))?;
+                }
                 IvySort::Range(min, max) => {
                     self.pp.write_str(" = {")?;
                     min.visit(self)?;

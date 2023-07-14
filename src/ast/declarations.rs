@@ -134,7 +134,7 @@ pub enum Decl {
 
     AfterAction(AfterDecl),
 
-    Alias(Binding<Expr>),
+    Alias(Binding<Sort>),
 
     Attribute(Expr),
 

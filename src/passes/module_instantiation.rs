@@ -37,7 +37,7 @@ impl Visitor<()> for ModuleInstantiation {
     fn begin_alias_decl(
         &mut self,
         sym: &mut Symbol,
-        _e: &mut crate::ast::expressions::Expr,
+        _s: &mut crate::ast::expressions::Sort,
     ) -> VisitorResult<(), crate::ast::declarations::Decl> {
         match self.mapping.get(&vec![sym.clone()]) {
             None => Ok(ControlMut::Produce(())),

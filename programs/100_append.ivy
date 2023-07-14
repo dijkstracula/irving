@@ -5,7 +5,7 @@ include collections
 include network
 
 global {
-    alias byte = uint[8]
+    alias byte = bv[8]
     instance file : vector(byte)
     type pid = {0..1}
     instance net: tcp.net(byte)

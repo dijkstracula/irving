@@ -33,6 +33,9 @@ pub enum TypeError {
     #[error("{0:?} cannot be indexed into with `.`")]
     NotARecord(IvySort),
 
+    #[error("{0:?} has no field {1} ")]
+    MissingRecordField(IvySort, Symbol),
+
     #[error("Unbound variable {0}")]
     UnboundVariable(Symbol),
 
@@ -47,4 +50,11 @@ pub enum TypeError {
 
     #[error("Symbol {expected:?} redefined as {actual:?}")]
     FargMismatch { expected: Symbol, actual: Symbol },
+
+    #[error("Symbol {sym:?} defined as {prev:?} and rebound as {new:?}")]
+    ReboundVariable {
+        sym: Symbol,
+        prev: IvySort,
+        new: IvySort,
+    },
 }

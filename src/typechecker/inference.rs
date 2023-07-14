@@ -273,7 +273,7 @@ impl Visitor<IvySort> for TypeChecker {
         .transpose()?;
         match rhs_sort {
             Some(sort) => Ok(ControlMut::SkipSiblings(sort.clone())),
-            None => bail!(TypeError::UnboundVariable(rhs.id.clone())),
+            None => bail!(TypeError::MissingRecordField(lhs_sort, rhs.id.clone())),
         }
     }
 
@@ -365,7 +365,7 @@ impl Visitor<IvySort> for TypeChecker {
     fn begin_alias_decl(
         &mut self,
         sym: &mut Symbol,
-        _e: &mut Expr,
+        _s: &mut Sort,
     ) -> VisitorResult<IvySort, declarations::Decl> {
         let v = self.bindings.new_sortvar();
         self.bindings.append(sym.clone(), v.clone())?;
@@ -374,7 +374,7 @@ impl Visitor<IvySort> for TypeChecker {
     fn finish_alias_decl(
         &mut self,
         _sym: &mut Symbol,
-        _e: &mut Expr,
+        _s: &mut Sort,
         sym_sort: IvySort,
         expr_sort: IvySort,
     ) -> VisitorResult<IvySort, declarations::Decl> {
@@ -727,6 +727,7 @@ impl Visitor<IvySort> for TypeChecker {
         name: &mut Symbol,
         _ast: &mut declarations::InstanceDecl,
     ) -> VisitorResult<IvySort, declarations::Decl> {
+        println!("instance decl: {:?}", name);
         let v = self.bindings.new_sortvar();
         self.bindings.append(name.clone(), v)?;
         Ok(ControlMut::Produce(IvySort::Unit))
@@ -734,14 +735,14 @@ impl Visitor<IvySort> for TypeChecker {
     fn finish_instance_decl(
         &mut self,
         _name: &mut Symbol,
-        _ast: &mut declarations::InstanceDecl,
+        ast: &mut declarations::InstanceDecl,
         decl_sort: IvySort,
         module_sort: IvySort,
         mod_args_sorts: Vec<IvySort>,
     ) -> VisitorResult<IvySort, declarations::Decl> {
         if mod_args_sorts.len() > 0 {
             // Will have to monomorphize with the module instantiation pass.
-            todo!()
+            println!("Uh oh: {:?} {:?}", _name, decl_sort);
         }
         if let IvySort::Module(Module { args: _, fields }) = module_sort {
             let modsort = IvySort::Module(Module {
@@ -760,7 +761,6 @@ impl Visitor<IvySort> for TypeChecker {
         name: &mut Symbol,
         sort: &mut Sort,
     ) -> VisitorResult<IvySort, declarations::Decl> {
-        println!("begin_typedecL: {:?} {:?}", name, sort);
         let binding = match sort {
             Sort::ToBeInferred => self.bindings.new_sortvar(),
             Sort::Annotated(_) => unreachable!(),
@@ -787,7 +787,6 @@ impl Visitor<IvySort> for TypeChecker {
         name_sort: IvySort,
         resolved_sort: IvySort,
     ) -> VisitorResult<IvySort, declarations::Decl> {
-        println!("NBT: {name_sort:?} {resolved_sort:?}");
         let resolved = self.bindings.unify(&name_sort, &resolved_sort)?;
         Ok(ControlMut::Produce(resolved))
     }

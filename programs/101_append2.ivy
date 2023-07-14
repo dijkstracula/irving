@@ -1,7 +1,7 @@
 #lang ivy1.8
 
 global {
-    alias byte = uint[8]
+    alias byte = bv[8]
     instance file : vector(byte)
     type pid = {0..1}
     instance net: tcp.net(byte)
@@ -19,7 +19,7 @@ process host(self:pid) = {
 
     implement append {
         contents := contents.append(val);
-        sock.send(host(1-self).sock.id, val);
+	# FIXME sock.send(host(0).sock.id, val);
         show(contents);
     }
 
@@ -30,7 +30,7 @@ process host(self:pid) = {
 }
 
 specification {
-    var msg_count : nat
+    var msg_count : unbounded_sequence
 
     after init {
         msg_count := 0
@@ -45,7 +45,3 @@ specification {
         ensure msg_count = 0 -> host(0).contents.eq(host(1).contents); # TODO: PARSEME
     }
 }
-
-axiom host(0).sock.id ~= host(1).sock.id
-
-attribute method=bmc[10] # TODO: PARSEME

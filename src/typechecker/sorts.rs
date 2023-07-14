@@ -63,6 +63,13 @@ impl IvySort {
     pub fn range_sort(lo: Expr, hi: Expr) -> IvySort {
         IvySort::Range(Box::new(lo), Box::new(hi))
     }
+
+    pub fn is_sortvar(&self) -> bool {
+        match self {
+            IvySort::SortVar(_) => true,
+            _ => false,
+        }
+    }
 }
 
 impl Default for IvySort {

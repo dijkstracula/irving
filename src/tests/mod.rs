@@ -25,6 +25,43 @@ mod helpers {
         IvyParser::prog(res).expect("AST generation failed")
     }
 
+    pub fn module_from_src(prog: &str) -> Decl {
+        let res = IvyParser::parse(Rule::module_decl, &prog)
+            .expect("Parsing failed")
+            .single()
+            .unwrap();
+        Decl::Module(IvyParser::module_decl(res).expect("AST generation failed"))
+    }
+
+    fn vector() -> Decl {
+        module_from_src(
+            "module vector(range) = { 
+            type this
+
+            action get(a:this,x:unbounded_sequence) returns (y:range)
+            action set(a:this,x:unbounded_sequence,y:range) returns (a:this)
+            action empty returns (a: this)
+            action append(a: this, x: range) returns (y: this)
+        }",
+        )
+    }
+
+    fn tcp() -> Decl {
+        module_from_src(
+            "module tcp(msg) = {
+                type endpoint = bv[32]
+                module net = {
+                    module socket = {
+                        var id: unbounded_sequence
+
+                        action send(dest: endpoint, m: msg)
+                        action recv(src: endpoint, m: msg)
+                    }
+                }
+            }",
+        )
+    }
+
     #[allow(dead_code)]
     pub fn typechecked_from_filename(path: &str) -> Prog {
         let text = std::fs::read_to_string(path).unwrap();
@@ -36,8 +73,23 @@ mod helpers {
 
         let mut gl = GlobalLowerer::new();
         let mut nm = IsolateNormalizer::new();
+
         let mut tc = TypeChecker::new();
 
+        // Fake out the "standard library"
+        let mut vec = vector();
+        vec.visit(&mut tc)
+            .expect("typechecking (vector)")
+            .modifying(&mut vec)
+            .unwrap();
+        let mut tcp = tcp();
+        tcp.visit(&mut tc)
+            .expect("typechecking (tcp)")
+            .modifying(&mut vec)
+            .unwrap();
+        println!("After net: {:?}", tc.bindings.lookup_sym("tcp"));
+
+        // Now transform the program and typecheck it.
         prog.visit(&mut gl)
             .expect("lowering globals")
             .modifying(&mut prog)

@@ -20,7 +20,7 @@ mod tests {
 
     #[test]
     fn parse_alias_decl() {
-        let fragment = "alias byte = uint[8]";
+        let fragment = "alias byte = bv[8]";
         let res = IvyParser::parse(Rule::decl, fragment)
             .expect("Parsing failed")
             .single()

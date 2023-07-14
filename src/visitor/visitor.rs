@@ -141,13 +141,13 @@ where
         Ok(ControlMut::Produce(T::default()))
     }
 
-    fn begin_alias_decl(&mut self, _sym: &mut Symbol, _e: &mut Expr) -> VisitorResult<T, Decl> {
+    fn begin_alias_decl(&mut self, _sym: &mut Symbol, _e: &mut Sort) -> VisitorResult<T, Decl> {
         Ok(ControlMut::Produce(T::default()))
     }
     fn finish_alias_decl(
         &mut self,
         _sym: &mut Symbol,
-        _e: &mut Expr,
+        _e: &mut Sort,
         _sym_res: T,
         _e_res: T,
     ) -> VisitorResult<T, Decl> {
@@ -728,8 +728,8 @@ where
                 ref mut decl,
             }) => visitor.begin_alias_decl(name, decl)?.and_then(|_| {
                 let n = name.visit(visitor)?.modifying(name)?;
-                let d = decl.visit(visitor)?.modifying(decl)?;
-                visitor.finish_alias_decl(name, decl, n, d)
+                let s = visitor.sort(decl)?.modifying(decl)?;
+                visitor.finish_alias_decl(name, decl, n, s)
             }),
             Decl::Attribute(decl) => visitor.begin_attribute_decl(decl)?.and_then(|_| {
                 let _d = decl.visit(visitor)?.modifying(decl);
@@ -1019,7 +1019,6 @@ where
 {
     fn visit(&mut self, visitor: &mut dyn Visitor<T>) -> VisitorResult<Vec<T>, Self> {
         let mut res = vec![];
-        println!("NBT: {:?}", self);
         for node in self {
             match node {
                 Decl::Noop => continue,
@@ -1041,7 +1040,6 @@ where
                     continue
                 }
                 ControlMut::Mutation(Decl::Noop, _) => {
-                    println!("NBT: got a no-op");
                     continue;
                 }
 

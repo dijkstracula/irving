@@ -93,22 +93,31 @@ impl Resolver {
     }
 
     pub fn append(&mut self, sym: Symbol, sort: IvySort) -> Result<(), TypeError> {
-        let scope = match self.sorts.last_mut() {
-            None => panic!("Appending into an empty scope"),
-            Some(scope) => scope,
-        };
+        if self.sorts.last().is_none() {
+            panic!("Appending into an empty scope");
+        }
 
         // Only check the current scope, shadowing should be fine, right?
-        if let Some(existing) = scope.get(&sym) {
-            println!("NBT: {:?}", self.ctx);
-            if existing != &sort {
-                return Err(TypeError::SortMismatch {
-                    expected: existing.clone(),
-                    actual: sort,
-                });
+        if let Some(existing) = self.sorts.last().unwrap().get(&sym).clone() {
+            if existing.is_sortvar() || sort.is_sortvar() {
+                let existing = existing.clone();
+                let unified = self.unify(&existing, &sort)?;
+
+                self.sorts.last_mut().unwrap().insert(sym, unified);
+                return Ok(());
+            } else {
+                println!("NBT {:?}", existing);
+                if existing != &sort {
+                    return Err(TypeError::ReboundVariable {
+                        sym,
+                        prev: existing.clone(),
+                        new: sort.clone(),
+                    });
+                }
             }
         }
-        scope.insert(sym, sort);
+        self.sorts.last_mut().unwrap().insert(sym, sort);
+
         Ok(())
     }
 

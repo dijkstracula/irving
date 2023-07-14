@@ -27,6 +27,8 @@ bv_decl = { BV ~ "[" ~ number ~ "]" }
 enum_decl  = { "{" ~ symbol ~ ("," ~ symbol)* ~ "}" }
 range_decl = { "{" ~ expr ~ ".." ~ expr ~ "}" }
 
+builtin_type = { bv_decl | enum_decl | range_decl | THIS }
+
 // Decls
 
 decl_ret   = { "returns" ~ "(" ~ param ~ ")" } //TODO: needs to be a paramlist
@@ -40,7 +42,7 @@ var_decl          = { VAR ~ param }
 
 attribute_decl    = { ATTRIBUTE ~ expr } // TODO: wildly overspecified: shoudl be constrained beyond just an expr.
 
-alias_decl        = { ALIAS ~ symbol ~ "=" ~ expr }
+alias_decl        = { ALIAS ~ symbol ~ "=" ~ builtin_type }
 axiom_decl        = { AXIOM ~ fmla }
 
 function_decl     = { FUNCTION ~ decl_sig ~ ":" ~ symbol }
@@ -63,11 +65,7 @@ common_decl            = { COMMON ~ decl_block }
 
 // TODO: struct decl
 //type_name         = { symbol | THIS }
-type_decl         = { TYPE ~ (THIS | (symbol ~ (("=" ~ (
-  range_decl | 
-  enum_decl |
-  bv_decl
-)) | ("of" ~ symbol))?)) } // superclass might have to be more than a symbol
+type_decl         = { TYPE ~ (THIS | (symbol ~ (("=" ~ builtin_type) | ("of" ~ symbol))?)) } // superclass might have to be more than a symbol
 
 invariant_decl    = { INVARIANT ~ fmla }
 
