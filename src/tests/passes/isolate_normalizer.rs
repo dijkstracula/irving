@@ -77,8 +77,8 @@ mod tests {
             NormalizedIsolateDecl {
                 params: vec![],
                 impl_decls: [
-                    decl_from_src("instance net: sock.net"),
                     decl_from_src("var is_up: bool"),
+                    decl_from_src("instance net: sock.net"),
                 ]
                 .into(),
                 spec_decls: vec![],

@@ -1,11 +1,7 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
 
-use anyhow::Result;
-
 use crate::ast::{declarations::*, toplevels::Prog};
-
-use crate::visitor::visitor::Visitable;
 use crate::visitor::*;
 
 pub struct GlobalLowerer {

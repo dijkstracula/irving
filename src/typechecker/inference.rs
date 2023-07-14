@@ -614,13 +614,6 @@ impl Visitor<IvySort> for TypeChecker {
 
         self.bindings.push_scope();
 
-        // Note: we have to pull the sort arguments into scope explicitly
-        // unlike action decls since the argument list AST isn't a Vec<Param>.
-        for param in &ast.params {
-            let s = self.bindings.new_sortvar();
-            self.bindings.append(param.id.clone(), s)?;
-        }
-
         self.bindings
             .append("init".into(), Module::init_action_sort())?;
 

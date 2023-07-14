@@ -100,6 +100,7 @@ impl Resolver {
 
         // Only check the current scope, shadowing should be fine, right?
         if let Some(existing) = scope.get(&sym) {
+            println!("NBT: {:?}", self.ctx);
             if existing != &sort {
                 return Err(TypeError::SortMismatch {
                     expected: existing.clone(),

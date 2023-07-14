@@ -1019,6 +1019,7 @@ where
 {
     fn visit(&mut self, visitor: &mut dyn Visitor<T>) -> VisitorResult<Vec<T>, Self> {
         let mut res = vec![];
+        println!("NBT: {:?}", self);
         for node in self {
             match node {
                 Decl::Noop => continue,
@@ -1030,14 +1031,20 @@ where
                     res.push(t);
                     break;
                 }
+
                 ControlMut::Mutation(Decl::Common(decls), t)
                 | ControlMut::Mutation(Decl::Globals(decls), t)
                 | ControlMut::Mutation(Decl::Implementation(decls), t)
                 | ControlMut::Mutation(Decl::Specification(decls), t)
                     if decls.len() == 0 =>
                 {
+                    continue
+                }
+                ControlMut::Mutation(Decl::Noop, _) => {
+                    println!("NBT: got a no-op");
                     continue;
                 }
+
                 ControlMut::Mutation(repl, t) => {
                     *node = repl;
                     res.push(t);

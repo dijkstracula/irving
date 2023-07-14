@@ -8,7 +8,7 @@ mod typechecker;
 mod helpers {
     use crate::{
         ast::toplevels::Prog,
-        extraction::{ivy::Extractor, pprint::PrettyPrinter},
+        extraction::ivy::Extractor,
         parser::ivy::{IvyParser, Rule},
         passes::{global_lowerer::GlobalLowerer, isolate_normalizer::IsolateNormalizer},
         typechecker::inference::TypeChecker,

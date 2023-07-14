@@ -3,7 +3,7 @@ use std::fmt::Write;
 use crate::{
     ast::{
         actions,
-        declarations::{self, Binding, NormalizedIsolateDecl},
+        declarations::{self, Binding},
         expressions::{self, AnnotatedSymbol, IndexExpr, Sort, Symbol, Verb},
         logic, statements, toplevels,
     },

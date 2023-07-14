@@ -110,6 +110,11 @@ impl Visitor<()> for IsolateNormalizer {
         _p: Vec<()>,
         _b: Vec<()>,
     ) -> VisitorResult<(), Decl> {
+        self.state_mut().impls.retain(|decl| match decl {
+            Decl::Noop => false,
+            _ => true,
+        });
+
         let normalized = NormalizedIsolateDecl {
             params: ast.params.clone(),
             impl_decls: std::mem::take(&mut self.state_mut().impls),
