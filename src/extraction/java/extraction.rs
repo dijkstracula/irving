@@ -193,7 +193,10 @@ where
         Ok(ControlMut::Produce(()))
     }
 
-    fn param(&mut self, p: &mut expressions::AnnotatedSymbol) -> VisitorResult<(), expressions::AnnotatedSymbol> {
+    fn param(
+        &mut self,
+        p: &mut expressions::AnnotatedSymbol,
+    ) -> VisitorResult<(), expressions::AnnotatedSymbol> {
         self.sort(&mut p.sort)?;
         self.pp.write_str(" ")?;
         self.pp.write_str(&p.id)?;

@@ -563,7 +563,7 @@ where
         match sort {
             Sort::ToBeInferred => (),
             Sort::Annotated(_) | Sort::Resolved(_) => {
-                self.pp.write_str("= ")?;
+                self.pp.write_str(" = ")?;
                 self.sort(sort)?.modifying(sort)?;
             }
         }
@@ -767,10 +767,10 @@ where
             Sort::Resolved(ivysort) => match ivysort {
                 // These are inferred, usually, I suppose.
                 IvySort::BitVec(width) => {
-                    self.pp.write_fmt(format_args!(" = bv[{}]", width))?;
+                    self.pp.write_fmt(format_args!("bv[{}]", width))?;
                 }
                 IvySort::Range(min, max) => {
-                    self.pp.write_str(" = {")?;
+                    self.pp.write_str("{")?;
                     min.visit(self)?;
                     self.pp.write_str("..")?;
                     max.visit(self)?;
@@ -782,10 +782,10 @@ where
                     self.pp.write_str(" }")?;
                 }
                 IvySort::Subclass(s) => {
-                    self.pp.write_fmt(format_args!(" of {}", s))?;
+                    self.pp.write_fmt(format_args!("of {}", s))?;
                 }
                 IvySort::Process(_proc) => {
-                    self.pp.write_str(" = {\n")?;
+                    self.pp.write_str("{\n")?;
                     self.pp.write_str("implementation {\n")?;
                     self.pp.write_str("}\n")?;
                     self.pp.write_str("specification {\n")?;

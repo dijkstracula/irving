@@ -1,7 +1,7 @@
 use clap::Parser;
-use irving::visitor::ast::Visitable;
 use irving::cli::{Cli, Commands, ExtractTarget};
 use irving::extraction;
+use irving::visitor::ast::Visitable;
 use std::io::Write;
 
 fn main() -> anyhow::Result<()> {
