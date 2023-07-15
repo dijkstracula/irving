@@ -74,6 +74,6 @@ impl IvySort {
 
 impl Default for IvySort {
     fn default() -> Self {
-        IvySort::Unit
+        IvySort::SortVar(31337)
     }
 }
