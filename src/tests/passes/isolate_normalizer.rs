@@ -3,7 +3,7 @@ mod tests {
     use crate::ast::declarations::{Binding, Decl, NormalizedIsolateDecl};
     use crate::passes::isolate_normalizer::{IsolateNormalizer, NormalizerError};
     use crate::tests::helpers;
-    use crate::visitor::visitor::Visitable;
+    use crate::visitor::ast::Visitable;
 
     #[test]
     fn normalize_empty_module() {

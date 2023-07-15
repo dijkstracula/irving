@@ -3,7 +3,7 @@ mod tests {
     use crate::ast::declarations::Decl;
     use crate::parser::ivy::{IvyParser, Rule};
     use crate::passes::module_instantiation::{ModuleInstantiation, ModuleInstantiationError};
-    use crate::visitor::visitor::Visitable;
+    use crate::visitor::ast::Visitable;
     use pest_consume::Parser;
 
     fn module_from_src(prog: &str) -> Decl {

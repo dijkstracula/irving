@@ -10,7 +10,7 @@ use thiserror::Error;
 use crate::ast::declarations::*;
 use crate::ast::expressions::{AnnotatedSymbol, Symbol};
 
-use crate::visitor::visitor::Visitable;
+use crate::visitor::ast::Visitable;
 use crate::visitor::*;
 
 pub struct NormalizerState {
@@ -78,7 +78,7 @@ impl IsolateNormalizer {
     }
 }
 
-impl Visitor<()> for IsolateNormalizer {
+impl ast::Visitor<()> for IsolateNormalizer {
     fn begin_isolate_decl(
         &mut self,
         _name: &mut Symbol,

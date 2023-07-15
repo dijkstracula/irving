@@ -6,7 +6,7 @@ use crate::visitor::*;
 /// for us but demonstrates how to use the new Visitor.
 pub struct ConstantFold;
 
-impl Visitor<()> for ConstantFold {
+impl ast::Visitor<()> for ConstantFold {
     fn finish_binop(
         &mut self,
         expr: &mut BinOp,

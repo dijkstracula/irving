@@ -1,7 +1,7 @@
 use clap::Parser;
 use irving::cli::{Cli, Commands};
 use irving::extraction::ivy::Extractor;
-use irving::visitor::visitor::Visitable;
+use irving::visitor::ast::Visitable;
 use std::io::Write;
 
 fn main() -> anyhow::Result<()> {

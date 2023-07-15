@@ -14,11 +14,7 @@ use crate::{
         statements::Stmt,
     },
     typechecker::{sorts::Module, TypeError},
-    visitor::{
-        control::ControlMut,
-        visitor::{Visitable, Visitor},
-        VisitorResult,
-    },
+    visitor::{ast::Visitable, ast::Visitor, control::ControlMut, VisitorResult},
 };
 
 pub struct TypeChecker {
@@ -735,17 +731,29 @@ impl Visitor<IvySort> for TypeChecker {
     fn finish_instance_decl(
         &mut self,
         _name: &mut Symbol,
-        ast: &mut declarations::InstanceDecl,
+        _ast: &mut declarations::InstanceDecl,
         decl_sort: IvySort,
         module_sort: IvySort,
         mod_args_sorts: Vec<IvySort>,
     ) -> VisitorResult<IvySort, declarations::Decl> {
-        if mod_args_sorts.len() > 0 {
-            // Will have to monomorphize with the module instantiation pass.
-            let foo = self.bindings.lookup_ident(&ast.sort, true);
-            println!("Uh oh: {:?} {:?}", _name, foo);
-        }
-        if let IvySort::Module(Module { args: _, fields }) = module_sort {
+        if let IvySort::Module(Module { args, fields }) = module_sort {
+            if mod_args_sorts.len() > 0 {
+                // Will have to monomorphize with the module instantiation pass.
+                println!("Uh oh: {:?} {:?}", _name, decl_sort);
+                for (i, x) in self.bindings.ctx.iter().enumerate() {
+                    println!("ctx[{i}]: {x:?}");
+                }
+
+                let foo = mod_args_sorts
+                    .iter()
+                    .zip(args.iter())
+                    .map(|(s1, (_, s2))| self.bindings.unify(s1, s2))
+                    .collect::<Result<Vec<_>, _>>()?;
+                println!("Yay? {:?}", foo);
+
+                //let monomorphizer = ModuleInstantiation::new();
+            }
+
             let modsort = IvySort::Module(Module {
                 args: vec![],
                 fields: fields,

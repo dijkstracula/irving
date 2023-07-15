@@ -14,7 +14,7 @@ impl GlobalLowerer {
     }
 }
 
-impl Visitor<()> for GlobalLowerer {
+impl ast::Visitor<()> for GlobalLowerer {
     fn finish_prog(&mut self, prog: &mut Prog) -> VisitorResult<(), Prog> {
         match &mut prog.top {
             Decl::Isolate(Binding {

@@ -26,7 +26,7 @@ impl ModuleInstantiation {
     }
 }
 
-impl Visitor<()> for ModuleInstantiation {
+impl ast::Visitor<()> for ModuleInstantiation {
     fn identifier(&mut self, i: &mut Ident) -> VisitorResult<(), Ident> {
         match self.mapping.get(i) {
             None => Ok(ControlMut::Produce(())),

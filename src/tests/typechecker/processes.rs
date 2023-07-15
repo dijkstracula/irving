@@ -12,7 +12,7 @@ mod tests {
             inference::TypeChecker,
             sorts::{IvySort, Module, Process},
         },
-        visitor::visitor::Visitable,
+        visitor::ast::Visitable,
     };
     use pest_consume::Parser;
 
