@@ -13,6 +13,7 @@ use crate::{
         expressions::{self, Expr, Sort, Symbol},
         statements::Stmt,
     },
+    passes::module_instantiation,
     typechecker::{sorts::Module, TypeError},
     visitor::{ast::Visitable, ast::Visitor, control::ControlMut, VisitorResult},
 };
@@ -219,7 +220,17 @@ impl Visitor<IvySort> for TypeChecker {
                 }
             }
 
-            _ => unimplemented!(),
+            // Field access
+            expressions::Verb::Dot => {
+                // Man, I am not sure.
+                println!("NBT: dot");
+                Ok(ControlMut::Produce(rhs_sort))
+            }
+
+            _ => {
+                eprintln!("{:?}", ast.op);
+                unimplemented!()
+            }
         }
     }
 
@@ -228,6 +239,7 @@ impl Visitor<IvySort> for TypeChecker {
         lhs: &mut Expr,
         rhs: &mut expressions::AnnotatedSymbol,
     ) -> VisitorResult<IvySort, Expr> {
+        println!("NBT: Field access {lhs:?}.{rhs:?}");
         let lhs_sort = lhs.visit(self)?.modifying(lhs)?;
 
         let mut is_common = false;
@@ -736,7 +748,7 @@ impl Visitor<IvySort> for TypeChecker {
         module_sort: IvySort,
         mod_args_sorts: Vec<IvySort>,
     ) -> VisitorResult<IvySort, declarations::Decl> {
-        if let IvySort::Module(Module { args, fields }) = module_sort {
+        if let IvySort::Module(module) = module_sort {
             if mod_args_sorts.len() > 0 {
                 // Will have to monomorphize with the module instantiation pass.
                 println!("Uh oh: {:?} {:?}", _name, decl_sort);
@@ -744,22 +756,18 @@ impl Visitor<IvySort> for TypeChecker {
                     println!("ctx[{i}]: {x:?}");
                 }
 
-                let foo = mod_args_sorts
-                    .iter()
-                    .zip(args.iter())
-                    .map(|(s1, (_, s2))| self.bindings.unify(s1, s2))
-                    .collect::<Result<Vec<_>, _>>()?;
-                println!("Yay? {:?}", foo);
-
-                //let monomorphizer = ModuleInstantiation::new();
+                let monomorphized = module_instantiation::instantiate(module, mod_args_sorts)?;
+                let unified = self.bindings.unify(&decl_sort, &monomorphized)?;
+                println!("Yay? {:?}", unified);
+                Ok(ControlMut::Produce(unified))
+            } else {
+                let modsort = IvySort::Module(Module {
+                    args: vec![],
+                    fields: module.fields,
+                });
+                let unifed = self.bindings.unify(&decl_sort, &modsort)?;
+                Ok(ControlMut::Produce(unifed))
             }
-
-            let modsort = IvySort::Module(Module {
-                args: vec![],
-                fields: fields,
-            });
-            let unifed = self.bindings.unify(&decl_sort, &modsort)?;
-            Ok(ControlMut::Produce(unifed))
         } else {
             bail!(TypeError::NotInstanceable(module_sort.clone()))
         }

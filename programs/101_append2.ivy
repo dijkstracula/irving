@@ -19,7 +19,7 @@ process host(self:pid) = {
 
     implement append {
         contents := contents.append(val);
-	# FIXME sock.send(host(0).sock.id, val);
+        sock.send(host(1-self).sock.id, val);
         show(contents);
     }
 
@@ -27,21 +27,25 @@ process host(self:pid) = {
         contents := contents.append(val);
         show(contents);
     }
+
+    specification {
+        var msg_count : unbounded_sequence
+
+        after init {
+            msg_count := 0
+        }
+
+        after sock.send(dst: tcp.endpoint, val: byte) {
+            msg_count := msg_count + 1;
+        }
+
+        after sock.recv(src: tcp.endpoint, val: byte) {
+            msg_count := msg_count - 1;
+            ensure true -> (host(0).contents = (host(1).contents));
+        }
+    }
 }
 
-specification {
-    var msg_count : unbounded_sequence
+#axiom host(0).sock.id ~= host(1).sock.id
 
-    after init {
-        msg_count := 0
-    }
-
-    after host.sock.send(self: pid, dst: tcp.endpoint, val: byte) {
-        msg_count := msg_count + 1;
-    }
-
-    after host.sock.recv(self: pid, src: tcp.endpoint, val: byte) {
-        msg_count := msg_count - 1;
-        ensure msg_count = 0 -> host(0).contents.eq(host(1).contents); # TODO: PARSEME
-    }
-}
+#attribute method=bmc[10] # TODO: PARSEME

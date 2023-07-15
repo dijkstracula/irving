@@ -81,7 +81,6 @@ mod helpers {
 
         let mut gl = GlobalLowerer::new();
         let mut nm = IsolateNormalizer::new();
-
         let mut tc = TypeChecker::new();
 
         // Fake out the "standard library"

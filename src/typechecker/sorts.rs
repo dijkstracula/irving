@@ -86,7 +86,7 @@ pub struct SortSubstituter {
 }
 
 impl SortSubstituter {
-    fn new(mapping: BTreeMap<IvySort, IvySort>) -> Self {
+    pub fn new(mapping: BTreeMap<IvySort, IvySort>) -> Self {
         Self { mapping }
     }
 
