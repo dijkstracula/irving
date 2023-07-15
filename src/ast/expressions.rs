@@ -4,14 +4,14 @@ use crate::typechecker::sorts::IvySort;
 
 /// Corresponds to a file/line pairing, and possibly additionally docstrings to
 /// be reconstructed in the extracted code.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]
 pub struct Annotation {
     docstring: Vec<String>,
     file: String,
     line: u32,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]
 pub enum Verb {
     Iff,
     Or,
@@ -34,33 +34,33 @@ pub enum Verb {
 pub type Symbol = String;
 pub type Ident = Vec<Symbol>;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]
 pub struct AnnotatedSymbol {
     // TODO: this should become a Symbol.
     pub id: Symbol,
     pub sort: Sort,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]
 pub struct AppExpr {
     pub func: Box<Expr>,
     pub args: Vec<Expr>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]
 pub struct BinOp {
     pub lhs: Box<Expr>,
     pub op: Verb,
     pub rhs: Box<Expr>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]
 pub struct FieldAccess {
     pub record: Box<Expr>,
     pub field: AnnotatedSymbol,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]
 pub struct IndexExpr {
     pub lhs: Box<Expr>,
     pub idx: Box<Expr>,
@@ -68,26 +68,26 @@ pub struct IndexExpr {
 
 pub type ParamList = Vec<AnnotatedSymbol>;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]
 pub enum Sort {
     ToBeInferred,
     Annotated(Ident),
     Resolved(IvySort),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]
 pub struct Type {
     pub ident: TypeName,
     pub sort: IvySort, /* spec: TypeSpec */
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]
 pub enum TypeName {
     Name(Symbol),
     This,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]
 #[allow(clippy::large_enum_variant)]
 pub enum Expr {
     // TODO: this should become a Symbol.

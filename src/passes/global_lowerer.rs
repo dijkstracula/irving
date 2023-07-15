@@ -2,6 +2,7 @@
 #![allow(unused_variables)]
 
 use crate::ast::{declarations::*, toplevels::Prog};
+use crate::visitor::ast::Visitor;
 use crate::visitor::*;
 
 pub struct GlobalLowerer {
@@ -14,7 +15,7 @@ impl GlobalLowerer {
     }
 }
 
-impl ast::Visitor<()> for GlobalLowerer {
+impl Visitor<()> for GlobalLowerer {
     fn finish_prog(&mut self, prog: &mut Prog) -> VisitorResult<(), Prog> {
         match &mut prog.top {
             Decl::Isolate(Binding {

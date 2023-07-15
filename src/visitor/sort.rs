@@ -74,7 +74,7 @@ where
     fn module(
         &mut self,
         _mod: &mut Module,
-        _args_t: Vec<T>,
+        _args_t: Vec<(String, T)>,
         _fields_t: BTreeMap<String, T>,
     ) -> VisitorResult<T, IvySort> {
         Ok(ControlMut::Produce(T::default()))
@@ -89,6 +89,10 @@ where
         _common_impl_fields_t: BTreeMap<Symbol, T>,
         _common_spec_fields_t: BTreeMap<Symbol, T>,
     ) -> VisitorResult<T, IvySort> {
+        Ok(ControlMut::Produce(T::default()))
+    }
+
+    fn sortvar(&mut self, _id: &mut usize) -> VisitorResult<T, IvySort> {
         Ok(ControlMut::Produce(T::default()))
     }
 }
@@ -137,7 +141,11 @@ where
                 let args_t = module
                     .args
                     .iter_mut()
-                    .map(|(_, s)| s.visit(visitor)?.modifying(s))
+                    .map(|(name, s)| {
+                        s.visit(visitor)?
+                            .modifying(s)
+                            .map(|s_t| (name.clone(), s_t))
+                    })
                     .collect::<Result<Vec<_>, _>>()?;
                 let fields_t = module
                     .fields
@@ -150,10 +158,10 @@ where
                 visitor.module(module, args_t, fields_t)
             }
             IvySort::Process(_) => todo!(),
-            IvySort::SortVar(_) => todo!(),
+            IvySort::SortVar(id) => visitor.sortvar(id),
         }?
         .modifying(self)?;
-        todo!()
+        Ok(ControlMut::Produce(t))
     }
 }
 
