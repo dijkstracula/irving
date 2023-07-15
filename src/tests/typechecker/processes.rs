@@ -5,14 +5,12 @@ mod tests {
     use crate::{
         ast::{declarations::Decl, expressions::Expr},
         parser::ivy::{IvyParser, Rule},
-        passes::{
-            isolate_normalizer::IsolateNormalizer, module_instantiation::ModuleInstantiation,
-        },
+        passes::isolate_normalizer::IsolateNormalizer,
         typechecker::{
             inference::TypeChecker,
             sorts::{IvySort, Module, Process},
         },
-        visitor::visitor::Visitable,
+        visitor::ast::Visitable,
     };
     use pest_consume::Parser;
 
@@ -95,12 +93,14 @@ mod tests {
         let vecdecl = Decl::Module(IvyParser::module_decl(parsed).expect("AST generation failed"));
 
         let mut filedecl = vecdecl.clone();
+        /*
         let mut mr = ModuleInstantiation::new([("elems".into(), vec!["byte".into()])].into());
         filedecl
             .visit(&mut mr)
             .unwrap()
             .modifying(&mut filedecl)
             .unwrap();
+        */
 
         let filesort = filedecl
             .visit(&mut tc)

@@ -7,7 +7,7 @@ use crate::{
         statements, toplevels,
     },
     extraction::pprint::PrettyPrinter,
-    visitor::visitor::Visitable,
+    visitor::ast::Visitable,
 };
 
 use crate::visitor::*;
@@ -45,7 +45,7 @@ where
     }
 }
 
-impl<W> Visitor<()> for Extractor<W>
+impl<W> ast::Visitor<()> for Extractor<W>
 where
     W: Write,
 {

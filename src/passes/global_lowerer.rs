@@ -2,6 +2,7 @@
 #![allow(unused_variables)]
 
 use crate::ast::{declarations::*, toplevels::Prog};
+use crate::visitor::ast::Visitor;
 use crate::visitor::*;
 
 pub struct GlobalLowerer {

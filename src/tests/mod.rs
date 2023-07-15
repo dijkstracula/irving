@@ -12,7 +12,7 @@ mod helpers {
         parser::ivy::{IvyParser, Rule},
         passes::{global_lowerer::GlobalLowerer, isolate_normalizer::IsolateNormalizer},
         typechecker::inference::TypeChecker,
-        visitor::visitor::Visitable,
+        visitor::ast::Visitable,
     };
     use pest_consume::Parser;
 
@@ -81,7 +81,6 @@ mod helpers {
 
         let mut gl = GlobalLowerer::new();
         let mut nm = IsolateNormalizer::new();
-
         let mut tc = TypeChecker::new();
 
         // Fake out the "standard library"

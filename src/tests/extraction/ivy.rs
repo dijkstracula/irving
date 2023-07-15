@@ -4,7 +4,7 @@ mod tests {
 
     use crate::extraction::ivy::Extractor;
     use crate::tests::helpers::prog_from_filename;
-    use crate::visitor::visitor::Visitable;
+    use crate::visitor::ast::Visitable;
     use crate::{
         ast::{expressions::Expr, logic::Fmla},
         parser::ivy::{IvyParser, Result, Rule},

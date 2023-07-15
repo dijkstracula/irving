@@ -9,7 +9,7 @@ mod tests {
             sorts::{Fargs, IvySort, Module},
             TypeError,
         },
-        visitor::visitor::Visitable,
+        visitor::ast::Visitable,
     };
     use pest_consume::Parser;
 

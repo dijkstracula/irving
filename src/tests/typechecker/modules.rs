@@ -7,7 +7,7 @@ mod tests {
             inference::TypeChecker,
             sorts::{Fargs, IvySort, Module},
         },
-        visitor::visitor::Visitable,
+        visitor::ast::Visitable,
     };
 
     #[test]

@@ -165,7 +165,7 @@ impl Resolver {
     pub fn unify(&mut self, lhs: &IvySort, rhs: &IvySort) -> Result<IvySort, TypeError> {
         let lhs = self.resolve(lhs).clone();
         let rhs = self.resolve(rhs).clone();
-        println!("unify({:?}, {:?}", lhs, rhs);
+        println!("unify({:?}, {:?})", lhs, rhs);
         match (&lhs, &rhs) {
             (IvySort::SortVar(i), IvySort::SortVar(j)) => {
                 if i < j {

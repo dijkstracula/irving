@@ -8,8 +8,10 @@ use crate::{
         logic, statements, toplevels,
     },
     typechecker::sorts::IvySort,
-    visitor::visitor::Visitable,
+    visitor::ast::Visitor,
 };
+
+use crate::visitor::ast::Visitable;
 
 use crate::visitor::*;
 
@@ -62,7 +64,7 @@ where
     }
 }
 
-impl<W> Visitor<()> for Extractor<W>
+impl<W> ast::Visitor<()> for Extractor<W>
 where
     W: Write,
 {

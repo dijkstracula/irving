@@ -1,67 +1,41 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
-use anyhow::bail;
+use anyhow::{bail, Result};
+
 use thiserror::Error;
 
 use crate::{
-    ast::expressions::{Ident, Symbol},
-    visitor::*,
+    ast::expressions::Symbol,
+    typechecker::sorts::{IvySort, Module, SortSubstituter},
+    visitor::sort::Visitable,
 };
 
-/// Walks a module definition, replacing ununified SortVars with a
+/// Walks a ModuleSort definition, replacing ununified SortVars with a
 /// concrete IvySort.
-pub struct ModuleInstantiation {
-    mapping: HashMap<Ident, Ident>,
-}
+pub fn instantiate(mut m: Module, args: Vec<IvySort>) -> Result<IvySort> {
+    let curried = m.args.drain(0..args.len());
+    let substs = curried
+        .zip(args.into_iter())
+        .map(|((name, s1), s2)| {
+            let IvySort::SortVar(_) = s1 else {
+                bail!(ModuleInstantiationError::ModuleArgumentRebinding(name.clone(), s1));
+            };
+            Ok((s1, s2))
+        })
+        .collect::<Result<BTreeMap<_, _>>>()?;
 
-impl ModuleInstantiation {
-    #[allow(dead_code)]
-    pub fn new(mapping: HashMap<Symbol, Ident>) -> Self {
-        let mapping: HashMap<Ident, Ident> = mapping
-            .into_iter()
-            .map(|(k, v)| (vec![k], v))
-            .collect::<_>();
+    let mut ss = SortSubstituter::new(substs);
 
-        Self { mapping: mapping }
-    }
-}
+    let mut as_ivysort = IvySort::Module(m);
 
-impl Visitor<()> for ModuleInstantiation {
-    fn identifier(&mut self, i: &mut Ident) -> VisitorResult<(), Ident> {
-        match self.mapping.get(i) {
-            None => Ok(ControlMut::Produce(())),
-            Some(s2) => Ok(ControlMut::Mutation(s2.clone(), ())),
-        }
-    }
-
-    fn begin_alias_decl(
-        &mut self,
-        sym: &mut Symbol,
-        _s: &mut crate::ast::expressions::Sort,
-    ) -> VisitorResult<(), crate::ast::declarations::Decl> {
-        match self.mapping.get(&vec![sym.clone()]) {
-            None => Ok(ControlMut::Produce(())),
-            Some(_) => bail!(ModuleInstantiationError::ModuleArgumentRebinding(
-                sym.clone()
-            )),
-        }
-    }
-
-    fn finish_module_decl(
-        &mut self,
-        _node: &mut Symbol,
-        ast: &mut crate::ast::declarations::ModuleDecl,
-        _n: (),
-        _p: Vec<()>,
-        _b: Vec<()>,
-    ) -> VisitorResult<(), crate::ast::declarations::Decl> {
-        ast.sortsyms = vec![];
-        Ok(ControlMut::Produce(()))
-    }
+    Ok(as_ivysort.visit(&mut ss)?.modifying(&mut as_ivysort)?)
 }
 
 #[derive(Debug, Error, Clone, PartialEq, Eq)]
 pub enum ModuleInstantiationError {
-    #[error("Symbol {0:?} is a free variable in the module argument list")]
-    ModuleArgumentRebinding(Symbol),
+    #[error("Sort {0:?} is not a module")]
+    NotAModule(IvySort),
+
+    #[error("Symbol {0:?} is already bound to {1:?}, which is not a free sort variable")]
+    ModuleArgumentRebinding(Symbol, IvySort),
 }

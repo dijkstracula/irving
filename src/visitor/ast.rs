@@ -518,14 +518,6 @@ where
     }
 }
 
-/// Something that can be visited by a Visitor.
-pub trait Visitable<T, U = T>
-where
-    Self: Sized,
-{
-    fn visit(&mut self, visitor: &mut dyn Visitor<T>) -> VisitorResult<U, Self>;
-}
-
 impl<T> Visitable<T> for Prog
 where
     T: Default,
@@ -1097,4 +1089,12 @@ where
         }
         Ok(ControlMut::Produce(res))
     }
+}
+
+/// Something that can be visited by a Visitor.
+pub trait Visitable<T, U = T>
+where
+    Self: Sized,
+{
+    fn visit(&mut self, visitor: &mut dyn Visitor<T>) -> VisitorResult<U, Self>;
 }
