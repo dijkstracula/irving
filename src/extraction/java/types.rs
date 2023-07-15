@@ -1,5 +1,6 @@
 use crate::{ast::expressions::Expr, typechecker::sorts::IvySort};
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum JavaType {
     Boolean,
     Char,
@@ -15,6 +16,7 @@ impl JavaType {
         Self::Object(typ, vec![])
     }
 }
+
 impl From<IvySort> for JavaType {
     fn from(value: IvySort) -> Self {
         match value {

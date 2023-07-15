@@ -2,6 +2,7 @@ mod extraction;
 mod parser;
 mod passes;
 mod programs;
+mod stdlib;
 mod typechecker;
 
 #[cfg(test)]
@@ -11,6 +12,7 @@ mod helpers {
         extraction::ivy::Extractor,
         parser::ivy::{IvyParser, Rule},
         passes::{global_lowerer::GlobalLowerer, isolate_normalizer::IsolateNormalizer},
+        stdlib::load_stdlib,
         typechecker::inference::TypeChecker,
         visitor::ast::Visitable,
     };
@@ -81,22 +83,10 @@ mod helpers {
 
         let mut gl = GlobalLowerer::new();
         let mut nm = IsolateNormalizer::new();
-        let mut tc = TypeChecker::new();
 
         // Fake out the "standard library"
-        let mut vec = vector_moduledecl();
-        vec.visit(&mut tc)
-            .expect("typechecking (vector)")
-            .modifying(&mut vec)
-            .unwrap();
-        let mut tcp = tcp_moduledecl();
-        tcp.visit(&mut tc)
-            .expect("typechecking (tcp)")
-            .modifying(&mut vec)
-            .unwrap();
-        println!("After net: {:?}", tc.bindings.lookup_sym("tcp"));
+        let mut tc = load_stdlib().unwrap();
 
-        // Now transform the program and typecheck it.
         prog.visit(&mut gl)
             .expect("lowering globals")
             .modifying(&mut prog)
@@ -106,13 +96,6 @@ mod helpers {
             .expect("ast normalizing")
             .modifying(&mut prog)
             .unwrap();
-
-        let mut pprint = Extractor::new();
-        prog.visit(&mut pprint)
-            .expect("prettyprint")
-            .modifying(&mut prog)
-            .unwrap();
-        println!("{}", pprint.pp.out);
 
         prog.visit(&mut tc)
             .expect("typechecking")

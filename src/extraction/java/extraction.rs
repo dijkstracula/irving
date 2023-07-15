@@ -14,6 +14,8 @@ use crate::{
 
 use crate::visitor::*;
 
+use super::types::JavaType;
+
 pub struct Extractor<W>
 where
     W: Write,
@@ -197,6 +199,7 @@ where
         &mut self,
         p: &mut expressions::AnnotatedSymbol,
     ) -> VisitorResult<(), expressions::AnnotatedSymbol> {
+        println!("{:?}", p);
         self.sort(&mut p.sort)?;
         self.pp.write_str(" ")?;
         self.pp.write_str(&p.id)?;
@@ -205,7 +208,14 @@ where
 
     fn sort(&mut self, s: &mut expressions::Sort) -> VisitorResult<(), expressions::Sort> {
         match s {
-            _ => todo!(),
+            expressions::Sort::ToBeInferred => (),
+            expressions::Sort::Annotated(ident) => {
+                ident.visit(self)?.modifying(ident)?;
+            }
+            expressions::Sort::Resolved(ivysort) => {
+                let j: JavaType = ivysort.clone().into(); // XXX: poor choices lead to this clone.a
+                self.pp.write_fmt(format_args!("{:?}", j))?;
+            }
         }
         Ok(ControlMut::Produce(()))
     }

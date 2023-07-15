@@ -33,9 +33,6 @@ pub fn instantiate(mut m: Module, args: Vec<IvySort>) -> Result<IvySort> {
 
 #[derive(Debug, Error, Clone, PartialEq, Eq)]
 pub enum ModuleInstantiationError {
-    #[error("Sort {0:?} is not a module")]
-    NotAModule(IvySort),
-
     #[error("Symbol {0:?} is already bound to {1:?}, which is not a free sort variable")]
     ModuleArgumentRebinding(Symbol, IvySort),
 }

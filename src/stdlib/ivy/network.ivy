@@ -1,0 +1,11 @@
+module tcp = {
+    type endpoint = bv[32]
+    module net(msg) = {
+        module socket = {
+            var id: unbounded_sequence
+
+            action send(dest: endpoint, m: msg)
+            action recv(src: endpoint, m: msg)
+        }
+    }
+}

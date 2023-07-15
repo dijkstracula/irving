@@ -1,0 +1,8 @@
+module vector(range) = { 
+    type this
+
+    action get(a:this,x:unbounded_sequence) returns (y:range)
+    action set(a:this,x:unbounded_sequence,y:range) returns (a:this)
+    action empty returns (a: this)
+    action append(a: this, x: range) returns (y: this)
+} 

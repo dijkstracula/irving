@@ -222,8 +222,8 @@ impl Visitor<IvySort> for TypeChecker {
 
             // Field access
             expressions::Verb::Dot => {
-                // Man, I am not sure.
-                println!("NBT: dot");
+                // Man, I am not sure.  This SHOULD have been typechecked when we visit the field
+                // access, but I should confirm that this is actually the case.
                 Ok(ControlMut::Produce(rhs_sort))
             }
         }
@@ -234,7 +234,6 @@ impl Visitor<IvySort> for TypeChecker {
         lhs: &mut Expr,
         rhs: &mut expressions::AnnotatedSymbol,
     ) -> VisitorResult<IvySort, Expr> {
-        println!("NBT: Field access {lhs:?}.{rhs:?}");
         let lhs_sort = lhs.visit(self)?.modifying(lhs)?;
 
         let mut is_common = false;
@@ -616,7 +615,12 @@ impl Visitor<IvySort> for TypeChecker {
         let v = self.bindings.new_sortvar();
         self.bindings.append(name.clone(), v.clone())?;
 
-        self.bindings.push_scope();
+        // Don't create a new scope if we're at the special top-level declaration.
+        // This is needed for the typechecker visiting multiple Progs and expecting
+        // earlier declarations to be in scope.
+        if name != "top" {
+            self.bindings.push_scope();
+        }
 
         self.bindings
             .append("init".into(), Module::init_action_sort())?;
@@ -625,7 +629,7 @@ impl Visitor<IvySort> for TypeChecker {
     }
     fn finish_normalized_isolate_decl(
         &mut self,
-        _name: &mut Symbol,
+        name: &mut Symbol,
         ast: &mut declarations::NormalizedIsolateDecl,
         decl_sort: IvySort,
         param_sorts: Vec<IvySort>,
@@ -692,7 +696,13 @@ impl Visitor<IvySort> for TypeChecker {
         });
 
         let unified = self.bindings.unify(&decl_sort, &proc)?;
-        self.bindings.pop_scope();
+
+        // Don't create a new scope if we're at the special top-level declaration.
+        // This is needed for the typechecker visiting multiple Progs and expecting
+        // earlier declarations to be in scope.
+        if name != "top" {
+            self.bindings.pop_scope();
+        }
 
         Ok(ControlMut::Produce(unified))
     }
