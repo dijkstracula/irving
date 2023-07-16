@@ -47,10 +47,12 @@ mod tests {
             .append(
                 "net".into(),
                 IvySort::Module(Module {
+                    name: "net".into(),
                     args: [].into(),
                     fields: [(
                         "socket".into(),
                         IvySort::Module(Module {
+                            name: "socket".into(),
                             args: vec![],
                             fields: [
                                 ("id".into(), tc.bindings.lookup_sym("pid").unwrap().clone()),

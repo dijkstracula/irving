@@ -551,7 +551,7 @@ impl Visitor<IvySort> for TypeChecker {
     }
     fn finish_module_decl(
         &mut self,
-        _name: &mut Symbol,
+        name: &mut Symbol,
         ast: &mut declarations::ModuleDecl,
         mod_sort: IvySort,
         param_sorts: Vec<IvySort>,
@@ -603,7 +603,11 @@ impl Visitor<IvySort> for TypeChecker {
             })
             .collect::<Result<Vec<_>, _>>()?;
 
-        let module = IvySort::Module(Module { args, fields });
+        let module = IvySort::Module(Module {
+            name: name.clone(),
+            args,
+            fields,
+        });
         let unifed = self.bindings.unify(&mod_sort, &module)?;
 
         self.bindings.pop_scope();
@@ -759,7 +763,7 @@ impl Visitor<IvySort> for TypeChecker {
     }
     fn finish_instance_decl(
         &mut self,
-        _name: &mut Symbol,
+        name: &mut Symbol,
         _ast: &mut declarations::InstanceDecl,
         decl_sort: IvySort,
         module_sort: IvySort,
@@ -768,7 +772,7 @@ impl Visitor<IvySort> for TypeChecker {
         if let IvySort::Module(module) = module_sort {
             if mod_args_sorts.len() > 0 {
                 // Will have to monomorphize with the module instantiation pass.
-                println!("Uh oh: {:?} {:?}", _name, decl_sort);
+                println!("Uh oh: {:?} {:?}", name, decl_sort);
                 for (i, x) in self.bindings.ctx.iter().enumerate() {
                     println!("ctx[{i}]: {x:?}");
                 }
@@ -779,6 +783,7 @@ impl Visitor<IvySort> for TypeChecker {
                 Ok(ControlMut::Produce(unified))
             } else {
                 let modsort = IvySort::Module(Module {
+                    name: name.clone(),
                     args: vec![],
                     fields: module.fields,
                 });

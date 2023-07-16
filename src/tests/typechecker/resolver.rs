@@ -22,6 +22,7 @@ mod tests {
         r.append(
             "net".into(),
             IvySort::Module(Module {
+                name: "net".into(),
                 args: [].into(),
                 fields: [("socket".into(), IvySort::Number)].into(),
             }),
@@ -62,6 +63,7 @@ mod tests {
         assert_eq!(
             r.lookup_ident(&vec!("net".to_owned()), true),
             Ok(&IvySort::Module(Module {
+                name: "net".into(),
                 args: [].into(),
                 fields: [("socket".into(), IvySort::Number)].into()
             }))

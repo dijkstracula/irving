@@ -15,6 +15,7 @@ mod tests {
         let mut iso = helpers::module_from_src("module m = { }");
 
         let sort = IvySort::Module(Module {
+            name: "m".into(),
             args: vec![],
             fields: [("init".into(), Module::init_action_sort())].into(),
         });
@@ -34,6 +35,7 @@ mod tests {
         );
 
         let sort = IvySort::Module(Module {
+            name: "m".into(),
             args: vec![],
             fields: [("init".into(), Module::init_action_sort())].into(),
         });
@@ -54,6 +56,7 @@ mod tests {
         );
 
         let sort = IvySort::Module(Module {
+            name: "array".into(),
             args: vec![
                 ("domain".into(), IvySort::SortVar(1)),
                 ("range".into(), IvySort::SortVar(2)),
@@ -87,6 +90,7 @@ mod tests {
         );
 
         let sort = IvySort::Module(Module {
+            name: "array".into(),
             args: vec![
                 ("domain".into(), IvySort::SortVar(1)),
                 ("range".into(), IvySort::SortVar(2)),
