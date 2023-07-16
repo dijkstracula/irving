@@ -1,6 +1,5 @@
 use crate::{
-    ast::declarations, extraction::java::extraction::expressions::Symbol,
-    passes::isolate_normalizer::NormalizerError, typechecker::TypeError,
+    ast::declarations, extraction::java::extraction::expressions::Symbol, typechecker::TypeError,
 };
 use std::{collections::BTreeMap, fmt::Write};
 
@@ -116,7 +115,10 @@ where
         ast.test.visit(self)?;
 
         self.pp.write_str(" {\n")?;
-        self.write_separated(&mut ast.doit, ";\n")?;
+        for stmt in &mut ast.doit {
+            stmt.visit(self)?.modifying(stmt)?;
+            self.pp.write_str(";\n")?;
+        }
         self.pp.write_str("}\n")?;
 
         Ok(ControlMut::SkipSiblings(()))
@@ -124,12 +126,76 @@ where
 
     // Declarations
 
+    fn begin_action_decl(
+        &mut self,
+        name: &mut Symbol,
+        ast: &mut declarations::ActionDecl,
+    ) -> VisitorResult<(), declarations::Decl> {
+        let ret: JavaType = match &mut ast.ret {
+            None => JavaType::Void,
+            Some(ret) => match &mut ret.sort {
+                expressions::Sort::ToBeInferred => todo!(),
+                expressions::Sort::Annotated(_) => todo!(),
+                expressions::Sort::Resolved(ivysort) => ivysort.clone().into(), //XXX
+            },
+        };
+        self.pp
+            .write_fmt(format_args!("private {:?} {}() {{\n", ret, name))?;
+        for stmt in &mut ast.body {
+            stmt.visit(self)?.modifying(stmt)?;
+            self.pp.write_str(";\n")?;
+        }
+        self.pp.write_str("\n}")?;
+
+        Ok(ControlMut::SkipSiblings(()))
+    }
+
+    fn begin_after_decl(
+        &mut self,
+        ast: &mut declarations::AfterDecl,
+    ) -> VisitorResult<(), declarations::Decl> {
+        ast.name.visit(self)?.modifying(&mut ast.name)?;
+        self.pp.write_str(".addAfter((")?;
+
+        if let Some(params) = &mut ast.params {
+            self.write_paramlist(params, ",")?;
+            // XXX: also the return value needs to be bound.
+        }
+        self.pp.write_str(") -> {\n")?;
+        for stmt in &mut ast.body {
+            stmt.visit(self)?.modifying(stmt)?;
+            self.pp.write_str(";\n")?;
+        }
+        self.pp.write_str("})")?;
+        Ok(ControlMut::SkipSiblings(()))
+    }
+
     fn begin_alias_decl(
         &mut self,
         sym: &mut expressions::Symbol,
         e: &mut expressions::Sort,
     ) -> VisitorResult<(), declarations::Decl> {
         self.type_aliases.insert(sym.clone(), e.clone());
+        Ok(ControlMut::SkipSiblings(()))
+    }
+
+    fn begin_before_decl(
+        &mut self,
+        ast: &mut declarations::BeforeDecl,
+    ) -> VisitorResult<(), declarations::Decl> {
+        ast.name.visit(self)?.modifying(&mut ast.name)?;
+        self.pp.write_str(".addBefore((")?;
+
+        if let Some(params) = &mut ast.params {
+            self.write_paramlist(params, ",")?;
+            // XXX: also the return value needs to be bound.
+        }
+        self.pp.write_str(") -> {\n")?;
+        for stmt in &mut ast.body {
+            stmt.visit(self)?.modifying(stmt)?;
+            self.pp.write_str(";\n")?;
+        }
+        self.pp.write_str("})")?;
         Ok(ControlMut::SkipSiblings(()))
     }
 
@@ -141,10 +207,13 @@ where
         self.pp.write_fmt(format_args!("class {} extends ", name))?;
         ast.sort.visit(self)?.modifying(&mut ast.sort)?;
 
-        println!("{:?}", ast);
         if !ast.args.is_empty() {
             self.pp.write_str("<")?;
-            self.write_paramlist(&mut ast.args, ",")?;
+
+            // maybe slightly confusing: because we parameterise modules on their sorts,
+            // the `id` field contains the identifier for sort, not the `sort` field.
+            let mut sorts = ast.args.iter().map(|a| a.id.clone()).collect::<Vec<_>>();
+            self.write_separated(&mut sorts, ",")?;
             self.pp.write_str(">")?;
         }
 
@@ -152,7 +221,7 @@ where
     }
     fn begin_isolate_decl(
         &mut self,
-        name: &mut expressions::Symbol,
+        _name: &mut expressions::Symbol,
         ast: &mut declarations::IsolateDecl,
     ) -> VisitorResult<(), declarations::Decl> {
         bail!(TypeError::UnnormalizedIsolate(ast.clone()))
@@ -178,6 +247,7 @@ where
         }
         self.pp.write_str("}\n\n")?;
 
+        // impl
         self.pp
             .write_fmt(format_args!("public class {name}_impl {{\n\n"))?;
         for decl in &mut ast.impl_decls {
@@ -187,8 +257,44 @@ where
         self.pp
             .write_fmt(format_args!("}} // {name}_impl definition\n"))?;
 
+        // impl
+        self.pp
+            .write_fmt(format_args!("public class {name}_spec {{\n\n"))?;
+        for decl in &mut ast.spec_decls {
+            decl.visit(self)?.modifying(decl)?;
+            self.pp.write_str("\n")?;
+        }
+        self.pp
+            .write_fmt(format_args!("}} // {name}_spec definition\n"))?;
+
         self.pp
             .write_fmt(format_args!("}} // {name} definition\n"))?;
+        Ok(ControlMut::SkipSiblings(()))
+    }
+
+    fn begin_typedecl(
+        &mut self,
+        name: &mut Symbol,
+        s: &mut expressions::Sort,
+    ) -> VisitorResult<(), declarations::Decl> {
+        self.type_aliases.insert(name.clone(), s.clone());
+        Ok(ControlMut::SkipSiblings(()))
+    }
+
+    fn begin_vardecl(
+        &mut self,
+        name: &mut Symbol,
+        sort: &mut expressions::Sort,
+    ) -> VisitorResult<(), declarations::Decl> {
+        self.pp.write_str("private ")?;
+        match sort {
+            expressions::Sort::ToBeInferred => unreachable!(),
+            expressions::Sort::Annotated(_) | expressions::Sort::Resolved(_) => {
+                self.sort(sort)?.modifying(sort)?;
+            }
+        };
+        self.pp.write_str(" ")?;
+        name.visit(self)?.modifying(name)?;
         Ok(ControlMut::SkipSiblings(()))
     }
 
@@ -203,6 +309,17 @@ where
         self.pp.write_str("(")?;
         self.write_separated(&mut ast.args, ", ")?;
         self.pp.write_str(")")?;
+        Ok(ControlMut::SkipSiblings(()))
+    }
+
+    fn begin_assign(
+        &mut self,
+        ast: &mut actions::AssignAction,
+    ) -> VisitorResult<(), actions::Action> {
+        ast.lhs.visit(self)?;
+        self.pp.write_str(" = ")?;
+        ast.rhs.visit(self)?;
+
         Ok(ControlMut::SkipSiblings(()))
     }
 
@@ -287,7 +404,6 @@ where
         &mut self,
         p: &mut expressions::AnnotatedSymbol,
     ) -> VisitorResult<(), expressions::AnnotatedSymbol> {
-        println!("{:?}", p);
         self.sort(&mut p.sort)?;
         self.pp.write_str(" ")?;
         self.pp.write_str(&p.id)?;
@@ -309,7 +425,7 @@ where
     }
 
     fn symbol(&mut self, s: &mut expressions::Symbol) -> VisitorResult<(), expressions::Symbol> {
-        let alias = self.type_aliases.get(s);
+        let alias = self.type_aliases.get_mut(s);
         match alias {
             None => self.pp.write_str(s)?,
             Some(sort) => {

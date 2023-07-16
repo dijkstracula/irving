@@ -43,6 +43,7 @@ mod tests {
             .append(
                 "net".into(),
                 IvySort::Module(Module {
+                    name: "net".into(),
                     args: vec![],
                     fields: [("not_a_sock".to_owned(), IvySort::Number)].into(),
                 }),
@@ -62,6 +63,7 @@ mod tests {
             .append(
                 "net".into(),
                 IvySort::Module(Module {
+                    name: "net".into(),
                     args: vec![],
                     fields: [("sock".to_owned(), IvySort::Number)].into(),
                 }),
@@ -77,6 +79,7 @@ mod tests {
 
         // If field lookup succeeds, and it can be instantiated, do so!
         let sock_mod = IvySort::Module(Module {
+            name: "socket".into(),
             args: vec![],
             fields: [("fd".to_owned(), IvySort::Number)].into(),
         });
@@ -86,6 +89,7 @@ mod tests {
             .append(
                 "net".into(),
                 IvySort::Module(Module {
+                    name: "net".into(),
                     args: vec![],
                     fields: [("sock".to_owned(), sock_mod.clone())].into(),
                 }),

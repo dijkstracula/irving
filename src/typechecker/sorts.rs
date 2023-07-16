@@ -20,6 +20,7 @@ pub struct Process {
 // still in the argument list).  We're good with this??
 #[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]
 pub struct Module {
+    pub name: Symbol,
     pub args: Vec<(Symbol, IvySort)>, // Each of these will be SortVars
     pub fields: BTreeMap<String, IvySort>,
 }
@@ -178,11 +179,12 @@ impl Visitor<IvySort> for SortSubstituter {
 
     fn module(
         &mut self,
-        _mod: &mut Module,
+        m: &mut Module,
         args_t: Vec<(String, IvySort)>,
         fields_t: BTreeMap<String, IvySort>,
     ) -> crate::visitor::VisitorResult<IvySort, IvySort> {
         self.subst(IvySort::Module(Module {
+            name: m.name.clone(),
             args: args_t,
             fields: fields_t,
         }))

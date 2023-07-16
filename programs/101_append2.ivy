@@ -8,19 +8,18 @@ global {
 }
 
 process host(self:pid) = {
-    export action append(val: byte)
     import action show(content: file)
     instance sock : net.socket
     var contents: file
 
-    after init {
-        contents := file.empty;
-    }
-
-    implement append {
+    export action append(val: byte) = {
         contents := contents.append(val);
         sock.send(host(1-self).sock.id, val);
         show(contents);
+    }
+
+    after init {
+        contents := file.empty();
     }
 
     implement sock.recv(src: tcp.endpoint, val:byte) {

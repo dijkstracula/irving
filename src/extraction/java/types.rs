@@ -1,4 +1,7 @@
-use crate::{ast::expressions::Expr, typechecker::sorts::IvySort};
+use crate::{
+    ast::expressions::Expr,
+    typechecker::sorts::{IvySort, Module},
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum JavaType {
@@ -7,7 +10,7 @@ pub enum JavaType {
     Long,
     BoundedLong(i64, i64),
     ArrayList(Box<JavaType>),
-    Object(String, Vec<Box<JavaType>>),
+    Object(String, Vec<JavaType>),
     Void,
 }
 
@@ -46,7 +49,11 @@ impl From<IvySort> for JavaType {
             IvySort::Function(_, _) => todo!(),
             IvySort::Relation(_) => todo!(),
             IvySort::Subclass(_) => todo!(),
-            IvySort::Module(_) => todo!(),
+            IvySort::Module(Module { name, args, .. }) => {
+                let args: Vec<JavaType> =
+                    args.into_iter().map(|(_, sort)| sort.into()).collect::<_>();
+                Self::Object(name, args)
+            }
             IvySort::Process(_) => todo!(),
             IvySort::SortVar(_) => todo!(),
         }
