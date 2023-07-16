@@ -13,6 +13,7 @@ use crate::{
         expressions::{self, Expr, Sort, Symbol},
         statements::Stmt,
     },
+    extraction::ivy,
     passes::module_instantiation,
     typechecker::{sorts::Module, TypeError},
     visitor::{ast::Visitable, ast::Visitor, control::ControlMut, VisitorResult},
@@ -68,14 +69,25 @@ impl Visitor<IvySort> for TypeChecker {
         &mut self,
         p: &mut expressions::AnnotatedSymbol,
     ) -> VisitorResult<IvySort, expressions::AnnotatedSymbol> {
-        let sort = match &mut p.sort {
-            Sort::ToBeInferred => self.bindings.new_sortvar(),
-            Sort::Annotated(id) => id.visit(self)?.modifying(id)?,
-            Sort::Resolved(ivysort) => ivysort.clone(),
-        };
-        // XXX: early return if sort is already an ivyosrt?
-        self.bindings.append(p.id.clone(), sort.clone())?;
-        Ok(ControlMut::Produce(sort))
+        match &mut p.sort {
+            Sort::ToBeInferred => Ok(ControlMut::Produce(self.bindings.new_sortvar())),
+            Sort::Annotated(id) => {
+                let resolved = id.visit(self)?.modifying(id)?;
+                self.bindings.append(p.id.clone(), resolved.clone())?;
+                Ok(ControlMut::Mutation(
+                    expressions::AnnotatedSymbol {
+                        id: p.id.clone(),
+                        sort: Sort::Resolved(resolved.clone()),
+                    },
+                    resolved,
+                ))
+            }
+            Sort::Resolved(ivysort) => {
+                // XXX: early return if sort is already an ivyosrt?
+                self.bindings.append(p.id.clone(), ivysort.clone())?;
+                Ok(ControlMut::Produce(ivysort.clone()))
+            }
+        }
     }
 
     fn sort(&mut self, s: &mut Sort) -> VisitorResult<IvySort, Sort> {

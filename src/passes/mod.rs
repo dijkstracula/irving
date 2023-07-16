@@ -1,4 +1,4 @@
-pub(crate) mod constant_fold;
-pub(crate) mod global_lowerer;
-pub(crate) mod isolate_normalizer;
-pub(crate) mod module_instantiation;
+pub mod constant_fold;
+pub mod global_lowerer;
+pub mod isolate_normalizer;
+pub mod module_instantiation;

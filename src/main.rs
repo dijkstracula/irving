@@ -1,6 +1,8 @@
 use clap::Parser;
 use irving::cli::{Cli, Commands, ExtractTarget};
 use irving::extraction;
+use irving::passes::global_lowerer::GlobalLowerer;
+use irving::passes::isolate_normalizer::IsolateNormalizer;
 use irving::visitor::ast::Visitable;
 use std::io::Write;
 
@@ -9,6 +11,14 @@ fn main() -> anyhow::Result<()> {
     let ivy_file = cli.read_ivy_file()?;
 
     let mut prog = irving::parser::prog_from_str(&ivy_file)?;
+
+    // TODO: Might be good to wrap these all up in one meta-pass.
+    let mut gl = GlobalLowerer::new();
+    prog.visit(&mut gl)?.modifying(&mut prog)?;
+    let mut nm = IsolateNormalizer::new();
+    prog.visit(&mut nm)?.modifying(&mut prog)?;
+    let mut tc = irving::stdlib::load_stdlib()?;
+    prog.visit(&mut tc)?.modifying(&mut prog)?;
 
     match cli.cmd {
         Commands::Extract(ExtractTarget::Ivy) => {

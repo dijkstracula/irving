@@ -1,5 +1,10 @@
-use std::fmt::Write;
+use crate::{
+    ast::declarations, extraction::java::extraction::expressions::Symbol,
+    passes::isolate_normalizer::NormalizerError, typechecker::TypeError,
+};
+use std::{collections::BTreeMap, fmt::Write};
 
+use anyhow::bail;
 use thiserror::Error;
 
 use crate::{
@@ -9,7 +14,7 @@ use crate::{
         statements, toplevels,
     },
     extraction::pprint::PrettyPrinter,
-    visitor::ast::Visitable,
+    visitor::ast::{Visitable, Visitor},
 };
 
 use crate::visitor::*;
@@ -21,12 +26,14 @@ where
     W: Write,
 {
     pub pp: PrettyPrinter<W>,
+    type_aliases: BTreeMap<Symbol, expressions::Sort>,
 }
 
 impl Extractor<String> {
     pub fn new() -> Self {
         Self {
             pp: PrettyPrinter::new(),
+            type_aliases: BTreeMap::new(),
         }
     }
 }
@@ -47,6 +54,20 @@ where
         }
         Ok(ControlMut::Produce(()))
     }
+
+    pub fn write_paramlist(
+        &mut self,
+        us: &mut expressions::ParamList,
+        sep: &str,
+    ) -> VisitorResult<(), Vec<expressions::AnnotatedSymbol>> {
+        for (i, u) in us.into_iter().enumerate() {
+            if i > 0 {
+                self.pp.write_str(sep)?;
+            }
+            self.param(u)?;
+        }
+        Ok(ControlMut::Produce(()))
+    }
 }
 
 impl<W> ast::Visitor<()> for Extractor<W>
@@ -56,12 +77,8 @@ where
     fn begin_prog(&mut self, _ast: &mut toplevels::Prog) -> VisitorResult<(), toplevels::Prog> {
         let imports = include_str!("templates/imports.txt");
         self.pp.write_str(imports)?;
+        self.pp.write_str("\n\n")?;
 
-        self.pp.write_str("\npublic class Protocol {{")?;
-        Ok(ControlMut::Produce(()))
-    }
-    fn finish_prog(&mut self, _ast: &mut toplevels::Prog) -> VisitorResult<(), toplevels::Prog> {
-        self.pp.write_str("\n}")?;
         Ok(ControlMut::Produce(()))
     }
 
@@ -105,6 +122,76 @@ where
         Ok(ControlMut::SkipSiblings(()))
     }
 
+    // Declarations
+
+    fn begin_alias_decl(
+        &mut self,
+        sym: &mut expressions::Symbol,
+        e: &mut expressions::Sort,
+    ) -> VisitorResult<(), declarations::Decl> {
+        self.type_aliases.insert(sym.clone(), e.clone());
+        Ok(ControlMut::SkipSiblings(()))
+    }
+
+    fn begin_instance_decl(
+        &mut self,
+        name: &mut Symbol,
+        ast: &mut declarations::InstanceDecl,
+    ) -> VisitorResult<(), declarations::Decl> {
+        self.pp.write_fmt(format_args!("class {} extends ", name))?;
+        ast.sort.visit(self)?.modifying(&mut ast.sort)?;
+
+        println!("{:?}", ast);
+        if !ast.args.is_empty() {
+            self.pp.write_str("<")?;
+            self.write_paramlist(&mut ast.args, ",")?;
+            self.pp.write_str(">")?;
+        }
+
+        Ok(ControlMut::SkipSiblings(()))
+    }
+    fn begin_isolate_decl(
+        &mut self,
+        name: &mut expressions::Symbol,
+        ast: &mut declarations::IsolateDecl,
+    ) -> VisitorResult<(), declarations::Decl> {
+        bail!(TypeError::UnnormalizedIsolate(ast.clone()))
+    }
+
+    fn begin_normalized_isolate_decl(
+        &mut self,
+        name: &mut Symbol,
+        ast: &mut declarations::NormalizedIsolateDecl,
+    ) -> VisitorResult<(), declarations::Decl> {
+        self.pp
+            .write_fmt(format_args!("public class {name} {{\n\n"))?;
+
+        // fields
+        // Constructor
+        self.pp.write_fmt(format_args!("public {name}("))?;
+        self.write_paramlist(&mut ast.params, ", ")?;
+        self.pp.write_fmt(format_args!(") {{\n"))?;
+
+        for param in &ast.params {
+            self.pp
+                .write_fmt(format_args!("this.{} = {};\n", param.id, param.id))?;
+        }
+        self.pp.write_str("}\n\n")?;
+
+        self.pp
+            .write_fmt(format_args!("public class {name}_impl {{\n\n"))?;
+        for decl in &mut ast.impl_decls {
+            decl.visit(self)?.modifying(decl)?;
+            self.pp.write_str("\n")?;
+        }
+        self.pp
+            .write_fmt(format_args!("}} // {name}_impl definition\n"))?;
+
+        self.pp
+            .write_fmt(format_args!("}} // {name} definition\n"))?;
+        Ok(ControlMut::SkipSiblings(()))
+    }
+
     // Expressions
 
     fn begin_app(
@@ -142,6 +229,7 @@ where
             Verb::And => "&&",
             Verb::Or => "||",
             _ => {
+                eprintln!("{:?}", ast.op);
                 unimplemented!()
             }
         };
@@ -221,7 +309,14 @@ where
     }
 
     fn symbol(&mut self, s: &mut expressions::Symbol) -> VisitorResult<(), expressions::Symbol> {
-        self.pp.write_str(s)?;
+        let alias = self.type_aliases.get(s);
+        match alias {
+            None => self.pp.write_str(s)?,
+            Some(sort) => {
+                let mut s2 = sort.clone(); // XXX: ugh
+                self.sort(&mut s2)?;
+            }
+        }
         Ok(ControlMut::Produce(()))
     }
 

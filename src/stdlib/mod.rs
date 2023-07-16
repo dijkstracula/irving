@@ -1,6 +1,5 @@
 use crate::{
-    ast::{declarations::Decl, toplevels::Prog},
-    extraction::ivy::Extractor,
+    ast::declarations::Decl,
     parser::ivy::{IvyParser, Rule},
     passes::{global_lowerer::GlobalLowerer, isolate_normalizer::IsolateNormalizer},
     typechecker::inference::TypeChecker,

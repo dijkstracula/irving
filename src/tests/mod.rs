@@ -9,11 +9,9 @@ mod typechecker;
 mod helpers {
     use crate::{
         ast::{declarations::Decl, toplevels::Prog},
-        extraction::ivy::Extractor,
         parser::ivy::{IvyParser, Rule},
         passes::{global_lowerer::GlobalLowerer, isolate_normalizer::IsolateNormalizer},
         stdlib::load_stdlib,
-        typechecker::inference::TypeChecker,
         visitor::ast::Visitable,
     };
     use pest_consume::Parser;

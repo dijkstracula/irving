@@ -41,7 +41,7 @@ process host(self:pid) = {
 
         after sock.recv(src: tcp.endpoint, val: byte) {
             msg_count := msg_count - 1;
-            ensure true -> (host(0).contents = (host(1).contents));
+            #ensure true -> (host(0).contents = (host(1).contents));
         }
     }
 }
