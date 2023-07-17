@@ -17,8 +17,7 @@ mod tests {
             .expect("Parsing failed")
             .single()
             .unwrap();
-        let mut proc = Decl::Isolate(IvyParser::isolate_decl(res).expect("AST generation failed"));
-        proc
+        Decl::Isolate(IvyParser::isolate_decl(res).expect("AST generation failed"))
     }
 
     fn decl_from_src(src: &str) -> Decl {

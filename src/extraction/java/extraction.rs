@@ -1,6 +1,4 @@
-use crate::{
-    ast::declarations, extraction::java::extraction::expressions::Symbol, typechecker::TypeError,
-};
+use crate::{ast::declarations, extraction::java::extraction::expressions::Symbol};
 use std::{collections::BTreeMap, fmt::Write};
 
 use thiserror::Error;
@@ -65,6 +63,17 @@ where
             self.param(u)?;
         }
         Ok(ControlMut::Produce(()))
+    }
+
+    fn jtype_from_sort(s: &mut expressions::Sort) -> JavaType {
+        match s {
+            expressions::Sort::ToBeInferred => todo!(),
+            expressions::Sort::Annotated(_) => todo!(),
+            expressions::Sort::Resolved(ivysort) => {
+                let j: JavaType = ivysort.clone().into(); // XXX: poor choices lead to this clone.a
+                j
+            }
+        }
     }
 }
 
@@ -254,14 +263,10 @@ where
         name: &mut Symbol,
         sort: &mut expressions::Sort,
     ) -> VisitorResult<(), declarations::Decl> {
-        self.pp.write_str("private ")?;
-        match sort {
-            expressions::Sort::ToBeInferred => unreachable!(),
-            expressions::Sort::Annotated(_) | expressions::Sort::Resolved(_) => {
-                self.sort(sort)?.modifying(sort)?;
-            }
-        };
-        self.pp.write_str(" ")?;
+        self.pp.write_fmt(format_args!(
+            "private {} ",
+            Self::jtype_from_sort(sort).as_jval()
+        ))?;
         name.visit(self)?.modifying(name)?;
         Ok(ControlMut::SkipSiblings(()))
     }
@@ -386,7 +391,7 @@ where
             }
             expressions::Sort::Resolved(ivysort) => {
                 let j: JavaType = ivysort.clone().into(); // XXX: poor choices lead to this clone.a
-                self.pp.write_fmt(format_args!("{:?}", j))?;
+                self.pp.write_fmt(format_args!("{:?}", j.as_jref()))?;
             }
         }
         Ok(ControlMut::Produce(()))

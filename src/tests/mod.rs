@@ -8,7 +8,7 @@ mod typechecker;
 #[cfg(test)]
 mod helpers {
     use crate::{
-        ast::{declarations::Decl, toplevels::Prog},
+        ast::{declarations::Decl, expressions::Expr, toplevels::Prog},
         parser::ivy::{IvyParser, Rule},
         passes::global_lowerer::GlobalLowerer,
         stdlib::load_stdlib,
@@ -41,6 +41,7 @@ mod helpers {
         Decl::Module(IvyParser::module_decl(res).expect("AST generation failed"))
     }
 
+    #[allow(dead_code)]
     pub fn vector_moduledecl() -> Decl {
         module_from_src(
             "module vector(range) = { 
@@ -103,5 +104,13 @@ mod helpers {
             .single()
             .unwrap();
         IvyParser::decl(res).expect("AST generation failed")
+    }
+
+    pub fn expr_from_src(prog: &str) -> Expr {
+        let res = IvyParser::parse(Rule::expr, &prog)
+            .expect("Parsing failed")
+            .single()
+            .unwrap();
+        IvyParser::expr(res).expect("AST generation failed")
     }
 }
