@@ -1,5 +1,7 @@
 #![allow(dead_code)]
 
+use std::collections::BTreeMap;
+
 use super::expressions::*;
 use super::logic::Fmla;
 use super::statements::*;
@@ -83,6 +85,11 @@ pub struct InstanceDecl {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct IsolateDecl {
     pub params: ParamList,
+    pub actions: Vec<Decl>,
+    pub fields: Vec<Decl>,
+
+    // The non-action and non-field declarations go here, stuff like
+    // axioms, attributes, invariants, etc...
     pub body: Vec<Decl>,
 }
 

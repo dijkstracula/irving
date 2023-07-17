@@ -255,7 +255,7 @@ impl Visitor<IvySort> for TypeChecker {
                 Ok::<Option<IvySort>, TypeError>(module.fields.get(&rhs.id).map(|s| s.clone()))
             }
             IvySort::Process(proc) => {
-                let mut s = proc.fields.get(&rhs.id).or(proc.actions.get(&rhs.id));
+                let mut s = proc.fields.get(&rhs.id);
                 is_common = s.is_none();
                 Ok(s.map(|s| s.clone()))
             }
@@ -639,9 +639,9 @@ impl Visitor<IvySort> for TypeChecker {
         &mut self,
         _name: &mut Symbol,
         ast: &mut declarations::IsolateDecl,
-        _n: IvySort,
+        decl_sort: IvySort,
         param_sorts: Vec<IvySort>,
-        _b: Vec<IvySort>,
+        body_sorts: Vec<IvySort>,
     ) -> VisitorResult<IvySort, declarations::Decl> {
         let args = ast
             .params
@@ -649,7 +649,22 @@ impl Visitor<IvySort> for TypeChecker {
             .zip(param_sorts.iter())
             .map(|(name, sort)| (name.id.clone(), self.bindings.resolve(sort).clone()))
             .collect::<BTreeMap<_, _>>();
-        todo!()
+
+        let mut fields = ast
+            .body
+            .iter()
+            .zip(body_sorts.iter())
+            .filter_map(|(decl, sort)| {
+                decl.name_for_binding()
+                    .map(|n| (n.to_owned(), self.bindings.resolve(sort).clone()))
+            })
+            .collect::<BTreeMap<_, _>>();
+        fields.insert("init".into(), Module::init_action_sort());
+
+        let proc = IvySort::Process(Process { args, fields });
+        let unified = self.bindings.unify(&decl_sort, &proc)?;
+        self.bindings.pop_scope();
+        Ok(ControlMut::Produce(unified))
     }
 
     fn begin_object_decl(
@@ -665,12 +680,33 @@ impl Visitor<IvySort> for TypeChecker {
     fn finish_object_decl(
         &mut self,
         _name: &mut Symbol,
-        _ast: &mut declarations::ObjectDecl,
-        _n: IvySort,
-        p: Vec<IvySort>,
-        b: Vec<IvySort>,
+        ast: &mut declarations::ObjectDecl,
+        decl_sort: IvySort,
+        param_sorts: Vec<IvySort>,
+        body_sorts: Vec<IvySort>,
     ) -> VisitorResult<IvySort, declarations::Decl> {
-        todo!()
+        let args = ast
+            .params
+            .iter()
+            .zip(param_sorts.iter())
+            .map(|(name, sort)| (name.id.clone(), self.bindings.resolve(sort).clone()))
+            .collect::<BTreeMap<_, _>>();
+
+        let mut fields = ast
+            .body
+            .iter()
+            .zip(body_sorts.iter())
+            .filter_map(|(decl, sort)| {
+                decl.name_for_binding()
+                    .map(|n| (n.to_owned(), self.bindings.resolve(sort).clone()))
+            })
+            .collect::<BTreeMap<_, _>>();
+        fields.insert("init".into(), Module::init_action_sort());
+
+        let proc = IvySort::Process(Process { args, fields });
+        let unified = self.bindings.unify(&decl_sort, &proc)?;
+        self.bindings.pop_scope();
+        Ok(ControlMut::Produce(unified))
     }
 
     fn begin_relation(

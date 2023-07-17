@@ -11,7 +11,6 @@ use crate::{
 pub struct Process {
     pub args: BTreeMap<Symbol, IvySort>,
     pub fields: BTreeMap<Symbol, IvySort>,
-    pub actions: BTreeMap<Symbol, IvySort>,
 }
 
 // TODO: this module is non-monomorphized (e.g. module type parameters are

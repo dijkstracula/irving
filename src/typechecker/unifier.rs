@@ -61,11 +61,9 @@ impl Resolver {
                 Some(IvySort::Module(Module { fields, .. })) => {
                     curr_sort = fields.get(field);
                 }
-                Some(IvySort::Process(Process {
-                    args,
-                    fields,
-                    actions,
-                })) => curr_sort = args.get(field).or(actions.get(field)),
+                Some(IvySort::Process(Process { args, fields })) => {
+                    curr_sort = args.get(field).or(fields.get(field))
+                }
                 Some(sort) => {
                     return Err(TypeError::NotARecord(sort.clone()));
                 }
