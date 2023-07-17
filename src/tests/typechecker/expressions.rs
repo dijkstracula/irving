@@ -214,7 +214,6 @@ mod tests {
         let procsort = Process {
             args: BTreeMap::from([]),
             fields: BTreeMap::from([("b".into(), IvySort::Bool)]),
-            actions: BTreeMap::from([]),
         };
 
         let mut tc = TypeChecker::new();

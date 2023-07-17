@@ -113,8 +113,7 @@ mod tests {
 
         let sort = IvySort::Process(Process {
             args: BTreeMap::from([]),
-            fields: BTreeMap::from([]),
-            actions: [("init".to_owned(), Module::init_action_sort())].into(),
+            fields: [("init".to_owned(), Module::init_action_sort())].into(),
         });
 
         let mut tc = TypeChecker::new();
@@ -133,8 +132,7 @@ mod tests {
                 IvySort::Range(Box::new(Expr::Number(0)), Box::new(Expr::Number(3))),
             )]
             .into(),
-            actions: [("init".to_owned(), Module::init_action_sort())].into(),
-            fields: BTreeMap::new(),
+            fields: [("init".to_owned(), Module::init_action_sort())].into(),
         });
 
         let mut tc = typechecker_with_bindings();
@@ -157,12 +155,11 @@ mod tests {
                 IvySort::Range(Box::new(Expr::Number(0)), Box::new(Expr::Number(3))),
             )]
             .into(),
-            actions: [
+            fields: [
                 ("is_up".into(), IvySort::Bool),
                 ("init".to_owned(), Module::init_action_sort()),
             ]
             .into(),
-            fields: BTreeMap::new(),
         });
 
         let mut tc = typechecker_with_bindings();
