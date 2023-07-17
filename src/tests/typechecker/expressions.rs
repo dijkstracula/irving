@@ -213,10 +213,8 @@ mod tests {
         // Accessing 'b' should be fine when 'a' is bound to a Process.
         let procsort = Process {
             args: BTreeMap::from([]),
-            impl_fields: BTreeMap::from([("b".into(), IvySort::Bool)]),
-            spec_fields: BTreeMap::from([]),
-            common_impl_fields: BTreeMap::from([]),
-            common_spec_fields: BTreeMap::from([]),
+            fields: BTreeMap::from([("b".into(), IvySort::Bool)]),
+            actions: BTreeMap::from([]),
         };
 
         let mut tc = TypeChecker::new();

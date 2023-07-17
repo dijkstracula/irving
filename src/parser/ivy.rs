@@ -333,10 +333,10 @@ impl IvyParser {
         )
     }
 
-    pub fn implementation_decl(input: Node) -> Result<Vec<Decl>> {
+    pub fn implementation_decl(input: Node) -> Result<ObjectDecl> {
         match_nodes!(
         input.into_children();
-            [decl_block(decls)] => Ok(decls)
+            [decl_block(decls)] => Ok(ObjectDecl { params: vec!(), body: decls })
         )
     }
 
@@ -407,10 +407,10 @@ impl IvyParser {
         )
     }
 
-    pub fn specification_decl(input: Node) -> Result<Vec<Decl>> {
+    pub fn specification_decl(input: Node) -> Result<ObjectDecl> {
         match_nodes!(
         input.into_children();
-            [decl_block(decls)] => Ok(decls)
+            [decl_block(decls)] => Ok(ObjectDecl { params: vec![], body: decls })
         )
     }
 
@@ -452,7 +452,7 @@ impl IvyParser {
         [global_decl(decls)]  => Ok(Decl::Globals(decls)),
         [function_decl(binding)] => Ok(Decl::Function(binding)),
         [implement_action_decl(binding)] => Ok(Decl::Implement(binding)),
-        [implementation_decl(decls)] => Ok(Decl::Implementation(decls)),
+        [implementation_decl(decl)] => Ok(Decl::Object(Binding { name: "impl".into(), decl })),
         [import_decl(decl)]    => Ok(Decl::Import(decl)),
         [include_decl(module)] => Ok(Decl::Include(module)),
         [invariant_decl(fmla)] => Ok(Decl::Invariant(fmla)),
@@ -461,7 +461,7 @@ impl IvyParser {
         [isolate_decl(binding)]   => Ok(Decl::Isolate(binding)),
         [object_decl(binding)]   => Ok(Decl::Object(binding)),
         [relation_decl(binding)] => Ok(Decl::Relation(binding)),
-        [specification_decl(decls)] => Ok(Decl::Specification(decls)),
+        [specification_decl(decl)] => Ok(Decl::Object(Binding { name: "spec".into(), decl })),
         [type_decl(binding)]     => Ok(Decl::Type(binding)),
         [var_decl(binding)]      => Ok(Decl::Var(binding)),
         [stmt(stmts)..]       => Ok(Decl::Stmts(stmts.collect()))

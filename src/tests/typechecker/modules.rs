@@ -1,7 +1,6 @@
 #[cfg(test)]
 mod tests {
     use crate::{
-        passes::isolate_normalizer::IsolateNormalizer,
         tests::helpers,
         typechecker::{
             inference::TypeChecker,
@@ -142,10 +141,6 @@ mod tests {
                 instance net: tcp.net(unbounded_sequence)
             }",
         );
-
-        let mut mn = IsolateNormalizer::new();
-        proc.visit(&mut mn).unwrap().modifying(&mut proc).unwrap();
-        println!("{:?}", proc);
 
         proc.visit(&mut tc).unwrap().modifying(&mut proc).unwrap();
         println!(

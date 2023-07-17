@@ -3,7 +3,6 @@ mod tests {
     use crate::{
         ast::{declarations::Decl, expressions::Expr},
         parser::ivy::{IvyParser, Rule},
-        passes::isolate_normalizer::IsolateNormalizer,
         typechecker::{
             inference::TypeChecker,
             sorts::{Fargs, IvySort},
@@ -19,11 +18,6 @@ mod tests {
             .single()
             .unwrap();
         let mut proc = Decl::Isolate(IvyParser::isolate_decl(res).expect("AST generation failed"));
-
-        // Since we'll be assuming that the normalizer has run prior to
-        // typechecking, enforce it here.
-        let mut norm = IsolateNormalizer::new();
-        proc.visit(&mut norm).unwrap().modifying(&mut proc).unwrap();
         proc
     }
 

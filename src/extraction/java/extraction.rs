@@ -3,7 +3,6 @@ use crate::{
 };
 use std::{collections::BTreeMap, fmt::Write};
 
-use anyhow::bail;
 use thiserror::Error;
 
 use crate::{
@@ -221,16 +220,8 @@ where
     }
     fn begin_isolate_decl(
         &mut self,
-        _name: &mut expressions::Symbol,
+        name: &mut expressions::Symbol,
         ast: &mut declarations::IsolateDecl,
-    ) -> VisitorResult<(), declarations::Decl> {
-        bail!(TypeError::UnnormalizedIsolate(ast.clone()))
-    }
-
-    fn begin_normalized_isolate_decl(
-        &mut self,
-        name: &mut Symbol,
-        ast: &mut declarations::NormalizedIsolateDecl,
     ) -> VisitorResult<(), declarations::Decl> {
         self.pp
             .write_fmt(format_args!("public class {name} {{\n\n"))?;
@@ -246,29 +237,6 @@ where
                 .write_fmt(format_args!("this.{} = {};\n", param.id, param.id))?;
         }
         self.pp.write_str("}\n\n")?;
-
-        // impl
-        self.pp
-            .write_fmt(format_args!("public class {name}_impl {{\n\n"))?;
-        for decl in &mut ast.impl_decls {
-            decl.visit(self)?.modifying(decl)?;
-            self.pp.write_str("\n")?;
-        }
-        self.pp
-            .write_fmt(format_args!("}} // {name}_impl definition\n"))?;
-
-        // impl
-        self.pp
-            .write_fmt(format_args!("public class {name}_spec {{\n\n"))?;
-        for decl in &mut ast.spec_decls {
-            decl.visit(self)?.modifying(decl)?;
-            self.pp.write_str("\n")?;
-        }
-        self.pp
-            .write_fmt(format_args!("}} // {name}_spec definition\n"))?;
-
-        self.pp
-            .write_fmt(format_args!("}} // {name} definition\n"))?;
         Ok(ControlMut::SkipSiblings(()))
     }
 

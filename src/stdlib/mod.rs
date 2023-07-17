@@ -1,7 +1,7 @@
 use crate::{
     ast::declarations::Decl,
     parser::ivy::{IvyParser, Rule},
-    passes::{global_lowerer::GlobalLowerer, isolate_normalizer::IsolateNormalizer},
+    passes::global_lowerer::GlobalLowerer,
     typechecker::inference::TypeChecker,
     visitor::ast::Visitable,
 };
@@ -23,8 +23,6 @@ fn decl_from_filename(path: &str) -> Result<Decl> {
 
     let mut gl = GlobalLowerer::new();
     prog.visit(&mut gl)?.modifying(&mut prog)?;
-    let mut nm = IsolateNormalizer::new();
-    prog.visit(&mut nm)?.modifying(&mut prog)?;
     Ok(prog)
 }
 

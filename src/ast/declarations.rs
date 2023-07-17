@@ -105,16 +105,6 @@ pub struct Relation {
 
 // Transformed AST nodes
 
-/// Created by the ModuleNormalizer pass.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct NormalizedIsolateDecl {
-    pub params: ParamList,
-    pub impl_decls: Vec<Decl>,
-    pub spec_decls: Vec<Decl>,
-    pub common_spec_decls: Vec<Decl>,
-    pub common_impl_decls: Vec<Decl>,
-}
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Binding<T> {
     pub name: String,
@@ -152,8 +142,6 @@ pub enum Decl {
 
     Implement(ImplementDecl),
 
-    Implementation(Vec<Decl>),
-
     Import(ImportDecl),
 
     Isolate(Binding<IsolateDecl>),
@@ -170,15 +158,11 @@ pub enum Decl {
 
     Module(Binding<ModuleDecl>),
 
-    NormalizedIsolate(Binding<NormalizedIsolateDecl>),
-
     Noop,
 
     Object(Binding<ObjectDecl>),
 
     Relation(Binding<Relation>),
-
-    Specification(Vec<Decl>),
 
     Stmts(Vec<Stmt>),
 
@@ -203,7 +187,6 @@ impl Decl {
             Decl::Function(Binding { name, .. }) => Some(&name),
             Decl::Globals(_) => None,
             Decl::Implement(_) => None,
-            Decl::Implementation(_) => None,
             Decl::Import(_) => None,
             Decl::Isolate(Binding { name, .. }) => Some(&name),
             Decl::Include(_) => None,
@@ -212,11 +195,9 @@ impl Decl {
             Decl::Interpretation { .. } => None,
             Decl::Invariant(_) => None,
             Decl::Module(Binding { name, .. }) => Some(&name),
-            Decl::NormalizedIsolate(Binding { name, .. }) => Some(&name),
             Decl::Noop => None,
             Decl::Object(Binding { name, .. }) => Some(&name),
             Decl::Relation(Binding { name, .. }) => Some(&name),
-            Decl::Specification(_) => None,
             Decl::Stmts(_) => None,
             Decl::Var(Binding { name, .. }) => Some(&name),
             Decl::Type(Binding { name, .. }) => Some(&name),

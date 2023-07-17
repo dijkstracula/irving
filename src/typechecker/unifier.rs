@@ -63,21 +63,9 @@ impl Resolver {
                 }
                 Some(IvySort::Process(Process {
                     args,
-                    impl_fields,
-                    spec_fields,
-                    common_impl_fields,
-                    common_spec_fields,
-                })) => {
-                    curr_sort = args
-                        .get(field)
-                        .or(impl_fields.get(field))
-                        .or(common_impl_fields.get(field));
-                    if include_spec {
-                        curr_sort = curr_sort
-                            .or(spec_fields.get(field))
-                            .or(common_spec_fields.get(field))
-                    }
-                }
+                    fields,
+                    actions,
+                })) => curr_sort = args.get(field).or(actions.get(field)),
                 Some(sort) => {
                     return Err(TypeError::NotARecord(sort.clone()));
                 }
