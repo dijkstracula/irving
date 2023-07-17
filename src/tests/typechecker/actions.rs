@@ -320,4 +320,47 @@ mod tests {
             TypeError::LenMismatch(vec!(), [isolate_sort].into())
         );
     }
+
+    #[test]
+    fn test_implicit_nullary_action_call() {
+        let mut prog = isolate_from_src(
+            "process m = {
+            type this
+            alias t = this
+
+            # A nullary action.  I should be able to invoke this action
+            # either as `m.doit()` or `m.doit`!
+            action doit returns (y: bool)
+        }",
+        );
+
+        let mut tc = TypeChecker::new();
+        let _ = prog.visit(&mut tc).unwrap().modifying(&mut prog).unwrap();
+
+        let action_sort = tc
+            .bindings
+            .lookup_ident(&vec!["m".into(), "doit".into()], true)
+            .unwrap()
+            .clone();
+        assert_eq!(action_sort, IvySort::function_sort(vec![], IvySort::Bool));
+
+        let mut action_app = expr_from_src("m.doit()");
+        let res = action_app
+            .visit(&mut tc)
+            .unwrap()
+            .modifying(&mut action_app)
+            .unwrap();
+        assert_eq!(res, IvySort::Bool);
+
+        /*
+        TODO: https://github.com/dijkstracula/irving/issues/36
+        let mut action_app = expr_from_src("m.doit");
+        let res = action_app
+            .visit(&mut tc)
+            .unwrap()
+            .modifying(&mut action_app)
+            .unwrap();
+        assert_eq!(res, IvySort::Bool);
+        */
+    }
 }
