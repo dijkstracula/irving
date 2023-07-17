@@ -25,9 +25,6 @@ impl Visitor<()> for GlobalLowerer {
                 self.globals.append(body);
                 body.append(&mut self.globals);
             }
-            Decl::NormalizedIsolate(_) => {
-                panic!("Lower globals prior to running the isolate normalizer.")
-            }
             _ => unreachable!(),
         }
         Ok(ControlMut::Produce(()))

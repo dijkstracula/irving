@@ -255,14 +255,8 @@ impl Visitor<IvySort> for TypeChecker {
                 Ok::<Option<IvySort>, TypeError>(module.fields.get(&rhs.id).map(|s| s.clone()))
             }
             IvySort::Process(proc) => {
-                let mut s = proc
-                    .impl_fields
-                    .get(&rhs.id)
-                    .or(proc.spec_fields.get(&rhs.id));
+                let mut s = proc.fields.get(&rhs.id).or(proc.actions.get(&rhs.id));
                 is_common = s.is_none();
-                s = s
-                    .or(proc.common_impl_fields.get(&rhs.id))
-                    .or(proc.common_spec_fields.get(&rhs.id));
                 Ok(s.map(|s| s.clone()))
             }
             IvySort::SortVar(_) => Ok(Some(self.bindings.new_sortvar())),
@@ -623,16 +617,8 @@ impl Visitor<IvySort> for TypeChecker {
 
     fn begin_isolate_decl(
         &mut self,
-        _name: &mut Symbol,
-        ast: &mut declarations::IsolateDecl,
-    ) -> VisitorResult<IvySort, declarations::Decl> {
-        bail!(TypeError::UnnormalizedIsolate(ast.clone()))
-    }
-
-    fn begin_normalized_isolate_decl(
-        &mut self,
         name: &mut Symbol,
-        _ast: &mut declarations::NormalizedIsolateDecl,
+        ast: &mut declarations::IsolateDecl,
     ) -> VisitorResult<IvySort, declarations::Decl> {
         let v = self.bindings.new_sortvar();
         self.bindings.append(name.clone(), v.clone())?;
@@ -649,16 +635,13 @@ impl Visitor<IvySort> for TypeChecker {
 
         Ok(ControlMut::Produce(v))
     }
-    fn finish_normalized_isolate_decl(
+    fn finish_isolate_decl(
         &mut self,
-        name: &mut Symbol,
-        ast: &mut declarations::NormalizedIsolateDecl,
-        decl_sort: IvySort,
+        _name: &mut Symbol,
+        ast: &mut declarations::IsolateDecl,
+        _n: IvySort,
         param_sorts: Vec<IvySort>,
-        impl_sorts: Vec<IvySort>,
-        spec_sorts: Vec<IvySort>,
-        common_impl_sorts: Vec<IvySort>,
-        common_spec_sorts: Vec<IvySort>,
+        _b: Vec<IvySort>,
     ) -> VisitorResult<IvySort, declarations::Decl> {
         let args = ast
             .params
@@ -666,67 +649,28 @@ impl Visitor<IvySort> for TypeChecker {
             .zip(param_sorts.iter())
             .map(|(name, sort)| (name.id.clone(), self.bindings.resolve(sort).clone()))
             .collect::<BTreeMap<_, _>>();
+        todo!()
+    }
 
-        let mut impl_fields = ast
-            .impl_decls
-            .iter()
-            .zip(impl_sorts.iter())
-            .filter_map(|(decl, sort)| {
-                decl.name_for_binding()
-                    .map(|n| (n.into(), self.bindings.resolve(sort).clone()))
-            })
-            .collect::<BTreeMap<_, _>>();
-        // Every module has an implicit "init" action.
-        impl_fields.insert("init".into(), Module::init_action_sort());
-
-        let spec_fields = ast
-            .spec_decls
-            .iter()
-            .zip(spec_sorts.iter())
-            .filter_map(|(decl, sort)| {
-                decl.name_for_binding()
-                    .map(|n| (n.into(), self.bindings.resolve(sort).clone()))
-            })
-            .collect::<BTreeMap<_, _>>();
-
-        let common_impl_fields = ast
-            .common_impl_decls
-            .iter()
-            .zip(common_impl_sorts.iter())
-            .filter_map(|(decl, sort)| {
-                decl.name_for_binding()
-                    .map(|n| (n.into(), self.bindings.resolve(sort).clone()))
-            })
-            .collect::<BTreeMap<_, _>>();
-
-        let common_spec_fields = ast
-            .common_spec_decls
-            .iter()
-            .zip(common_spec_sorts.iter())
-            .filter_map(|(decl, sort)| {
-                decl.name_for_binding()
-                    .map(|n| (n.into(), self.bindings.resolve(sort).clone()))
-            })
-            .collect::<BTreeMap<_, _>>();
-
-        let proc = IvySort::Process(Process {
-            args,
-            impl_fields,
-            spec_fields,
-            common_impl_fields,
-            common_spec_fields,
-        });
-
-        let unified = self.bindings.unify(&decl_sort, &proc)?;
-
-        // Don't create a new scope if we're at the special top-level declaration.
-        // This is needed for the typechecker visiting multiple Progs and expecting
-        // earlier declarations to be in scope.
-        if name != "top" {
-            self.bindings.pop_scope();
-        }
-
-        Ok(ControlMut::Produce(unified))
+    fn begin_object_decl(
+        &mut self,
+        name: &mut Symbol,
+        _ast: &mut declarations::ObjectDecl,
+    ) -> VisitorResult<IvySort, declarations::Decl> {
+        let v = self.bindings.new_sortvar();
+        self.bindings.append(name.clone(), v.clone())?;
+        self.bindings.push_scope();
+        Ok(ControlMut::Produce(v))
+    }
+    fn finish_object_decl(
+        &mut self,
+        _name: &mut Symbol,
+        _ast: &mut declarations::ObjectDecl,
+        _n: IvySort,
+        p: Vec<IvySort>,
+        b: Vec<IvySort>,
+    ) -> VisitorResult<IvySort, declarations::Decl> {
+        todo!()
     }
 
     fn begin_relation(

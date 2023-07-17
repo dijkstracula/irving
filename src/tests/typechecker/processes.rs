@@ -5,7 +5,6 @@ mod tests {
     use crate::{
         ast::{declarations::Decl, expressions::Expr},
         parser::ivy::{IvyParser, Rule},
-        passes::isolate_normalizer::IsolateNormalizer,
         typechecker::{
             inference::TypeChecker,
             sorts::{IvySort, Module, Process},
@@ -19,13 +18,7 @@ mod tests {
             .expect("Parsing failed")
             .single()
             .unwrap();
-        let mut proc = Decl::Isolate(IvyParser::isolate_decl(res).expect("AST generation failed"));
-
-        // Since we'll be assuming that the normalizer has run prior to
-        // typechecking, enforce it here.
-        let mut norm = IsolateNormalizer::new();
-        proc.visit(&mut norm).unwrap().modifying(&mut proc).unwrap();
-        proc
+        Decl::Isolate(IvyParser::isolate_decl(res).expect("AST generation failed"))
     }
 
     fn typechecker_with_bindings() -> TypeChecker {
@@ -120,10 +113,8 @@ mod tests {
 
         let sort = IvySort::Process(Process {
             args: BTreeMap::from([]),
-            impl_fields: [("init".to_owned(), Module::init_action_sort())].into(),
-            spec_fields: BTreeMap::new(),
-            common_impl_fields: BTreeMap::new(),
-            common_spec_fields: BTreeMap::new(),
+            fields: BTreeMap::from([]),
+            actions: [("init".to_owned(), Module::init_action_sort())].into(),
         });
 
         let mut tc = TypeChecker::new();
@@ -142,10 +133,8 @@ mod tests {
                 IvySort::Range(Box::new(Expr::Number(0)), Box::new(Expr::Number(3))),
             )]
             .into(),
-            impl_fields: [("init".to_owned(), Module::init_action_sort())].into(),
-            spec_fields: BTreeMap::new(),
-            common_impl_fields: BTreeMap::new(),
-            common_spec_fields: BTreeMap::new(),
+            actions: [("init".to_owned(), Module::init_action_sort())].into(),
+            fields: BTreeMap::new(),
         });
 
         let mut tc = typechecker_with_bindings();
@@ -168,14 +157,12 @@ mod tests {
                 IvySort::Range(Box::new(Expr::Number(0)), Box::new(Expr::Number(3))),
             )]
             .into(),
-            impl_fields: [
+            actions: [
                 ("is_up".into(), IvySort::Bool),
                 ("init".to_owned(), Module::init_action_sort()),
             ]
             .into(),
-            spec_fields: BTreeMap::new(),
-            common_impl_fields: BTreeMap::new(),
-            common_spec_fields: BTreeMap::new(),
+            fields: BTreeMap::new(),
         });
 
         let mut tc = typechecker_with_bindings();

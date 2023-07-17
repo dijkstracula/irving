@@ -10,7 +10,7 @@ mod helpers {
     use crate::{
         ast::{declarations::Decl, toplevels::Prog},
         parser::ivy::{IvyParser, Rule},
-        passes::{global_lowerer::GlobalLowerer, isolate_normalizer::IsolateNormalizer},
+        passes::global_lowerer::GlobalLowerer,
         stdlib::load_stdlib,
         visitor::ast::Visitable,
     };
@@ -80,18 +80,12 @@ mod helpers {
         let mut prog = IvyParser::prog(res).expect("AST generation failed");
 
         let mut gl = GlobalLowerer::new();
-        let mut nm = IsolateNormalizer::new();
 
         // Fake out the "standard library"
         let mut tc = load_stdlib().unwrap();
 
         prog.visit(&mut gl)
             .expect("lowering globals")
-            .modifying(&mut prog)
-            .unwrap();
-
-        prog.visit(&mut nm)
-            .expect("ast normalizing")
             .modifying(&mut prog)
             .unwrap();
 

@@ -86,38 +86,6 @@ where
                     self.pp.write_str("\n")?;
                 }
             }
-            declarations::Decl::NormalizedIsolate(Binding {
-                decl:
-                    declarations::NormalizedIsolateDecl {
-                        impl_decls,
-                        spec_decls,
-                        common_spec_decls,
-                        common_impl_decls,
-                        ..
-                    },
-                ..
-            }) => {
-                self.write_separated(impl_decls, "\n")?;
-                if spec_decls.len() > 0 {
-                    self.pp.write_str("specification {\n")?;
-                    self.write_separated(spec_decls, "\n")?;
-                    self.pp.write_str("\n}\n")?;
-                }
-                if common_spec_decls.len() > 0 && common_impl_decls.len() > 0 {
-                    self.pp.write_str("common {\n")?;
-                    if common_impl_decls.len() > 0 {
-                        self.pp.write_str("implementation {\n")?;
-                        self.write_separated(common_impl_decls, "\n")?;
-                        self.pp.write_str("\n}\n")?;
-                    }
-                    if spec_decls.len() > 0 {
-                        self.pp.write_str("specification {\n")?;
-                        self.write_separated(common_spec_decls, "\n")?;
-                        self.pp.write_str("\n}\n")?;
-                    }
-                    self.pp.write_str("\n}\n")?;
-                }
-            }
             _ => unreachable!(),
         }
         Ok(ControlMut::SkipSiblings(()))
@@ -473,43 +441,6 @@ where
         self.write_separated(&mut module.body, "\n")?;
         self.pp.write_str("\n}\n")?;
 
-        Ok(ControlMut::SkipSiblings(()))
-    }
-
-    fn begin_normalized_isolate_decl(
-        &mut self,
-        name: &mut Symbol,
-        module: &mut declarations::NormalizedIsolateDecl,
-    ) -> VisitorResult<(), declarations::Decl> {
-        self.pp.write_fmt(format_args!("process {}", name))?;
-
-        if module.params.len() > 0 {
-            self.pp.write_str("(")?;
-            module.params.visit(self)?;
-            self.pp.write_str(")")?;
-        }
-        self.pp.write_str(" {\n")?;
-
-        if module.impl_decls.len() > 0 {
-            self.begin_implementation_decl(&mut module.impl_decls)?;
-        }
-        if module.spec_decls.len() > 0 {
-            self.pp.write_str("\n")?;
-            self.begin_specification(&mut module.spec_decls)?;
-        }
-        if module.common_spec_decls.len() > 0 && module.common_impl_decls.len() > 0 {
-            self.pp.write_str("\n")?;
-            self.pp.write_str("common {\n")?;
-            if module.impl_decls.len() > 0 {
-                self.begin_implementation_decl(&mut module.common_impl_decls)?;
-            }
-            if module.spec_decls.len() > 0 {
-                self.begin_implementation_decl(&mut module.common_spec_decls)?;
-            }
-            self.pp.write_str("\n}\n")?;
-        }
-
-        self.pp.write_str("\n}\n")?;
         Ok(ControlMut::SkipSiblings(()))
     }
 

@@ -90,10 +90,7 @@ impl ast::Visitor<()> for IsolateNormalizer {
         ast.body = std::mem::take(&mut ast.body)
             .into_iter()
             .filter_map(|decl| match decl {
-                Decl::Common(_)
-                | Decl::Globals(_)
-                | Decl::Implementation(_)
-                | Decl::Specification(_) => Some(decl),
+                Decl::Common(_) | Decl::Globals(_) => Some(decl),
                 _ => {
                     self.state_mut().impls.push(decl);
                     None
@@ -164,7 +161,19 @@ impl ast::Visitor<()> for IsolateNormalizer {
         }
 
         self.state_mut().in_impl = false;
-        Ok(ControlMut::Mutation(Decl::Noop, ()))
+
+        let obj = ObjectDecl {
+            params: vec![],
+            body: std::mem::take(ast),
+        };
+
+        Ok(ControlMut::Mutation(
+            Decl::Object(Binding {
+                name: "impl".into(),
+                decl: obj,
+            }),
+            (),
+        ))
     }
 
     fn begin_specification(&mut self, _ast: &mut Vec<Decl>) -> VisitorResult<(), Decl> {
@@ -197,7 +206,19 @@ impl ast::Visitor<()> for IsolateNormalizer {
         }
 
         self.state_mut().in_spec = false;
-        Ok(ControlMut::Mutation(Decl::Noop, ()))
+
+        let obj = ObjectDecl {
+            params: vec![],
+            body: std::mem::take(ast),
+        };
+
+        Ok(ControlMut::Mutation(
+            Decl::Object(Binding {
+                name: "spec".into(),
+                decl: obj,
+            }),
+            (),
+        ))
     }
 
     fn begin_common_decl(&mut self, _ast: &mut Vec<Decl>) -> VisitorResult<(), Decl> {

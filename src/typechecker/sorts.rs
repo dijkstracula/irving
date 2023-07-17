@@ -10,10 +10,8 @@ use crate::{
 #[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]
 pub struct Process {
     pub args: BTreeMap<Symbol, IvySort>,
-    pub impl_fields: BTreeMap<Symbol, IvySort>,
-    pub spec_fields: BTreeMap<Symbol, IvySort>,
-    pub common_impl_fields: BTreeMap<Symbol, IvySort>,
-    pub common_spec_fields: BTreeMap<Symbol, IvySort>,
+    pub fields: BTreeMap<Symbol, IvySort>,
+    pub actions: BTreeMap<Symbol, IvySort>,
 }
 
 // TODO: this module is non-monomorphized (e.g. module type parameters are
