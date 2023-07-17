@@ -357,7 +357,7 @@ impl Visitor<IvySort> for TypeChecker {
 
     fn finish_after_decl(
         &mut self,
-        _ast: &mut declarations::AfterDecl,
+        ast: &mut declarations::AfterDecl,
         action_sort: IvySort,
         after_params_sort: Option<Vec<IvySort>>,
         after_ret_sort: Option<IvySort>,
@@ -375,6 +375,7 @@ impl Visitor<IvySort> for TypeChecker {
         };
 
         let unified = self.bindings.unify(&action_sort, &mixin_sort)?;
+
         Ok(ControlMut::Produce(unified))
     }
 

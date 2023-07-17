@@ -793,7 +793,7 @@ where
                 }
                 _ => {
                     println!("Uh oh! {:?}", s);
-                    self.pp.write_str("???");
+                    self.pp.write_str("???")?;
                 }
             },
         };

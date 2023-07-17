@@ -115,7 +115,10 @@ where
         ast.test.visit(self)?;
 
         self.pp.write_str(" {\n")?;
-        self.write_separated(&mut ast.doit, ";\n")?;
+        for stmt in &mut ast.doit {
+            stmt.visit(self)?.modifying(stmt)?;
+            self.pp.write_str(";\n")?;
+        }
         self.pp.write_str("}\n")?;
 
         Ok(ControlMut::SkipSiblings(()))
@@ -138,8 +141,10 @@ where
         };
         self.pp
             .write_fmt(format_args!("private {:?} {}() {{\n", ret, name))?;
-        let stmts: &mut Vec<statements::Stmt> = ast.body.as_mut().unwrap();
-        self.write_separated(stmts, "\n")?;
+        for stmt in &mut ast.body {
+            stmt.visit(self)?.modifying(stmt)?;
+            self.pp.write_str(";\n")?;
+        }
         self.pp.write_str("\n}")?;
 
         Ok(ControlMut::SkipSiblings(()))
@@ -147,10 +152,22 @@ where
 
     fn begin_after_decl(
         &mut self,
-        _ast: &mut declarations::AfterDecl,
+        ast: &mut declarations::AfterDecl,
     ) -> VisitorResult<(), declarations::Decl> {
-        println!("NBT: after: {:?}", _ast);
-        todo!()
+        ast.name.visit(self)?.modifying(&mut ast.name)?;
+        self.pp.write_str(".addAfter((")?;
+
+        if let Some(params) = &mut ast.params {
+            self.write_paramlist(params, ",")?;
+            // XXX: also the return value needs to be bound.
+        }
+        self.pp.write_str(") -> {\n")?;
+        for stmt in &mut ast.body {
+            stmt.visit(self)?.modifying(stmt)?;
+            self.pp.write_str(";\n")?;
+        }
+        self.pp.write_str("})")?;
+        Ok(ControlMut::SkipSiblings(()))
     }
 
     fn begin_alias_decl(
@@ -159,6 +176,26 @@ where
         e: &mut expressions::Sort,
     ) -> VisitorResult<(), declarations::Decl> {
         self.type_aliases.insert(sym.clone(), e.clone());
+        Ok(ControlMut::SkipSiblings(()))
+    }
+
+    fn begin_before_decl(
+        &mut self,
+        ast: &mut declarations::BeforeDecl,
+    ) -> VisitorResult<(), declarations::Decl> {
+        ast.name.visit(self)?.modifying(&mut ast.name)?;
+        self.pp.write_str(".addBefore((")?;
+
+        if let Some(params) = &mut ast.params {
+            self.write_paramlist(params, ",")?;
+            // XXX: also the return value needs to be bound.
+        }
+        self.pp.write_str(") -> {\n")?;
+        for stmt in &mut ast.body {
+            stmt.visit(self)?.modifying(stmt)?;
+            self.pp.write_str(";\n")?;
+        }
+        self.pp.write_str("})")?;
         Ok(ControlMut::SkipSiblings(()))
     }
 
@@ -210,6 +247,7 @@ where
         }
         self.pp.write_str("}\n\n")?;
 
+        // impl
         self.pp
             .write_fmt(format_args!("public class {name}_impl {{\n\n"))?;
         for decl in &mut ast.impl_decls {
@@ -218,6 +256,16 @@ where
         }
         self.pp
             .write_fmt(format_args!("}} // {name}_impl definition\n"))?;
+
+        // impl
+        self.pp
+            .write_fmt(format_args!("public class {name}_spec {{\n\n"))?;
+        for decl in &mut ast.spec_decls {
+            decl.visit(self)?.modifying(decl)?;
+            self.pp.write_str("\n")?;
+        }
+        self.pp
+            .write_fmt(format_args!("}} // {name}_spec definition\n"))?;
 
         self.pp
             .write_fmt(format_args!("}} // {name} definition\n"))?;
@@ -233,6 +281,23 @@ where
         Ok(ControlMut::SkipSiblings(()))
     }
 
+    fn begin_vardecl(
+        &mut self,
+        name: &mut Symbol,
+        sort: &mut expressions::Sort,
+    ) -> VisitorResult<(), declarations::Decl> {
+        self.pp.write_str("private ")?;
+        match sort {
+            expressions::Sort::ToBeInferred => unreachable!(),
+            expressions::Sort::Annotated(_) | expressions::Sort::Resolved(_) => {
+                self.sort(sort)?.modifying(sort)?;
+            }
+        };
+        self.pp.write_str(" ")?;
+        name.visit(self)?.modifying(name)?;
+        Ok(ControlMut::SkipSiblings(()))
+    }
+
     // Expressions
 
     fn begin_app(
@@ -244,6 +309,17 @@ where
         self.pp.write_str("(")?;
         self.write_separated(&mut ast.args, ", ")?;
         self.pp.write_str(")")?;
+        Ok(ControlMut::SkipSiblings(()))
+    }
+
+    fn begin_assign(
+        &mut self,
+        ast: &mut actions::AssignAction,
+    ) -> VisitorResult<(), actions::Action> {
+        ast.lhs.visit(self)?;
+        self.pp.write_str(" = ")?;
+        ast.rhs.visit(self)?;
+
         Ok(ControlMut::SkipSiblings(()))
     }
 
