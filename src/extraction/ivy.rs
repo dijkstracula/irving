@@ -713,13 +713,6 @@ where
     ) -> VisitorResult<(), expressions::AnnotatedSymbol> {
         p.id.visit(self)?;
 
-        match &mut p.sort {
-            expressions::Sort::ToBeInferred => (),
-            expressions::Sort::Annotated(_) | expressions::Sort::Resolved(_) => {
-                self.pp.write_str(":")?;
-                self.sort(&mut p.sort)?;
-            }
-        }
         Ok(ControlMut::SkipSiblings(()))
     }
 
@@ -795,7 +788,13 @@ where
                     self.pp.write_str("}")?;
                 }
                 IvySort::Uninterpreted => {}
-                _ => todo!(),
+                IvySort::Module(m) => {
+                    self.pp.write_str(&m.name)?;
+                }
+                _ => {
+                    println!("Uh oh! {:?}", s);
+                    self.pp.write_str("???");
+                }
             },
         };
 

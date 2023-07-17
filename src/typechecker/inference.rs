@@ -9,11 +9,10 @@ use super::{
 use crate::{
     ast::{
         actions::Action,
-        declarations::{self, AfterDecl, BeforeDecl, ImplementDecl},
+        declarations::{self, AfterDecl, BeforeDecl, Binding, ImplementDecl},
         expressions::{self, Expr, Sort, Symbol},
         statements::Stmt,
     },
-    extraction::ivy,
     passes::module_instantiation,
     typechecker::{sorts::Module, TypeError},
     visitor::{ast::Visitable, ast::Visitor, control::ControlMut, VisitorResult},
@@ -286,7 +285,10 @@ impl Visitor<IvySort> for TypeChecker {
         })
         .transpose()?;
         match rhs_sort {
-            Some(sort) => Ok(ControlMut::SkipSiblings(sort.clone())),
+            Some(sort) => {
+                rhs.sort = Sort::Resolved(sort.clone());
+                Ok(ControlMut::SkipSiblings(sort.clone()))
+            }
             None => bail!(TypeError::MissingRecordField(lhs_sort, rhs.id.clone())),
         }
     }
@@ -387,13 +389,16 @@ impl Visitor<IvySort> for TypeChecker {
     }
     fn finish_alias_decl(
         &mut self,
-        _sym: &mut Symbol,
+        sym: &mut Symbol,
         _s: &mut Sort,
         sym_sort: IvySort,
         expr_sort: IvySort,
     ) -> VisitorResult<IvySort, declarations::Decl> {
-        let unifed = self.bindings.unify(&sym_sort, &expr_sort)?;
-        Ok(ControlMut::Produce(unifed))
+        let unified = self.bindings.unify(&sym_sort, &expr_sort)?;
+        Ok(ControlMut::Mutation(
+            declarations::Decl::Alias(Binding::from(sym.clone(), Sort::Resolved(unified.clone()))),
+            unified,
+        ))
     }
 
     fn begin_before_decl(
@@ -756,7 +761,6 @@ impl Visitor<IvySort> for TypeChecker {
         name: &mut Symbol,
         _ast: &mut declarations::InstanceDecl,
     ) -> VisitorResult<IvySort, declarations::Decl> {
-        println!("instance decl: {:?}", name);
         let v = self.bindings.new_sortvar();
         self.bindings.append(name.clone(), v)?;
         Ok(ControlMut::Produce(IvySort::Unit))
@@ -772,15 +776,19 @@ impl Visitor<IvySort> for TypeChecker {
         if let IvySort::Module(module) = module_sort {
             if mod_args_sorts.len() > 0 {
                 // Will have to monomorphize with the module instantiation pass.
-                println!("Uh oh: {:?} {:?}", name, decl_sort);
-                for (i, x) in self.bindings.ctx.iter().enumerate() {
-                    println!("ctx[{i}]: {x:?}");
-                }
+                //println!("Uh oh: {:?} {:?}", name, decl_sort);
+                //for (i, x) in self.bindings.ctx.iter().enumerate() {
+                //    println!("ctx[{i}]: {x:?}");
+                // }
 
                 let monomorphized = module_instantiation::instantiate(module, mod_args_sorts)?;
                 let unified = self.bindings.unify(&decl_sort, &monomorphized)?;
-                println!("Yay? {:?}", unified);
-                Ok(ControlMut::Produce(unified))
+                //println!("Yay? {name} {:?}", unified);
+
+                if let IvySort::Module(Module { .. }) = unified {
+                    return Ok(ControlMut::Produce(unified));
+                }
+                unreachable!()
             } else {
                 let modsort = IvySort::Module(Module {
                     name: name.clone(),
