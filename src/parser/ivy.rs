@@ -1,5 +1,3 @@
-use std::collections::BTreeMap;
-
 use pest::error::ErrorVariant;
 use pest_consume::{match_nodes, Error, Parser};
 
@@ -619,14 +617,7 @@ impl IvyParser {
             Prog {
                 major_version: major,
                 minor_version: minor,
-                top: Decl::Isolate(Binding::from(
-                    "top".into(),
-                    IsolateDecl {
-                        params: vec![],
-                        actions: vec![],
-                        fields: vec![],
-                        body: decls.collect::<Vec<_>>() }
-                ))
+                top: decls.collect::<Vec<_>>()
             })
         )
     }

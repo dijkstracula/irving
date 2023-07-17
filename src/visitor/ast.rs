@@ -227,13 +227,6 @@ where
         Ok(ControlMut::Produce(T::default()))
     }
 
-    fn begin_implementation_decl(&mut self, _ast: &mut Vec<Decl>) -> VisitorResult<T, Decl> {
-        Ok(ControlMut::Produce(T::default()))
-    }
-    fn finish_implementation_decl(&mut self, _ast: &mut Vec<Decl>) -> VisitorResult<T, Decl> {
-        Ok(ControlMut::Produce(T::default()))
-    }
-
     fn begin_import_decl(&mut self, _ast: &mut ImportDecl) -> VisitorResult<T, Decl> {
         Ok(ControlMut::Produce(T::default()))
     }
@@ -346,13 +339,6 @@ where
         _n: T,
         _ps: Vec<T>,
     ) -> VisitorResult<T, Decl> {
-        Ok(ControlMut::Produce(T::default()))
-    }
-
-    fn begin_specification(&mut self, _ast: &mut Vec<Decl>) -> VisitorResult<T, Decl> {
-        Ok(ControlMut::Produce(T::default()))
-    }
-    fn finish_specification(&mut self, _ast: &mut Vec<Decl>) -> VisitorResult<T, Decl> {
         Ok(ControlMut::Produce(T::default()))
     }
 
@@ -866,6 +852,15 @@ where
         }?
         .modifying(self)?;
         Ok(ControlMut::Produce(t))
+    }
+}
+
+impl<T> Visitable<T> for Sort
+where
+    T: Default,
+{
+    fn visit(&mut self, visitor: &mut dyn Visitor<T>) -> VisitorResult<T, Self> {
+        visitor.sort(self)
     }
 }
 

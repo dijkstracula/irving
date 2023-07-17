@@ -27,7 +27,6 @@ impl<W: Write> Write for PrettyPrinter<W> {
 
         for (i, line) in &lines {
             self.indent -= line.matches("}").count();
-            self.indent -= line.matches(")").count();
             if line.len() > 0 && !self.curr_line_is_indented {
                 let indent = std::iter::repeat(" ")
                     .take(4 * self.indent)
@@ -38,7 +37,6 @@ impl<W: Write> Write for PrettyPrinter<W> {
             self.out.write_str(line)?;
 
             self.indent += line.matches("{").count();
-            self.indent += line.matches("(").count();
             if *i < lines.len() - 1 {
                 self.out.write_str("\n")?;
                 self.curr_line_is_indented = false;

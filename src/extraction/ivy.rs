@@ -74,19 +74,9 @@ where
             p.major_version, p.minor_version
         ))?;
 
-        // The top-level isolate is anonymous so just
-        // jump straight to its body.
-        match &mut p.top {
-            declarations::Decl::Isolate(Binding {
-                decl: declarations::IsolateDecl { body, .. },
-                ..
-            }) => {
-                for decl in body {
-                    decl.visit(self)?.modifying(decl)?;
-                    self.pp.write_str("\n")?;
-                }
-            }
-            _ => unreachable!(),
+        for decl in &mut p.top {
+            decl.visit(self)?.modifying(decl)?;
+            self.pp.write_str("\n")?;
         }
         Ok(ControlMut::SkipSiblings(()))
     }
@@ -381,16 +371,6 @@ where
         Ok(ControlMut::Produce(()))
     }
 
-    fn begin_implementation_decl(
-        &mut self,
-        ast: &mut Vec<declarations::Decl>,
-    ) -> VisitorResult<(), declarations::Decl> {
-        self.pp.write_str("implementation {\n")?;
-        self.write_separated(ast, "\n")?;
-        self.pp.write_str("\n}")?;
-        Ok(ControlMut::SkipSiblings(()))
-    }
-
     fn begin_include_decl(
         &mut self,
         _ast: &mut expressions::Symbol,
@@ -460,16 +440,6 @@ where
         self.write_separated(&mut ast.body, "\n")?;
         self.pp.write_str("}\n")?;
 
-        Ok(ControlMut::SkipSiblings(()))
-    }
-
-    fn begin_specification(
-        &mut self,
-        ast: &mut Vec<declarations::Decl>,
-    ) -> VisitorResult<(), declarations::Decl> {
-        self.pp.write_str("specification {\n")?;
-        self.write_separated(ast, "\n")?;
-        self.pp.write_str("\n}")?;
         Ok(ControlMut::SkipSiblings(()))
     }
 

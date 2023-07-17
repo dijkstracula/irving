@@ -17,16 +17,8 @@ impl GlobalLowerer {
 
 impl Visitor<()> for GlobalLowerer {
     fn finish_prog(&mut self, prog: &mut Prog) -> VisitorResult<(), Prog> {
-        match &mut prog.top {
-            Decl::Isolate(Binding {
-                decl: IsolateDecl { body, .. },
-                ..
-            }) => {
-                self.globals.append(body);
-                body.append(&mut self.globals);
-            }
-            _ => unreachable!(),
-        }
+        self.globals.append(&mut prog.top);
+        prog.top.append(&mut self.globals);
         Ok(ControlMut::Produce(()))
     }
 

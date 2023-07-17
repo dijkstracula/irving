@@ -18,6 +18,38 @@ impl JavaType {
     pub fn object(typ: String) -> Self {
         Self::Object(typ, vec![])
     }
+
+    pub fn as_jref(&self) -> String {
+        match self {
+            JavaType::Boolean => "Boolean".into(),
+            JavaType::Char => "Character".into(),
+            JavaType::Long => "Long".into(),
+            JavaType::BoundedLong(_, _) => "Long".into(),
+            JavaType::ArrayList(t) => format!("ArrayList<{}>", t.as_jref()),
+            JavaType::Object(clazz, ts) => {
+                if ts.is_empty() {
+                    clazz.clone()
+                } else {
+                    format!(
+                        "{}<{}>",
+                        clazz,
+                        ts.iter().map(|t| t.as_jref()).collect::<Vec<_>>().join(",")
+                    )
+                }
+            }
+            JavaType::Void => "Void".into(),
+        }
+    }
+
+    pub fn as_jval(&self) -> String {
+        match self {
+            JavaType::Boolean => "boolean".into(),
+            JavaType::Char => "char".into(),
+            JavaType::Long => "long".into(),
+            JavaType::BoundedLong(_, _) => "long".into(),
+            _ => self.as_jref(),
+        }
+    }
 }
 
 impl From<IvySort> for JavaType {

@@ -4,6 +4,6 @@ mod tests {
 
     #[test]
     fn test_stdlib_typechecking() {
-        let tc = load_stdlib().unwrap();
+        let _ = load_stdlib().unwrap();
     }
 }

@@ -72,6 +72,8 @@ impl Visitor<IvySort> for TypeChecker {
             Sort::ToBeInferred => Ok(ControlMut::Produce(self.bindings.new_sortvar())),
             Sort::Annotated(id) => {
                 let resolved = id.visit(self)?.modifying(id)?;
+                // Note that because a parameter binds a new name, we add it
+                // to the bindings here.  We do not do the same for sort!()
                 self.bindings.append(p.id.clone(), resolved.clone())?;
                 Ok(ControlMut::Mutation(
                     expressions::AnnotatedSymbol {
@@ -90,12 +92,15 @@ impl Visitor<IvySort> for TypeChecker {
     }
 
     fn sort(&mut self, s: &mut Sort) -> VisitorResult<IvySort, Sort> {
-        let sort = match s {
-            Sort::ToBeInferred => self.bindings.new_sortvar(),
-            Sort::Annotated(ident) => self.identifier(ident)?.modifying(ident)?,
-            Sort::Resolved(ivysort) => ivysort.clone(),
+        let ctrl = match s {
+            Sort::ToBeInferred => ControlMut::Produce(self.bindings.new_sortvar()),
+            Sort::Annotated(ident) => {
+                let resolved = self.identifier(ident)?.modifying(ident)?;
+                ControlMut::Mutation(Sort::Resolved(resolved.clone()), resolved)
+            }
+            Sort::Resolved(ivysort) => ControlMut::Produce(ivysort.clone()),
         };
-        Ok(ControlMut::Produce(sort))
+        Ok(ctrl)
     }
 
     fn annotated_symbol(
@@ -120,7 +125,6 @@ impl Visitor<IvySort> for TypeChecker {
         match sym.as_str() {
             "bool" => Ok(ControlMut::Produce(IvySort::Bool)),
             "unbounded_sequence" => Ok(ControlMut::Produce(IvySort::Number)),
-
             "this" => Ok(ControlMut::Produce(IvySort::This)),
             // TODO: and of course other builtins.
             _ => match self.bindings.lookup_sym(sym) {
@@ -255,7 +259,7 @@ impl Visitor<IvySort> for TypeChecker {
                 Ok::<Option<IvySort>, TypeError>(module.fields.get(&rhs.id).map(|s| s.clone()))
             }
             IvySort::Process(proc) => {
-                let mut s = proc.fields.get(&rhs.id);
+                let s = proc.fields.get(&rhs.id);
                 is_common = s.is_none();
                 Ok(s.map(|s| s.clone()))
             }
@@ -810,12 +814,19 @@ impl Visitor<IvySort> for TypeChecker {
     }
     fn finish_vardecl(
         &mut self,
-        _name: &mut Symbol,
+        name: &mut Symbol,
         _ast: &mut Sort,
         name_sort: IvySort,
         resolved_sort: IvySort,
     ) -> VisitorResult<IvySort, declarations::Decl> {
         let resolved = self.bindings.unify(&name_sort, &resolved_sort)?;
-        Ok(ControlMut::Produce(resolved))
+
+        Ok(ControlMut::Mutation(
+            declarations::Decl::Var(Binding::from(
+                name.clone(),
+                Sort::Resolved(resolved.clone()),
+            )),
+            resolved,
+        ))
     }
 }

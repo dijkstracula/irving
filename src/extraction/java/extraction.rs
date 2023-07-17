@@ -1,5 +1,6 @@
 use crate::{
-    ast::declarations, extraction::java::extraction::expressions::Symbol, typechecker::TypeError,
+    ast::declarations::{self, ActionDecl, Binding, ExportDecl},
+    extraction::java::extraction::expressions::Symbol,
 };
 use std::{collections::BTreeMap, fmt::Write};
 
@@ -66,18 +67,33 @@ where
         }
         Ok(ControlMut::Produce(()))
     }
+
+    fn jtype_from_sort(s: &mut expressions::Sort) -> JavaType {
+        match s {
+            expressions::Sort::ToBeInferred => todo!(),
+            expressions::Sort::Annotated(_) => todo!(),
+            expressions::Sort::Resolved(ivysort) => {
+                let j: JavaType = ivysort.clone().into(); // XXX: poor choices lead to this clone.a
+                j
+            }
+        }
+    }
 }
 
 impl<W> ast::Visitor<()> for Extractor<W>
 where
     W: Write,
 {
-    fn begin_prog(&mut self, _ast: &mut toplevels::Prog) -> VisitorResult<(), toplevels::Prog> {
+    fn begin_prog(&mut self, ast: &mut toplevels::Prog) -> VisitorResult<(), toplevels::Prog> {
         let imports = include_str!("templates/imports.txt");
         self.pp.write_str(imports)?;
         self.pp.write_str("\n\n")?;
 
-        Ok(ControlMut::Produce(()))
+        for decl in &mut ast.top {
+            decl.visit(self)?.modifying(decl)?;
+            self.pp.write_str("\n")?;
+        }
+        Ok(ControlMut::SkipSiblings(()))
     }
 
     fn action_seq(
@@ -130,22 +146,16 @@ where
         name: &mut Symbol,
         ast: &mut declarations::ActionDecl,
     ) -> VisitorResult<(), declarations::Decl> {
-        let ret: JavaType = match &mut ast.ret {
-            None => JavaType::Void,
-            Some(ret) => match &mut ret.sort {
-                expressions::Sort::ToBeInferred => todo!(),
-                expressions::Sort::Annotated(_) => todo!(),
-                expressions::Sort::Resolved(ivysort) => ivysort.clone().into(), //XXX
-            },
-        };
-        self.pp
-            .write_fmt(format_args!("private {:?} {}() {{\n", ret, name))?;
+        name.visit(self)?.modifying(name)?;
+        self.pp.write_str(".on((")?;
+
+        self.write_paramlist(&mut ast.params, ",")?;
+        self.pp.write_str(") -> {\n")?;
         for stmt in &mut ast.body {
             stmt.visit(self)?.modifying(stmt)?;
             self.pp.write_str(";\n")?;
         }
-        self.pp.write_str("\n}")?;
-
+        self.pp.write_str("})")?;
         Ok(ControlMut::SkipSiblings(()))
     }
 
@@ -154,7 +164,7 @@ where
         ast: &mut declarations::AfterDecl,
     ) -> VisitorResult<(), declarations::Decl> {
         ast.name.visit(self)?.modifying(&mut ast.name)?;
-        self.pp.write_str(".addAfter((")?;
+        self.pp.write_str(".onAfter((")?;
 
         if let Some(params) = &mut ast.params {
             self.write_paramlist(params, ",")?;
@@ -198,6 +208,47 @@ where
         Ok(ControlMut::SkipSiblings(()))
     }
 
+    fn begin_implement_decl(
+        &mut self,
+        ast: &mut declarations::ImplementDecl,
+    ) -> VisitorResult<(), declarations::Decl> {
+        ast.name.visit(self)?.modifying(&mut ast.name)?;
+        self.pp.write_str(".on((")?;
+
+        match &mut ast.params {
+            None => unreachable!(),
+            Some(params) => self.write_paramlist(params, ",")?,
+        };
+
+        self.pp.write_str(") -> {\n")?;
+        for stmt in &mut ast.body {
+            stmt.visit(self)?.modifying(stmt)?;
+            self.pp.write_str(";\n")?;
+        }
+        self.pp.write_str("})")?;
+        Ok(ControlMut::SkipSiblings(()))
+    }
+
+    fn begin_import_decl(
+        &mut self,
+        ast: &mut declarations::ImportDecl,
+    ) -> VisitorResult<(), declarations::Decl> {
+        self.pp.write_str("private void ")?;
+        self.pp.write_fmt(format_args!("{}(", ast.name))?;
+
+        for param in &mut ast.params {
+            self.param(param)?.modifying(param)?;
+        }
+        self.pp.write_str(") {\n")?;
+
+        self.pp.write_str("System.out.println(\"")?;
+        self.pp.write_str("\");")?;
+
+        self.pp.write_str("\n}")?;
+
+        Ok(ControlMut::SkipSiblings(()))
+    }
+
     fn begin_instance_decl(
         &mut self,
         name: &mut Symbol,
@@ -227,6 +278,36 @@ where
             .write_fmt(format_args!("public class {name} {{\n\n"))?;
 
         // fields
+        for f in &mut ast.fields {
+            f.visit(self)?.modifying(f)?;
+            self.pp.write_str("\n")?;
+        }
+
+        // Action object declarations
+        for decl in &mut ast.body {
+            match decl {
+                declarations::Decl::Export(ExportDecl::Action(Binding {
+                    name,
+                    decl: ActionDecl { params, ret, body },
+                }))
+                | declarations::Decl::Action(Binding {
+                    name,
+                    decl: ActionDecl { params, ret, body },
+                }) => {
+                    let mut sorts = params.iter().map(|a| a.sort.clone()).collect::<Vec<_>>();
+                    if let Some(ret) = ret {
+                        sorts.push(ret.sort.clone());
+                    }
+                    self.pp
+                        .write_fmt(format_args!("public Action{}<", sorts.len()))?;
+                    self.write_separated(&mut sorts, ",")?;
+                    self.pp
+                        .write_fmt(format_args!("> {name} = new Action{}<>();\n", sorts.len()))?;
+                }
+                _ => (),
+            }
+        }
+
         // Constructor
         self.pp.write_fmt(format_args!("public {name}("))?;
         self.write_paramlist(&mut ast.params, ", ")?;
@@ -236,7 +317,25 @@ where
             self.pp
                 .write_fmt(format_args!("this.{} = {};\n", param.id, param.id))?;
         }
+
+        self.pp.write_str("\n")?;
+        for decl in ast
+            .body
+            .iter_mut()
+            .filter(|d| d.name_for_binding().is_none())
+        {
+            decl.visit(self)?.modifying(decl)?;
+            self.pp.write_str("\n")?;
+        }
         self.pp.write_str("}\n\n")?;
+
+        // Declarations
+        for decl in &mut ast.body {
+            decl.visit(self)?.modifying(decl)?;
+            self.pp.write_str("\n")?;
+        }
+        self.pp.write_str("}\n\n")?;
+
         Ok(ControlMut::SkipSiblings(()))
     }
 
@@ -254,14 +353,10 @@ where
         name: &mut Symbol,
         sort: &mut expressions::Sort,
     ) -> VisitorResult<(), declarations::Decl> {
-        self.pp.write_str("private ")?;
-        match sort {
-            expressions::Sort::ToBeInferred => unreachable!(),
-            expressions::Sort::Annotated(_) | expressions::Sort::Resolved(_) => {
-                self.sort(sort)?.modifying(sort)?;
-            }
-        };
-        self.pp.write_str(" ")?;
+        self.pp.write_fmt(format_args!(
+            "private {} ",
+            Self::jtype_from_sort(sort).as_jval()
+        ))?;
         name.visit(self)?.modifying(name)?;
         Ok(ControlMut::SkipSiblings(()))
     }
@@ -347,6 +442,19 @@ where
         Ok(ControlMut::SkipSiblings(()))
     }
 
+    fn begin_object_decl(
+        &mut self,
+        name: &mut Symbol,
+        ast: &mut declarations::ObjectDecl,
+    ) -> VisitorResult<(), declarations::Decl> {
+        self.pp
+            .write_fmt(format_args!("Object {name} = new Object"))?;
+        self.pp.write_str(" {\n")?;
+        self.write_separated(&mut ast.body, "\n")?;
+        self.pp.write_str("\n}")?;
+        Ok(ControlMut::SkipSiblings(()))
+    }
+
     // Terminals
 
     fn boolean(&mut self, b: &mut bool) -> VisitorResult<(), bool> {
@@ -386,7 +494,7 @@ where
             }
             expressions::Sort::Resolved(ivysort) => {
                 let j: JavaType = ivysort.clone().into(); // XXX: poor choices lead to this clone.a
-                self.pp.write_fmt(format_args!("{:?}", j))?;
+                self.pp.write_str(j.as_jref().as_str())?;
             }
         }
         Ok(ControlMut::Produce(()))
@@ -397,7 +505,7 @@ where
         match alias {
             None => self.pp.write_str(s)?,
             Some(sort) => {
-                let mut s2 = sort.clone(); // XXX: ugh
+                let mut s2 = sort.clone();
                 self.sort(&mut s2)?;
             }
         }
