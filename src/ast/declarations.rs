@@ -83,12 +83,23 @@ pub struct InstanceDecl {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct IsolateDecl {
     pub params: ParamList,
-    pub actions: Vec<Decl>,
     pub fields: Vec<Decl>,
 
     // The non-action and non-field declarations go here, stuff like
     // axioms, attributes, invariants, etc...
     pub body: Vec<Decl>,
+}
+
+impl IsolateDecl {
+    pub fn actions<'a>(&'a self) -> Vec<&'a Binding<ActionDecl>> {
+        self.body
+            .iter()
+            .filter_map(|d| match d {
+                Decl::Export(ExportDecl::Action(binding)) | Decl::Action(binding) => Some(binding),
+                _ => None,
+            })
+            .collect()
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -206,6 +217,13 @@ impl Decl {
             Decl::Stmts(_) => None,
             Decl::Var(Binding { name, .. }) => Some(&name),
             Decl::Type(Binding { name, .. }) => Some(&name),
+        }
+    }
+
+    pub fn as_action(self) -> Option<Binding<ActionDecl>> {
+        match self {
+            Decl::Action(binding) => Some(binding),
+            _ => None,
         }
     }
 }

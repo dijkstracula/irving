@@ -25,7 +25,7 @@ where
     W: Write,
 {
     pub pp: PrettyPrinter<W>,
-    type_aliases: BTreeMap<Symbol, expressions::Sort>,
+    type_aliases: BTreeMap<Symbol, JavaType>,
 }
 
 impl Extractor<String> {
@@ -182,9 +182,10 @@ where
     fn begin_alias_decl(
         &mut self,
         sym: &mut expressions::Symbol,
-        e: &mut expressions::Sort,
+        sort: &mut expressions::Sort,
     ) -> VisitorResult<(), declarations::Decl> {
-        self.type_aliases.insert(sym.clone(), e.clone());
+        let j: JavaType = (sort as &expressions::Sort).into(); // XXX: poor choices lead to this clone.a
+        self.type_aliases.insert(sym.clone(), j);
         Ok(ControlMut::SkipSiblings(()))
     }
 
@@ -256,16 +257,17 @@ where
     ) -> VisitorResult<(), declarations::Decl> {
         self.pp.write_fmt(format_args!("class {} extends ", name))?;
         ast.sort.visit(self)?.modifying(&mut ast.sort)?;
-
         if !ast.args.is_empty() {
             self.pp.write_str("<")?;
 
             // maybe slightly confusing: because we parameterise modules on their sorts,
             // the `id` field contains the identifier for sort, not the `sort` field.
             let mut sorts = ast.args.iter().map(|a| a.id.clone()).collect::<Vec<_>>();
-            self.write_separated(&mut sorts, ",")?;
+            self.write_separated(&mut sorts, ", ")?;
             self.pp.write_str(">")?;
         }
+
+        self.pp.write_str(" {\n}")?;
 
         Ok(ControlMut::SkipSiblings(()))
     }
@@ -284,29 +286,36 @@ where
         }
 
         // Action object declarations
-        for decl in &mut ast.body {
-            match decl {
-                declarations::Decl::Export(ExportDecl::Action(Binding {
-                    name,
-                    decl: ActionDecl { params, ret, body },
-                }))
-                | declarations::Decl::Action(Binding {
-                    name,
-                    decl: ActionDecl { params, ret, body },
-                }) => {
-                    let mut sorts = params.iter().map(|a| a.sort.clone()).collect::<Vec<_>>();
-                    if let Some(ret) = ret {
-                        sorts.push(ret.sort.clone());
-                    }
-                    self.pp
-                        .write_fmt(format_args!("public Action{}<", sorts.len()))?;
-                    self.write_separated(&mut sorts, ",")?;
-                    self.pp
-                        .write_fmt(format_args!("> {name} = new Action{}<>();\n", sorts.len()))?;
-                }
-                _ => (),
+        self.pp.write_str("// Mixin declarations\n")?;
+        for Binding {
+            name,
+            decl: ActionDecl { params, ret, .. },
+        } in ast.actions()
+        {
+            let mut sorts = params.iter().map(|a| a.sort.clone()).collect::<Vec<_>>();
+            if let Some(ret) = ret {
+                sorts.push(ret.sort.clone());
             }
+            self.pp
+                .write_fmt(format_args!("public Action{}<", sorts.len()))?;
+            self.write_separated(&mut sorts, ",")?;
+            self.pp
+                .write_fmt(format_args!("> {name} = new Action{}<>();\n", sorts.len()))?;
         }
+
+        self.pp.write_str("\n")?;
+
+        // Other bindings
+        for decl in &mut ast
+            .body
+            .iter_mut()
+            .filter(|d| d.name_for_binding().is_some())
+        {
+            decl.visit(self)?.modifying(decl)?;
+            self.pp.write_str(";\n\n")?;
+        }
+
+        self.pp.write_str("\n")?;
 
         // Constructor
         self.pp.write_fmt(format_args!("public {name}("))?;
@@ -329,11 +338,6 @@ where
         }
         self.pp.write_str("}\n\n")?;
 
-        // Declarations
-        for decl in &mut ast.body {
-            decl.visit(self)?.modifying(decl)?;
-            self.pp.write_str("\n")?;
-        }
         self.pp.write_str("}\n\n")?;
 
         Ok(ControlMut::SkipSiblings(()))
@@ -344,7 +348,8 @@ where
         name: &mut Symbol,
         s: &mut expressions::Sort,
     ) -> VisitorResult<(), declarations::Decl> {
-        self.type_aliases.insert(name.clone(), s.clone());
+        self.type_aliases
+            .insert(name.clone(), (s as &expressions::Sort).into());
         Ok(ControlMut::SkipSiblings(()))
     }
 
@@ -399,7 +404,7 @@ where
             Verb::Div => "/",
             Verb::Dot => ".",
 
-            Verb::Equals => "=",
+            Verb::Equals => "==",
             Verb::Notequals => "!=",
             Verb::Lt => "<",
             Verb::Le => "<=",
@@ -413,7 +418,14 @@ where
                 unimplemented!()
             }
         };
-        self.pp.write_fmt(format_args!(" {} ", op_str))?;
+        match ast.op {
+            Verb::Dot => {
+                self.pp.write_str(op_str)?;
+            }
+            _ => {
+                self.pp.write_fmt(format_args!(" {} ", op_str))?;
+            }
+        }
         ast.rhs.visit(self)?;
 
         Ok(ControlMut::SkipSiblings(()))
@@ -422,6 +434,21 @@ where
     fn begin_call(&mut self, ast: &mut expressions::AppExpr) -> VisitorResult<(), actions::Action> {
         self.begin_app(ast)?;
         Ok(ControlMut::SkipSiblings(()))
+    }
+
+    fn begin_ensure(
+        &mut self,
+        ast: &mut actions::EnsureAction,
+    ) -> VisitorResult<(), actions::Action> {
+        self.pp.write_str("ensureThat(")?;
+        Ok(ControlMut::Produce(()))
+    }
+    fn finish_ensure(
+        &mut self,
+        _ast: &mut actions::EnsureAction,
+    ) -> VisitorResult<(), actions::Action> {
+        self.pp.write_str(")")?;
+        Ok(ControlMut::Produce(()))
     }
 
     fn begin_field_access(
@@ -447,11 +474,45 @@ where
         name: &mut Symbol,
         ast: &mut declarations::ObjectDecl,
     ) -> VisitorResult<(), declarations::Decl> {
-        self.pp
-            .write_fmt(format_args!("Object {name} = new Object"))?;
+        self.pp.write_fmt(format_args!("class _obj_{name}"))?;
         self.pp.write_str(" {\n")?;
-        self.write_separated(&mut ast.body, "\n")?;
-        self.pp.write_str("\n}")?;
+
+        // Other bindings
+        for decl in &mut ast
+            .body
+            .iter_mut()
+            .filter(|d| d.name_for_binding().is_some())
+        {
+            decl.visit(self)?.modifying(decl)?;
+            self.pp.write_str(";\n\n")?;
+        }
+
+        // Constructor
+        self.pp.write_fmt(format_args!("public _obj_{name}("))?;
+        self.write_paramlist(&mut ast.params, ", ")?;
+        self.pp.write_fmt(format_args!(") {{\n"))?;
+
+        for param in &ast.params {
+            self.pp
+                .write_fmt(format_args!("this.{} = {};\n", param.id, param.id))?;
+        }
+
+        self.pp.write_str("\n")?;
+        for decl in ast
+            .body
+            .iter_mut()
+            .filter(|d| d.name_for_binding().is_none())
+        {
+            decl.visit(self)?.modifying(decl)?;
+            self.pp.write_str("\n")?;
+        }
+        self.pp.write_str("\n} //cstr \n")?;
+
+        self.pp.write_str("\n}\n")?;
+
+        self.pp
+            .write_fmt(format_args!("class {name} = new _obj_{name}();\n"))?;
+
         Ok(ControlMut::SkipSiblings(()))
     }
 
@@ -504,9 +565,10 @@ where
         let alias = self.type_aliases.get_mut(s);
         match alias {
             None => self.pp.write_str(s)?,
-            Some(sort) => {
-                let mut s2 = sort.clone();
-                self.sort(&mut s2)?;
+            Some(jsort) => {
+                // TODO: the reference type is safe but it'd be nice to
+                // avoid boxing: can we safely drop to the value type?
+                self.pp.write_str(jsort.as_jref().as_str())?;
             }
         }
         Ok(ControlMut::Produce(()))

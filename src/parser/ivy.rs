@@ -373,12 +373,9 @@ impl IvyParser {
         match_nodes!(
         input.into_children();
         [decl_sig(DeclSig{name, params}), decl_block(body)] => {
-            let actions = vec!(); // TODO
-            let fields = vec!(); // TODO
             Ok(Binding::from(name, IsolateDecl{
                 params,
-                actions,
-                fields,
+                fields: vec!(),
                 body
                 })
             )
