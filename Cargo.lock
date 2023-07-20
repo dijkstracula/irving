@@ -160,6 +160,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "ctor"
+version = "0.2.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1f34ba9a9bcb8645379e9de8cb3ecfcf4d1c85ba66d90deb3259206fa5aa193b"
+dependencies = [
+ "quote",
+ "syn 2.0.15",
+]
+
+[[package]]
 name = "digest"
 version = "0.10.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -237,6 +247,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "clap",
+ "ctor",
  "env_logger",
  "lazy_static",
  "log",

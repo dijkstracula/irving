@@ -6,6 +6,15 @@ mod stdlib;
 mod typechecker;
 
 #[cfg(test)]
+#[ctor::ctor]
+fn init() {
+    let _ = env_logger::builder()
+        .is_test(true)
+        .filter_level(log::LevelFilter::Trace)
+        .try_init();
+}
+
+#[cfg(test)]
 mod helpers {
     use crate::{
         ast::{declarations::Decl, expressions::Expr, toplevels::Prog},

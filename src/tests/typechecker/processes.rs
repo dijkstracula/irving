@@ -199,6 +199,22 @@ mod tests {
     }
 
     #[test]
+    fn test_bad_parameterized_object_index() {
+        let mut iso = process_from_src(
+            "process host(self:pid) = {
+                var foo: bool;
+            
+                after init {
+                host(true).foo := true;
+                }
+            }",
+        );
+
+        let mut tc = typechecker_with_bindings();
+        let _res = iso.visit(&mut tc).unwrap().modifying(&mut iso).unwrap();
+    }
+
+    #[test]
     fn test_append1_host() {
         let mut iso = process_from_src(
             "process host(self:pid) = {
