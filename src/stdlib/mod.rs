@@ -1,5 +1,5 @@
 use crate::{
-    ast::declarations::Decl,
+    ast::toplevels::Prog,
     parser::ivy::{IvyParser, Rule},
     passes::global_lowerer::GlobalLowerer,
     typechecker::inference::TypeChecker,
@@ -16,10 +16,12 @@ use pest_consume::Parser;
 // typechecker whilst visiting needs to just treat the top isolate as special.
 //
 // See https://github.com/dijkstracula/irving/issues/5 .
-fn decl_from_filename(path: &str) -> Result<Decl> {
+fn prog_from_filename(path: &str) -> Result<Prog> {
+    log::debug!(target: "stdlib", "adding {path}");
+
     let text = std::fs::read_to_string(path).unwrap();
-    let res = IvyParser::parse(Rule::decl, &text)?.single().unwrap();
-    let mut prog = IvyParser::decl(res)?;
+    let res = IvyParser::parse(Rule::prog, &text)?.single().unwrap();
+    let mut prog = IvyParser::prog(res)?;
 
     let mut gl = GlobalLowerer::new();
     prog.visit(&mut gl)?.modifying(&mut prog)?;
@@ -29,10 +31,10 @@ fn decl_from_filename(path: &str) -> Result<Decl> {
 pub fn load_stdlib() -> Result<TypeChecker> {
     let mut tc = TypeChecker::new();
 
-    let mut decl = decl_from_filename("src/stdlib/ivy/network.ivy")?;
+    let mut decl = prog_from_filename("src/stdlib/ivy/network.ivy")?;
     decl.visit(&mut tc)?.modifying(&mut decl)?;
 
-    let mut decl = decl_from_filename("src/stdlib/ivy/collections.ivy")?;
+    let mut decl = prog_from_filename("src/stdlib/ivy/collections.ivy")?;
     decl.visit(&mut tc)?.modifying(&mut decl)?;
 
     Ok(tc)

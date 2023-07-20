@@ -6,6 +6,8 @@ use irving::visitor::ast::Visitable;
 use std::io::Write;
 
 fn main() -> anyhow::Result<()> {
+    env_logger::init();
+
     let cli = Cli::parse();
     let ivy_file = cli.read_ivy_file()?;
 
@@ -13,7 +15,9 @@ fn main() -> anyhow::Result<()> {
 
     // TODO: Might be good to wrap these all up in one meta-pass.
     let mut gl = GlobalLowerer::new();
+    log::info!(target: "pass", "lowering globals");
     prog.visit(&mut gl)?.modifying(&mut prog)?;
+    log::info!("[pass] typechecking");
     let mut tc = irving::stdlib::load_stdlib()?;
     prog.visit(&mut tc)?.modifying(&mut prog)?;
 

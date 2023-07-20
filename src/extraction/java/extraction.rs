@@ -400,7 +400,7 @@ where
         name: &mut Symbol,
         ast: &mut declarations::ObjectDecl,
     ) -> VisitorResult<(), declarations::Decl> {
-        self.pp.write_fmt(format_args!("class _obj_{name}"))?;
+        self.pp.write_fmt(format_args!("class IvyObj_{name}"))?;
         self.pp.write_str(" {\n")?;
 
         // Other bindings
@@ -414,7 +414,7 @@ where
         }
 
         // Constructor
-        self.pp.write_fmt(format_args!("public _obj_{name}("))?;
+        self.pp.write_fmt(format_args!("public IvyObj_{name}("))?;
         self.write_paramlist(&mut ast.params, ", ")?;
         self.pp.write_fmt(format_args!(") {{\n"))?;
 
@@ -436,8 +436,9 @@ where
 
         self.pp.write_str("\n}\n")?;
 
-        self.pp
-            .write_fmt(format_args!("class {name} = new _obj_{name}();\n"))?;
+        self.pp.write_fmt(format_args!(
+            "IvyObj_{name} {name} = new IvyObj_{name}();\n"
+        ))?;
 
         Ok(ControlMut::SkipSiblings(()))
     }

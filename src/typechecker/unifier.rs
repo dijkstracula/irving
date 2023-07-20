@@ -92,7 +92,6 @@ impl Resolver {
                 self.sorts.last_mut().unwrap().insert(sym, unified);
                 return Ok(());
             } else {
-                println!("NBT {:?}", existing);
                 if existing != &sort {
                     return Err(TypeError::ReboundVariable {
                         sym,
@@ -151,7 +150,7 @@ impl Resolver {
     pub fn unify(&mut self, lhs: &IvySort, rhs: &IvySort) -> Result<IvySort, TypeError> {
         let lhs = self.resolve(lhs).clone();
         let rhs = self.resolve(rhs).clone();
-        println!("unify({:?}, {:?})", lhs, rhs);
+        log::debug!(target: "typechecker", "unify({lhs:?},{rhs:?})");
         match (&lhs, &rhs) {
             (IvySort::SortVar(i), IvySort::SortVar(j)) => {
                 if i < j {
