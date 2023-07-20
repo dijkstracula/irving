@@ -271,24 +271,6 @@ where
         Ok(ControlMut::Produce(T::default()))
     }
 
-    fn begin_process_decl(
-        &mut self,
-        _name: &mut Symbol,
-        _ast: &mut ObjectDecl,
-    ) -> VisitorResult<T, Decl> {
-        Ok(ControlMut::Produce(T::default()))
-    }
-    fn finish_process_decl(
-        &mut self,
-        _name: &mut Symbol,
-        _ast: &mut ObjectDecl,
-        _n: T,
-        _p: Vec<T>,
-        _b: Vec<T>,
-    ) -> VisitorResult<T, Decl> {
-        Ok(ControlMut::Produce(T::default()))
-    }
-
     fn begin_module_decl(
         &mut self,
         _name: &mut Symbol,

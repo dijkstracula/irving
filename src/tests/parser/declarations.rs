@@ -165,6 +165,36 @@ mod tests {
     }
 
     #[test]
+    fn parse_parametrized_decl_err() {
+        let fragment = "object timer(x: bool) = { }";
+        IvyParser::parse(Rule::decl, fragment).expect_err(
+            "Raw objects cannot be parameterized in Irving (use `isolate` or `process`)",
+        );
+    }
+
+    #[test]
+    fn parse_process_decl() {
+        let proc_fragment = "process timer(x: bool) = { }";
+        let isol_fragment = "isolate timer(x: bool) = { }";
+
+        let res = IvyParser::parse(Rule::decl, proc_fragment)
+            .expect("Parsing failed")
+            .single()
+            .unwrap();
+        let proc = IvyParser::decl(res).unwrap();
+
+        let res = IvyParser::parse(Rule::decl, isol_fragment)
+            .expect("Parsing failed")
+            .single()
+            .unwrap();
+        let isol = IvyParser::decl(res).unwrap();
+
+        // `process` and `isolate` are indistinguishable for us.  (In regular ivy, the distinction
+        // comes from an implicit `extract` directive in the former, which we don't consider.)
+        assert_eq!(proc, isol);
+    }
+
+    #[test]
     fn parse_relation_decl() {
         let fragment = "relation foo(a: int, b: int)";
         let res = IvyParser::parse(Rule::relation_decl, fragment)

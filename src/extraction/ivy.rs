@@ -387,24 +387,6 @@ where
         Ok(ControlMut::Produce(()))
     }
 
-    fn begin_process_decl(
-        &mut self,
-        name: &mut Symbol,
-        inst: &mut declarations::ObjectDecl,
-    ) -> VisitorResult<(), declarations::Decl> {
-        self.pp.write_fmt(format_args!("isolate {}", name))?;
-        if inst.params.len() > 0 {
-            self.pp.write_str("(")?;
-            inst.params.visit(self)?;
-            self.pp.write_str(")")?;
-        }
-        self.pp.write_str(" {\n")?;
-        self.write_separated(&mut inst.body, "\n")?;
-        self.pp.write_str("\n}\n")?;
-
-        Ok(ControlMut::SkipSiblings(()))
-    }
-
     fn begin_module_decl(
         &mut self,
         name: &mut Symbol,

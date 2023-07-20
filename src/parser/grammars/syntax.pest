@@ -50,7 +50,7 @@ relation_decl     = { RELATION ~ decl_sig }
 
 global_decl       = { GLOBAL ~ decl_block }
 process_decl      = { PROCESS ~ decl_sig ~ "=" ~ decl_block }
-object_decl       = { OBJECT ~ decl_sig ~ "=" ~ decl_block }
+object_decl       = { OBJECT ~ symbol ~ "=" ~ decl_block }
 
 import_decl       = { IMPORT ~ ACTION ~ decl_sig }
 export_decl       = { EXPORT ~ (symbol | action_decl) }
