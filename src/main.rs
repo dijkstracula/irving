@@ -3,7 +3,6 @@ use irving::cli::{Cli, Commands, ExtractTarget};
 use irving::extraction;
 use irving::passes::global_lowerer::GlobalLowerer;
 use irving::visitor::ast::Visitable;
-use std::io::Write;
 
 fn main() -> anyhow::Result<()> {
     env_logger::init();
@@ -17,24 +16,21 @@ fn main() -> anyhow::Result<()> {
     let mut gl = GlobalLowerer::new();
     log::info!(target: "pass", "lowering globals");
     prog.visit(&mut gl)?.modifying(&mut prog)?;
-    log::info!("[pass] typechecking");
     let mut tc = irving::stdlib::load_stdlib()?;
+
+    log::info!("[pass] typechecking");
     prog.visit(&mut tc)?.modifying(&mut prog)?;
 
     match cli.cmd {
         Commands::Extract(ExtractTarget::Ivy) => {
             let mut e = extraction::ivy::Extractor::<String>::new();
             prog.visit(&mut e)?;
-
-            let mut stdout = std::io::stdout().lock();
-            stdout.write(e.pp.out.as_bytes())?;
+            println!("{}", e.pp.out);
         }
         Commands::Extract(ExtractTarget::Java) => {
             let mut e = extraction::java::extraction::Extractor::<String>::new();
             prog.visit(&mut e)?;
-
-            let mut stdout = std::io::stdout().lock();
-            stdout.write(e.pp.out.as_bytes())?;
+            println!("{}", e.pp.out);
         }
     }
     Ok(())
