@@ -9,7 +9,7 @@ use super::{
 use crate::{
     ast::{
         actions::{self, Action},
-        declarations::{self, AfterDecl, BeforeDecl, Binding, ImplementDecl},
+        declarations::{self, ActionMixinDecl, Binding, ImplementDecl},
         expressions::{self, Expr, Sort, Symbol},
         statements,
     },
@@ -387,7 +387,7 @@ impl Visitor<IvySort> for TypeChecker {
 
     fn begin_after_decl(
         &mut self,
-        ast: &mut declarations::AfterDecl,
+        ast: &mut declarations::ActionMixinDecl,
     ) -> VisitorResult<IvySort, declarations::Decl> {
         // XXX: this feels like a hack for something, but I've forgotten for what.
         if let Some(sym) = ast.name.first() {
@@ -408,7 +408,7 @@ impl Visitor<IvySort> for TypeChecker {
 
     fn finish_after_decl(
         &mut self,
-        _ast: &mut declarations::AfterDecl,
+        _ast: &mut declarations::ActionMixinDecl,
         action_sort: IvySort,
         after_params_sort: Option<Vec<IvySort>>,
         after_ret_sort: Option<IvySort>,
@@ -455,7 +455,7 @@ impl Visitor<IvySort> for TypeChecker {
 
     fn begin_before_decl(
         &mut self,
-        ast: &mut declarations::BeforeDecl,
+        ast: &mut declarations::ActionMixinDecl,
     ) -> VisitorResult<IvySort, declarations::Decl> {
         if let Some(sym) = ast.name.first() {
             self.bindings.push_scope();
@@ -474,7 +474,7 @@ impl Visitor<IvySort> for TypeChecker {
     }
     fn finish_before_decl(
         &mut self,
-        _ast: &mut declarations::BeforeDecl,
+        _ast: &mut declarations::ActionMixinDecl,
         action_sort: IvySort,
         param_sort: Option<Vec<IvySort>>,
         _body_sorts: Vec<IvySort>,
@@ -645,8 +645,8 @@ impl Visitor<IvySort> for TypeChecker {
             .iter()
             .zip(field_sorts.iter())
             .filter_map(|(decl, curr_sort)| match decl {
-                declarations::Decl::AfterAction(AfterDecl { name, .. })
-                | declarations::Decl::BeforeAction(BeforeDecl { name, .. })
+                declarations::Decl::AfterAction(ActionMixinDecl { name, .. })
+                | declarations::Decl::BeforeAction(ActionMixinDecl { name, .. })
                 | declarations::Decl::Implement(ImplementDecl { name, .. }) => {
                     Some((name, curr_sort))
                 }

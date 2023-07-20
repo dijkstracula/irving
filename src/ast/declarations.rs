@@ -34,17 +34,10 @@ pub struct ActionDecl {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct AfterDecl {
+pub struct ActionMixinDecl {
     pub name: Ident,
     pub params: Option<ParamList>,
     pub ret: Option<AnnotatedSymbol>,
-    pub body: Vec<Stmt>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct BeforeDecl {
-    pub name: Ident,
-    pub params: Option<ParamList>,
     pub body: Vec<Stmt>,
 }
 
@@ -132,7 +125,7 @@ impl<T> Binding<T> {
 pub enum Decl {
     Action(Binding<ActionDecl>),
 
-    AfterAction(AfterDecl),
+    AfterAction(ActionMixinDecl),
 
     Alias(Binding<Sort>),
 
@@ -140,7 +133,7 @@ pub enum Decl {
 
     Axiom(Fmla),
 
-    BeforeAction(BeforeDecl),
+    BeforeAction(ActionMixinDecl),
 
     Common(Vec<Decl>),
 

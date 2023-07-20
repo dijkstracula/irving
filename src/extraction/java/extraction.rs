@@ -158,7 +158,7 @@ where
 
     fn begin_after_decl(
         &mut self,
-        ast: &mut declarations::AfterDecl,
+        ast: &mut declarations::ActionMixinDecl,
     ) -> VisitorResult<(), declarations::Decl> {
         ast.name.visit(self)?.modifying(&mut ast.name)?;
         self.pp.write_str(".onAfter((")?;
@@ -188,7 +188,7 @@ where
 
     fn begin_before_decl(
         &mut self,
-        ast: &mut declarations::BeforeDecl,
+        ast: &mut declarations::ActionMixinDecl,
     ) -> VisitorResult<(), declarations::Decl> {
         ast.name.visit(self)?.modifying(&mut ast.name)?;
         self.pp.write_str(".addBefore((")?;

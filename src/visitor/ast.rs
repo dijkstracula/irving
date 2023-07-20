@@ -142,12 +142,12 @@ where
         Ok(ControlMut::Produce(T::default()))
     }
 
-    fn begin_after_decl(&mut self, _ast: &mut AfterDecl) -> VisitorResult<T, Decl> {
+    fn begin_after_decl(&mut self, _ast: &mut ActionMixinDecl) -> VisitorResult<T, Decl> {
         Ok(ControlMut::Produce(T::default()))
     }
     fn finish_after_decl(
         &mut self,
-        _ast: &mut AfterDecl,
+        _ast: &mut ActionMixinDecl,
         _n: T,
         _p: Option<Vec<T>>,
         _r: Option<T>,
@@ -183,12 +183,12 @@ where
         Ok(ControlMut::Produce(T::default()))
     }
 
-    fn begin_before_decl(&mut self, _ast: &mut BeforeDecl) -> VisitorResult<T, Decl> {
+    fn begin_before_decl(&mut self, _ast: &mut ActionMixinDecl) -> VisitorResult<T, Decl> {
         Ok(ControlMut::Produce(T::default()))
     }
     fn finish_before_decl(
         &mut self,
-        _ast: &mut BeforeDecl,
+        _ast: &mut ActionMixinDecl,
         _n: T,
         _p: Option<Vec<T>>,
         _b: Vec<T>,

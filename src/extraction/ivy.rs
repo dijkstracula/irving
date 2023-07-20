@@ -197,7 +197,7 @@ where
 
     fn begin_after_decl(
         &mut self,
-        ast: &mut declarations::AfterDecl,
+        ast: &mut declarations::ActionMixinDecl,
     ) -> VisitorResult<(), declarations::Decl> {
         self.pp.write_str("after ")?;
         self.identifier(&mut ast.name)?;
@@ -251,7 +251,7 @@ where
 
     fn begin_before_decl(
         &mut self,
-        ast: &mut declarations::BeforeDecl,
+        ast: &mut declarations::ActionMixinDecl,
     ) -> VisitorResult<(), declarations::Decl> {
         self.pp.write_str("before ")?;
         self.identifier(&mut ast.name)?;

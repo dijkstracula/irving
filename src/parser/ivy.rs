@@ -237,29 +237,29 @@ impl IvyParser {
         )
     }
 
-    pub fn after_decl(input: Node) -> Result<AfterDecl> {
+    pub fn after_decl(input: Node) -> Result<ActionMixinDecl> {
         match_nodes!(
         input.into_children();
         [mixin_sig(MixinSig{name, params}), decl_ret(ret), stmt_block(body)] => Ok(
-            AfterDecl { name, params: params, ret: ret, body}
+            ActionMixinDecl { name, params: params, ret: ret, body}
         ),
         [mixin_sig(MixinSig{name, params}), stmt_block(body)] => Ok(
-            AfterDecl { name, params: params, ret: None, body}
+            ActionMixinDecl { name, params: params, ret: None, body}
         ),
         [ident(name), stmt_block(body)] => Ok(
-            AfterDecl { name, params: None, ret: None, body}
+            ActionMixinDecl { name, params: None, ret: None, body}
         ),
         )
     }
 
-    pub fn before_decl(input: Node) -> Result<BeforeDecl> {
+    pub fn before_decl(input: Node) -> Result<ActionMixinDecl> {
         match_nodes!(
         input.into_children();
         [mixin_sig(MixinSig{name, params}), stmt_block(body)] => Ok(
-            BeforeDecl { name, params: params, body: body}
+            ActionMixinDecl { name, params: params, body: body, ret: None}
         ),
         [ident(name), stmt_block(body)] => Ok(
-            BeforeDecl { name, params: None, body: body}
+            ActionMixinDecl { name, params: None, body: body, ret: None}
         ),
         )
     }
