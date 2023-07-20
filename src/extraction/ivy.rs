@@ -659,7 +659,7 @@ where
                 IvySort::Subclass(s) => {
                     self.pp.write_fmt(format_args!("of {}", s))?;
                 }
-                IvySort::Process(_proc) => {
+                IvySort::Object(_proc) => {
                     self.pp.write_str("{\n")?;
                     self.pp.write_str("implementation {\n")?;
                     self.pp.write_str("}\n")?;

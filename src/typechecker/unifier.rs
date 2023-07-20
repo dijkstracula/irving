@@ -2,7 +2,7 @@ use std::{collections::HashMap, vec};
 
 use crate::{
     ast::expressions::*,
-    typechecker::sorts::{Fargs, Module, Process},
+    typechecker::sorts::{Fargs, Module, Object},
 };
 
 use super::{sorts::IvySort, TypeError};
@@ -61,7 +61,7 @@ impl Resolver {
                 Some(IvySort::Module(Module { fields, .. })) => {
                     curr_sort = fields.get(field);
                 }
-                Some(IvySort::Process(Process { args, fields })) => {
+                Some(IvySort::Object(Object { args, fields })) => {
                     curr_sort = args.get(field).or(fields.get(field))
                 }
                 Some(sort) => {
@@ -189,10 +189,10 @@ impl Resolver {
             // definition by its arguments.
             (
                 IvySort::Function(Fargs::List(fargs), fret),
-                p @ IvySort::Process(Process { args, .. }),
+                p @ IvySort::Object(Object { args, .. }),
             )
             | (
-                p @ IvySort::Process(Process { args, .. }),
+                p @ IvySort::Object(Object { args, .. }),
                 IvySort::Function(Fargs::List(fargs), fret),
             ) => {
                 let unified = self.unify(fret, p)?;
@@ -208,10 +208,10 @@ impl Resolver {
 
             // This subtyping relationship says that `this` shoudl only
             // unify with processes or modules.
-            (IvySort::This, s @ IvySort::Process(_))
+            (IvySort::This, s @ IvySort::Object(_))
             | (IvySort::This, s @ IvySort::Module(_))
             | (s @ IvySort::Module(_), IvySort::This)
-            | (s @ IvySort::Process(_), IvySort::This) => Ok(s.clone()),
+            | (s @ IvySort::Object(_), IvySort::This) => Ok(s.clone()),
 
             (t1, t2) => {
                 if t1 == t2 {

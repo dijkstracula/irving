@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use crate::{
     ast::expressions::{Expr, Symbol},
-    typechecker::sorts::{Fargs, IvySort, Module, Process},
+    typechecker::sorts::{Fargs, IvySort, Module, Object},
 };
 
 use super::{ControlMut, VisitorResult};
@@ -80,9 +80,9 @@ where
         Ok(ControlMut::Produce(T::default()))
     }
 
-    fn process(
+    fn object(
         &mut self,
-        _proc: &mut Process,
+        _proc: &mut Object,
         _args_t: BTreeMap<Symbol, T>,
         _impl_fields_t: BTreeMap<Symbol, T>,
         _spec_fields_t: BTreeMap<Symbol, T>,
@@ -157,7 +157,7 @@ where
                     .collect::<Result<BTreeMap<_, _>, _>>()?;
                 visitor.module(module, args_t, fields_t)
             }
-            IvySort::Process(_) => todo!(),
+            IvySort::Object(_) => todo!(),
             IvySort::SortVar(id) => visitor.sortvar(id),
         }?
         .modifying(self)?;

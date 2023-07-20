@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use anyhow::bail;
 
 use super::{
-    sorts::{Fargs, IvySort, Process},
+    sorts::{Fargs, IvySort, Object},
     unifier::Resolver,
 };
 use crate::{
@@ -306,7 +306,7 @@ impl Visitor<IvySort> for TypeChecker {
             IvySort::Module(module) => {
                 Ok::<Option<IvySort>, TypeError>(module.fields.get(&rhs.id).map(|s| s.clone()))
             }
-            IvySort::Process(proc) => {
+            IvySort::Object(proc) => {
                 let s = proc.fields.get(&rhs.id);
                 is_common = s.is_none();
                 Ok(s.map(|s| s.clone()))
@@ -719,7 +719,7 @@ impl Visitor<IvySort> for TypeChecker {
             .collect::<BTreeMap<_, _>>();
         fields.insert("init".into(), Module::init_action_sort());
 
-        let proc = IvySort::Process(Process { args, fields });
+        let proc = IvySort::Object(Object { args, fields });
         let unified = self.bindings.unify(&decl_sort, &proc)?;
         self.bindings.pop_scope();
         Ok(ControlMut::Produce(unified))

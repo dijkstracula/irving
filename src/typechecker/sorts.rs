@@ -8,7 +8,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]
-pub struct Process {
+pub struct Object {
     pub args: BTreeMap<Symbol, IvySort>,
     pub fields: BTreeMap<Symbol, IvySort>,
 }
@@ -50,7 +50,7 @@ pub enum IvySort {
     Relation(Vec<IvySort>),
     Subclass(Symbol),
     Module(Module),
-    Process(Process),
+    Object(Object),
 
     // A SortVar contains the index of its referrent into the typing context.
     SortVar(usize),
@@ -187,9 +187,9 @@ impl Visitor<IvySort> for SortSubstituter {
         }))
     }
 
-    fn process(
+    fn object(
         &mut self,
-        _proc: &mut Process,
+        _proc: &mut Object,
         _args_t: BTreeMap<Symbol, IvySort>,
         _impl_fields_t: BTreeMap<Symbol, IvySort>,
         _spec_fields_t: BTreeMap<Symbol, IvySort>,

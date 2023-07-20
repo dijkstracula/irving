@@ -7,7 +7,7 @@ mod tests {
         parser::ivy::{IvyParser, Rule},
         typechecker::{
             inference::TypeChecker,
-            sorts::{IvySort, Module, Process},
+            sorts::{IvySort, Module, Object},
         },
         visitor::ast::Visitable,
     };
@@ -111,7 +111,7 @@ mod tests {
     fn test_empty_process() {
         let mut iso = process_from_src("process p = { }");
 
-        let sort = IvySort::Process(Process {
+        let sort = IvySort::Object(Object {
             args: BTreeMap::from([]),
             fields: [("init".to_owned(), Module::init_action_sort())].into(),
         });
@@ -126,7 +126,7 @@ mod tests {
     #[test]
     fn test_proc_with_params() {
         let mut iso = process_from_src("process host(self:pid) = {}");
-        let sort = IvySort::Process(Process {
+        let sort = IvySort::Object(Object {
             args: [(
                 "self".into(),
                 IvySort::Range(Box::new(Expr::Number(0)), Box::new(Expr::Number(3))),
@@ -149,7 +149,7 @@ mod tests {
             var is_up: bool
         }",
         );
-        let sort = IvySort::Process(Process {
+        let sort = IvySort::Object(Object {
             args: [(
                 "self".into(),
                 IvySort::Range(Box::new(Expr::Number(0)), Box::new(Expr::Number(3))),

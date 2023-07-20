@@ -86,7 +86,7 @@ impl From<IvySort> for JavaType {
                     args.into_iter().map(|(_, sort)| sort.into()).collect::<_>();
                 Self::Object(name, args)
             }
-            IvySort::Process(_) => todo!(),
+            IvySort::Object(_) => todo!(),
             IvySort::SortVar(_) => todo!(),
         }
     }
@@ -127,7 +127,7 @@ impl From<&IvySort> for JavaType {
                     args.into_iter().map(|(_, sort)| sort.into()).collect::<_>();
                 Self::Object(name.clone(), args)
             }
-            IvySort::Process(_) => todo!(),
+            IvySort::Object(_) => todo!(),
             IvySort::SortVar(_) => todo!(),
         }
     }

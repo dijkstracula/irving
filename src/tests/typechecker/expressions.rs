@@ -6,7 +6,7 @@ mod tests {
         parser::ivy::{IvyParser, Rule},
         typechecker::{
             inference::TypeChecker,
-            sorts::{Fargs, IvySort, Process},
+            sorts::{Fargs, IvySort, Object},
             TypeError,
         },
         visitor::ast::Visitable,
@@ -211,14 +211,14 @@ mod tests {
         let mut getop = IvyParser::expr(parsed).expect("AST generation failed");
 
         // Accessing 'b' should be fine when 'a' is bound to a Process.
-        let procsort = Process {
+        let procsort = Object {
             args: BTreeMap::from([]),
             fields: BTreeMap::from([("b".into(), IvySort::Bool)]),
         };
 
         let mut tc = TypeChecker::new();
         tc.bindings
-            .append("a".into(), IvySort::Process(procsort))
+            .append("a".into(), IvySort::Object(procsort))
             .unwrap();
 
         let res = getop
