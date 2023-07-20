@@ -50,7 +50,7 @@ impl Resolver {
             .map(|s| self.resolve(s))
     }
 
-    pub fn lookup_ident(&self, id: &Ident, include_spec: bool) -> Result<&IvySort, TypeError> {
+    pub fn lookup_ident(&self, id: &Ident) -> Result<&IvySort, TypeError> {
         let mut idents = id.iter();
 
         let mut curr_sym = idents.next().unwrap();

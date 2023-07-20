@@ -3,10 +3,7 @@ mod tests {
     use std::{collections::BTreeMap, vec};
 
     use crate::{
-        ast::{
-            declarations::{Binding, Decl, ObjectDecl},
-            expressions::Expr,
-        },
+        ast::{declarations::Decl, expressions::Expr},
         parser::ivy::{IvyParser, Rule},
         typechecker::{
             inference::TypeChecker,

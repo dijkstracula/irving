@@ -145,8 +145,7 @@ mod tests {
         proc.visit(&mut tc).unwrap().modifying(&mut proc).unwrap();
         println!(
             "{:?}",
-            tc.bindings
-                .lookup_ident(&vec!["host".into(), "net".into()], true)
+            tc.bindings.lookup_ident(&vec!["host".into(), "net".into()])
         );
         println!("{:?}", tc.bindings.resolve(&IvySort::SortVar(2)));
     }

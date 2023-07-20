@@ -38,20 +38,17 @@ mod tests {
 
         assert_eq!(r.lookup_sym("nonsense"), None);
         assert_eq!(
-            r.lookup_ident(&vec!("nonsense".to_owned()), true),
+            r.lookup_ident(&vec!("nonsense".to_owned())),
             Err(TypeError::UnboundVariable("nonsense".into()))
         );
 
         let pid_sort = IvySort::Range(Box::new(Expr::Number(0)), Box::new(Expr::Number(3)));
         assert_eq!(r.lookup_sym("pid"), Some(&pid_sort));
-        assert_eq!(r.lookup_ident(&vec!("pid".to_owned()), true), Ok(&pid_sort));
-        assert_eq!(
-            r.lookup_ident(&vec!("pid".to_owned()), false),
-            Ok(&pid_sort)
-        );
+        assert_eq!(r.lookup_ident(&vec!("pid".to_owned())), Ok(&pid_sort));
+        assert_eq!(r.lookup_ident(&vec!("pid".to_owned())), Ok(&pid_sort));
 
         assert_eq!(
-            r.lookup_ident(&vec!("pid".to_owned(), "uhoh".to_owned()), true),
+            r.lookup_ident(&vec!("pid".to_owned(), "uhoh".to_owned())),
             Err(TypeError::NotARecord(pid_sort.clone()))
         );
     }
@@ -61,7 +58,7 @@ mod tests {
         let r = resolver_with_bindings();
 
         assert_eq!(
-            r.lookup_ident(&vec!("net".to_owned()), true),
+            r.lookup_ident(&vec!("net".to_owned())),
             Ok(&IvySort::Module(Module {
                 name: "net".into(),
                 args: [].into(),
@@ -70,7 +67,7 @@ mod tests {
         );
 
         assert_eq!(
-            r.lookup_ident(&vec!("net".to_owned(), "socket".to_owned()), true),
+            r.lookup_ident(&vec!("net".to_owned(), "socket".to_owned())),
             Ok(&IvySort::Number)
         );
     }

@@ -213,7 +213,7 @@ mod tests {
         // The type of the action should be nullary to a bool.
         let action_sort = tc
             .bindings
-            .lookup_ident(&vec!["m".into(), "doit".into()], true)
+            .lookup_ident(&vec!["m".into(), "doit".into()])
             .unwrap()
             .clone();
         assert_eq!(action_sort, IvySort::function_sort(vec![], IvySort::Bool));
@@ -243,7 +243,7 @@ mod tests {
 
         let action_sort = tc
             .bindings
-            .lookup_ident(&vec!["m".into(), "doit".into()], true)
+            .lookup_ident(&vec!["m".into(), "doit".into()])
             .unwrap()
             .clone();
         assert_eq!(
@@ -294,7 +294,7 @@ mod tests {
 
         let action_sort = tc
             .bindings
-            .lookup_ident(&vec!["m".into(), "doit".into()], true)
+            .lookup_ident(&vec!["m".into(), "doit".into()])
             .unwrap()
             .clone();
         assert_eq!(
@@ -336,7 +336,7 @@ mod tests {
 
         let action_sort = tc
             .bindings
-            .lookup_ident(&vec!["m".into(), "doit".into()], true)
+            .lookup_ident(&vec!["m".into(), "doit".into()])
             .unwrap()
             .clone();
         assert_eq!(action_sort, IvySort::function_sort(vec![], IvySort::Bool));

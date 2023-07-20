@@ -10,8 +10,8 @@ use crate::{
     ast::{
         actions::{self, Action},
         declarations::{self, AfterDecl, BeforeDecl, Binding, ImplementDecl},
-        expressions::{self, Expr, FieldAccess, Sort, Symbol},
-        statements::{self, Stmt},
+        expressions::{self, Expr, Sort, Symbol},
+        statements,
     },
     passes::module_instantiation,
     typechecker::{sorts::Module, TypeError},
@@ -55,7 +55,7 @@ impl Visitor<IvySort> for TypeChecker {
         } else {
             // XXX: we always set include_spec to true.  Suggests we need to also
             // return an annotation indicating if this was a spec/common/etc. decl.
-            let resolved = self.bindings.lookup_ident(i, true)?;
+            let resolved = self.bindings.lookup_ident(i)?;
             Ok(ControlMut::Produce(resolved.clone()))
         }
     }
@@ -408,7 +408,7 @@ impl Visitor<IvySort> for TypeChecker {
 
     fn finish_after_decl(
         &mut self,
-        ast: &mut declarations::AfterDecl,
+        _ast: &mut declarations::AfterDecl,
         action_sort: IvySort,
         after_params_sort: Option<Vec<IvySort>>,
         after_ret_sort: Option<IvySort>,
@@ -655,7 +655,7 @@ impl Visitor<IvySort> for TypeChecker {
             .map(|(name, curr_sort)| {
                 // XXX: Can I avoid this clone, despite unify() requring a mutable
                 // reference to `self.bindings`?
-                let prev_sort = self.bindings.lookup_ident(name, true)?.clone();
+                let prev_sort = self.bindings.lookup_ident(name)?.clone();
                 self.bindings.unify(&prev_sort, curr_sort)
             })
             .collect::<Result<Vec<_>, _>>()?;
@@ -675,7 +675,7 @@ impl Visitor<IvySort> for TypeChecker {
     fn begin_object_decl(
         &mut self,
         name: &mut Symbol,
-        ast: &mut declarations::ObjectDecl,
+        _ast: &mut declarations::ObjectDecl,
     ) -> VisitorResult<IvySort, declarations::Decl> {
         let v = self.bindings.new_sortvar();
         self.bindings.append(name.clone(), v.clone())?;

@@ -1,7 +1,4 @@
-use crate::{
-    ast::declarations::{self, ActionDecl, Binding, ExportDecl},
-    extraction::java::extraction::expressions::Symbol,
-};
+use crate::{ast::declarations, extraction::java::extraction::expressions::Symbol};
 use std::{collections::BTreeMap, fmt::Write};
 
 use thiserror::Error;
@@ -367,7 +364,7 @@ where
 
     fn begin_ensure(
         &mut self,
-        ast: &mut actions::EnsureAction,
+        _ast: &mut actions::EnsureAction,
     ) -> VisitorResult<(), actions::Action> {
         self.pp.write_str("ensureThat(")?;
         Ok(ControlMut::Produce(()))

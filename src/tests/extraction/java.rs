@@ -3,10 +3,7 @@ mod tests {
     use crate::{
         extraction::java::extraction::Extractor,
         tests::helpers,
-        typechecker::{
-            inference::TypeChecker,
-            sorts::{IvySort, Module},
-        },
+        typechecker::{inference::TypeChecker, sorts::IvySort},
         visitor::ast::Visitable,
     };
 
