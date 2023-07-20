@@ -2,10 +2,7 @@
 
 use thiserror::Error;
 
-use crate::ast::{
-    declarations::{Decl, IsolateDecl},
-    expressions::Symbol,
-};
+use crate::ast::{declarations::Decl, expressions::Symbol};
 
 use self::sorts::IvySort;
 
@@ -41,9 +38,6 @@ pub enum TypeError {
 
     #[error("Sort {0:?} mismatches {1:?}")]
     UnificationError(IvySort, IvySort),
-
-    #[error("Got isolate declaration {0:?}; did the normalization pass run?")]
-    UnnormalizedIsolate(IsolateDecl),
 
     #[error("Sort sequence {0:?} mismatches {1:?}")]
     LenMismatch(Vec<IvySort>, Vec<IvySort>),

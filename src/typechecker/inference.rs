@@ -622,7 +622,7 @@ impl Visitor<IvySort> for TypeChecker {
     fn begin_isolate_decl(
         &mut self,
         name: &mut Symbol,
-        ast: &mut declarations::IsolateDecl,
+        ast: &mut declarations::ObjectDecl,
     ) -> VisitorResult<IvySort, declarations::Decl> {
         let v = self.bindings.new_sortvar();
         self.bindings.append(name.clone(), v.clone())?;
@@ -642,7 +642,7 @@ impl Visitor<IvySort> for TypeChecker {
     fn finish_isolate_decl(
         &mut self,
         _name: &mut Symbol,
-        ast: &mut declarations::IsolateDecl,
+        ast: &mut declarations::ObjectDecl,
         decl_sort: IvySort,
         param_sorts: Vec<IvySort>,
         body_sorts: Vec<IvySort>,

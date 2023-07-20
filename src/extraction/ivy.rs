@@ -390,7 +390,7 @@ where
     fn begin_isolate_decl(
         &mut self,
         name: &mut Symbol,
-        inst: &mut declarations::IsolateDecl,
+        inst: &mut declarations::ObjectDecl,
     ) -> VisitorResult<(), declarations::Decl> {
         self.pp.write_fmt(format_args!("isolate {}", name))?;
         if inst.params.len() > 0 {

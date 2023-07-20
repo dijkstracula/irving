@@ -81,7 +81,13 @@ pub struct InstanceDecl {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct IsolateDecl {
+pub struct ModuleDecl {
+    pub sortsyms: Vec<Symbol>,
+    pub body: Vec<Decl>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ObjectDecl {
     pub params: ParamList,
     pub fields: Vec<Decl>,
 
@@ -90,7 +96,7 @@ pub struct IsolateDecl {
     pub body: Vec<Decl>,
 }
 
-impl IsolateDecl {
+impl ObjectDecl {
     pub fn actions<'a>(&'a self) -> Vec<&'a Binding<ActionDecl>> {
         self.body
             .iter()
@@ -100,18 +106,6 @@ impl IsolateDecl {
             })
             .collect()
     }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ModuleDecl {
-    pub sortsyms: Vec<Symbol>,
-    pub body: Vec<Decl>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ObjectDecl {
-    pub params: ParamList,
-    pub body: Vec<Decl>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -160,7 +154,7 @@ pub enum Decl {
 
     Import(ImportDecl),
 
-    Isolate(Binding<IsolateDecl>),
+    Isolate(Binding<ObjectDecl>),
 
     Include(Symbol),
 

@@ -274,14 +274,14 @@ where
     fn begin_isolate_decl(
         &mut self,
         _name: &mut Symbol,
-        _ast: &mut IsolateDecl,
+        _ast: &mut ObjectDecl,
     ) -> VisitorResult<T, Decl> {
         Ok(ControlMut::Produce(T::default()))
     }
     fn finish_isolate_decl(
         &mut self,
         _name: &mut Symbol,
-        _ast: &mut IsolateDecl,
+        _ast: &mut ObjectDecl,
         _n: T,
         _p: Vec<T>,
         _b: Vec<T>,
