@@ -46,6 +46,23 @@ where
         Ok(ControlMut::Produce(T::default()))
     }
 
+    fn begin_local_vardecl(
+        &mut self,
+        _name: &mut Symbol,
+        _ast: &mut Sort,
+    ) -> VisitorResult<T, Stmt> {
+        Ok(ControlMut::Produce(T::default()))
+    }
+    fn finish_local_vardecl(
+        &mut self,
+        _name: &mut Symbol,
+        _ast: &mut Sort,
+        _id_t: T,
+        _sort_t: T,
+    ) -> VisitorResult<T, Stmt> {
+        Ok(ControlMut::Produce(T::default()))
+    }
+
     // Actions
     fn begin_assert(&mut self, _ast: &mut AssertAction) -> VisitorResult<T, Action> {
         Ok(ControlMut::Produce(T::default()))
@@ -57,7 +74,12 @@ where
     fn begin_assign(&mut self, _ast: &mut AssignAction) -> VisitorResult<T, Action> {
         Ok(ControlMut::Produce(T::default()))
     }
-    fn finish_assign(&mut self, _ast: &mut AssignAction) -> VisitorResult<T, Action> {
+    fn finish_assign(
+        &mut self,
+        _ast: &mut AssignAction,
+        _lhs_t: T,
+        _rhs_t: T,
+    ) -> VisitorResult<T, Action> {
         Ok(ControlMut::Produce(T::default()))
     }
 
@@ -488,9 +510,9 @@ where
                 .map(|_| action.pred.visit(visitor)?.modifying(&mut action.pred))?
                 .and_then(|_| visitor.finish_assert(action)),
             Action::Assign(action) => visitor.begin_assign(action)?.and_then(|_| {
-                let _ = action.lhs.visit(visitor)?.modifying(&mut action.lhs)?;
-                let _ = action.rhs.visit(visitor)?.modifying(&mut action.rhs)?;
-                visitor.finish_assign(action)
+                let lhs_t = action.lhs.visit(visitor)?.modifying(&mut action.lhs)?;
+                let rhs_t = action.rhs.visit(visitor)?.modifying(&mut action.rhs)?;
+                visitor.finish_assign(action, lhs_t, rhs_t)
             }),
             Action::Assume(action) => visitor
                 .begin_assume(action)?
@@ -616,6 +638,14 @@ where
                 let _test = stmt.test.visit(visitor)?.modifying(&mut stmt.test);
                 let _doit = stmt.doit.visit(visitor)?.modifying(&mut stmt.doit);
                 visitor.finish_while(stmt)
+            }),
+            Stmt::VarDecl(Binding {
+                ref mut name,
+                ref mut decl,
+            }) => visitor.begin_local_vardecl(name, decl)?.and_then(|_| {
+                let n = name.visit(visitor)?.modifying(name)?;
+                let s = visitor.sort(decl)?.modifying(decl)?;
+                visitor.finish_local_vardecl(name, decl, n, s)
             }),
         }?
         .modifying(self)?;

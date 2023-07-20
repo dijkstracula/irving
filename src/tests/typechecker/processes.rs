@@ -3,7 +3,10 @@ mod tests {
     use std::{collections::BTreeMap, vec};
 
     use crate::{
-        ast::{declarations::Decl, expressions::Expr},
+        ast::{
+            declarations::{Binding, Decl, ObjectDecl},
+            expressions::Expr,
+        },
         parser::ivy::{IvyParser, Rule},
         typechecker::{
             inference::TypeChecker,
@@ -170,6 +173,35 @@ mod tests {
     }
 
     #[test]
+    fn test_proc_with_local_var() {
+        let mut iso = process_from_src(
+            "process host(self:pid) = {
+                var foo: bool;
+                action doit = {
+                    foo := true;
+                }
+            }
+        ",
+        );
+
+        let mut tc = typechecker_with_bindings();
+        let _ = iso.visit(&mut tc).unwrap().modifying(&mut iso).unwrap();
+
+        let mut iso = process_from_src(
+            "process host(self:pid) = {
+                var foo: bool;
+                action doit = {
+                    foo := 42; # uh oh!!
+                }
+            }
+        ",
+        );
+        let _ = iso
+            .visit(&mut tc)
+            .expect_err("Bool is not unifiable with Number");
+    }
+
+    #[test]
     fn test_append1_host() {
         let mut iso = process_from_src(
             "process host(self:pid) = {
@@ -179,7 +211,7 @@ mod tests {
                 var contents: file
 
                 after init {
-                    contents := file.empty;
+                    contents := file.empty();
                 }
 
                 implement append {

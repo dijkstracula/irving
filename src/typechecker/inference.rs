@@ -8,10 +8,10 @@ use super::{
 };
 use crate::{
     ast::{
-        actions::Action,
+        actions::{self, Action},
         declarations::{self, AfterDecl, BeforeDecl, Binding, ImplementDecl},
-        expressions::{self, Expr, Sort, Symbol},
-        statements::Stmt,
+        expressions::{self, Expr, FieldAccess, Sort, Symbol},
+        statements::{self, Stmt},
     },
     passes::module_instantiation,
     typechecker::{sorts::Module, TypeError},
@@ -141,15 +141,55 @@ impl Visitor<IvySort> for TypeChecker {
         }
     }
 
-    //
+    // Actions
 
-    fn action_seq(&mut self, ast: &mut Vec<Action>) -> VisitorResult<IvySort, Stmt> {
+    fn finish_assign(
+        &mut self,
+        _ast: &mut actions::AssignAction,
+        lhs_sort: IvySort,
+        rhs_sort: IvySort,
+    ) -> VisitorResult<IvySort, Action> {
+        self.bindings.unify(&lhs_sort, &rhs_sort)?;
+        Ok(ControlMut::Produce(IvySort::Unit))
+    }
+
+    // Statements
+
+    fn action_seq(&mut self, ast: &mut Vec<Action>) -> VisitorResult<IvySort, statements::Stmt> {
         //XXX: kinda dumb, honestly.
         let _ = ast.visit(self)?.modifying(ast)?;
         Ok(ControlMut::Produce(IvySort::Unit))
     }
 
-    //
+    fn begin_local_vardecl(
+        &mut self,
+        name: &mut Symbol,
+        _ast: &mut Sort,
+    ) -> VisitorResult<IvySort, statements::Stmt> {
+        // Bind the name to _something_; we'll unify this value with its resolved sort when finishing the visit.
+        let v = self.bindings.new_sortvar();
+        self.bindings.append(name.clone(), v)?;
+        Ok(ControlMut::Produce(IvySort::Unit))
+    }
+    fn finish_local_vardecl(
+        &mut self,
+        name: &mut Symbol,
+        _ast: &mut Sort,
+        name_sort: IvySort,
+        resolved_sort: IvySort,
+    ) -> VisitorResult<IvySort, statements::Stmt> {
+        let resolved = self.bindings.unify(&name_sort, &resolved_sort)?;
+
+        Ok(ControlMut::Mutation(
+            statements::Stmt::VarDecl(Binding::from(
+                name.clone(),
+                Sort::Resolved(resolved.clone()),
+            )),
+            resolved,
+        ))
+    }
+
+    // Expressions
 
     fn finish_app(
         &mut self,
@@ -251,9 +291,17 @@ impl Visitor<IvySort> for TypeChecker {
     ) -> VisitorResult<IvySort, Expr> {
         let lhs_sort = lhs.visit(self)?.modifying(lhs)?;
 
+        // Note that beecause the rhs's symbol is not in our context, we can't
+        // visit it without getting an unbound identifier, so simply resolve its
+        // sort.
+        let annotated_rhs_sort = self.sort(&mut rhs.sort)?.modifying(&mut rhs.sort)?;
+
         let mut is_common = false;
 
         // XXX: awkward amounts of cloning in here.
+
+        // First begin by confirming that the LHS is something we can get a field out of.
+        // If it is, get the field's type.
         let rhs_sort = match &lhs_sort {
             IvySort::Module(module) => {
                 Ok::<Option<IvySort>, TypeError>(module.fields.get(&rhs.id).map(|s| s.clone()))
@@ -266,10 +314,15 @@ impl Visitor<IvySort> for TypeChecker {
             IvySort::SortVar(_) => Ok(Some(self.bindings.new_sortvar())),
             sort => bail!(TypeError::NotARecord(sort.clone())),
         }?
+        // Next, if the RHS expression has a known type, ensure it doesn't contradict
+        // what we figured out from the field access.
+        .map(|s| self.bindings.unify(&annotated_rhs_sort, &s))
+        .transpose()?
+        // A slightly hacky thing that should probably live elsewhere: if the
+        // rhs is a non-common action, and the first argument is `this`, we need
+        // to curry it.  (TODO: might be that the common aspect is not a requirement
+        // but I need to understand why;  See https://github.com/dijkstracula/irving/issues/35 .)
         .map(|s| match s {
-            // A slightly hacky thing that should probably live elsewhere:
-            // if the rhs is a non-common action, and the first
-            // argument is `this`, we need to curry it.
             IvySort::Function(Fargs::List(args), ret) if !is_common => {
                 let first_arg = args.get(0).map(|s| self.bindings.resolve(s));
                 if first_arg == Some(&IvySort::This) {
@@ -285,7 +338,7 @@ impl Visitor<IvySort> for TypeChecker {
         match rhs_sort {
             Some(sort) => {
                 rhs.sort = Sort::Resolved(sort.clone());
-                Ok(ControlMut::SkipSiblings(sort.clone()))
+                Ok(ControlMut::SkipSiblings(sort))
             }
             None => bail!(TypeError::MissingRecordField(lhs_sort, rhs.id.clone())),
         }

@@ -2,8 +2,7 @@ use std::fmt::Write;
 
 use crate::{
     ast::{
-        actions,
-        declarations::{self, Binding},
+        actions, declarations,
         expressions::{self, AnnotatedSymbol, IndexExpr, Sort, Symbol, Verb},
         logic, statements, toplevels,
     },

@@ -1,7 +1,11 @@
 #[cfg(test)]
 mod tests {
     use crate::{
-        ast::{declarations::Decl, expressions::Expr},
+        ast::{
+            declarations::{ActionDecl, Binding, Decl},
+            expressions::{Expr, Sort},
+            statements::Stmt,
+        },
         parser::ivy::{IvyParser, Rule},
         typechecker::{
             inference::TypeChecker,
@@ -355,5 +359,53 @@ mod tests {
             .unwrap();
         assert_eq!(res, IvySort::Bool);
         */
+    }
+
+    #[test]
+    fn test_local_vardecl() {
+        let stmts = match decl_from_src(
+            "action doit = {
+                var foo: bool;
+            }
+        }",
+        ) {
+            Decl::Action(Binding {
+                decl: ActionDecl {
+                    body: Some(stmts), ..
+                },
+                ..
+            }) => stmts,
+            decl => panic!("Got back a {:?} rater than a Decl::Action", decl),
+        };
+        assert_eq!(
+            stmts.get(0),
+            Some(&Stmt::VarDecl(Binding {
+                name: "foo".into(),
+                decl: Sort::Annotated(["bool".into()].into())
+            }))
+        );
+    }
+
+    #[test]
+    fn test_local_vardecl_and_init() {
+        let mut prog = decl_from_src(
+            "action doit = {
+                var foo: bool;
+                foo := true;
+            }
+        }",
+        );
+
+        let mut tc = TypeChecker::new();
+        let _ = prog.visit(&mut tc).unwrap().modifying(&mut prog).unwrap();
+
+        let mut prog = decl_from_src(
+            "action doit = {
+                var foo: bool;
+                foo := 42; # uh oh!
+            }
+        }",
+        );
+        let _ = prog.visit(&mut tc).unwrap_err();
     }
 }

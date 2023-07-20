@@ -581,6 +581,7 @@ impl IvyParser {
         [actions(actions)]  => Ok(Stmt::ActionSequence(actions)),
         [if_stmt(stmt)]     => Ok(Stmt::If(stmt)),
         [while_stmt(stmt)]  => Ok(Stmt::While(stmt)),
+        [var_decl(binding)]  => Ok(Stmt::VarDecl(binding)),
         )
     }
 

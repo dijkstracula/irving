@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 
 use super::actions::*;
+use super::declarations::Binding;
 use super::expressions::*;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -24,4 +25,5 @@ pub enum Stmt {
     ActionSequence(Vec<Action>),
     If(If),
     While(While),
+    VarDecl(Binding<Sort>),
 }
