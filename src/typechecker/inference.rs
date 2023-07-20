@@ -579,6 +579,23 @@ impl Visitor<IvySort> for TypeChecker {
         Ok(ControlMut::Produce(unifed))
     }
 
+    fn finish_interpret_decl(
+        &mut self,
+        name: &mut Token,
+        _sort: &mut Sort,
+        n: IvySort,
+        s: IvySort,
+    ) -> VisitorResult<IvySort, declarations::Decl> {
+        let unified = self.bindings.unify(&n, &s)?;
+        Ok(ControlMut::Mutation(
+            declarations::Decl::Interpret(declarations::InterpretDecl {
+                name: name.clone(),
+                sort: Sort::Resolved(unified.clone()),
+            }),
+            unified,
+        ))
+    }
+
     fn begin_module_decl(
         &mut self,
         name: &mut Token,

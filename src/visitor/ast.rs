@@ -286,6 +286,24 @@ where
         Ok(ControlMut::Produce(T::default()))
     }
 
+    fn begin_interpret_decl(
+        &mut self,
+        _name: &mut Token,
+        _sort: &mut Sort,
+    ) -> VisitorResult<T, Decl> {
+        Ok(ControlMut::Produce(T::default()))
+    }
+
+    fn finish_interpret_decl(
+        &mut self,
+        _name: &mut Token,
+        _sort: &mut Sort,
+        _n: T,
+        _s: T,
+    ) -> VisitorResult<T, Decl> {
+        Ok(ControlMut::Produce(T::default()))
+    }
+
     fn begin_invariant_decl(&mut self, _ast: &mut Fmla) -> VisitorResult<T, Decl> {
         Ok(ControlMut::Produce(T::default()))
     }
@@ -789,7 +807,14 @@ where
                 visitor.finish_instance_decl(name, decl, n, s, a)
             }),
             Decl::Instantiate { name, prms } => todo!(),
-            Decl::Interpretation { itype, ctype } => todo!(),
+            Decl::Interpret(InterpretDecl {
+                ref mut name,
+                ref mut sort,
+            }) => visitor.begin_interpret_decl(name, sort)?.and_then(|_| {
+                let n = name.visit(visitor)?.modifying(name)?;
+                let s = sort.visit(visitor)?.modifying(sort)?;
+                visitor.finish_interpret_decl(name, sort, n, s)
+            }),
             Decl::Invariant(decl) => visitor.begin_invariant_decl(decl)?.and_then(|_| {
                 let _f = decl.visit(visitor)?.modifying(decl);
                 visitor.finish_invariant_decl(decl)

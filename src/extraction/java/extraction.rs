@@ -214,8 +214,8 @@ where
         self.pp.write_str(".on((")?;
 
         match &mut ast.params {
-            None => unreachable!(),
-            Some(params) => self.write_paramlist(params, ",")?,
+            None => (),
+            Some(params) => self.write_paramlist(params, ",")?.modifying(params)?,
         };
 
         self.pp.write_str(") -> {\n")?;
@@ -269,11 +269,22 @@ where
         Ok(ControlMut::SkipSiblings(()))
     }
 
+    fn begin_interpret_decl(
+        &mut self,
+        _name: &mut Token,
+        _sort: &mut expressions::Sort,
+    ) -> VisitorResult<(), declarations::Decl> {
+        Ok(ControlMut::SkipSiblings(()))
+    }
+
     fn begin_typedecl(
         &mut self,
         name: &mut Token,
         s: &mut expressions::Sort,
     ) -> VisitorResult<(), declarations::Decl> {
+        if let expressions::Sort::ToBeInferred = s {
+            return Ok(ControlMut::SkipSiblings(()));
+        }
         self.type_aliases
             .insert(name.clone(), (s as &expressions::Sort).into());
         Ok(ControlMut::SkipSiblings(()))

@@ -74,6 +74,12 @@ pub struct InstanceDecl {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct InterpretDecl {
+    pub name: Token,
+    pub sort: Sort,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ModuleDecl {
     pub sortsyms: Vec<Token>,
     pub body: Vec<Decl>,
@@ -153,7 +159,7 @@ pub enum Decl {
 
     Instantiate { name: Expr, prms: Vec<Expr> },
 
-    Interpretation { itype: Expr, ctype: Expr },
+    Interpret(InterpretDecl),
 
     Invariant(Fmla),
 
@@ -192,7 +198,7 @@ impl Decl {
             Decl::Include(_) => None,
             Decl::Instance(i) => Some(&i.name),
             Decl::Instantiate { .. } => None,
-            Decl::Interpretation { .. } => None,
+            Decl::Interpret { .. } => None,
             Decl::Invariant(_) => None,
             Decl::Module(Binding { name, .. }) => Some(name),
             Decl::Noop => None,

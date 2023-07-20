@@ -103,6 +103,26 @@ mod tests {
     }
 
     #[test]
+    fn parse_interpret_uninterp_decl() {
+        let fragment = "interpret t";
+        let res = IvyParser::parse(Rule::decl, fragment)
+            .expect("Parsing failed")
+            .single()
+            .unwrap();
+        IvyParser::decl(res).unwrap();
+    }
+
+    #[test]
+    fn parse_interpret_annotated_decl() {
+        let fragment = "interpret t -> int";
+        let res = IvyParser::parse(Rule::decl, fragment)
+            .expect("Parsing failed")
+            .single()
+            .unwrap();
+        IvyParser::decl(res).unwrap();
+    }
+
+    #[test]
     fn parse_invariant_decl() {
         let fragment = "invariant X = Z | ~link(X,Y) | ~link(Z,Y)";
         let res = IvyParser::parse(Rule::decl, fragment)

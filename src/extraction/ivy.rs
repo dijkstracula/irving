@@ -378,6 +378,16 @@ where
         Ok(ControlMut::Produce(()))
     }
 
+    fn begin_interpret_decl(
+        &mut self,
+        name: &mut Token,
+        sort: &mut Sort,
+    ) -> VisitorResult<(), declarations::Decl> {
+        self.pp.write_fmt(format_args!("interpret {name} -> "))?;
+        sort.visit(self)?.modifying(sort)?;
+        Ok(ControlMut::SkipSiblings(()))
+    }
+
     fn begin_invariant_decl(
         &mut self,
         _ast: &mut logic::Fmla,
@@ -418,7 +428,10 @@ where
             self.pp.write_str(")")?;
         }
         self.pp.write_str(" {\n")?;
-        self.write_separated(&mut ast.body, "\n")?;
+        for decl in &mut ast.body {
+            decl.visit(self)?.modifying(decl)?;
+            self.pp.write_str("\n")?;
+        }
         self.pp.write_str("}\n")?;
 
         Ok(ControlMut::SkipSiblings(()))
@@ -649,6 +662,9 @@ where
                     self.pp.write_str(" = {")?;
                     //self.write_separated(branches, ", ")?;
                     self.pp.write_str(" }")?;
+                }
+                IvySort::Number => {
+                    self.pp.write_str("unbounded_sequence")?;
                 }
                 IvySort::Subclass(s) => {
                     self.pp.write_fmt(format_args!("of {}", s))?;

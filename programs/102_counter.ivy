@@ -1,0 +1,27 @@
+#lang ivy1.8
+
+process mutator = {
+    type t
+    interpret t -> unbounded_sequence
+
+    export action inc
+    export action dec
+    
+    var count : t
+
+    after init {
+        count := 1;
+    }
+
+    implement inc {
+        count := count + 1;
+    }
+    implement dec {
+        count := count - 1;
+    }
+
+	#invariant [nonnegativity] count >= 0
+	invariant count >= 0
+}
+
+#attribute method=bmc[10]

@@ -362,6 +362,15 @@ impl IvyParser {
         )
     }
 
+    pub fn interpret_decl(input: Node) -> Result<InterpretDecl> {
+        match_nodes!(
+        input.into_children();
+        [symbol(name), builtin_type(sort)] => Ok(InterpretDecl { name, sort } ),
+        [symbol(name), ident(rhs)] => Ok(InterpretDecl{name, sort: Sort::Annotated(rhs)}),
+        [symbol(name)] => Ok(InterpretDecl{name, sort: Sort::Resolved(IvySort::Uninterpreted)})
+        )
+    }
+
     pub fn invariant_decl(input: Node) -> Result<Fmla> {
         match_nodes!(
         input.into_children();
@@ -457,6 +466,7 @@ impl IvyParser {
         [include_decl(module)] => Ok(Decl::Include(module)),
         [invariant_decl(fmla)] => Ok(Decl::Invariant(fmla)),
         [instance_decl(binding)] => Ok(Decl::Instance(binding)),
+        [interpret_decl(decl)] => Ok(Decl::Interpret(decl)),
         [module_decl(decl)]   => Ok(Decl::Module(decl)),
         [object_decl(binding)]   => Ok(Decl::Object(binding)),
         [process_decl(binding)]   => Ok(Decl::Object(binding)),

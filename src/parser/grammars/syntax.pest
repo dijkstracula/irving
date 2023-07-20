@@ -71,7 +71,7 @@ invariant_decl    = { INVARIANT ~ fmla }
 
 // TODO: not sure exactly about these ones yet.
 header_decl       = { HEADER ~ symbol }
-interpret_decl    = { INTERPRET ~ symbol }
+interpret_decl    = { INTERPRET ~ symbol ~ ("->" ~ ident)? }
 instantiate_decl  = { INSTANTIATE ~ symbol }
 autoinstance_decl = { AUTOINSTANCE ~ decl_sig }
 
