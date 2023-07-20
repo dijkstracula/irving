@@ -10,7 +10,7 @@ use crate::{
     ast::{
         actions::{self, Action},
         declarations::{self, ActionMixinDecl, Binding, ImplementDecl},
-        expressions::{self, Expr, Sort, Symbol},
+        expressions::{self, Expr, Sort, Token},
         statements,
     },
     passes::module_instantiation,
@@ -24,7 +24,7 @@ pub struct TypeChecker {
 
     // Remember the function signature (arguments; named ret) from the
     // function definition, so we are always sure how to bind those values locally.
-    pub action_locals: BTreeMap<Symbol, Vec<Symbol>>,
+    pub action_locals: BTreeMap<Token, Vec<Token>>,
 }
 
 impl TypeChecker {
@@ -66,8 +66,8 @@ impl Visitor<IvySort> for TypeChecker {
 
     fn param(
         &mut self,
-        p: &mut expressions::AnnotatedSymbol,
-    ) -> VisitorResult<IvySort, expressions::AnnotatedSymbol> {
+        p: &mut expressions::Symbol,
+    ) -> VisitorResult<IvySort, expressions::Symbol> {
         match &mut p.sort {
             Sort::ToBeInferred => Ok(ControlMut::Produce(self.bindings.new_sortvar())),
             Sort::Annotated(id) => {
@@ -76,7 +76,7 @@ impl Visitor<IvySort> for TypeChecker {
                 // to the bindings here.  We do not do the same for sort!()
                 self.bindings.append(p.id.clone(), resolved.clone())?;
                 Ok(ControlMut::Mutation(
-                    expressions::AnnotatedSymbol {
+                    expressions::Symbol {
                         id: p.id.clone(),
                         sort: Sort::Resolved(resolved.clone()),
                     },
@@ -103,10 +103,10 @@ impl Visitor<IvySort> for TypeChecker {
         Ok(ctrl)
     }
 
-    fn annotated_symbol(
+    fn symbol(
         &mut self,
-        p: &mut expressions::AnnotatedSymbol,
-    ) -> VisitorResult<IvySort, expressions::AnnotatedSymbol> {
+        p: &mut expressions::Symbol,
+    ) -> VisitorResult<IvySort, expressions::Symbol> {
         let sort = match &mut p.sort {
             Sort::ToBeInferred => match self.bindings.lookup_sym(&p.id) {
                 None => bail!(TypeError::UnboundVariable(p.id.clone())),
@@ -118,10 +118,10 @@ impl Visitor<IvySort> for TypeChecker {
         Ok(ControlMut::Produce(sort))
     }
 
-    fn symbol(
+    fn token(
         &mut self,
-        sym: &mut expressions::Symbol,
-    ) -> VisitorResult<IvySort, expressions::Symbol> {
+        sym: &mut expressions::Token,
+    ) -> VisitorResult<IvySort, expressions::Token> {
         match sym.as_str() {
             "bool" => Ok(ControlMut::Produce(IvySort::Bool)),
             "unbounded_sequence" => Ok(ControlMut::Produce(IvySort::Number)),
@@ -163,7 +163,7 @@ impl Visitor<IvySort> for TypeChecker {
 
     fn begin_local_vardecl(
         &mut self,
-        name: &mut Symbol,
+        name: &mut Token,
         _ast: &mut Sort,
     ) -> VisitorResult<IvySort, statements::Stmt> {
         // Bind the name to _something_; we'll unify this value with its resolved sort when finishing the visit.
@@ -173,7 +173,7 @@ impl Visitor<IvySort> for TypeChecker {
     }
     fn finish_local_vardecl(
         &mut self,
-        name: &mut Symbol,
+        name: &mut Token,
         _ast: &mut Sort,
         name_sort: IvySort,
         resolved_sort: IvySort,
@@ -287,7 +287,7 @@ impl Visitor<IvySort> for TypeChecker {
     fn begin_field_access(
         &mut self,
         lhs: &mut Expr,
-        rhs: &mut expressions::AnnotatedSymbol,
+        rhs: &mut expressions::Symbol,
     ) -> VisitorResult<IvySort, Expr> {
         let lhs_sort = lhs.visit(self)?.modifying(lhs)?;
 
@@ -348,7 +348,7 @@ impl Visitor<IvySort> for TypeChecker {
 
     fn begin_action_decl(
         &mut self,
-        name: &mut Symbol,
+        name: &mut Token,
         _ast: &mut declarations::ActionDecl,
     ) -> VisitorResult<IvySort, declarations::Decl> {
         // Bind the name to _something_; we'll unify this value with its resolved sort when finishing the visit.
@@ -360,7 +360,7 @@ impl Visitor<IvySort> for TypeChecker {
     }
     fn finish_action_decl(
         &mut self,
-        name: &mut Symbol,
+        name: &mut Token,
         ast: &mut declarations::ActionDecl,
         name_sort: IvySort,
         params: Vec<IvySort>,
@@ -432,7 +432,7 @@ impl Visitor<IvySort> for TypeChecker {
 
     fn begin_alias_decl(
         &mut self,
-        sym: &mut Symbol,
+        sym: &mut Token,
         _s: &mut Sort,
     ) -> VisitorResult<IvySort, declarations::Decl> {
         let v = self.bindings.new_sortvar();
@@ -441,7 +441,7 @@ impl Visitor<IvySort> for TypeChecker {
     }
     fn finish_alias_decl(
         &mut self,
-        sym: &mut Symbol,
+        sym: &mut Token,
         _s: &mut Sort,
         sym_sort: IvySort,
         expr_sort: IvySort,
@@ -494,7 +494,7 @@ impl Visitor<IvySort> for TypeChecker {
 
     fn begin_function_decl(
         &mut self,
-        name: &mut Symbol,
+        name: &mut Token,
         _ast: &mut declarations::FunctionDecl,
     ) -> VisitorResult<IvySort, declarations::Decl> {
         let v = self.bindings.new_sortvar();
@@ -505,7 +505,7 @@ impl Visitor<IvySort> for TypeChecker {
 
     fn finish_function_decl(
         &mut self,
-        _name: &mut Symbol,
+        _name: &mut Token,
         _ast: &mut declarations::FunctionDecl,
         name_sort: IvySort,
         param_sorts: Vec<IvySort>,
@@ -581,7 +581,7 @@ impl Visitor<IvySort> for TypeChecker {
 
     fn begin_module_decl(
         &mut self,
-        name: &mut Symbol,
+        name: &mut Token,
         ast: &mut declarations::ModuleDecl,
     ) -> VisitorResult<IvySort, declarations::Decl> {
         let v = self.bindings.new_sortvar();
@@ -608,7 +608,7 @@ impl Visitor<IvySort> for TypeChecker {
     }
     fn finish_module_decl(
         &mut self,
-        name: &mut Symbol,
+        name: &mut Token,
         ast: &mut declarations::ModuleDecl,
         mod_sort: IvySort,
         param_sorts: Vec<IvySort>,
@@ -674,7 +674,7 @@ impl Visitor<IvySort> for TypeChecker {
 
     fn begin_object_decl(
         &mut self,
-        name: &mut Symbol,
+        name: &mut Token,
         _ast: &mut declarations::ObjectDecl,
     ) -> VisitorResult<IvySort, declarations::Decl> {
         let v = self.bindings.new_sortvar();
@@ -695,7 +695,7 @@ impl Visitor<IvySort> for TypeChecker {
 
     fn finish_object_decl(
         &mut self,
-        _name: &mut Symbol,
+        _name: &mut Token,
         ast: &mut declarations::ObjectDecl,
         decl_sort: IvySort,
         param_sorts: Vec<IvySort>,
@@ -727,7 +727,7 @@ impl Visitor<IvySort> for TypeChecker {
 
     fn begin_relation(
         &mut self,
-        name: &mut Symbol,
+        name: &mut Token,
         _ast: &mut declarations::Relation,
     ) -> VisitorResult<IvySort, declarations::Decl> {
         // Bind the name to _something_; we'll unify this value with a function sort when finishing the visit.
@@ -738,7 +738,7 @@ impl Visitor<IvySort> for TypeChecker {
     }
     fn finish_relation(
         &mut self,
-        _name: &mut Symbol,
+        _name: &mut Token,
         _ast: &mut declarations::Relation,
         n: IvySort,
         paramsorts: Vec<IvySort>,
@@ -755,7 +755,7 @@ impl Visitor<IvySort> for TypeChecker {
 
     fn begin_instance_decl(
         &mut self,
-        name: &mut Symbol,
+        name: &mut Token,
         _ast: &mut declarations::InstanceDecl,
     ) -> VisitorResult<IvySort, declarations::Decl> {
         let v = self.bindings.new_sortvar();
@@ -764,7 +764,7 @@ impl Visitor<IvySort> for TypeChecker {
     }
     fn finish_instance_decl(
         &mut self,
-        name: &mut Symbol,
+        name: &mut Token,
         _ast: &mut declarations::InstanceDecl,
         decl_sort: IvySort,
         module_sort: IvySort,
@@ -802,7 +802,7 @@ impl Visitor<IvySort> for TypeChecker {
 
     fn begin_typedecl(
         &mut self,
-        name: &mut Symbol,
+        name: &mut Token,
         sort: &mut Sort,
     ) -> VisitorResult<IvySort, declarations::Decl> {
         let binding = match sort {
@@ -816,7 +816,7 @@ impl Visitor<IvySort> for TypeChecker {
 
     fn begin_vardecl(
         &mut self,
-        name: &mut Symbol,
+        name: &mut Token,
         _ast: &mut Sort,
     ) -> VisitorResult<IvySort, declarations::Decl> {
         // Bind the name to _something_; we'll unify this value with its resolved sort when finishing the visit.
@@ -826,7 +826,7 @@ impl Visitor<IvySort> for TypeChecker {
     }
     fn finish_vardecl(
         &mut self,
-        name: &mut Symbol,
+        name: &mut Token,
         _ast: &mut Sort,
         name_sort: IvySort,
         resolved_sort: IvySort,

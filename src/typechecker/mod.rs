@@ -2,7 +2,7 @@
 
 use thiserror::Error;
 
-use crate::ast::{declarations::Decl, expressions::Symbol};
+use crate::ast::{declarations::Decl, expressions::Token};
 
 use self::sorts::IvySort;
 
@@ -31,10 +31,10 @@ pub enum TypeError {
     NotARecord(IvySort),
 
     #[error("{0:?} has no field {1} ")]
-    MissingRecordField(IvySort, Symbol),
+    MissingRecordField(IvySort, Token),
 
     #[error("Unbound variable {0}")]
-    UnboundVariable(Symbol),
+    UnboundVariable(Token),
 
     #[error("Sort {0:?} mismatches {1:?}")]
     UnificationError(IvySort, IvySort),
@@ -43,11 +43,11 @@ pub enum TypeError {
     LenMismatch(Vec<IvySort>, Vec<IvySort>),
 
     #[error("Symbol {expected:?} redefined as {actual:?}")]
-    FargMismatch { expected: Symbol, actual: Symbol },
+    FargMismatch { expected: Token, actual: Token },
 
     #[error("Symbol {sym:?} defined as {prev:?} and rebound as {new:?}")]
     ReboundVariable {
-        sym: Symbol,
+        sym: Token,
         prev: IvySort,
         new: IvySort,
     },

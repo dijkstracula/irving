@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use crate::{
-    ast::expressions::{Expr, Symbol},
+    ast::expressions::{Expr, Token},
     typechecker::sorts::{Fargs, IvySort, Module, Object},
 };
 
@@ -49,7 +49,7 @@ where
         Ok(ControlMut::Produce(T::default()))
     }
 
-    fn enumeration(&mut self, _discriminants: &mut Vec<Symbol>) -> VisitorResult<T, IvySort> {
+    fn enumeration(&mut self, _discriminants: &mut Vec<Token>) -> VisitorResult<T, IvySort> {
         Ok(ControlMut::Produce(T::default()))
     }
 
@@ -67,7 +67,7 @@ where
         Ok(ControlMut::Produce(T::default()))
     }
 
-    fn subclass(&mut self, _cname: &mut Symbol) -> VisitorResult<T, IvySort> {
+    fn subclass(&mut self, _cname: &mut Token) -> VisitorResult<T, IvySort> {
         Ok(ControlMut::Produce(T::default()))
     }
 
@@ -83,11 +83,11 @@ where
     fn object(
         &mut self,
         _proc: &mut Object,
-        _args_t: BTreeMap<Symbol, T>,
-        _impl_fields_t: BTreeMap<Symbol, T>,
-        _spec_fields_t: BTreeMap<Symbol, T>,
-        _common_impl_fields_t: BTreeMap<Symbol, T>,
-        _common_spec_fields_t: BTreeMap<Symbol, T>,
+        _args_t: BTreeMap<Token, T>,
+        _impl_fields_t: BTreeMap<Token, T>,
+        _spec_fields_t: BTreeMap<Token, T>,
+        _common_impl_fields_t: BTreeMap<Token, T>,
+        _common_spec_fields_t: BTreeMap<Token, T>,
     ) -> VisitorResult<T, IvySort> {
         Ok(ControlMut::Produce(T::default()))
     }

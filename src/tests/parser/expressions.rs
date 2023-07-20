@@ -19,7 +19,7 @@ mod tests {
         let _ast = parse_expr("a").unwrap();
         assert_eq!(
             _ast,
-            Expr::AnnotatedSym(AnnotatedSymbol {
+            Expr::Symbol(Symbol {
                 id: "a".into(),
                 sort: Sort::ToBeInferred
             })
@@ -107,7 +107,7 @@ mod tests {
             _ast,
             Expr::FieldAccess(FieldAccess {
                 record: Box::new(Expr::inferred_symbol("a".into())),
-                field: AnnotatedSymbol {
+                field: Symbol {
                     id: "b".into(),
                     sort: Sort::ToBeInferred
                 }

@@ -48,14 +48,14 @@ where
 
     fn begin_local_vardecl(
         &mut self,
-        _name: &mut Symbol,
+        _name: &mut Token,
         _ast: &mut Sort,
     ) -> VisitorResult<T, Stmt> {
         Ok(ControlMut::Produce(T::default()))
     }
     fn finish_local_vardecl(
         &mut self,
-        _name: &mut Symbol,
+        _name: &mut Token,
         _ast: &mut Sort,
         _id_t: T,
         _sort_t: T,
@@ -125,14 +125,14 @@ where
 
     fn begin_action_decl(
         &mut self,
-        _name: &mut Symbol,
+        _name: &mut Token,
         _ast: &mut ActionDecl,
     ) -> VisitorResult<T, Decl> {
         Ok(ControlMut::Produce(T::default()))
     }
     fn finish_action_decl(
         &mut self,
-        _name: &mut Symbol,
+        _name: &mut Token,
         _ast: &mut ActionDecl,
         _name_ret: T,
         _params: Vec<T>,
@@ -163,12 +163,12 @@ where
         Ok(ControlMut::Produce(T::default()))
     }
 
-    fn begin_alias_decl(&mut self, _sym: &mut Symbol, _e: &mut Sort) -> VisitorResult<T, Decl> {
+    fn begin_alias_decl(&mut self, _sym: &mut Token, _e: &mut Sort) -> VisitorResult<T, Decl> {
         Ok(ControlMut::Produce(T::default()))
     }
     fn finish_alias_decl(
         &mut self,
-        _sym: &mut Symbol,
+        _sym: &mut Token,
         _e: &mut Sort,
         _sym_res: T,
         _e_res: T,
@@ -212,14 +212,14 @@ where
 
     fn begin_function_decl(
         &mut self,
-        _name: &mut Symbol,
+        _name: &mut Token,
         _ast: &mut FunctionDecl,
     ) -> VisitorResult<T, Decl> {
         Ok(ControlMut::Produce(T::default()))
     }
     fn finish_function_decl(
         &mut self,
-        _name: &mut Symbol,
+        _name: &mut Token,
         _ast: &mut FunctionDecl,
         _name_t: T,
         _sort_t: Vec<T>,
@@ -261,23 +261,23 @@ where
         Ok(ControlMut::Produce(T::default()))
     }
 
-    fn begin_include_decl(&mut self, _ast: &mut Symbol) -> VisitorResult<T, Decl> {
+    fn begin_include_decl(&mut self, _ast: &mut Token) -> VisitorResult<T, Decl> {
         Ok(ControlMut::Produce(T::default()))
     }
-    fn finish_include_decl(&mut self, _ast: &mut Symbol) -> VisitorResult<T, Decl> {
+    fn finish_include_decl(&mut self, _ast: &mut Token) -> VisitorResult<T, Decl> {
         Ok(ControlMut::Produce(T::default()))
     }
 
     fn begin_instance_decl(
         &mut self,
-        _name: &mut Symbol,
+        _name: &mut Token,
         _ast: &mut InstanceDecl,
     ) -> VisitorResult<T, Decl> {
         Ok(ControlMut::Produce(T::default()))
     }
     fn finish_instance_decl(
         &mut self,
-        _name: &mut Symbol,
+        _name: &mut Token,
         _ast: &mut InstanceDecl,
         _n: T,
         _s: T,
@@ -295,14 +295,14 @@ where
 
     fn begin_module_decl(
         &mut self,
-        _name: &mut Symbol,
+        _name: &mut Token,
         _ast: &mut ModuleDecl,
     ) -> VisitorResult<T, Decl> {
         Ok(ControlMut::Produce(T::default()))
     }
     fn finish_module_decl(
         &mut self,
-        _name: &mut Symbol,
+        _name: &mut Token,
         _ast: &mut ModuleDecl,
         _n: T,
         _p: Vec<T>,
@@ -313,14 +313,14 @@ where
 
     fn begin_object_decl(
         &mut self,
-        _name: &mut Symbol,
+        _name: &mut Token,
         _ast: &mut ObjectDecl,
     ) -> VisitorResult<T, Decl> {
         Ok(ControlMut::Produce(T::default()))
     }
     fn finish_object_decl(
         &mut self,
-        _name: &mut Symbol,
+        _name: &mut Token,
         _ast: &mut ObjectDecl,
         _n: T,
         _p: Vec<T>,
@@ -329,16 +329,12 @@ where
         Ok(ControlMut::Produce(T::default()))
     }
 
-    fn begin_relation(
-        &mut self,
-        _name: &mut Symbol,
-        _ast: &mut Relation,
-    ) -> VisitorResult<T, Decl> {
+    fn begin_relation(&mut self, _name: &mut Token, _ast: &mut Relation) -> VisitorResult<T, Decl> {
         Ok(ControlMut::Produce(T::default()))
     }
     fn finish_relation(
         &mut self,
-        _name: &mut Symbol,
+        _name: &mut Token,
         _ast: &mut Relation,
         _n: T,
         _ps: Vec<T>,
@@ -346,12 +342,12 @@ where
         Ok(ControlMut::Produce(T::default()))
     }
 
-    fn begin_typedecl(&mut self, _name: &mut Symbol, _ast: &mut Sort) -> VisitorResult<T, Decl> {
+    fn begin_typedecl(&mut self, _name: &mut Token, _ast: &mut Sort) -> VisitorResult<T, Decl> {
         Ok(ControlMut::Produce(T::default()))
     }
     fn finish_typedecl(
         &mut self,
-        _name: &mut Symbol,
+        _name: &mut Token,
         _ast: &mut Sort,
         _n: T,
         _s: T,
@@ -359,12 +355,12 @@ where
         Ok(ControlMut::Produce(T::default()))
     }
 
-    fn begin_vardecl(&mut self, _name: &mut Symbol, _ast: &mut Sort) -> VisitorResult<T, Decl> {
+    fn begin_vardecl(&mut self, _name: &mut Token, _ast: &mut Sort) -> VisitorResult<T, Decl> {
         Ok(ControlMut::Produce(T::default()))
     }
     fn finish_vardecl(
         &mut self,
-        _name: &mut Symbol,
+        _name: &mut Token,
         _ast: &mut Sort,
         _id_t: T,
         _sort_t: T,
@@ -410,17 +406,13 @@ where
         Ok(ControlMut::Produce(T::default()))
     }
 
-    fn begin_field_access(
-        &mut self,
-        _lhs: &mut Expr,
-        rhs: &mut AnnotatedSymbol,
-    ) -> VisitorResult<T, Expr> {
+    fn begin_field_access(&mut self, _lhs: &mut Expr, rhs: &mut Symbol) -> VisitorResult<T, Expr> {
         Ok(ControlMut::Produce(T::default()))
     }
     fn finish_field_access(
         &mut self,
         _lhs: &mut Expr,
-        rhs: &mut AnnotatedSymbol,
+        rhs: &mut Symbol,
         _lhs_res: T,
         _rhs_res: T,
     ) -> VisitorResult<T, Expr> {
@@ -443,12 +435,6 @@ where
 
     // Terminals
 
-    fn annotated_symbol(&mut self, p: &mut AnnotatedSymbol) -> VisitorResult<T, AnnotatedSymbol> {
-        self.symbol(&mut p.id)?.modifying(&mut p.id)?;
-        self.sort(&mut p.sort)?.modifying(&mut p.sort)?;
-        Ok(ControlMut::Produce(T::default()))
-    }
-
     fn boolean(&mut self, b: &mut bool) -> VisitorResult<T, bool> {
         Ok(ControlMut::Produce(T::default()))
     }
@@ -461,8 +447,8 @@ where
         Ok(ControlMut::Produce(T::default()))
     }
 
-    fn param(&mut self, p: &mut AnnotatedSymbol) -> VisitorResult<T, AnnotatedSymbol> {
-        self.symbol(&mut p.id)?.modifying(&mut p.id)?;
+    fn param(&mut self, p: &mut Symbol) -> VisitorResult<T, Symbol> {
+        self.token(&mut p.id)?.modifying(&mut p.id)?;
         self.sort(&mut p.sort)?.modifying(&mut p.sort)?;
         Ok(ControlMut::Produce(T::default()))
     }
@@ -474,11 +460,17 @@ where
         Ok(ControlMut::Produce(T::default()))
     }
 
-    fn symbol(&mut self, _s: &mut Symbol) -> VisitorResult<T, Symbol> {
+    fn symbol(&mut self, p: &mut Symbol) -> VisitorResult<T, Symbol> {
+        self.token(&mut p.id)?.modifying(&mut p.id)?;
+        self.sort(&mut p.sort)?.modifying(&mut p.sort)?;
         Ok(ControlMut::Produce(T::default()))
     }
 
     fn this(&mut self) -> VisitorResult<T, Expr> {
+        Ok(ControlMut::Produce(T::default()))
+    }
+
+    fn token(&mut self, _s: &mut Token) -> VisitorResult<T, Token> {
         Ok(ControlMut::Produce(T::default()))
     }
 
@@ -561,7 +553,7 @@ where
                 ref mut field,
             }) => visitor.begin_field_access(record, field)?.and_then(|_| {
                 let r = record.visit(visitor)?.modifying(record)?;
-                let f = visitor.annotated_symbol(field)?.modifying(field)?;
+                let f = visitor.symbol(field)?.modifying(field)?;
                 visitor.finish_field_access(record, field, r, f)
             }),
             Expr::Index(expr) => visitor
@@ -581,8 +573,8 @@ where
                 let _ = expr.visit(visitor)?.modifying(expr)?;
                 visitor.finish_unary_op(op, expr)
             }),
-            Expr::AnnotatedSym(p) => visitor
-                .annotated_symbol(p)?
+            Expr::Symbol(p) => visitor
+                .symbol(p)?
                 .modifying(p)
                 .map(|t| ControlMut::Produce(t)),
             Expr::This => visitor.this(),
@@ -663,7 +655,7 @@ where
                 ref mut name,
                 ref mut decl,
             }) => visitor.begin_action_decl(name, decl)?.and_then(|_| {
-                let n = visitor.symbol(name)?.modifying(name)?;
+                let n = visitor.token(name)?.modifying(name)?;
                 let params = decl.params.visit(visitor)?.modifying(&mut decl.params)?;
                 let ret = decl
                     .ret
@@ -727,7 +719,7 @@ where
                     ref mut name,
                     ref mut decl,
                 }) => visitor.begin_action_decl(name, decl)?.and_then(|_| {
-                    let n = visitor.symbol(name)?.modifying(name)?;
+                    let n = visitor.token(name)?.modifying(name)?;
                     let params = decl.params.visit(visitor)?.modifying(&mut decl.params)?;
                     let ret = decl
                         .ret
@@ -748,7 +740,7 @@ where
             }),
             Decl::Function(Binding { name, decl }) => {
                 visitor.begin_function_decl(name, decl)?.and_then(|_| {
-                    let n = visitor.symbol(name)?.modifying(name)?;
+                    let n = visitor.token(name)?.modifying(name)?;
                     let p = decl.params.visit(visitor)?.modifying(&mut decl.params)?;
                     let r = decl.ret.visit(visitor)?.modifying(&mut decl.ret)?;
                     visitor.finish_function_decl(name, decl, n, p, r)
@@ -867,12 +859,12 @@ where
     }
 }
 
-impl<T> Visitable<T> for Symbol
+impl<T> Visitable<T> for Token
 where
     T: Default,
 {
     fn visit(&mut self, visitor: &mut dyn Visitor<T>) -> VisitorResult<T, Self> {
-        visitor.symbol(self)
+        visitor.token(self)
     }
 }
 

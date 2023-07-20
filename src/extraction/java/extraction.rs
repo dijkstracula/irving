@@ -1,4 +1,4 @@
-use crate::{ast::declarations, extraction::java::extraction::expressions::Symbol};
+use crate::{ast::declarations, extraction::java::extraction::expressions::Token};
 use std::{collections::BTreeMap, fmt::Write};
 
 use thiserror::Error;
@@ -22,7 +22,7 @@ where
     W: Write,
 {
     pub pp: PrettyPrinter<W>,
-    type_aliases: BTreeMap<Symbol, JavaType>,
+    type_aliases: BTreeMap<Token, JavaType>,
 }
 
 impl Extractor<String> {
@@ -55,7 +55,7 @@ where
         &mut self,
         us: &mut expressions::ParamList,
         sep: &str,
-    ) -> VisitorResult<(), Vec<expressions::AnnotatedSymbol>> {
+    ) -> VisitorResult<(), Vec<expressions::Symbol>> {
         for (i, u) in us.into_iter().enumerate() {
             if i > 0 {
                 self.pp.write_str(sep)?;
@@ -140,7 +140,7 @@ where
 
     fn begin_action_decl(
         &mut self,
-        name: &mut Symbol,
+        name: &mut Token,
         ast: &mut declarations::ActionDecl,
     ) -> VisitorResult<(), declarations::Decl> {
         name.visit(self)?.modifying(name)?;
@@ -178,7 +178,7 @@ where
 
     fn begin_alias_decl(
         &mut self,
-        sym: &mut expressions::Symbol,
+        sym: &mut expressions::Token,
         sort: &mut expressions::Sort,
     ) -> VisitorResult<(), declarations::Decl> {
         let j: JavaType = (sort as &expressions::Sort).into(); // XXX: poor choices lead to this clone.a
@@ -249,7 +249,7 @@ where
 
     fn begin_instance_decl(
         &mut self,
-        name: &mut Symbol,
+        name: &mut Token,
         ast: &mut declarations::InstanceDecl,
     ) -> VisitorResult<(), declarations::Decl> {
         self.pp.write_fmt(format_args!("class {} extends ", name))?;
@@ -271,7 +271,7 @@ where
 
     fn begin_typedecl(
         &mut self,
-        name: &mut Symbol,
+        name: &mut Token,
         s: &mut expressions::Sort,
     ) -> VisitorResult<(), declarations::Decl> {
         self.type_aliases
@@ -281,7 +281,7 @@ where
 
     fn begin_vardecl(
         &mut self,
-        name: &mut Symbol,
+        name: &mut Token,
         sort: &mut expressions::Sort,
     ) -> VisitorResult<(), declarations::Decl> {
         self.pp.write_fmt(format_args!(
@@ -380,7 +380,7 @@ where
     fn begin_field_access(
         &mut self,
         lhs: &mut expressions::Expr,
-        rhs: &mut expressions::AnnotatedSymbol,
+        rhs: &mut expressions::Symbol,
     ) -> VisitorResult<(), expressions::Expr> {
         lhs.visit(self)?;
         self.pp.write_fmt(format_args!(".{}", rhs.id))?;
@@ -397,7 +397,7 @@ where
 
     fn begin_object_decl(
         &mut self,
-        name: &mut Symbol,
+        name: &mut Token,
         ast: &mut declarations::ObjectDecl,
     ) -> VisitorResult<(), declarations::Decl> {
         self.pp.write_fmt(format_args!("class IvyObj_{name}"))?;
@@ -464,10 +464,7 @@ where
         Ok(ControlMut::Produce(()))
     }
 
-    fn param(
-        &mut self,
-        p: &mut expressions::AnnotatedSymbol,
-    ) -> VisitorResult<(), expressions::AnnotatedSymbol> {
+    fn param(&mut self, p: &mut expressions::Symbol) -> VisitorResult<(), expressions::Symbol> {
         self.sort(&mut p.sort)?;
         self.pp.write_str(" ")?;
         self.pp.write_str(&p.id)?;
@@ -488,7 +485,7 @@ where
         Ok(ControlMut::Produce(()))
     }
 
-    fn symbol(&mut self, s: &mut expressions::Symbol) -> VisitorResult<(), expressions::Symbol> {
+    fn token(&mut self, s: &mut expressions::Token) -> VisitorResult<(), expressions::Token> {
         let alias = self.type_aliases.get_mut(s);
         match alias {
             None => self.pp.write_str(s)?,
@@ -510,5 +507,5 @@ where
 #[derive(Debug, Error, Clone, PartialEq, Eq)]
 pub enum JExtractionError {
     #[error("Symbol {0:?} failed to have a type inferred (did the typechecking pass run?)")]
-    UnresolvedType(expressions::Symbol),
+    UnresolvedType(expressions::Token),
 }

@@ -5,7 +5,7 @@ use anyhow::{bail, Result};
 use thiserror::Error;
 
 use crate::{
-    ast::expressions::Symbol,
+    ast::expressions::Token,
     typechecker::sorts::{IvySort, Module, SortSubstituter},
     visitor::sort::Visitable,
 };
@@ -34,5 +34,5 @@ pub fn instantiate(mut m: Module, args: Vec<IvySort>) -> Result<IvySort> {
 #[derive(Debug, Error, Clone, PartialEq, Eq)]
 pub enum ModuleInstantiationError {
     #[error("Symbol {0:?} is already bound to {1:?}, which is not a free sort variable")]
-    ModuleArgumentRebinding(Symbol, IvySort),
+    ModuleArgumentRebinding(Token, IvySort),
 }

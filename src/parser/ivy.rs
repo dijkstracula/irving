@@ -53,11 +53,11 @@ impl IvyParser {
         Ok(input.as_str().to_owned())
     }
 
-    fn param(input: Node) -> Result<AnnotatedSymbol> {
+    fn param(input: Node) -> Result<Symbol> {
         match_nodes!(
         input.into_children();
-        [symbol(id), ident(sort)] => Ok(AnnotatedSymbol { id: id, sort: Sort::Annotated(sort) }),
-        [symbol(id)] => Ok(AnnotatedSymbol {id, sort: Sort::ToBeInferred })
+        [symbol(id), ident(sort)] => Ok(Symbol { id: id, sort: Sort::Annotated(sort) }),
+        [symbol(id)] => Ok(Symbol {id, sort: Sort::ToBeInferred })
         )
     }
 
@@ -86,11 +86,11 @@ impl IvyParser {
 
     // Formulas
 
-    fn logicvar(input: Node) -> Result<AnnotatedSymbol> {
+    fn logicvar(input: Node) -> Result<Symbol> {
         match_nodes!(
         input.into_children();
-        [LOGICVAR(id), symbol(sort)] => Ok(AnnotatedSymbol {id, sort: Sort::Annotated(vec!(sort)) }),
-        [LOGICVAR(id)]               => Ok(AnnotatedSymbol {id, sort: Sort::ToBeInferred })
+        [LOGICVAR(id), symbol(sort)] => Ok(Symbol {id, sort: Sort::Annotated(vec!(sort)) }),
+        [LOGICVAR(id)]               => Ok(Symbol {id, sort: Sort::ToBeInferred })
         )
     }
 
@@ -284,7 +284,7 @@ impl IvyParser {
         )
     }
 
-    pub fn enum_decl(input: Node) -> Result<Vec<Symbol>> {
+    pub fn enum_decl(input: Node) -> Result<Vec<Token>> {
         match_nodes!(
         input.into_children();
             [symbol(cstrs)..] => Ok(cstrs.collect())
@@ -347,7 +347,7 @@ impl IvyParser {
         )
     }
 
-    pub fn include_decl(input: Node) -> Result<Symbol> {
+    pub fn include_decl(input: Node) -> Result<Token> {
         match_nodes!(
         input.into_children();
             [symbol(module)] => Ok(module)
@@ -440,7 +440,7 @@ impl IvyParser {
     pub fn var_decl(input: Node) -> Result<Binding<Sort>> {
         match_nodes!(
         input.into_children();
-        [param(AnnotatedSymbol { id, sort })] => Ok(Binding::from(id, sort)))
+        [param(Symbol { id, sort })] => Ok(Binding::from(id, sort)))
     }
 
     pub fn decl(input: Node) -> Result<Decl> {
@@ -497,10 +497,10 @@ impl IvyParser {
         match_nodes!(
         input.into_children();
         [var_decl(Binding{name, decl}), expr(rhs)] => Ok(
-            AssignAction{lhs: Expr::AnnotatedSym(AnnotatedSymbol{id: name, sort: decl}), rhs}
+            AssignAction{lhs: Expr::Symbol(Symbol{id: name, sort: decl}), rhs}
         ),
         [expr(lhs), expr(rhs)] => match lhs {
-            Expr::App(_) | Expr::FieldAccess(_) | Expr::Index(_) | Expr::AnnotatedSym(_) | Expr::This => Ok(AssignAction{lhs, rhs}),
+            Expr::App(_) | Expr::FieldAccess(_) | Expr::Index(_) | Expr::Symbol(_) | Expr::This => Ok(AssignAction{lhs, rhs}),
             _ => todo!(),
         },
         )

@@ -42,17 +42,17 @@ pub fn parse_log_term(pairs: Pairs<Rule>) -> Result<Expr> {
                 match sort {
                     // TODO: wondering if either return path should just be a Term.
                     // TODO: we need a separate AST node for logicvars.
-                    None => Ok(Expr::AnnotatedSym(AnnotatedSymbol {
+                    None => Ok(Expr::Symbol(Symbol {
                         id: id,
                         sort: Sort::ToBeInferred,
                     })),
-                    Some(sort) => Ok(Expr::AnnotatedSym(AnnotatedSymbol {
+                    Some(sort) => Ok(Expr::Symbol(Symbol {
                         id,
                         sort: Sort::Annotated(sort),
                     })),
                 }
             }
-            Rule::symbol => Ok(Expr::AnnotatedSym(AnnotatedSymbol {
+            Rule::symbol => Ok(Expr::Symbol(Symbol {
                 id: primary.as_str().to_owned(),
                 sort: Sort::ToBeInferred,
             })),

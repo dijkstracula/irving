@@ -3,22 +3,22 @@
 use std::collections::BTreeMap;
 
 use crate::{
-    ast::expressions::{Expr, Symbol},
+    ast::expressions::{Expr, Token},
     visitor::{sort::Visitor, ControlMut},
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]
 pub struct Object {
-    pub args: BTreeMap<Symbol, IvySort>,
-    pub fields: BTreeMap<Symbol, IvySort>,
+    pub args: BTreeMap<Token, IvySort>,
+    pub fields: BTreeMap<Token, IvySort>,
 }
 
 // TODO: this module is non-monomorphized (e.g. module type parameters are
 // still in the argument list).  We're good with this??
 #[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]
 pub struct Module {
-    pub name: Symbol,
-    pub args: Vec<(Symbol, IvySort)>, // Each of these will be SortVars
+    pub name: Token,
+    pub args: Vec<(Token, IvySort)>, // Each of these will be SortVars
     pub fields: BTreeMap<String, IvySort>,
 }
 
@@ -45,10 +45,10 @@ pub enum IvySort {
     BitVec(u8),
     Vector(Box<IvySort>),
     Range(Box<Expr>, Box<Expr>),
-    Enum(Vec<Symbol>),
+    Enum(Vec<Token>),
     Function(Fargs, Box<IvySort>),
     Relation(Vec<IvySort>),
-    Subclass(Symbol),
+    Subclass(Token),
     Module(Module),
     Object(Object),
 
@@ -143,7 +143,7 @@ impl Visitor<IvySort> for SortSubstituter {
 
     fn enumeration(
         &mut self,
-        discriminants: &mut Vec<Symbol>,
+        discriminants: &mut Vec<Token>,
     ) -> crate::visitor::VisitorResult<IvySort, IvySort> {
         self.subst(IvySort::Enum(discriminants.clone()))
     }
@@ -170,7 +170,7 @@ impl Visitor<IvySort> for SortSubstituter {
         self.subst(IvySort::Relation(substituted))
     }
 
-    fn subclass(&mut self, cname: &mut Symbol) -> crate::visitor::VisitorResult<IvySort, IvySort> {
+    fn subclass(&mut self, cname: &mut Token) -> crate::visitor::VisitorResult<IvySort, IvySort> {
         self.subst(IvySort::Subclass(cname.clone()))
     }
 
@@ -190,11 +190,11 @@ impl Visitor<IvySort> for SortSubstituter {
     fn object(
         &mut self,
         _proc: &mut Object,
-        _args_t: BTreeMap<Symbol, IvySort>,
-        _impl_fields_t: BTreeMap<Symbol, IvySort>,
-        _spec_fields_t: BTreeMap<Symbol, IvySort>,
-        _common_impl_fields_t: BTreeMap<Symbol, IvySort>,
-        _common_spec_fields_t: BTreeMap<Symbol, IvySort>,
+        _args_t: BTreeMap<Token, IvySort>,
+        _impl_fields_t: BTreeMap<Token, IvySort>,
+        _spec_fields_t: BTreeMap<Token, IvySort>,
+        _common_impl_fields_t: BTreeMap<Token, IvySort>,
+        _common_spec_fields_t: BTreeMap<Token, IvySort>,
     ) -> crate::visitor::VisitorResult<IvySort, IvySort> {
         todo!()
     }

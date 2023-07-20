@@ -52,7 +52,7 @@ mod tests {
                 [Action::Assign(AssignAction {
                     lhs: Expr::FieldAccess(FieldAccess {
                         record: Box::new(Expr::inferred_symbol("foo".into())),
-                        field: AnnotatedSymbol {
+                        field: Symbol {
                             id: "bar".into(),
                             sort: Sort::ToBeInferred
                         }

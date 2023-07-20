@@ -31,13 +31,13 @@ pub enum Verb {
     Dot, /* TODO: Mod????? */
 }
 
-pub type Symbol = String;
-pub type Ident = Vec<Symbol>;
+pub type Token = String;
+pub type Ident = Vec<Token>;
 
 #[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]
-pub struct AnnotatedSymbol {
+pub struct Symbol {
     // TODO: this should become a Symbol.
-    pub id: Symbol,
+    pub id: Token,
     pub sort: Sort,
 }
 
@@ -57,7 +57,7 @@ pub struct BinOp {
 #[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]
 pub struct FieldAccess {
     pub record: Box<Expr>,
-    pub field: AnnotatedSymbol,
+    pub field: Symbol,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]
@@ -66,7 +66,7 @@ pub struct IndexExpr {
     pub idx: Box<Expr>,
 }
 
-pub type ParamList = Vec<AnnotatedSymbol>;
+pub type ParamList = Vec<Symbol>;
 
 #[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]
 pub enum Sort {
@@ -83,16 +83,13 @@ pub struct Type {
 
 #[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]
 pub enum TypeName {
-    Name(Symbol),
+    Name(Token),
     This,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]
 #[allow(clippy::large_enum_variant)]
 pub enum Expr {
-    // TODO: this should become a Symbol.
-    AnnotatedSym(AnnotatedSymbol),
-
     App(AppExpr),
 
     BinOp(BinOp),
@@ -107,18 +104,20 @@ pub enum Expr {
 
     UnaryOp { op: Verb, expr: Box<Expr> },
 
+    Symbol(Symbol),
+
     This,
 }
 
 impl Expr {
     pub fn inferred_symbol(s: String) -> Self {
-        Self::AnnotatedSym(AnnotatedSymbol {
+        Self::Symbol(Symbol {
             id: s,
             sort: Sort::ToBeInferred,
         })
     }
     pub fn annotated_symbol(s: String, id: Ident) -> Self {
-        Self::AnnotatedSym(AnnotatedSymbol {
+        Self::Symbol(Symbol {
             id: s,
             sort: Sort::Annotated(id),
         })

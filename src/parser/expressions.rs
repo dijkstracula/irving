@@ -46,7 +46,7 @@ pub fn parse_expr(pairs: Pairs<Rule>) -> Result<Expr> {
     PRATT
         .map_primary(|primary| match primary.as_rule() {
             Rule::THIS => Ok(Expr::This),
-            Rule::symbol => Ok(Expr::AnnotatedSym(AnnotatedSymbol {
+            Rule::symbol => Ok(Expr::Symbol(Symbol {
                 id: primary.as_str().into(),
                 sort: Sort::ToBeInferred,
             })),
@@ -98,7 +98,7 @@ pub fn parse_expr(pairs: Pairs<Rule>) -> Result<Expr> {
 
             if verb == Verb::Dot {
                 let field = match rhs? {
-                    Expr::AnnotatedSym(field) => field,
+                    Expr::Symbol(field) => field,
                     _ => {
                         return Err(Error::new_from_span(
                             ErrorVariant::CustomError {

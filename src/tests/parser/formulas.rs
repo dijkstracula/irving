@@ -61,15 +61,15 @@ mod tests {
             ast,
             Fmla::Forall(Forall {
                 vars: [
-                    AnnotatedSymbol {
+                    Symbol {
                         id: "X".into(),
                         sort: Sort::Annotated(["node".into()].into())
                     },
-                    AnnotatedSymbol {
+                    Symbol {
                         id: "Y".into(),
                         sort: Sort::ToBeInferred,
                     },
-                    AnnotatedSymbol {
+                    Symbol {
                         id: "Z".into(),
                         sort: Sort::ToBeInferred,
                     }

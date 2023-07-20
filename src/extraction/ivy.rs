@@ -3,7 +3,7 @@ use std::fmt::Write;
 use crate::{
     ast::{
         actions, declarations,
-        expressions::{self, AnnotatedSymbol, IndexExpr, Sort, Symbol, Verb},
+        expressions::{self, IndexExpr, Sort, Symbol, Token, Verb},
         logic, statements, toplevels,
     },
     typechecker::sorts::IvySort,
@@ -52,7 +52,7 @@ where
         &mut self,
         us: &mut expressions::ParamList,
         sep: &str,
-    ) -> VisitorResult<(), Vec<AnnotatedSymbol>> {
+    ) -> VisitorResult<(), Vec<Symbol>> {
         for (i, u) in us.into_iter().enumerate() {
             if i > 0 {
                 self.pp.write_str(sep)?;
@@ -171,7 +171,7 @@ where
 
     fn begin_action_decl(
         &mut self,
-        name: &mut Symbol,
+        name: &mut Token,
         ast: &mut declarations::ActionDecl,
     ) -> VisitorResult<(), declarations::Decl> {
         self.pp.write_fmt(format_args!("action {}", name))?;
@@ -225,7 +225,7 @@ where
 
     fn begin_alias_decl(
         &mut self,
-        sym: &mut expressions::Symbol,
+        sym: &mut expressions::Token,
         s: &mut expressions::Sort,
     ) -> VisitorResult<(), declarations::Decl> {
         self.pp.write_fmt(format_args!("alias {} = ", sym))?;
@@ -309,7 +309,7 @@ where
 
     fn begin_instance_decl(
         &mut self,
-        name: &mut Symbol,
+        name: &mut Token,
         ast: &mut declarations::InstanceDecl,
     ) -> VisitorResult<(), declarations::Decl> {
         self.pp.write_str("instance ")?;
@@ -372,7 +372,7 @@ where
 
     fn begin_include_decl(
         &mut self,
-        _ast: &mut expressions::Symbol,
+        _ast: &mut expressions::Token,
     ) -> VisitorResult<(), declarations::Decl> {
         self.pp.write_str("include ")?;
         Ok(ControlMut::Produce(()))
@@ -388,7 +388,7 @@ where
 
     fn begin_module_decl(
         &mut self,
-        name: &mut Symbol,
+        name: &mut Token,
         module: &mut declarations::ModuleDecl,
     ) -> VisitorResult<(), declarations::Decl> {
         self.pp.write_fmt(format_args!("isolate {}", name))?;
@@ -407,7 +407,7 @@ where
 
     fn begin_object_decl(
         &mut self,
-        name: &mut Symbol,
+        name: &mut Token,
         ast: &mut declarations::ObjectDecl,
     ) -> VisitorResult<(), declarations::Decl> {
         self.pp.write_fmt(format_args!("object {}", name))?;
@@ -426,7 +426,7 @@ where
 
     fn begin_relation(
         &mut self,
-        name: &mut Symbol,
+        name: &mut Token,
         ast: &mut declarations::Relation,
     ) -> VisitorResult<(), declarations::Decl> {
         self.pp.write_fmt(format_args!("relation {}(", name))?;
@@ -437,7 +437,7 @@ where
 
     fn begin_typedecl(
         &mut self,
-        name: &mut Symbol,
+        name: &mut Token,
         sort: &mut Sort,
     ) -> VisitorResult<(), declarations::Decl> {
         self.pp.write_fmt(format_args!("type {}", name))?;
@@ -454,7 +454,7 @@ where
 
     fn begin_vardecl(
         &mut self,
-        name: &mut Symbol,
+        name: &mut Token,
         sort: &mut Sort,
     ) -> VisitorResult<(), declarations::Decl> {
         self.pp.write_fmt(format_args!("var {}", name))?;
@@ -550,11 +550,11 @@ where
     fn begin_field_access(
         &mut self,
         lhs: &mut expressions::Expr,
-        rhs: &mut expressions::AnnotatedSymbol,
+        rhs: &mut expressions::Symbol,
     ) -> VisitorResult<(), expressions::Expr> {
         lhs.visit(self)?;
         self.pp.write_str(".")?;
-        self.annotated_symbol(rhs)?.modifying(rhs)?;
+        self.symbol(rhs)?.modifying(rhs)?;
         Ok(ControlMut::SkipSiblings(()))
     }
 
@@ -589,10 +589,7 @@ where
 
     // Terminals
 
-    fn annotated_symbol(
-        &mut self,
-        p: &mut expressions::AnnotatedSymbol,
-    ) -> VisitorResult<(), expressions::AnnotatedSymbol> {
+    fn symbol(&mut self, p: &mut expressions::Symbol) -> VisitorResult<(), expressions::Symbol> {
         p.id.visit(self)?;
 
         Ok(ControlMut::SkipSiblings(()))
@@ -617,10 +614,7 @@ where
         Ok(ControlMut::Produce(()))
     }
 
-    fn param(
-        &mut self,
-        p: &mut expressions::AnnotatedSymbol,
-    ) -> VisitorResult<(), expressions::AnnotatedSymbol> {
+    fn param(&mut self, p: &mut expressions::Symbol) -> VisitorResult<(), expressions::Symbol> {
         p.id.visit(self)?;
 
         match &mut p.sort {
@@ -683,7 +677,7 @@ where
         Ok(ControlMut::Produce(()))
     }
 
-    fn symbol(&mut self, s: &mut expressions::Symbol) -> VisitorResult<(), expressions::Symbol> {
+    fn token(&mut self, s: &mut expressions::Token) -> VisitorResult<(), expressions::Token> {
         self.pp.write_str(s)?;
         Ok(ControlMut::Produce(()))
     }

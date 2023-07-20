@@ -7,7 +7,7 @@ use crate::{
 
 use super::{sorts::IvySort, TypeError};
 
-pub struct Bindings(Vec<HashMap<Symbol, IvySort>>);
+pub struct Bindings(Vec<HashMap<Token, IvySort>>);
 
 impl Bindings {
     pub fn new() -> Self {
@@ -78,7 +78,7 @@ impl Resolver {
         }
     }
 
-    pub fn append(&mut self, sym: Symbol, sort: IvySort) -> Result<(), TypeError> {
+    pub fn append(&mut self, sym: Token, sort: IvySort) -> Result<(), TypeError> {
         if self.sorts.last().is_none() {
             panic!("Appending into an empty scope");
         }

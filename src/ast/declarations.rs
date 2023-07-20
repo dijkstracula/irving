@@ -8,16 +8,16 @@ use super::statements::*;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DeclSig {
-    pub name: Symbol,
+    pub name: Token,
     pub params: ParamList,
 }
 
-pub type DeclRet = Option<AnnotatedSymbol>;
+pub type DeclRet = Option<Symbol>;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ModSig {
-    pub name: Symbol,
-    pub sortsyms: Vec<Symbol>,
+    pub name: Token,
+    pub sortsyms: Vec<Token>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -29,7 +29,7 @@ pub struct MixinSig {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ActionDecl {
     pub params: ParamList,
-    pub ret: Option<AnnotatedSymbol>,
+    pub ret: Option<Symbol>,
     pub body: Option<Vec<Stmt>>,
 }
 
@@ -37,25 +37,25 @@ pub struct ActionDecl {
 pub struct ActionMixinDecl {
     pub name: Ident,
     pub params: Option<ParamList>,
-    pub ret: Option<AnnotatedSymbol>,
+    pub ret: Option<Symbol>,
     pub body: Vec<Stmt>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FunctionDecl {
     pub params: ParamList,
-    pub ret: Symbol, // Am I an idiot? Where's the bee^W body
+    pub ret: Token, // Am I an idiot? Where's the bee^W body
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ExportDecl {
     Action(Binding<ActionDecl>),
-    ForwardRef(Symbol),
+    ForwardRef(Token),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ImportDecl {
-    pub name: Symbol,
+    pub name: Token,
     pub params: ParamList,
 }
 
@@ -63,7 +63,7 @@ pub struct ImportDecl {
 pub struct ImplementDecl {
     pub name: Ident,
     pub params: Option<ParamList>,
-    pub ret: Option<AnnotatedSymbol>,
+    pub ret: Option<Symbol>,
     pub body: Option<Vec<Stmt>>,
 }
 
@@ -75,7 +75,7 @@ pub struct InstanceDecl {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ModuleDecl {
-    pub sortsyms: Vec<Symbol>,
+    pub sortsyms: Vec<Token>,
     pub body: Vec<Decl>,
 }
 
@@ -147,7 +147,7 @@ pub enum Decl {
 
     Import(ImportDecl),
 
-    Include(Symbol),
+    Include(Token),
 
     Instance(Binding<InstanceDecl>),
 
