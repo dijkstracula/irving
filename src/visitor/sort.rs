@@ -150,10 +150,7 @@ where
                 let fields_t = module
                     .fields
                     .iter_mut()
-                    .map(|(k, v)| {
-                        let v_t = v.visit(visitor)?.modifying(v).map(|t| (k.clone(), t));
-                        v_t
-                    })
+                    .map(|(k, v)| v.visit(visitor)?.modifying(v).map(|t| (k.clone(), t)))
                     .collect::<Result<BTreeMap<_, _>, _>>()?;
                 visitor.module(module, args_t, fields_t)
             }

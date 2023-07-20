@@ -13,5 +13,5 @@ use crate::{
 pub fn prog_from_str(body: &str) -> Result<Prog, error::Error<Rule>> {
     IvyParser::parse(Rule::prog, body)
         .and_then(|res| res.single())
-        .and_then(|prog| IvyParser::prog(prog))
+        .and_then(IvyParser::prog)
 }

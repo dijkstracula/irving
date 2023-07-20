@@ -42,7 +42,7 @@ where
     where
         U: Visitable<()>,
     {
-        for (i, u) in us.into_iter().enumerate() {
+        for (i, u) in us.iter_mut().enumerate() {
             if i > 0 {
                 self.pp.write_str(sep)?;
             }
@@ -56,7 +56,7 @@ where
         us: &mut expressions::ParamList,
         sep: &str,
     ) -> VisitorResult<(), Vec<expressions::Symbol>> {
-        for (i, u) in us.into_iter().enumerate() {
+        for (i, u) in us.iter_mut().enumerate() {
             if i > 0 {
                 self.pp.write_str(sep)?;
             }

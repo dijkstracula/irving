@@ -16,7 +16,7 @@ mod tests {
     #[test]
     fn test_unbound_this() {
         let prog = "this";
-        let parsed = IvyParser::parse(Rule::expr, &prog)
+        let parsed = IvyParser::parse(Rule::expr, prog)
             .expect("Parsing failed")
             .single()
             .unwrap();
@@ -34,7 +34,7 @@ mod tests {
     #[test]
     fn test_bool_binop() {
         let prog = "1 < 2";
-        let parsed = IvyParser::parse(Rule::expr, &prog)
+        let parsed = IvyParser::parse(Rule::expr, prog)
             .expect("Parsing failed")
             .single()
             .unwrap();
@@ -48,7 +48,7 @@ mod tests {
     #[test]
     fn test_numeric_binop() {
         let prog = "1 + 2";
-        let parsed = IvyParser::parse(Rule::expr, &prog)
+        let parsed = IvyParser::parse(Rule::expr, prog)
             .expect("Parsing failed")
             .single()
             .unwrap();
@@ -62,7 +62,7 @@ mod tests {
     #[test]
     fn test_invalid_numeric_binop() {
         let prog = "1 + true";
-        let parsed = IvyParser::parse(Rule::expr, &prog)
+        let parsed = IvyParser::parse(Rule::expr, prog)
             .expect("Parsing failed")
             .single()
             .unwrap();
@@ -79,7 +79,7 @@ mod tests {
     #[test]
     fn test_ident() {
         let prog = "foo";
-        let parsed = IvyParser::parse(Rule::expr, &prog)
+        let parsed = IvyParser::parse(Rule::expr, prog)
             .expect("Parsing failed")
             .single()
             .unwrap();
@@ -134,7 +134,7 @@ mod tests {
     #[test]
     fn test_call_resolved() {
         let prog = "f()";
-        let parsed = IvyParser::parse(Rule::expr, &prog)
+        let parsed = IvyParser::parse(Rule::expr, prog)
             .expect("Parsing failed")
             .single()
             .unwrap();
@@ -158,7 +158,7 @@ mod tests {
     #[test]
     fn test_call_unresolved() {
         let prog = "f()";
-        let parsed = IvyParser::parse(Rule::expr, &prog)
+        let parsed = IvyParser::parse(Rule::expr, prog)
             .expect("Parsing failed")
             .single()
             .unwrap();
@@ -178,7 +178,7 @@ mod tests {
     #[test]
     fn test_call_invalid() {
         let prog = "f()";
-        let parsed = IvyParser::parse(Rule::expr, &prog)
+        let parsed = IvyParser::parse(Rule::expr, prog)
             .expect("Parsing failed")
             .single()
             .unwrap();
@@ -204,7 +204,7 @@ mod tests {
     #[test]
     fn test_field_access() {
         let prog = "a.b";
-        let parsed = IvyParser::parse(Rule::expr, &prog)
+        let parsed = IvyParser::parse(Rule::expr, prog)
             .expect("Parsing failed")
             .single()
             .unwrap();

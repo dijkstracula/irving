@@ -115,7 +115,7 @@ impl From<&IvySort> for JavaType {
                 Self::ArrayList(Box::new(jelem))
             }
             IvySort::Range(lo, hi) => match (lo.as_ref(), hi.as_ref()) {
-                (Expr::Number(lo), Expr::Number(hi)) => Self::BoundedLong(lo.clone(), hi.clone()),
+                (Expr::Number(lo), Expr::Number(hi)) => Self::BoundedLong(*lo, *hi),
                 _ => todo!(),
             },
             IvySort::Enum(_) => todo!(),
@@ -123,8 +123,7 @@ impl From<&IvySort> for JavaType {
             IvySort::Relation(_) => todo!(),
             IvySort::Subclass(_) => todo!(),
             IvySort::Module(Module { name, args, .. }) => {
-                let args: Vec<JavaType> =
-                    args.into_iter().map(|(_, sort)| sort.into()).collect::<_>();
+                let args: Vec<JavaType> = args.iter().map(|(_, sort)| sort.into()).collect::<_>();
                 Self::Object(name.clone(), args)
             }
             IvySort::Object(_) => todo!(),

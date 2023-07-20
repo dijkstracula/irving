@@ -14,7 +14,7 @@ mod tests {
     use pest_consume::Parser;
 
     fn process_from_src(prog: &str) -> Decl {
-        let res = IvyParser::parse(Rule::process_decl, &prog)
+        let res = IvyParser::parse(Rule::process_decl, prog)
             .expect("Parsing failed")
             .single()
             .unwrap();
@@ -81,13 +81,13 @@ mod tests {
 
             action append(a:t,e:elems) returns (b:t)
         }";
-        let parsed = IvyParser::parse(Rule::module_decl, &vecimpl)
+        let parsed = IvyParser::parse(Rule::module_decl, vecimpl)
             .expect("Parsing failed")
             .single()
             .unwrap();
         let vecdecl = Decl::Module(IvyParser::module_decl(parsed).expect("AST generation failed"));
 
-        let mut filedecl = vecdecl.clone();
+        let mut filedecl = vecdecl;
         /*
         let mut mr = ModuleInstantiation::new([("elems".into(), vec!["byte".into()])].into());
         filedecl
@@ -120,7 +120,7 @@ mod tests {
         let res = iso.visit(&mut tc).unwrap().modifying(&mut iso).unwrap();
         assert_eq!(res, sort);
 
-        assert_eq!(tc.bindings.lookup_sym(&"p".to_owned()), Some(&sort));
+        assert_eq!(tc.bindings.lookup_sym("p"), Some(&sort));
     }
 
     #[test]
@@ -139,7 +139,7 @@ mod tests {
         let res = iso.visit(&mut tc).unwrap().modifying(&mut iso).unwrap();
         assert_eq!(res, sort);
 
-        assert_eq!(tc.bindings.lookup_sym(&"host".to_owned()), Some(&sort));
+        assert_eq!(tc.bindings.lookup_sym("host"), Some(&sort));
     }
 
     #[test]
@@ -166,7 +166,7 @@ mod tests {
         let res = iso.visit(&mut tc).unwrap().modifying(&mut iso).unwrap();
         assert_eq!(res, sort);
 
-        assert_eq!(tc.bindings.lookup_sym(&"host".to_owned()), Some(&sort),);
+        assert_eq!(tc.bindings.lookup_sym("host"), Some(&sort),);
     }
 
     #[test]

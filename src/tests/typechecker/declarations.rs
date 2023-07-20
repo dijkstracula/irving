@@ -104,10 +104,7 @@ mod tests {
 
         assert_eq!(res, sock_mod);
 
-        assert_eq!(
-            tc.bindings.lookup_sym(&"socket".to_owned()),
-            Some(&sock_mod)
-        );
+        assert_eq!(tc.bindings.lookup_sym("socket"), Some(&sock_mod));
         tc.bindings.pop_scope();
     }
 
@@ -115,7 +112,7 @@ mod tests {
     fn test_relation_decl_unannotated() {
         let prog = "relation is_up(X, Y)";
 
-        let parsed = IvyParser::parse(Rule::decl, &prog)
+        let parsed = IvyParser::parse(Rule::decl, prog)
             .expect("Parsing failed")
             .single()
             .unwrap();
@@ -136,7 +133,7 @@ mod tests {
         );
 
         assert_eq!(
-            tc.bindings.lookup_sym(&"is_up".to_owned()),
+            tc.bindings.lookup_sym("is_up"),
             Some(&IvySort::Function(
                 Fargs::List(vec!(IvySort::SortVar(1), IvySort::SortVar(2))),
                 Box::new(IvySort::Bool)
@@ -164,7 +161,7 @@ mod tests {
         );
 
         assert_eq!(
-            tc.bindings.lookup_sym(&"is_up".to_owned()),
+            tc.bindings.lookup_sym("is_up"),
             Some(&IvySort::Function(
                 Fargs::List(vec!(IvySort::Bool, IvySort::Bool)),
                 Box::new(IvySort::Bool)
@@ -185,13 +182,10 @@ mod tests {
             .unwrap();
         assert_eq!(res, IvySort::BitVec(32));
 
-        assert_eq!(
-            tc.bindings.lookup_sym(&"addr".to_owned()),
-            Some(&IvySort::BitVec(32))
-        );
+        assert_eq!(tc.bindings.lookup_sym("addr"), Some(&IvySort::BitVec(32)));
 
         let prog = "type addr = bv[256]";
-        let res = IvyParser::parse(Rule::decl, &prog)
+        let res = IvyParser::parse(Rule::decl, prog)
             .expect("Parsing failed")
             .single()
             .unwrap();
@@ -210,10 +204,7 @@ mod tests {
             .modifying(&mut decl_ast)
             .unwrap();
         assert_eq!(res, IvySort::This);
-        assert_eq!(
-            tc.bindings.lookup_sym(&"this".to_owned()),
-            Some(&IvySort::This)
-        )
+        assert_eq!(tc.bindings.lookup_sym("this"), Some(&IvySort::This))
     }
 
     #[test]
@@ -229,10 +220,7 @@ mod tests {
             .unwrap();
         assert_eq!(res, IvySort::SortVar(0));
 
-        assert_eq!(
-            tc.bindings.lookup_sym(&"node".to_owned()),
-            Some(&IvySort::SortVar(0))
-        )
+        assert_eq!(tc.bindings.lookup_sym("node"), Some(&IvySort::SortVar(0)))
     }
 
     #[test]
@@ -249,7 +237,7 @@ mod tests {
         assert_eq!(res, IvySort::Enum(["on".into(), "off".into()].into()));
 
         assert_eq!(
-            tc.bindings.lookup_sym(&"status".to_owned()),
+            tc.bindings.lookup_sym("status"),
             Some(&IvySort::Enum(["on".into(), "off".into()].into()))
         )
     }
@@ -271,7 +259,7 @@ mod tests {
         );
 
         assert_eq!(
-            tc.bindings.lookup_sym(&"numbers".to_owned()),
+            tc.bindings.lookup_sym("numbers"),
             Some(&IvySort::Range(
                 Box::new(Expr::Number(0)),
                 Box::new(Expr::Number(100))
@@ -292,10 +280,7 @@ mod tests {
             .unwrap();
         assert_eq!(res, IvySort::SortVar(0));
 
-        assert_eq!(
-            tc.bindings.lookup_sym(&"i".to_owned()),
-            Some(&IvySort::SortVar(0))
-        )
+        assert_eq!(tc.bindings.lookup_sym("i"), Some(&IvySort::SortVar(0)))
     }
 
     #[test]
@@ -310,10 +295,7 @@ mod tests {
             .modifying(&mut decl_ast)
             .unwrap();
         assert_eq!(res, IvySort::Bool);
-        assert_eq!(
-            tc.bindings.lookup_sym(&"b".to_owned()),
-            Some(&IvySort::Bool)
-        )
+        assert_eq!(tc.bindings.lookup_sym("b"), Some(&IvySort::Bool))
     }
 
     #[test]
@@ -325,7 +307,7 @@ mod tests {
             relation link(X:client, Y:server)
             relation semaphore(X:server) # X was previously defined to be a client.
         }";
-        let parsed = IvyParser::parse(Rule::decl_block, &prog)
+        let parsed = IvyParser::parse(Rule::decl_block, prog)
             .expect("Parsing failed")
             .single()
             .unwrap();

@@ -18,7 +18,7 @@ pub fn instantiate(mut m: Module, args: Vec<IvySort>) -> Result<IvySort> {
         .zip(args.into_iter())
         .map(|((name, s1), s2)| {
             let IvySort::SortVar(_) = s1 else {
-                bail!(ModuleInstantiationError::ModuleArgumentRebinding(name.clone(), s1));
+                bail!(ModuleInstantiationError::ModuleArgumentRebinding(name, s1));
             };
             Ok((s1, s2))
         })
@@ -28,7 +28,7 @@ pub fn instantiate(mut m: Module, args: Vec<IvySort>) -> Result<IvySort> {
 
     let mut as_ivysort = IvySort::Module(m);
 
-    Ok(as_ivysort.visit(&mut ss)?.modifying(&mut as_ivysort)?)
+    as_ivysort.visit(&mut ss)?.modifying(&mut as_ivysort)
 }
 
 #[derive(Debug, Error, Clone, PartialEq, Eq)]

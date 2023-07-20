@@ -39,7 +39,7 @@ where
     where
         U: Visitable<()>,
     {
-        for (i, u) in us.into_iter().enumerate() {
+        for (i, u) in us.iter_mut().enumerate() {
             if i > 0 {
                 self.pp.write_str(sep)?;
             }
@@ -53,7 +53,7 @@ where
         us: &mut expressions::ParamList,
         sep: &str,
     ) -> VisitorResult<(), Vec<Symbol>> {
-        for (i, u) in us.into_iter().enumerate() {
+        for (i, u) in us.iter_mut().enumerate() {
             if i > 0 {
                 self.pp.write_str(sep)?;
             }
@@ -175,7 +175,7 @@ where
         ast: &mut declarations::ActionDecl,
     ) -> VisitorResult<(), declarations::Decl> {
         self.pp.write_fmt(format_args!("action {}", name))?;
-        if ast.params.len() > 0 {
+        if !ast.params.is_empty() {
             self.pp.write_str("(")?;
             self.write_paramlist(&mut ast.params, ", ")?;
             self.pp.write_str(")")?;
@@ -203,7 +203,7 @@ where
         self.identifier(&mut ast.name)?;
 
         if let Some(params) = &mut ast.params {
-            if params.len() > 0 {
+            if !params.is_empty() {
                 self.pp.write_str("(")?;
                 self.write_paramlist(params, ", ")?;
                 self.pp.write_str(")")?;
@@ -257,7 +257,7 @@ where
         self.identifier(&mut ast.name)?;
 
         if let Some(params) = &mut ast.params {
-            if params.len() > 0 {
+            if !params.is_empty() {
                 self.pp.write_str("(")?;
                 self.write_paramlist(params, ", ")?;
                 self.pp.write_str(")")?;
@@ -393,7 +393,7 @@ where
     ) -> VisitorResult<(), declarations::Decl> {
         self.pp.write_fmt(format_args!("isolate {}", name))?;
 
-        if module.sortsyms.len() > 0 {
+        if !module.sortsyms.is_empty() {
             self.pp.write_str("(")?;
             module.sortsyms.visit(self)?;
             self.pp.write_str(")")?;
@@ -412,7 +412,7 @@ where
     ) -> VisitorResult<(), declarations::Decl> {
         self.pp.write_fmt(format_args!("object {}", name))?;
 
-        if ast.params.len() > 0 {
+        if !ast.params.is_empty() {
             self.pp.write_str("(")?;
             ast.params.visit(self)?;
             self.pp.write_str(")")?;

@@ -56,7 +56,7 @@ impl IvyParser {
     fn param(input: Node) -> Result<Symbol> {
         match_nodes!(
         input.into_children();
-        [symbol(id), ident(sort)] => Ok(Symbol { id: id, sort: Sort::Annotated(sort) }),
+        [symbol(id), ident(sort)] => Ok(Symbol { id, sort: Sort::Annotated(sort) }),
         [symbol(id)] => Ok(Symbol {id, sort: Sort::ToBeInferred })
         )
     }
@@ -241,10 +241,10 @@ impl IvyParser {
         match_nodes!(
         input.into_children();
         [mixin_sig(MixinSig{name, params}), decl_ret(ret), stmt_block(body)] => Ok(
-            ActionMixinDecl { name, params: params, ret: ret, body}
+            ActionMixinDecl { name, params, ret, body}
         ),
         [mixin_sig(MixinSig{name, params}), stmt_block(body)] => Ok(
-            ActionMixinDecl { name, params: params, ret: None, body}
+            ActionMixinDecl { name, params, ret: None, body}
         ),
         [ident(name), stmt_block(body)] => Ok(
             ActionMixinDecl { name, params: None, ret: None, body}
@@ -256,10 +256,10 @@ impl IvyParser {
         match_nodes!(
         input.into_children();
         [mixin_sig(MixinSig{name, params}), stmt_block(body)] => Ok(
-            ActionMixinDecl { name, params: params, body: body, ret: None}
+            ActionMixinDecl { name, params, body, ret: None}
         ),
         [ident(name), stmt_block(body)] => Ok(
-            ActionMixinDecl { name, params: None, body: body, ret: None}
+            ActionMixinDecl { name, params: None, body, ret: None}
         ),
         )
     }
@@ -426,12 +426,7 @@ impl IvyParser {
         [symbol(lhs), symbol(rhs)] => Ok(Binding::from(lhs, Sort::Resolved(IvySort::Subclass(rhs)))),
         [symbol(sym)] => Ok(Binding::from(sym, Sort::ToBeInferred)),
         [symbol(sym)] => {
-            match sym {
-                // TODO: should we put other "known-in-advance" sorts like vector, unbound_sequence, etc., here too?
-                // That would save us having to insert stuff into the context later on, which is nice.
-                // "bool" => Ok(Binding::from(sym, Sort::Resolved(IvySort::Bool))),
-                _ => Ok(Binding::from(sym, Sort::ToBeInferred))
-            }
+            Ok(Binding::from(sym, Sort::ToBeInferred))
         },
         [_THIS] => Ok(Binding::from("this".into(), Sort::Resolved(IvySort::This))),
         )

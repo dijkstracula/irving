@@ -49,7 +49,7 @@ mod tests {
 
         assert_eq!(
             r.lookup_ident(&vec!("pid".to_owned(), "uhoh".to_owned())),
-            Err(TypeError::NotARecord(pid_sort.clone()))
+            Err(TypeError::NotARecord(pid_sort))
         );
     }
 

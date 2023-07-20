@@ -107,7 +107,7 @@ mod tests {
             .single()
             .unwrap();
         // This assert indicates that parsing the action stopped when we hit the second action (i.e. what follows is invalid).
-        assert!(IvyParser::action_decl(res).unwrap().decl.body == None);
+        assert!(IvyParser::action_decl(res).unwrap().decl.body.is_none());
     }
 
     #[test]

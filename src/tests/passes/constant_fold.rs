@@ -9,7 +9,7 @@ mod tests {
     #[test]
     fn fold_constants() {
         let expr = "(19 * 2) + 4";
-        let res = IvyParser::parse(Rule::expr, &expr)
+        let res = IvyParser::parse(Rule::expr, expr)
             .expect("Parsing failed")
             .single()
             .unwrap();
@@ -24,7 +24,7 @@ mod tests {
     #[test]
     fn fold_zero_add() {
         let expr = "foo + 0";
-        let res = IvyParser::parse(Rule::expr, &expr)
+        let res = IvyParser::parse(Rule::expr, expr)
             .expect("Parsing failed")
             .single()
             .unwrap();

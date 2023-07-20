@@ -90,7 +90,7 @@ pub struct ObjectDecl {
 }
 
 impl ObjectDecl {
-    pub fn actions<'a>(&'a self) -> Vec<&'a Binding<ActionDecl>> {
+    pub fn actions(&self) -> Vec<&Binding<ActionDecl>> {
         self.body
             .iter()
             .filter_map(|d| match d {
@@ -177,15 +177,15 @@ impl Decl {
     /// TODO: https://github.com/dijkstracula/irving/issues/19
     pub fn name_for_binding(&self) -> Option<&str> {
         match self {
-            Decl::Action(Binding { name, .. }) => Some(&name),
+            Decl::Action(Binding { name, .. }) => Some(name),
             Decl::AfterAction(_) => None,
-            Decl::Alias(Binding { name, .. }) => Some(&name),
+            Decl::Alias(Binding { name, .. }) => Some(name),
             Decl::Attribute(_) => None,
             Decl::Axiom(_) => None,
             Decl::BeforeAction(_) => None,
             Decl::Common(_) => None,
             Decl::Export(_) => None,
-            Decl::Function(Binding { name, .. }) => Some(&name),
+            Decl::Function(Binding { name, .. }) => Some(name),
             Decl::Globals(_) => None,
             Decl::Implement(_) => None,
             Decl::Import(_) => None,
@@ -194,13 +194,13 @@ impl Decl {
             Decl::Instantiate { .. } => None,
             Decl::Interpretation { .. } => None,
             Decl::Invariant(_) => None,
-            Decl::Module(Binding { name, .. }) => Some(&name),
+            Decl::Module(Binding { name, .. }) => Some(name),
             Decl::Noop => None,
-            Decl::Object(Binding { name, .. }) => Some(&name),
-            Decl::Relation(Binding { name, .. }) => Some(&name),
+            Decl::Object(Binding { name, .. }) => Some(name),
+            Decl::Relation(Binding { name, .. }) => Some(name),
             Decl::Stmts(_) => None,
-            Decl::Var(Binding { name, .. }) => Some(&name),
-            Decl::Type(Binding { name, .. }) => Some(&name),
+            Decl::Var(Binding { name, .. }) => Some(name),
+            Decl::Type(Binding { name, .. }) => Some(name),
         }
     }
 

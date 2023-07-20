@@ -43,7 +43,7 @@ pub fn parse_log_term(pairs: Pairs<Rule>) -> Result<Expr> {
                     // TODO: wondering if either return path should just be a Term.
                     // TODO: we need a separate AST node for logicvars.
                     None => Ok(Expr::Symbol(Symbol {
-                        id: id,
+                        id,
                         sort: Sort::ToBeInferred,
                     })),
                     Some(sort) => Ok(Expr::Symbol(Symbol {

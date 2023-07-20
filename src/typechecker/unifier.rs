@@ -84,21 +84,19 @@ impl Resolver {
         }
 
         // Only check the current scope, shadowing should be fine, right?
-        if let Some(existing) = self.sorts.last().unwrap().get(&sym).clone() {
+        if let Some(existing) = self.sorts.last().unwrap().get(&sym) {
             if existing.is_sortvar() || sort.is_sortvar() {
                 let existing = existing.clone();
                 let unified = self.unify(&existing, &sort)?;
 
                 self.sorts.last_mut().unwrap().insert(sym, unified);
                 return Ok(());
-            } else {
-                if existing != &sort {
-                    return Err(TypeError::ReboundVariable {
-                        sym,
-                        prev: existing.clone(),
-                        new: sort.clone(),
-                    });
-                }
+            } else if existing != &sort {
+                return Err(TypeError::ReboundVariable {
+                    sym,
+                    prev: existing.clone(),
+                    new: sort.clone(),
+                });
             }
         }
         self.sorts.last_mut().unwrap().insert(sym, sort);
@@ -173,7 +171,7 @@ impl Resolver {
             }
             (IvySort::Function(lhsargs, lhsret), IvySort::Function(rhsargs, rhsret)) => {
                 let args = self.unify_fargs(lhsargs, rhsargs)?;
-                let ret = self.unify(&lhsret, &rhsret)?;
+                let ret = self.unify(lhsret, rhsret)?;
                 Ok(IvySort::Function(args, Box::new(ret)))
             }
 

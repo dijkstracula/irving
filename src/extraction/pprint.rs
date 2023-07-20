@@ -23,20 +23,18 @@ impl PrettyPrinter<String> {
 impl<W: Write> Write for PrettyPrinter<W> {
     fn write_str(&mut self, s: &str) -> Result {
         // TODO: can I do this without allocation?
-        let lines = s.split("\n").enumerate().collect::<Vec<_>>();
+        let lines = s.split('\n').enumerate().collect::<Vec<_>>();
 
         for (i, line) in &lines {
-            self.indent -= line.matches("}").count();
-            if line.len() > 0 && !self.curr_line_is_indented {
-                let indent = std::iter::repeat(" ")
-                    .take(4 * self.indent)
-                    .collect::<String>();
+            self.indent -= line.matches('}').count();
+            if !line.is_empty() && !self.curr_line_is_indented {
+                let indent = " ".repeat(4 * self.indent);
                 self.out.write_str(&indent)?;
                 self.curr_line_is_indented = true;
             }
             self.out.write_str(line)?;
 
-            self.indent += line.matches("{").count();
+            self.indent += line.matches('{').count();
             if *i < lines.len() - 1 {
                 self.out.write_str("\n")?;
                 self.curr_line_is_indented = false;

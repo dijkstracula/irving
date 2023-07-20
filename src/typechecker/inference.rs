@@ -50,8 +50,8 @@ impl Visitor<IvySort> for TypeChecker {
         // XXX: This is a hack for built-ins like `bool` that we shouldn't have to
         // special-case in this way.
         if i.len() == 1 {
-            let mut s = i.get_mut(0).unwrap();
-            Ok(ControlMut::Produce(s.visit(self)?.modifying(&mut s)?))
+            let s = i.get_mut(0).unwrap();
+            Ok(ControlMut::Produce(s.visit(self)?.modifying(s)?))
         } else {
             // XXX: we always set include_spec to true.  Suggests we need to also
             // return an annotation indicating if this was a spec/common/etc. decl.
@@ -201,7 +201,7 @@ impl Visitor<IvySort> for TypeChecker {
         let expected_sort = IvySort::Function(Fargs::List(argsorts), Box::new(retsort));
         let unified = self.bindings.unify(&fsort, &expected_sort);
         match unified {
-            Ok(IvySort::Function(_, ret)) => Ok(ControlMut::Produce(*ret.clone())),
+            Ok(IvySort::Function(_, ret)) => Ok(ControlMut::Produce(*ret)),
             Ok(unified) => bail!(TypeError::InvalidApplication(unified)),
             Err(e) => bail!(e),
         }
@@ -304,12 +304,12 @@ impl Visitor<IvySort> for TypeChecker {
         // If it is, get the field's type.
         let rhs_sort = match &lhs_sort {
             IvySort::Module(module) => {
-                Ok::<Option<IvySort>, TypeError>(module.fields.get(&rhs.id).map(|s| s.clone()))
+                Ok::<Option<IvySort>, TypeError>(module.fields.get(&rhs.id).cloned())
             }
             IvySort::Object(proc) => {
                 let s = proc.fields.get(&rhs.id);
                 is_common = s.is_none();
-                Ok(s.map(|s| s.clone()))
+                Ok(s.cloned())
             }
             IvySort::SortVar(_) => Ok(Some(self.bindings.new_sortvar())),
             sort => bail!(TypeError::NotARecord(sort.clone())),
@@ -771,7 +771,7 @@ impl Visitor<IvySort> for TypeChecker {
         mod_args_sorts: Vec<IvySort>,
     ) -> VisitorResult<IvySort, declarations::Decl> {
         if let IvySort::Module(module) = module_sort {
-            if mod_args_sorts.len() > 0 {
+            if !mod_args_sorts.is_empty() {
                 // Will have to monomorphize with the module instantiation pass.
                 //println!("Uh oh: {:?} {:?}", name, decl_sort);
                 //for (i, x) in self.bindings.ctx.iter().enumerate() {

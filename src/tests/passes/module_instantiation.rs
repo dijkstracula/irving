@@ -9,7 +9,7 @@ mod tests {
     use pest_consume::Parser;
 
     fn sort_from_module_src(prog: &str) -> Module {
-        let res = IvyParser::parse(Rule::module_decl, &prog)
+        let res = IvyParser::parse(Rule::module_decl, prog)
             .expect("Parsing")
             .single()
             .unwrap();

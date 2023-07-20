@@ -26,7 +26,7 @@ mod helpers {
     }
 
     pub fn process_from_decl(prog: &str) -> Decl {
-        let res = IvyParser::parse(Rule::process_decl, &prog)
+        let res = IvyParser::parse(Rule::process_decl, prog)
             .expect("Parsing failed")
             .single()
             .unwrap();
@@ -34,7 +34,7 @@ mod helpers {
     }
 
     pub fn module_from_src(prog: &str) -> Decl {
-        let res = IvyParser::parse(Rule::module_decl, &prog)
+        let res = IvyParser::parse(Rule::module_decl, prog)
             .expect("Parsing failed")
             .single()
             .unwrap();
@@ -99,7 +99,7 @@ mod helpers {
     }
 
     pub fn decl_from_src(prog: &str) -> Decl {
-        let res = IvyParser::parse(Rule::decl, &prog)
+        let res = IvyParser::parse(Rule::decl, prog)
             .expect("Parsing failed")
             .single()
             .unwrap();
@@ -107,7 +107,7 @@ mod helpers {
     }
 
     pub fn expr_from_src(prog: &str) -> Expr {
-        let res = IvyParser::parse(Rule::expr, &prog)
+        let res = IvyParser::parse(Rule::expr, prog)
             .expect("Parsing failed")
             .single()
             .unwrap();

@@ -665,7 +665,7 @@ where
                 let body = decl
                     .body
                     .as_mut()
-                    .map(|mut b| b.visit(visitor)?.modifying(&mut b))
+                    .map(|b| b.visit(visitor)?.modifying(b))
                     .transpose()?;
                 visitor.finish_action_decl(name, decl, n, params, ret, body)
             }),
@@ -674,7 +674,7 @@ where
                 let p = decl
                     .params
                     .as_mut()
-                    .map(|ps| Ok::<Vec<T>, anyhow::Error>(ps.visit(visitor)?.modifying(ps)?))
+                    .map(|ps| ps.visit(visitor)?.modifying(ps))
                     .transpose()?;
                 let r = decl
                     .ret
@@ -705,7 +705,7 @@ where
                 let p = decl
                     .params
                     .as_mut()
-                    .map(|ps| Ok::<Vec<T>, anyhow::Error>(ps.visit(visitor)?.modifying(ps)?))
+                    .map(|ps| ps.visit(visitor)?.modifying(ps))
                     .transpose()?;
                 let b = decl.body.visit(visitor)?.modifying(&mut decl.body)?;
                 visitor.finish_before_decl(decl, n, p, b)
@@ -729,7 +729,7 @@ where
                     let body = decl
                         .body
                         .as_mut()
-                        .map(|mut b| b.visit(visitor)?.modifying(&mut b))
+                        .map(|b| b.visit(visitor)?.modifying(b))
                         .transpose()?;
                     visitor.finish_action_decl(name, decl, n, params, ret, body)
                 }),
@@ -755,7 +755,7 @@ where
                 let params = decl
                     .params
                     .as_mut()
-                    .map(|mut p| p.visit(visitor)?.modifying(&mut p))
+                    .map(|p| p.visit(visitor)?.modifying(p))
                     .transpose()?;
                 let ret = decl
                     .ret
@@ -765,7 +765,7 @@ where
                 let body = decl
                     .body
                     .as_mut()
-                    .map(|mut b| b.visit(visitor)?.modifying(&mut b))
+                    .map(|b| b.visit(visitor)?.modifying(b))
                     .transpose()?;
 
                 visitor.finish_implement_decl(decl, n, params, ret, body)
@@ -926,7 +926,7 @@ where
                     res.push(t);
                     break;
                 }
-                ControlMut::Mutation(Stmt::ActionSequence(actions), t) if actions.len() == 0 => {
+                ControlMut::Mutation(Stmt::ActionSequence(actions), t) if actions.is_empty() => {
                     continue;
                 }
                 ControlMut::Mutation(repl, t) => {
@@ -959,7 +959,7 @@ where
 
                 ControlMut::Mutation(Decl::Common(decls), t)
                 | ControlMut::Mutation(Decl::Globals(decls), t)
-                    if decls.len() == 0 =>
+                    if decls.is_empty() =>
                 {
                     continue
                 }
