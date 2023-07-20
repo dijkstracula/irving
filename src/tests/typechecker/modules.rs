@@ -136,7 +136,7 @@ mod tests {
         let mut tc = TypeChecker::new();
         tcp.visit(&mut tc).unwrap().modifying(&mut tcp).unwrap();
 
-        let mut proc = helpers::isolate_from_src(
+        let mut proc = helpers::process_from_decl(
             "process host = { 
                 instance net: tcp.net(unbounded_sequence)
             }",

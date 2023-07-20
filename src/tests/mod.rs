@@ -25,12 +25,12 @@ mod helpers {
         IvyParser::prog(res).expect("AST generation failed")
     }
 
-    pub fn isolate_from_src(prog: &str) -> Decl {
-        let res = IvyParser::parse(Rule::isolate_decl, &prog)
+    pub fn process_from_decl(prog: &str) -> Decl {
+        let res = IvyParser::parse(Rule::process_decl, &prog)
             .expect("Parsing failed")
             .single()
             .unwrap();
-        Decl::Isolate(IvyParser::isolate_decl(res).expect("AST generation failed"))
+        Decl::Object(IvyParser::process_decl(res).expect("AST generation failed"))
     }
 
     pub fn module_from_src(prog: &str) -> Decl {

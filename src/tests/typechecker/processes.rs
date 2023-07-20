@@ -13,12 +13,12 @@ mod tests {
     };
     use pest_consume::Parser;
 
-    fn isolate_from_src(prog: &str) -> Decl {
-        let res = IvyParser::parse(Rule::isolate_decl, &prog)
+    fn process_from_src(prog: &str) -> Decl {
+        let res = IvyParser::parse(Rule::process_decl, &prog)
             .expect("Parsing failed")
             .single()
             .unwrap();
-        Decl::Isolate(IvyParser::isolate_decl(res).expect("AST generation failed"))
+        Decl::Object(IvyParser::process_decl(res).expect("AST generation failed"))
     }
 
     fn typechecker_with_bindings() -> TypeChecker {
@@ -109,7 +109,7 @@ mod tests {
 
     #[test]
     fn test_empty_process() {
-        let mut iso = isolate_from_src("process p = { }");
+        let mut iso = process_from_src("process p = { }");
 
         let sort = IvySort::Process(Process {
             args: BTreeMap::from([]),
@@ -125,7 +125,7 @@ mod tests {
 
     #[test]
     fn test_proc_with_params() {
-        let mut iso = isolate_from_src("process host(self:pid) = {}");
+        let mut iso = process_from_src("process host(self:pid) = {}");
         let sort = IvySort::Process(Process {
             args: [(
                 "self".into(),
@@ -144,7 +144,7 @@ mod tests {
 
     #[test]
     fn test_proc_with_implicit_impl() {
-        let mut iso = isolate_from_src(
+        let mut iso = process_from_src(
             "process host(self:pid) = {
             var is_up: bool
         }",
@@ -171,7 +171,7 @@ mod tests {
 
     #[test]
     fn test_append1_host() {
-        let mut iso = isolate_from_src(
+        let mut iso = process_from_src(
             "process host(self:pid) = {
                 export action append(val: byte)
                 import action show(content: file)

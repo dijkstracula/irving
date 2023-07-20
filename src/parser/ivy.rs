@@ -369,7 +369,7 @@ impl IvyParser {
         )
     }
 
-    pub fn isolate_decl(input: Node) -> Result<Binding<ObjectDecl>> {
+    pub fn process_decl(input: Node) -> Result<Binding<ObjectDecl>> {
         match_nodes!(
         input.into_children();
         [decl_sig(DeclSig{name, params}), decl_block(body)] => {
@@ -463,8 +463,8 @@ impl IvyParser {
         [invariant_decl(fmla)] => Ok(Decl::Invariant(fmla)),
         [instance_decl(binding)] => Ok(Decl::Instance(binding)),
         [module_decl(decl)]   => Ok(Decl::Module(decl)),
-        [isolate_decl(binding)]   => Ok(Decl::Isolate(binding)),
         [object_decl(binding)]   => Ok(Decl::Object(binding)),
+        [process_decl(binding)]   => Ok(Decl::Object(binding)),
         [relation_decl(binding)] => Ok(Decl::Relation(binding)),
         [specification_decl(decl)] => Ok(Decl::Object(Binding { name: "spec".into(), decl })),
         [type_decl(binding)]     => Ok(Decl::Type(binding)),

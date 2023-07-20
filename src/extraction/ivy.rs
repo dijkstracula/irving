@@ -387,7 +387,7 @@ where
         Ok(ControlMut::Produce(()))
     }
 
-    fn begin_isolate_decl(
+    fn begin_process_decl(
         &mut self,
         name: &mut Symbol,
         inst: &mut declarations::ObjectDecl,

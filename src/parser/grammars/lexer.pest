@@ -84,7 +84,7 @@ RETURN = _{" return "}
 // The semantics of these are slightly different in real-Ivy but I'm
 // somewhat sure that for our purposes they're equivalent, at least right
 // now.  
-ISOLATE      = _{ "extract" | "process" | "isolate" }
+PROCESS      = _{ "extract" | "process" | "isolate" }
 
 boollit = { "true" | "false" }
 
@@ -110,10 +110,10 @@ reserved = {
 | IMPLEMENT
 | INTERPRET
 | INVARIANT
-| ISOLATE
 | INSTANTIATE
 | MODULE
 | OBJECT
+| PROCESS
 | INSTANCE
 | AUTOINSTANCE
 | IMPORT

@@ -271,14 +271,14 @@ where
         Ok(ControlMut::Produce(T::default()))
     }
 
-    fn begin_isolate_decl(
+    fn begin_process_decl(
         &mut self,
         _name: &mut Symbol,
         _ast: &mut ObjectDecl,
     ) -> VisitorResult<T, Decl> {
         Ok(ControlMut::Produce(T::default()))
     }
-    fn finish_isolate_decl(
+    fn finish_process_decl(
         &mut self,
         _name: &mut Symbol,
         _ast: &mut ObjectDecl,
@@ -770,15 +770,6 @@ where
                 let n = decl.name.visit(visitor)?.modifying(&mut decl.name)?;
                 let p = decl.params.visit(visitor)?.modifying(&mut decl.params)?;
                 visitor.finish_import_decl(decl, n, p)
-            }),
-            Decl::Isolate(Binding {
-                ref mut name,
-                ref mut decl,
-            }) => visitor.begin_isolate_decl(name, decl)?.and_then(|_| {
-                let n = name.visit(visitor)?.modifying(name)?;
-                let p = decl.params.visit(visitor)?.modifying(&mut decl.params)?;
-                let b = decl.body.visit(visitor)?.modifying(&mut decl.body)?;
-                visitor.finish_isolate_decl(name, decl, n, p, b)
             }),
             Decl::Include(decl) => visitor.begin_include_decl(decl)?.and_then(|_| {
                 let _ = decl.visit(visitor)?.modifying(decl)?;

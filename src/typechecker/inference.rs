@@ -619,7 +619,7 @@ impl Visitor<IvySort> for TypeChecker {
         Ok(ControlMut::Produce(unifed))
     }
 
-    fn begin_isolate_decl(
+    fn begin_object_decl(
         &mut self,
         name: &mut Symbol,
         ast: &mut declarations::ObjectDecl,
@@ -639,48 +639,7 @@ impl Visitor<IvySort> for TypeChecker {
 
         Ok(ControlMut::Produce(v))
     }
-    fn finish_isolate_decl(
-        &mut self,
-        _name: &mut Symbol,
-        ast: &mut declarations::ObjectDecl,
-        decl_sort: IvySort,
-        param_sorts: Vec<IvySort>,
-        body_sorts: Vec<IvySort>,
-    ) -> VisitorResult<IvySort, declarations::Decl> {
-        let args = ast
-            .params
-            .iter()
-            .zip(param_sorts.iter())
-            .map(|(name, sort)| (name.id.clone(), self.bindings.resolve(sort).clone()))
-            .collect::<BTreeMap<_, _>>();
 
-        let mut fields = ast
-            .body
-            .iter()
-            .zip(body_sorts.iter())
-            .filter_map(|(decl, sort)| {
-                decl.name_for_binding()
-                    .map(|n| (n.to_owned(), self.bindings.resolve(sort).clone()))
-            })
-            .collect::<BTreeMap<_, _>>();
-        fields.insert("init".into(), Module::init_action_sort());
-
-        let proc = IvySort::Process(Process { args, fields });
-        let unified = self.bindings.unify(&decl_sort, &proc)?;
-        self.bindings.pop_scope();
-        Ok(ControlMut::Produce(unified))
-    }
-
-    fn begin_object_decl(
-        &mut self,
-        name: &mut Symbol,
-        _ast: &mut declarations::ObjectDecl,
-    ) -> VisitorResult<IvySort, declarations::Decl> {
-        let v = self.bindings.new_sortvar();
-        self.bindings.append(name.clone(), v.clone())?;
-        self.bindings.push_scope();
-        Ok(ControlMut::Produce(v))
-    }
     fn finish_object_decl(
         &mut self,
         _name: &mut Symbol,

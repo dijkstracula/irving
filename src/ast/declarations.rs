@@ -154,8 +154,6 @@ pub enum Decl {
 
     Import(ImportDecl),
 
-    Isolate(Binding<ObjectDecl>),
-
     Include(Symbol),
 
     Instance(Binding<InstanceDecl>),
@@ -198,7 +196,6 @@ impl Decl {
             Decl::Globals(_) => None,
             Decl::Implement(_) => None,
             Decl::Import(_) => None,
-            Decl::Isolate(Binding { name, .. }) => Some(&name),
             Decl::Include(_) => None,
             Decl::Instance(i) => Some(&i.name),
             Decl::Instantiate { .. } => None,

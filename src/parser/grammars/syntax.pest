@@ -49,7 +49,7 @@ function_decl     = { FUNCTION ~ decl_sig ~ ":" ~ symbol }
 relation_decl     = { RELATION ~ decl_sig }
 
 global_decl       = { GLOBAL ~ decl_block }
-isolate_decl       = { ISOLATE ~ decl_sig ~ "=" ~ decl_block }
+process_decl      = { PROCESS ~ decl_sig ~ "=" ~ decl_block }
 object_decl       = { OBJECT ~ decl_sig ~ "=" ~ decl_block }
 
 import_decl       = { IMPORT ~ ACTION ~ decl_sig }
@@ -95,10 +95,10 @@ decl = {
     | instance_decl
     | interpret_decl
     | invariant_decl
-    | isolate_decl
     | instantiate_decl
     | module_decl
     | object_decl
+    | process_decl
     | instance_decl
     | autoinstance_decl
     | import_decl

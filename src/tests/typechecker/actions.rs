@@ -13,11 +13,11 @@ mod tests {
     use pest_consume::Parser;
 
     fn isolate_from_src(prog: &str) -> Decl {
-        let res = IvyParser::parse(Rule::isolate_decl, &prog)
+        let res = IvyParser::parse(Rule::process_decl, &prog)
             .expect("Parsing failed")
             .single()
             .unwrap();
-        Decl::Isolate(IvyParser::isolate_decl(res).expect("AST generation failed"))
+        Decl::Object(IvyParser::process_decl(res).expect("AST generation failed"))
     }
 
     fn decl_from_src(src: &str) -> Decl {
