@@ -3,9 +3,92 @@ mod tests {
     use crate::{
         extraction::java::extraction::Extractor,
         tests::helpers,
-        typechecker::{inference::TypeChecker, sorts::IvySort},
+        typechecker::{
+            inference::TypeChecker,
+            sorts::{self, IvySort},
+        },
         visitor::ast::Visitable,
     };
+
+    #[test]
+    fn extract_action_forward_ref() {
+        let fragment = "action foo(i: unbounded_sequence, b: bool)";
+        let mut ast = helpers::decl_from_src(fragment);
+
+        let mut tc = TypeChecker::new();
+        ast.visit(&mut tc).expect("typechecking failed");
+
+        let mut e = Extractor::<String>::new();
+        ast.visit(&mut e).expect("extraction failed");
+        assert_eq!(
+            "protected Action2<Long, Boolean> foo = new Action2<>()",
+            e.pp.out
+        );
+    }
+
+    #[test]
+    fn extract_action_and_decl() {
+        let fragment = "action foo(i: unbounded_sequence, b: bool) = { } ";
+        let mut ast = helpers::decl_from_src(fragment);
+
+        let mut tc = TypeChecker::new();
+        ast.visit(&mut tc).expect("typechecking failed");
+
+        let mut e = Extractor::<String>::new();
+        ast.visit(&mut e).expect("extraction failed");
+        assert_eq!(
+            "protected Action2<Long, Boolean> foo = new Action2<>((Long i, Boolean b) -> {})",
+            e.pp.out.replace("\n", "")
+        );
+    }
+
+    #[test]
+    fn extract_after_decl() {
+        let fragment = "after foo(i: unbounded_sequence, b: bool) { count := 0 } ";
+        let mut ast = helpers::decl_from_src(fragment);
+
+        let mut tc = TypeChecker::new();
+        tc.bindings
+            .append(
+                "foo".into(),
+                IvySort::function_sort(vec![IvySort::Number, IvySort::Bool], IvySort::Unit),
+            )
+            .unwrap();
+
+        tc.bindings.append("count".into(), IvySort::Number).unwrap();
+
+        ast.visit(&mut tc).expect("typechecking failed");
+
+        let mut e = Extractor::<String>::new();
+        ast.visit(&mut e).expect("extraction failed");
+        assert_eq!(
+            "foo.onAfter((Long i, Boolean b) -> {
+    count = 0;
+})",
+            e.pp.out
+        );
+    }
+
+    #[test]
+    fn extract_after_init() {
+        // After init is inlined right in the constructor, rather than
+        // emitting a call to an Action object.
+        let fragment = "after init { count := 0 } ";
+        let mut ast = helpers::decl_from_src(fragment);
+
+        let mut tc = TypeChecker::new();
+        tc.bindings
+            .append("init".into(), sorts::Module::init_action_sort())
+            .unwrap();
+
+        tc.bindings.append("count".into(), IvySort::Number).unwrap();
+
+        ast.visit(&mut tc).expect("typechecking failed");
+
+        let mut e = Extractor::<String>::new();
+        ast.visit(&mut e).expect("extraction failed");
+        assert_eq!("count = 0", e.pp.out);
+    }
 
     #[test]
     fn extract_call_not_a_method() {

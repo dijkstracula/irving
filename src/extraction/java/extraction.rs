@@ -143,16 +143,30 @@ where
         name: &mut Token,
         ast: &mut declarations::ActionDecl,
     ) -> VisitorResult<(), declarations::Decl> {
-        name.visit(self)?.modifying(name)?;
-        self.pp.write_str(".on((")?;
+        self.pp
+            .write_fmt(format_args!("protected Action{}<", ast.params.len()))?;
+        let mut sorts: Vec<expressions::Sort> = ast
+            .params
+            .iter_mut()
+            .map(|sym| sym.sort.clone())
+            .collect::<_>();
+        self.write_separated(&mut sorts, ", ")?;
+        self.pp
+            .write_fmt(format_args!("> {name} = new Action{}<>(", ast.params.len()))?;
 
-        self.write_paramlist(&mut ast.params, ",")?;
-        self.pp.write_str(") -> {\n")?;
-        for stmt in &mut ast.body {
-            stmt.visit(self)?.modifying(stmt)?;
-            self.pp.write_str(";\n")?;
+        if let Some(body) = &mut ast.body {
+            self.pp.write_str("(")?;
+            self.write_paramlist(&mut ast.params, ", ")?;
+            self.pp.write_str(") -> {\n")?;
+
+            for stmt in body {
+                stmt.visit(self)?.modifying(stmt)?;
+                self.pp.write_str(";\n")?;
+            }
+            self.pp.write_str("}")?;
         }
-        self.pp.write_str("})")?;
+
+        self.pp.write_str(")")?;
         Ok(ControlMut::SkipSiblings(()))
     }
 
@@ -160,12 +174,22 @@ where
         &mut self,
         ast: &mut declarations::ActionMixinDecl,
     ) -> VisitorResult<(), declarations::Decl> {
+        // We have a special case for `after init`: since this is being emitted
+        // as part of the constructor, just inline the mixin's body here.
+        let init_name = vec!["init".to_owned()];
+        if ast.name == init_name {
+            for inner in &mut ast.body {
+                inner.visit(self)?.modifying(inner)?;
+            }
+            return Ok(ControlMut::SkipSiblings(()));
+        }
+
+        // Otherwise, emit the callback to the action instance variable.
         ast.name.visit(self)?.modifying(&mut ast.name)?;
         self.pp.write_str(".onAfter((")?;
 
         if let Some(params) = &mut ast.params {
-            self.write_paramlist(params, ",")?;
-            // XXX: also the return value needs to be bound.
+            self.write_paramlist(params, ", ")?;
         }
         self.pp.write_str(") -> {\n")?;
         for stmt in &mut ast.body {
@@ -274,6 +298,24 @@ where
         _name: &mut Token,
         _sort: &mut expressions::Sort,
     ) -> VisitorResult<(), declarations::Decl> {
+        Ok(ControlMut::SkipSiblings(()))
+    }
+
+    fn begin_invariant_decl(
+        &mut self,
+        ast: &mut crate::ast::logic::Fmla,
+    ) -> VisitorResult<(), declarations::Decl> {
+        self.pp.write_str("addConjecture(")?;
+
+        match ast {
+            crate::ast::logic::Fmla::Forall(_) => todo!(),
+            crate::ast::logic::Fmla::Exists(_) => todo!(),
+            crate::ast::logic::Fmla::Pred(expr) => {
+                self.pp.write_str("() -> ")?;
+                expr.visit(self)?.modifying(expr)?;
+            }
+        }
+        self.pp.write_str(")")?;
         Ok(ControlMut::SkipSiblings(()))
     }
 
@@ -411,7 +453,8 @@ where
         name: &mut Token,
         ast: &mut declarations::ObjectDecl,
     ) -> VisitorResult<(), declarations::Decl> {
-        self.pp.write_fmt(format_args!("class IvyObj_{name}"))?;
+        self.pp
+            .write_fmt(format_args!("class IvyObj_{name} extends Protocol"))?;
         self.pp.write_str(" {\n")?;
 
         // Other bindings
@@ -420,6 +463,11 @@ where
             .iter_mut()
             .filter(|d| d.name_for_binding().is_some())
         {
+            // Type declarations don't emit any Java source lines.
+            if let declarations::Decl::Type(_) = decl {
+                continue;
+            }
+
             decl.visit(self)?.modifying(decl)?;
             self.pp.write_str(";\n\n")?;
         }
@@ -441,8 +489,9 @@ where
             .filter(|d| d.name_for_binding().is_none())
         {
             decl.visit(self)?.modifying(decl)?;
-            self.pp.write_str("\n")?;
+            self.pp.write_str(";\n")?;
         }
+
         self.pp.write_str("\n} //cstr \n")?;
 
         self.pp.write_str("\n}\n")?;
