@@ -760,11 +760,7 @@ impl Visitor<IvySort> for TypeChecker {
         n: IvySort,
         paramsorts: Vec<IvySort>,
     ) -> VisitorResult<IvySort, declarations::Decl> {
-        // A relation is a bool-producing function for our purposes.
-        // TODO: contemplate defaultdict-style "default functions" like the C++
-        // extraction code uses.
-
-        let relsort = IvySort::Function(Fargs::List(paramsorts), Box::new(IvySort::Bool));
+        let relsort = IvySort::Relation(paramsorts);
         let unifed = self.bindings.unify(&n, &relsort)?;
         self.bindings.pop_scope();
         Ok(ControlMut::Produce(unifed))
