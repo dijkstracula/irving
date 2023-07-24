@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use crate::{
     ast::expressions::{Expr, Token},
-    typechecker::sorts::{Fargs, IvySort, Module, Object},
+    typechecker::sorts::{ActionArgs, ActionRet, IvySort, Module, Object},
 };
 
 use super::{ControlMut, VisitorResult};
@@ -55,8 +55,8 @@ where
 
     fn function(
         &mut self,
-        _args: &mut Fargs,
-        _ret: &mut IvySort,
+        _args: &mut ActionArgs,
+        _ret: &mut ActionRet,
         _args_t: Option<Vec<T>>,
         _ret_t: T,
     ) -> VisitorResult<T, IvySort> {
@@ -118,15 +118,23 @@ where
             IvySort::Enum(discs) => visitor.enumeration(discs),
             IvySort::Action(ref mut fargs, ref mut ret) => {
                 let farg_t = match fargs {
-                    Fargs::Unknown => None,
-                    Fargs::List(sorts) => Some(
+                    ActionArgs::Unknown => None,
+                    ActionArgs::List(sorts) => Some(
                         sorts
                             .iter_mut()
                             .map(|s| s.visit(visitor)?.modifying(s))
                             .collect::<Result<Vec<_>, _>>()?,
                     ),
                 };
-                let ret_t = ret.visit(visitor)?.modifying(ret)?;
+                let ret_t = match ret {
+                    crate::typechecker::sorts::ActionRet::Unknown => todo!(),
+                    crate::typechecker::sorts::ActionRet::Unit => todo!(),
+                    crate::typechecker::sorts::ActionRet::Named(binding) => {
+                        binding.decl.visit(visitor)?.modifying(&mut binding.decl)?
+                    }
+                };
+
+                /*ret.visit(visitor)?.modifying(ret)?;*/
                 visitor.function(fargs, ret, farg_t, ret_t)
             }
             IvySort::Relation(args) => {

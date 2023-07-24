@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use anyhow::bail;
 
 use super::{
-    sorts::{Fargs, IvySort, Object},
+    sorts::{self, ActionArgs, IvySort, Object},
     unifier::Resolver,
 };
 use crate::{
@@ -198,10 +198,15 @@ impl Visitor<IvySort> for TypeChecker {
         argsorts: Vec<IvySort>,
     ) -> VisitorResult<IvySort, Expr> {
         let retsort = self.bindings.new_sortvar();
-        let expected_sort = IvySort::Action(Fargs::List(argsorts), Box::new(retsort));
+        let expected_sort =
+            IvySort::action_sort(argsorts, sorts::ActionRet::named("TODO".into(), retsort));
         let unified = self.bindings.unify(&fsort, &expected_sort);
         match unified {
-            Ok(IvySort::Action(_, ret)) => Ok(ControlMut::Produce(*ret)),
+            Ok(IvySort::Action(_, action_ret)) => match action_ret {
+                sorts::ActionRet::Unknown => todo!(),
+                sorts::ActionRet::Unit => Ok(ControlMut::Produce(IvySort::Unit)),
+                sorts::ActionRet::Named(binding) => Ok(ControlMut::Produce(binding.decl)),
+            },
             Ok(unified) => bail!(TypeError::InvalidApplication(unified)),
             Err(e) => bail!(e),
         }
@@ -323,13 +328,13 @@ impl Visitor<IvySort> for TypeChecker {
         // to curry it.  (TODO: might be that the common aspect is not a requirement
         // but I need to understand why;  See https://github.com/dijkstracula/irving/issues/35 .)
         .map(|s| match s {
-            IvySort::Action(Fargs::List(args), ret) if !is_common => {
+            IvySort::Action(ActionArgs::List(args), ret) if !is_common => {
                 let first_arg = args.get(0).map(|s| self.bindings.resolve(s));
                 if first_arg == Some(&IvySort::This) {
                     let remaining_args = args.clone().into_iter().skip(1).collect::<Vec<_>>();
-                    Ok(IvySort::action_sort(remaining_args, *ret))
+                    Ok(IvySort::action_sort(remaining_args, ret))
                 } else {
-                    Ok::<_, TypeError>(IvySort::action_sort(args, *ret))
+                    Ok::<_, TypeError>(IvySort::action_sort(args, ret))
                 }
             }
             _ => Ok(s),
@@ -377,7 +382,7 @@ impl Visitor<IvySort> for TypeChecker {
             None => IvySort::Unit,
             Some(s) => s,
         };
-        let actsort = IvySort::Action(Fargs::List(params), Box::new(retsort));
+        let actsort = IvySort::action_sort(params, sorts::ActionRet::named("TODO".into(), retsort));
         let unified = self.bindings.unify(&name_sort, &actsort)?;
 
         self.bindings.pop_scope();
@@ -418,11 +423,15 @@ impl Visitor<IvySort> for TypeChecker {
 
         let mixin_sort = match (after_params_sort, after_ret_sort) {
             (None, None) => self.bindings.new_sortvar(),
-            (Some(params), None) => {
-                IvySort::Action(Fargs::List(params), Box::new(self.bindings.new_sortvar()))
-            }
-            (None, Some(ret)) => IvySort::Action(Fargs::Unknown, Box::new(ret)),
-            (Some(params), Some(ret)) => IvySort::Action(Fargs::List(params), Box::new(ret)),
+            (Some(params), None) => IvySort::action_sort(params, sorts::ActionRet::Unknown),
+            (None, Some(ret)) => IvySort::Action(
+                ActionArgs::Unknown,
+                sorts::ActionRet::Named(Box::new(Binding::from("TODO".into(), ret))),
+            ),
+            (Some(params), Some(ret)) => IvySort::Action(
+                ActionArgs::List(params),
+                sorts::ActionRet::Named(Box::new(Binding::from("TODO".into(), ret))),
+            ),
         };
 
         let unified = self.bindings.unify(&action_sort, &mixin_sort)?;
@@ -482,10 +491,8 @@ impl Visitor<IvySort> for TypeChecker {
         self.bindings.pop_scope();
 
         let mixin_sort = match param_sort {
-            None => IvySort::Action(Fargs::Unknown, Box::new(self.bindings.new_sortvar())),
-            Some(params) => {
-                IvySort::Action(Fargs::List(params), Box::new(self.bindings.new_sortvar()))
-            }
+            None => IvySort::Action(ActionArgs::Unknown, sorts::ActionRet::Unknown),
+            Some(params) => IvySort::Action(ActionArgs::List(params), sorts::ActionRet::Unknown),
         };
 
         let unified = self.bindings.unify(&action_sort, &mixin_sort)?;
@@ -511,7 +518,10 @@ impl Visitor<IvySort> for TypeChecker {
         param_sorts: Vec<IvySort>,
         ret_sort: IvySort,
     ) -> VisitorResult<IvySort, declarations::Decl> {
-        let fnsort = IvySort::action_sort(param_sorts, ret_sort);
+        let fnsort = IvySort::action_sort(
+            param_sorts,
+            sorts::ActionRet::named("TODO".into(), ret_sort),
+        );
         let unifed = self.bindings.unify(&name_sort, &fnsort)?;
         self.bindings.pop_scope();
         Ok(ControlMut::Produce(unifed))
@@ -545,14 +555,14 @@ impl Visitor<IvySort> for TypeChecker {
         _body: Option<Vec<IvySort>>,
     ) -> VisitorResult<IvySort, declarations::Decl> {
         let psort = match params {
-            None => Fargs::Unknown,
-            Some(s) => Fargs::List(s),
+            None => ActionArgs::Unknown,
+            Some(s) => ActionArgs::List(s),
         };
         let retsort = match ret {
             None => self.bindings.new_sortvar(),
             Some(s) => s,
         };
-        let actsort = IvySort::Action(psort, Box::new(retsort));
+        let actsort = IvySort::Action(psort, sorts::ActionRet::named("TODO".into(), retsort));
         let _unifed = self.bindings.unify(&name, &actsort)?;
 
         self.bindings.pop_scope();
@@ -574,7 +584,7 @@ impl Visitor<IvySort> for TypeChecker {
         decl_sortvar: IvySort,
         param_sorts: Vec<IvySort>,
     ) -> VisitorResult<IvySort, declarations::Decl> {
-        let relsort = IvySort::Action(Fargs::List(param_sorts), Box::new(IvySort::Unit));
+        let relsort = IvySort::Action(ActionArgs::List(param_sorts), sorts::ActionRet::Unit);
         let unifed = self.bindings.unify(&decl_sortvar, &relsort)?;
         Ok(ControlMut::Produce(unifed))
     }

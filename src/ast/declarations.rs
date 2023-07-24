@@ -114,7 +114,7 @@ pub struct Relation {
 
 // Transformed AST nodes
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Binding<T> {
     pub name: String,
     pub decl: T,

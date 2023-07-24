@@ -4,7 +4,7 @@ mod tests {
         tests::helpers,
         typechecker::{
             inference::TypeChecker,
-            sorts::{Fargs, IvySort, Module},
+            sorts::{self, IvySort, Module},
         },
         visitor::ast::Visitable,
     };
@@ -98,20 +98,16 @@ mod tests {
                 ("this".into(), IvySort::This),
                 (
                     "get".into(),
-                    IvySort::Action(
-                        Fargs::List(vec![IvySort::This, IvySort::SortVar(1)]),
-                        Box::new(IvySort::SortVar(2)),
+                    IvySort::action_sort(
+                        vec![IvySort::This, IvySort::SortVar(1)],
+                        sorts::ActionRet::Unknown,
                     ),
                 ),
                 (
                     "set".into(),
-                    IvySort::Action(
-                        Fargs::List(vec![
-                            IvySort::This,
-                            IvySort::SortVar(1),
-                            IvySort::SortVar(2),
-                        ]),
-                        Box::new(IvySort::This),
+                    IvySort::action_sort(
+                        vec![IvySort::This, IvySort::SortVar(1), IvySort::SortVar(2)],
+                        sorts::ActionRet::Unknown,
                     ),
                 ),
                 ("init".into(), Module::init_action_sort()),

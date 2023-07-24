@@ -2,10 +2,13 @@ use std::{collections::HashMap, vec};
 
 use crate::{
     ast::expressions::*,
-    typechecker::sorts::{Fargs, Module, Object},
+    typechecker::sorts::{ActionArgs, Module, Object},
 };
 
-use super::{sorts::IvySort, TypeError};
+use super::{
+    sorts::{ActionRet, IvySort},
+    TypeError,
+};
 
 pub struct Bindings(Vec<HashMap<Token, IvySort>>);
 
@@ -126,12 +129,16 @@ impl Resolver {
         }
     }
 
-    fn unify_fargs(&mut self, lhs: &Fargs, rhs: &Fargs) -> Result<Fargs, TypeError> {
+    fn unify_action_args(
+        &mut self,
+        lhs: &ActionArgs,
+        rhs: &ActionArgs,
+    ) -> Result<ActionArgs, TypeError> {
         match (lhs, rhs) {
-            (Fargs::Unknown, Fargs::Unknown) => Ok(Fargs::Unknown),
-            (Fargs::Unknown, Fargs::List(rhs)) => Ok(Fargs::List(rhs.clone())),
-            (Fargs::List(lhs), Fargs::Unknown) => Ok(Fargs::List(lhs.clone())),
-            (Fargs::List(lhs), Fargs::List(rhs)) => {
+            (ActionArgs::Unknown, ActionArgs::Unknown) => Ok(ActionArgs::Unknown),
+            (ActionArgs::Unknown, ActionArgs::List(rhs)) => Ok(ActionArgs::List(rhs.clone())),
+            (ActionArgs::List(lhs), ActionArgs::Unknown) => Ok(ActionArgs::List(lhs.clone())),
+            (ActionArgs::List(lhs), ActionArgs::List(rhs)) => {
                 if lhs.len() != rhs.len() {
                     Err(TypeError::LenMismatch(lhs.clone(), rhs.clone()))
                 } else {
@@ -139,10 +146,18 @@ impl Resolver {
                     for (a1, a2) in lhs.iter().zip(rhs.iter()) {
                         args.push(self.unify(a1, a2)?);
                     }
-                    Ok(Fargs::List(args))
+                    Ok(ActionArgs::List(args))
                 }
             }
         }
+    }
+
+    fn unify_action_rets(
+        &mut self,
+        _lhs: &ActionRet,
+        _rhs: &ActionRet,
+    ) -> Result<ActionRet, TypeError> {
+        todo!()
     }
 
     pub fn unify(&mut self, lhs: &IvySort, rhs: &IvySort) -> Result<IvySort, TypeError> {
@@ -170,9 +185,9 @@ impl Resolver {
                 Ok(lhs)
             }
             (IvySort::Action(lhsargs, lhsret), IvySort::Action(rhsargs, rhsret)) => {
-                let args = self.unify_fargs(lhsargs, rhsargs)?;
-                let ret = self.unify(lhsret, rhsret)?;
-                Ok(IvySort::Action(args, Box::new(ret)))
+                let args = self.unify_action_args(lhsargs, rhsargs)?;
+                let ret = self.unify_action_rets(lhsret, rhsret)?;
+                Ok(IvySort::Action(args, ret))
             }
 
             // This subtyping relationship is fine, because Ivy's range datatype
@@ -185,13 +200,15 @@ impl Resolver {
             // This subtyping relationship is for indexing into an isolate
             // definition by its arguments.
             (
-                IvySort::Action(Fargs::List(fargs), fret),
+                IvySort::Action(ActionArgs::List(fargs), fret),
                 p @ IvySort::Object(Object { args, .. }),
             )
             | (
                 p @ IvySort::Object(Object { args, .. }),
-                IvySort::Action(Fargs::List(fargs), fret),
+                IvySort::Action(ActionArgs::List(fargs), fret),
             ) => {
+                todo!();
+                /*
                 let unified = self.unify(fret, p)?;
 
                 // XXX: args is unordered so we can't unify them in the multiple argument case.
@@ -201,6 +218,7 @@ impl Resolver {
                     return Err(TypeError::LenMismatch(fargs.clone(), pargs));
                 }
                 Ok(unified)
+                */
             }
 
             // This subtyping relationship says that `this` shoudl only
