@@ -21,7 +21,7 @@ mod tests {
         let mut e = Extractor::<String>::new();
         ast.visit(&mut e).expect("extraction failed");
         assert_eq!(
-            "protected Action2<Long, Boolean> foo = new Action2<>()",
+            "protected Action2<Long, Boolean, Void> foo = new Action2<>()",
             e.pp.out
         );
     }
@@ -37,7 +37,7 @@ mod tests {
         let mut e = Extractor::<String>::new();
         ast.visit(&mut e).expect("extraction failed");
         assert_eq!(
-            "protected Action2<Long, Boolean> foo = new Action2<>((Long i, Boolean b) -> {})",
+            "protected Action2<Long, Boolean, Void> foo = new Action2<>((Long i, Boolean b) -> {})",
             e.pp.out.replace("\n", "")
         );
     }

@@ -1,4 +1,7 @@
-use crate::{ast::declarations, extraction::java::extraction::expressions::Token};
+use crate::{
+    ast::declarations::{self, Binding},
+    extraction::java::extraction::expressions::Token,
+};
 use std::{collections::BTreeMap, fmt::Write};
 
 use thiserror::Error;
@@ -62,6 +65,40 @@ where
             }
             self.param(u)?;
         }
+        Ok(ControlMut::Produce(()))
+    }
+
+    fn write_lambda(
+        &mut self,
+        params: &mut expressions::ParamList,
+        ret: &mut Option<expressions::Symbol>,
+        body: &mut Vec<statements::Stmt>,
+    ) -> VisitorResult<(), Vec<statements::Stmt>> {
+        self.pp.write_str("(")?;
+        self.write_paramlist(params, ", ")?;
+        self.pp.write_str(") -> {\n")?;
+
+        // The first declaration needs to define the return value.
+        ret.as_mut().map(|ret| {
+            let mut retdecl =
+                declarations::Decl::Var(Binding::from(ret.id.clone(), ret.sort.clone()));
+            retdecl.visit(self).unwrap();
+            self.pp.write_str(";\n").unwrap();
+        });
+
+        for stmt in body {
+            stmt.visit(self)?.modifying(stmt)?;
+            self.pp.write_str(";\n")?;
+        }
+
+        ret.as_mut().map(|ret| {
+            self.pp
+                .write_fmt(format_args!("return {};\n", ret.id))
+                .unwrap();
+        });
+
+        self.pp.write_str("})")?;
+
         Ok(ControlMut::Produce(()))
     }
 
@@ -143,30 +180,33 @@ where
         name: &mut Token,
         ast: &mut declarations::ActionDecl,
     ) -> VisitorResult<(), declarations::Decl> {
+        let arity = ast.params.len();
+        let mut ret = ast.ret.clone().or(Some(expressions::Symbol {
+            id: "_void".into(),
+            sort: expressions::Sort::Resolved(crate::typechecker::sorts::IvySort::Unit),
+        }));
+
         self.pp
-            .write_fmt(format_args!("protected Action{}<", ast.params.len()))?;
+            .write_fmt(format_args!("protected Action{}<", arity))?;
         let mut sorts: Vec<expressions::Sort> = ast
             .params
             .iter_mut()
+            .chain(ret.iter_mut())
             .map(|sym| sym.sort.clone())
             .collect::<_>();
         self.write_separated(&mut sorts, ", ")?;
         self.pp
-            .write_fmt(format_args!("> {name} = new Action{}<>(", ast.params.len()))?;
+            .write_fmt(format_args!("> {name} = new Action{arity}<>("))?;
 
-        if let Some(body) = &mut ast.body {
-            self.pp.write_str("(")?;
-            self.write_paramlist(&mut ast.params, ", ")?;
-            self.pp.write_str(") -> {\n")?;
-
-            for stmt in body {
-                stmt.visit(self)?.modifying(stmt)?;
-                self.pp.write_str(";\n")?;
+        match &mut ast.body {
+            None => {
+                self.pp.write_str(")")?;
             }
-            self.pp.write_str("}")?;
+            Some(ref mut body) => {
+                self.write_lambda(&mut ast.params, &mut ast.ret, body)?;
+            }
         }
 
-        self.pp.write_str(")")?;
         Ok(ControlMut::SkipSiblings(()))
     }
 
@@ -236,18 +276,11 @@ where
     ) -> VisitorResult<(), declarations::Decl> {
         ast.name.visit(self)?.modifying(&mut ast.name)?;
         self.pp.write_str(".on((")?;
-
-        match &mut ast.params {
-            None => (),
-            Some(params) => self.write_paramlist(params, ",")?.modifying(params)?,
-        };
-
-        self.pp.write_str(") -> {\n")?;
-        for stmt in &mut ast.body {
-            stmt.visit(self)?.modifying(stmt)?;
-            self.pp.write_str(";\n")?;
-        }
-        self.pp.write_str("})")?;
+        self.write_lambda(
+            ast.params.as_mut().unwrap(),
+            &mut ast.ret,
+            ast.body.as_mut().unwrap(),
+        )?;
         Ok(ControlMut::SkipSiblings(()))
     }
 
@@ -453,8 +486,7 @@ where
         name: &mut Token,
         ast: &mut declarations::ObjectDecl,
     ) -> VisitorResult<(), declarations::Decl> {
-        self.pp
-            .write_fmt(format_args!("class IvyObj_{name} extends Protocol"))?;
+        self.pp.write_fmt(format_args!("class IvyObj_{name}"))?;
         self.pp.write_str(" {\n")?;
 
         // Other bindings
@@ -489,7 +521,9 @@ where
             .filter(|d| d.name_for_binding().is_none())
         {
             decl.visit(self)?.modifying(decl)?;
-            self.pp.write_str(";\n")?;
+            self.pp.write_str(";")?;
+            self.pp.write_fmt(format_args!(" // {:?}", decl))?;
+            self.pp.write_str("\n;")?;
         }
 
         self.pp.write_str("\n} //cstr \n")?;
