@@ -51,14 +51,14 @@ mod tests {
                                 ("id".into(), tc.bindings.lookup_sym("pid").unwrap().clone()),
                                 (
                                     "send".into(),
-                                    IvySort::function_sort(
+                                    IvySort::action_sort(
                                         vec![tc.bindings.lookup_sym("pid").unwrap().clone()],
                                         IvySort::Unit,
                                     ),
                                 ),
                                 (
                                     "recv".into(),
-                                    IvySort::function_sort(
+                                    IvySort::action_sort(
                                         vec![IvySort::Bool, IvySort::BitVec(8)],
                                         IvySort::Unit,
                                     ),

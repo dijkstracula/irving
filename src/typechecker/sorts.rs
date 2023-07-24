@@ -24,7 +24,7 @@ pub struct Module {
 
 impl Module {
     pub fn init_action_sort() -> IvySort {
-        IvySort::function_sort(vec![], IvySort::Unit)
+        IvySort::action_sort(vec![], IvySort::Unit)
     }
 }
 
@@ -46,7 +46,7 @@ pub enum IvySort {
     Vector(Box<IvySort>),
     Range(Box<Expr>, Box<Expr>),
     Enum(Vec<Token>),
-    Function(Fargs, Box<IvySort>),
+    Action(Fargs, Box<IvySort>),
     Relation(Vec<IvySort>),
     Subclass(Token),
     Module(Module),
@@ -57,8 +57,8 @@ pub enum IvySort {
 }
 
 impl IvySort {
-    pub fn function_sort(args: Vec<IvySort>, ret: IvySort) -> IvySort {
-        IvySort::Function(Fargs::List(args), Box::new(ret))
+    pub fn action_sort(args: Vec<IvySort>, ret: IvySort) -> IvySort {
+        IvySort::Action(Fargs::List(args), Box::new(ret))
     }
 
     pub fn range_sort(lo: Expr, hi: Expr) -> IvySort {
@@ -159,7 +159,7 @@ impl Visitor<IvySort> for SortSubstituter {
             None => Fargs::Unknown,
             Some(args) => Fargs::List(args),
         };
-        self.subst(IvySort::Function(args, Box::new(ret_t)))
+        self.subst(IvySort::Action(args, Box::new(ret_t)))
     }
 
     fn relation(

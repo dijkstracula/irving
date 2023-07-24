@@ -51,7 +51,7 @@ mod tests {
         tc.bindings
             .append(
                 "foo".into(),
-                IvySort::function_sort(vec![IvySort::Number, IvySort::Bool], IvySort::Unit),
+                IvySort::action_sort(vec![IvySort::Number, IvySort::Bool], IvySort::Unit),
             )
             .unwrap();
 
@@ -99,7 +99,7 @@ mod tests {
         tc.bindings
             .append(
                 "inc".into(),
-                IvySort::function_sort(vec![IvySort::Number], IvySort::Number),
+                IvySort::action_sort(vec![IvySort::Number], IvySort::Number),
             )
             .unwrap();
         ast.visit(&mut tc).expect("typechecking failed");

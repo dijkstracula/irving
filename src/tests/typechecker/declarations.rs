@@ -6,7 +6,7 @@ mod tests {
         tests::helpers,
         typechecker::{
             inference::TypeChecker,
-            sorts::{Fargs, IvySort, Module},
+            sorts::{IvySort, Module},
             TypeError,
         },
         visitor::ast::Visitable,
