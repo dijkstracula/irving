@@ -126,18 +126,15 @@ mod tests {
             .unwrap();
         assert_eq!(
             res,
-            IvySort::Function(
-                Fargs::List(vec!(IvySort::SortVar(1), IvySort::SortVar(2))),
-                Box::new(IvySort::Bool)
-            )
+            IvySort::Relation(vec!(IvySort::SortVar(1), IvySort::SortVar(2)))
         );
 
         assert_eq!(
             tc.bindings.lookup_sym("is_up"),
-            Some(&IvySort::Function(
-                Fargs::List(vec!(IvySort::SortVar(1), IvySort::SortVar(2))),
-                Box::new(IvySort::Bool)
-            ))
+            Some(&IvySort::Relation(vec!(
+                IvySort::SortVar(1),
+                IvySort::SortVar(2)
+            )))
         )
     }
 
@@ -152,20 +149,11 @@ mod tests {
             .expect("visit")
             .modifying(&mut decl_ast)
             .unwrap();
-        assert_eq!(
-            res,
-            IvySort::Function(
-                Fargs::List(vec!(IvySort::Bool, IvySort::Bool)),
-                Box::new(IvySort::Bool)
-            )
-        );
+        assert_eq!(res, IvySort::Relation(vec!(IvySort::Bool, IvySort::Bool)));
 
         assert_eq!(
             tc.bindings.lookup_sym("is_up"),
-            Some(&IvySort::Function(
-                Fargs::List(vec!(IvySort::Bool, IvySort::Bool)),
-                Box::new(IvySort::Bool)
-            ))
+            Some(&IvySort::Relation(vec!(IvySort::Bool, IvySort::Bool)))
         )
     }
 
