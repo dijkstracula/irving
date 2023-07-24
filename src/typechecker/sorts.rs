@@ -29,6 +29,12 @@ impl Module {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]
+pub enum ActionArgs {
+    Unknown, /* Still to be unified. */
+    List(Vec<IvySort>),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]
 pub enum Fargs {
     Unknown, /* Still to be unified. */
     List(Vec<IvySort>),
@@ -46,7 +52,7 @@ pub enum IvySort {
     Vector(Box<IvySort>),
     Range(Box<Expr>, Box<Expr>),
     Enum(Vec<Token>),
-    Action(Fargs, Box<IvySort>),
+    Action(ActionArgs, Box<IvySort>),
     Relation(Vec<IvySort>),
     Subclass(Token),
     Module(Module),
@@ -58,7 +64,7 @@ pub enum IvySort {
 
 impl IvySort {
     pub fn action_sort(args: Vec<IvySort>, ret: IvySort) -> IvySort {
-        IvySort::Action(Fargs::List(args), Box::new(ret))
+        IvySort::Action(ActionArgs::List(args), Box::new(ret))
     }
 
     pub fn range_sort(lo: Expr, hi: Expr) -> IvySort {
@@ -150,14 +156,14 @@ impl Visitor<IvySort> for SortSubstituter {
 
     fn function(
         &mut self,
-        _args: &mut Fargs,
+        _args: &mut ActionArgs,
         _ret: &mut IvySort,
         args_t: Option<Vec<IvySort>>,
         ret_t: IvySort,
     ) -> crate::visitor::VisitorResult<IvySort, IvySort> {
         let args = match args_t {
-            None => Fargs::Unknown,
-            Some(args) => Fargs::List(args),
+            None => ActionArgs::Unknown,
+            Some(args) => ActionArgs::List(args),
         };
         self.subst(IvySort::Action(args, Box::new(ret_t)))
     }

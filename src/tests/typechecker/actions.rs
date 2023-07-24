@@ -9,7 +9,7 @@ mod tests {
         parser::ivy::{IvyParser, Rule},
         typechecker::{
             inference::TypeChecker,
-            sorts::{Fargs, IvySort},
+            sorts::{ActionArgs, IvySort},
             TypeError,
         },
         visitor::ast::Visitable,
@@ -43,7 +43,7 @@ mod tests {
     #[test]
     fn test_noop_action_decl() {
         let mut decl = decl_from_src("action a() {}");
-        let sort = IvySort::Action(Fargs::List(vec![]), Box::new(IvySort::Unit));
+        let sort = IvySort::Action(ActionArgs::List(vec![]), Box::new(IvySort::Unit));
 
         let mut tc = TypeChecker::new();
         let res = decl.visit(&mut tc).unwrap().modifying(&mut decl).unwrap();
@@ -60,7 +60,7 @@ mod tests {
         let res = decl.visit(&mut tc).unwrap().modifying(&mut decl).unwrap();
         assert_eq!(
             res,
-            IvySort::Action(Fargs::List(vec!()), Box::new(IvySort::Unit))
+            IvySort::Action(ActionArgs::List(vec!()), Box::new(IvySort::Unit))
         );
 
         // Make sure that `b` does not escape the local context.
@@ -75,13 +75,16 @@ mod tests {
         let res = decl.visit(&mut tc).unwrap().modifying(&mut decl).unwrap();
         assert_eq!(
             res,
-            IvySort::Action(Fargs::List(vec!(IvySort::Bool)), Box::new(IvySort::Bool))
+            IvySort::Action(
+                ActionArgs::List(vec!(IvySort::Bool)),
+                Box::new(IvySort::Bool)
+            )
         );
 
         assert_eq!(
             tc.bindings.lookup_sym("id"),
             Some(&IvySort::Action(
-                Fargs::List(vec!(IvySort::Bool)),
+                ActionArgs::List(vec!(IvySort::Bool)),
                 Box::new(IvySort::Bool)
             ))
         );
@@ -112,7 +115,7 @@ mod tests {
         assert_eq!(
             tc.bindings.lookup_sym("id"),
             Some(&IvySort::Action(
-                Fargs::List(vec!(IvySort::Bool)),
+                ActionArgs::List(vec!(IvySort::Bool)),
                 Box::new(IvySort::Bool)
             ))
         );
@@ -168,7 +171,7 @@ mod tests {
         assert_eq!(
             tc.bindings.lookup_sym("id"),
             Some(&IvySort::Action(
-                Fargs::List(vec!(IvySort::Bool)),
+                ActionArgs::List(vec!(IvySort::Bool)),
                 Box::new(IvySort::Bool)
             ))
         );

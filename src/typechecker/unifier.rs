@@ -2,7 +2,7 @@ use std::{collections::HashMap, vec};
 
 use crate::{
     ast::expressions::*,
-    typechecker::sorts::{Fargs, Module, Object},
+    typechecker::sorts::{ActionArgs, Module, Object},
 };
 
 use super::{sorts::IvySort, TypeError};
@@ -126,12 +126,12 @@ impl Resolver {
         }
     }
 
-    fn unify_fargs(&mut self, lhs: &Fargs, rhs: &Fargs) -> Result<Fargs, TypeError> {
+    fn unify_fargs(&mut self, lhs: &ActionArgs, rhs: &ActionArgs) -> Result<ActionArgs, TypeError> {
         match (lhs, rhs) {
-            (Fargs::Unknown, Fargs::Unknown) => Ok(Fargs::Unknown),
-            (Fargs::Unknown, Fargs::List(rhs)) => Ok(Fargs::List(rhs.clone())),
-            (Fargs::List(lhs), Fargs::Unknown) => Ok(Fargs::List(lhs.clone())),
-            (Fargs::List(lhs), Fargs::List(rhs)) => {
+            (ActionArgs::Unknown, ActionArgs::Unknown) => Ok(ActionArgs::Unknown),
+            (ActionArgs::Unknown, ActionArgs::List(rhs)) => Ok(ActionArgs::List(rhs.clone())),
+            (ActionArgs::List(lhs), ActionArgs::Unknown) => Ok(ActionArgs::List(lhs.clone())),
+            (ActionArgs::List(lhs), ActionArgs::List(rhs)) => {
                 if lhs.len() != rhs.len() {
                     Err(TypeError::LenMismatch(lhs.clone(), rhs.clone()))
                 } else {
@@ -139,7 +139,7 @@ impl Resolver {
                     for (a1, a2) in lhs.iter().zip(rhs.iter()) {
                         args.push(self.unify(a1, a2)?);
                     }
-                    Ok(Fargs::List(args))
+                    Ok(ActionArgs::List(args))
                 }
             }
         }
@@ -185,12 +185,12 @@ impl Resolver {
             // This subtyping relationship is for indexing into an isolate
             // definition by its arguments.
             (
-                IvySort::Action(Fargs::List(fargs), fret),
+                IvySort::Action(ActionArgs::List(fargs), fret),
                 p @ IvySort::Object(Object { args, .. }),
             )
             | (
                 p @ IvySort::Object(Object { args, .. }),
-                IvySort::Action(Fargs::List(fargs), fret),
+                IvySort::Action(ActionArgs::List(fargs), fret),
             ) => {
                 let unified = self.unify(fret, p)?;
 

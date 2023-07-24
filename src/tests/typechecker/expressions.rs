@@ -6,7 +6,7 @@ mod tests {
         parser::ivy::{IvyParser, Rule},
         typechecker::{
             inference::TypeChecker,
-            sorts::{Fargs, IvySort, Object},
+            sorts::{ActionArgs, IvySort, Object},
             TypeError,
         },
         visitor::ast::Visitable,
@@ -144,7 +144,7 @@ mod tests {
         tc.bindings
             .append(
                 "f".into(),
-                IvySort::Action(Fargs::List(vec![]), Box::new(IvySort::Number)),
+                IvySort::Action(ActionArgs::List(vec![]), Box::new(IvySort::Number)),
             )
             .unwrap();
         let res = callop

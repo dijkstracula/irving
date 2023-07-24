@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use crate::{
     ast::expressions::{Expr, Token},
-    typechecker::sorts::{Fargs, IvySort, Module, Object},
+    typechecker::sorts::{ActionArgs, IvySort, Module, Object},
 };
 
 use super::{ControlMut, VisitorResult};
@@ -55,7 +55,7 @@ where
 
     fn function(
         &mut self,
-        _args: &mut Fargs,
+        _args: &mut ActionArgs,
         _ret: &mut IvySort,
         _args_t: Option<Vec<T>>,
         _ret_t: T,
@@ -118,8 +118,8 @@ where
             IvySort::Enum(discs) => visitor.enumeration(discs),
             IvySort::Action(ref mut fargs, ref mut ret) => {
                 let farg_t = match fargs {
-                    Fargs::Unknown => None,
-                    Fargs::List(sorts) => Some(
+                    ActionArgs::Unknown => None,
+                    ActionArgs::List(sorts) => Some(
                         sorts
                             .iter_mut()
                             .map(|s| s.visit(visitor)?.modifying(s))

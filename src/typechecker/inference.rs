@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use anyhow::bail;
 
 use super::{
-    sorts::{Fargs, IvySort, Object},
+    sorts::{ActionArgs, IvySort, Object},
     unifier::Resolver,
 };
 use crate::{
@@ -198,7 +198,7 @@ impl Visitor<IvySort> for TypeChecker {
         argsorts: Vec<IvySort>,
     ) -> VisitorResult<IvySort, Expr> {
         let retsort = self.bindings.new_sortvar();
-        let expected_sort = IvySort::Action(Fargs::List(argsorts), Box::new(retsort));
+        let expected_sort = IvySort::Action(ActionArgs::List(argsorts), Box::new(retsort));
         let unified = self.bindings.unify(&fsort, &expected_sort);
         match unified {
             Ok(IvySort::Action(_, ret)) => Ok(ControlMut::Produce(*ret)),
@@ -323,7 +323,7 @@ impl Visitor<IvySort> for TypeChecker {
         // to curry it.  (TODO: might be that the common aspect is not a requirement
         // but I need to understand why;  See https://github.com/dijkstracula/irving/issues/35 .)
         .map(|s| match s {
-            IvySort::Action(Fargs::List(args), ret) if !is_common => {
+            IvySort::Action(ActionArgs::List(args), ret) if !is_common => {
                 let first_arg = args.get(0).map(|s| self.bindings.resolve(s));
                 if first_arg == Some(&IvySort::This) {
                     let remaining_args = args.clone().into_iter().skip(1).collect::<Vec<_>>();
@@ -377,7 +377,7 @@ impl Visitor<IvySort> for TypeChecker {
             None => IvySort::Unit,
             Some(s) => s,
         };
-        let actsort = IvySort::Action(Fargs::List(params), Box::new(retsort));
+        let actsort = IvySort::Action(ActionArgs::List(params), Box::new(retsort));
         let unified = self.bindings.unify(&name_sort, &actsort)?;
 
         self.bindings.pop_scope();
@@ -418,11 +418,12 @@ impl Visitor<IvySort> for TypeChecker {
 
         let mixin_sort = match (after_params_sort, after_ret_sort) {
             (None, None) => self.bindings.new_sortvar(),
-            (Some(params), None) => {
-                IvySort::Action(Fargs::List(params), Box::new(self.bindings.new_sortvar()))
-            }
-            (None, Some(ret)) => IvySort::Action(Fargs::Unknown, Box::new(ret)),
-            (Some(params), Some(ret)) => IvySort::Action(Fargs::List(params), Box::new(ret)),
+            (Some(params), None) => IvySort::Action(
+                ActionArgs::List(params),
+                Box::new(self.bindings.new_sortvar()),
+            ),
+            (None, Some(ret)) => IvySort::Action(ActionArgs::Unknown, Box::new(ret)),
+            (Some(params), Some(ret)) => IvySort::Action(ActionArgs::List(params), Box::new(ret)),
         };
 
         let unified = self.bindings.unify(&action_sort, &mixin_sort)?;
@@ -482,10 +483,11 @@ impl Visitor<IvySort> for TypeChecker {
         self.bindings.pop_scope();
 
         let mixin_sort = match param_sort {
-            None => IvySort::Action(Fargs::Unknown, Box::new(self.bindings.new_sortvar())),
-            Some(params) => {
-                IvySort::Action(Fargs::List(params), Box::new(self.bindings.new_sortvar()))
-            }
+            None => IvySort::Action(ActionArgs::Unknown, Box::new(self.bindings.new_sortvar())),
+            Some(params) => IvySort::Action(
+                ActionArgs::List(params),
+                Box::new(self.bindings.new_sortvar()),
+            ),
         };
 
         let unified = self.bindings.unify(&action_sort, &mixin_sort)?;
@@ -545,8 +547,8 @@ impl Visitor<IvySort> for TypeChecker {
         _body: Option<Vec<IvySort>>,
     ) -> VisitorResult<IvySort, declarations::Decl> {
         let psort = match params {
-            None => Fargs::Unknown,
-            Some(s) => Fargs::List(s),
+            None => ActionArgs::Unknown,
+            Some(s) => ActionArgs::List(s),
         };
         let retsort = match ret {
             None => self.bindings.new_sortvar(),
@@ -574,7 +576,7 @@ impl Visitor<IvySort> for TypeChecker {
         decl_sortvar: IvySort,
         param_sorts: Vec<IvySort>,
     ) -> VisitorResult<IvySort, declarations::Decl> {
-        let relsort = IvySort::Action(Fargs::List(param_sorts), Box::new(IvySort::Unit));
+        let relsort = IvySort::Action(ActionArgs::List(param_sorts), Box::new(IvySort::Unit));
         let unifed = self.bindings.unify(&decl_sortvar, &relsort)?;
         Ok(ControlMut::Produce(unifed))
     }
