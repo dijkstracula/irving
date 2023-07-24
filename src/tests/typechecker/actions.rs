@@ -218,7 +218,7 @@ mod tests {
             .clone();
         assert_eq!(
             action_sort,
-            IvySort::action_sort(vec![], sorts::ActionRet::named("b".into(), IvySort::Bool))
+            IvySort::action_sort(vec![], sorts::ActionRet::named("y".into(), IvySort::Bool))
         );
 
         // Applying the action should produce a bool.

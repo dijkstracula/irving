@@ -100,14 +100,14 @@ mod tests {
                     "get".into(),
                     IvySort::action_sort(
                         vec![IvySort::This, IvySort::SortVar(1)],
-                        sorts::ActionRet::Unknown,
+                        sorts::ActionRet::named("y".into(), IvySort::SortVar(2)),
                     ),
                 ),
                 (
                     "set".into(),
                     IvySort::action_sort(
                         vec![IvySort::This, IvySort::SortVar(1), IvySort::SortVar(2)],
-                        sorts::ActionRet::Unknown,
+                        sorts::ActionRet::named("a".into(), IvySort::This),
                     ),
                 ),
                 ("init".into(), Module::init_action_sort()),

@@ -198,12 +198,11 @@ impl Visitor<IvySort> for TypeChecker {
         argsorts: Vec<IvySort>,
     ) -> VisitorResult<IvySort, Expr> {
         let retsort = self.bindings.new_sortvar();
-        let expected_sort =
-            IvySort::action_sort(argsorts, sorts::ActionRet::named("TODO".into(), retsort));
+        let expected_sort = IvySort::action_sort(argsorts, sorts::ActionRet::Unknown);
         let unified = self.bindings.unify(&fsort, &expected_sort);
         match unified {
             Ok(IvySort::Action(_, action_ret)) => match action_ret {
-                sorts::ActionRet::Unknown => todo!(),
+                sorts::ActionRet::Unknown => Ok(ControlMut::Produce(retsort)),
                 sorts::ActionRet::Unit => Ok(ControlMut::Produce(IvySort::Unit)),
                 sorts::ActionRet::Named(binding) => Ok(ControlMut::Produce(binding.decl)),
             },
@@ -369,7 +368,7 @@ impl Visitor<IvySort> for TypeChecker {
         ast: &mut declarations::ActionDecl,
         name_sort: IvySort,
         params: Vec<IvySort>,
-        ret: Option<IvySort>,
+        ret: Option<Binding<IvySort>>,
         _body: Option<Vec<IvySort>>,
     ) -> VisitorResult<IvySort, declarations::Decl> {
         let mut locals = ast.params.iter().map(|p| p.id.clone()).collect::<Vec<_>>();
@@ -379,10 +378,10 @@ impl Visitor<IvySort> for TypeChecker {
         self.action_locals.insert(name.clone(), locals);
 
         let retsort = match ret {
-            None => IvySort::Unit,
-            Some(s) => s,
+            None => sorts::ActionRet::Unit,
+            Some(binding) => sorts::ActionRet::Named(Box::new(binding)),
         };
-        let actsort = IvySort::action_sort(params, sorts::ActionRet::named("TODO".into(), retsort));
+        let actsort = IvySort::action_sort(params, retsort);
         let unified = self.bindings.unify(&name_sort, &actsort)?;
 
         self.bindings.pop_scope();
@@ -551,7 +550,7 @@ impl Visitor<IvySort> for TypeChecker {
         _ast: &mut declarations::ImplementDecl,
         name: IvySort,
         params: Option<Vec<IvySort>>,
-        ret: Option<IvySort>,
+        ret: Option<Binding<IvySort>>,
         _body: Option<Vec<IvySort>>,
     ) -> VisitorResult<IvySort, declarations::Decl> {
         let psort = match params {
@@ -559,10 +558,10 @@ impl Visitor<IvySort> for TypeChecker {
             Some(s) => ActionArgs::List(s),
         };
         let retsort = match ret {
-            None => self.bindings.new_sortvar(),
-            Some(s) => s,
+            None => sorts::ActionRet::Unknown,
+            Some(binding) => sorts::ActionRet::named(binding.name.clone(), binding.decl.clone()),
         };
-        let actsort = IvySort::Action(psort, sorts::ActionRet::named("TODO".into(), retsort));
+        let actsort = IvySort::Action(psort, retsort);
         let _unifed = self.bindings.unify(&name, &actsort)?;
 
         self.bindings.pop_scope();
