@@ -144,7 +144,7 @@ mod tests {
         tc.bindings
             .append(
                 "f".into(),
-                IvySort::Function(Fargs::List(vec![]), Box::new(IvySort::Number)),
+                IvySort::Action(Fargs::List(vec![]), Box::new(IvySort::Number)),
             )
             .unwrap();
         let res = callop
@@ -196,7 +196,7 @@ mod tests {
             res,
             TypeError::UnificationError(
                 IvySort::Number,
-                IvySort::function_sort(vec!(), IvySort::SortVar(0))
+                IvySort::action_sort(vec!(), IvySort::SortVar(0))
             )
         )
     }

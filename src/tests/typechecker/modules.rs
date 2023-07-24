@@ -98,14 +98,14 @@ mod tests {
                 ("this".into(), IvySort::This),
                 (
                     "get".into(),
-                    IvySort::Function(
+                    IvySort::Action(
                         Fargs::List(vec![IvySort::This, IvySort::SortVar(1)]),
                         Box::new(IvySort::SortVar(2)),
                     ),
                 ),
                 (
                     "set".into(),
-                    IvySort::Function(
+                    IvySort::Action(
                         Fargs::List(vec![
                             IvySort::This,
                             IvySort::SortVar(1),

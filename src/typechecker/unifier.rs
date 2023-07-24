@@ -169,10 +169,10 @@ impl Resolver {
                 self.ctx[*j] = lhs.clone();
                 Ok(lhs)
             }
-            (IvySort::Function(lhsargs, lhsret), IvySort::Function(rhsargs, rhsret)) => {
+            (IvySort::Action(lhsargs, lhsret), IvySort::Action(rhsargs, rhsret)) => {
                 let args = self.unify_fargs(lhsargs, rhsargs)?;
                 let ret = self.unify(lhsret, rhsret)?;
-                Ok(IvySort::Function(args, Box::new(ret)))
+                Ok(IvySort::Action(args, Box::new(ret)))
             }
 
             // This subtyping relationship is fine, because Ivy's range datatype
@@ -185,12 +185,12 @@ impl Resolver {
             // This subtyping relationship is for indexing into an isolate
             // definition by its arguments.
             (
-                IvySort::Function(Fargs::List(fargs), fret),
+                IvySort::Action(Fargs::List(fargs), fret),
                 p @ IvySort::Object(Object { args, .. }),
             )
             | (
                 p @ IvySort::Object(Object { args, .. }),
-                IvySort::Function(Fargs::List(fargs), fret),
+                IvySort::Action(Fargs::List(fargs), fret),
             ) => {
                 let unified = self.unify(fret, p)?;
 

@@ -78,7 +78,7 @@ impl From<IvySort> for JavaType {
                 _ => todo!(),
             },
             IvySort::Enum(_) => todo!(),
-            IvySort::Function(_, _) => todo!(),
+            IvySort::Action(_, _) => todo!(),
             IvySort::Relation(_) => todo!(),
             IvySort::Subclass(_) => todo!(),
             IvySort::Module(Module { name, args, .. }) => {
@@ -119,7 +119,7 @@ impl From<&IvySort> for JavaType {
                 _ => todo!(),
             },
             IvySort::Enum(_) => todo!(),
-            IvySort::Function(_, _) => todo!(),
+            IvySort::Action(_, _) => todo!(),
             IvySort::Relation(_) => todo!(),
             IvySort::Subclass(_) => todo!(),
             IvySort::Module(Module { name, args, .. }) => {

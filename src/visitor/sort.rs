@@ -116,7 +116,7 @@ where
             }
             IvySort::Range(lo, hi) => visitor.range(lo.as_mut(), hi.as_mut()),
             IvySort::Enum(discs) => visitor.enumeration(discs),
-            IvySort::Function(ref mut fargs, ref mut ret) => {
+            IvySort::Action(ref mut fargs, ref mut ret) => {
                 let farg_t = match fargs {
                     Fargs::Unknown => None,
                     Fargs::List(sorts) => Some(
