@@ -136,7 +136,7 @@ where
         _ast: &mut ActionDecl,
         _name_ret: T,
         _params: Vec<T>,
-        ret: Option<T>,
+        ret: Option<Binding<T>>,
         _body: Option<Vec<T>>,
     ) -> VisitorResult<T, Decl> {
         Ok(ControlMut::Produce(T::default()))
@@ -243,7 +243,7 @@ where
         _ast: &mut ImplementDecl,
         _name: T,
         _params: Option<Vec<T>>,
-        ret: Option<T>,
+        ret: Option<Binding<T>>,
         _body: Option<Vec<T>>,
     ) -> VisitorResult<T, Decl> {
         Ok(ControlMut::Produce(T::default()))
@@ -675,11 +675,13 @@ where
             }) => visitor.begin_action_decl(name, decl)?.and_then(|_| {
                 let n = visitor.token(name)?.modifying(name)?;
                 let params = decl.params.visit(visitor)?.modifying(&mut decl.params)?;
-                let ret = decl
-                    .ret
-                    .as_mut()
-                    .map(|r| visitor.param(r)?.modifying(r))
-                    .transpose()?;
+                let ret = match &mut decl.ret {
+                    None => None,
+                    Some(sym) => Some(Binding::from(
+                        sym.id.clone(),
+                        visitor.param(sym)?.modifying(sym)?,
+                    )),
+                };
                 let body = decl
                     .body
                     .as_mut()
@@ -739,11 +741,13 @@ where
                 }) => visitor.begin_action_decl(name, decl)?.and_then(|_| {
                     let n = visitor.token(name)?.modifying(name)?;
                     let params = decl.params.visit(visitor)?.modifying(&mut decl.params)?;
-                    let ret = decl
-                        .ret
-                        .as_mut()
-                        .map(|r| visitor.param(r)?.modifying(r))
-                        .transpose()?;
+                    let ret = match &mut decl.ret {
+                        None => None,
+                        Some(sym) => Some(Binding::from(
+                            sym.id.clone(),
+                            visitor.param(sym)?.modifying(sym)?,
+                        )),
+                    };
                     let body = decl
                         .body
                         .as_mut()
@@ -775,11 +779,13 @@ where
                     .as_mut()
                     .map(|p| p.visit(visitor)?.modifying(p))
                     .transpose()?;
-                let ret = decl
-                    .ret
-                    .as_mut()
-                    .map(|r| visitor.param(r)?.modifying(r))
-                    .transpose()?;
+                let ret = match &mut decl.ret {
+                    None => None,
+                    Some(sym) => Some(Binding::from(
+                        sym.id.clone(),
+                        visitor.param(sym)?.modifying(sym)?,
+                    )),
+                };
                 let body = decl
                     .body
                     .as_mut()

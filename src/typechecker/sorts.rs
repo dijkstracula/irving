@@ -141,6 +141,29 @@ impl Visitor<IvySort> for SortSubstituter {
         self.subst(IvySort::BitVec(*width))
     }
 
+    fn action(
+        &mut self,
+        _args: &mut ActionArgs,
+        ret: &mut ActionRet,
+        args_t: Option<Vec<IvySort>>,
+        ret_t: IvySort,
+    ) -> crate::visitor::VisitorResult<IvySort, IvySort> {
+        let args = match args_t {
+            None => ActionArgs::Unknown,
+            Some(args) => ActionArgs::List(args),
+        };
+
+        let ret = match ret_t {
+            IvySort::Unit => ActionRet::Unit,
+            s => match ret {
+                ActionRet::Unknown | ActionRet::Unit => unreachable!(),
+                ActionRet::Named(b) => ActionRet::named(b.name.clone(), s),
+            },
+        };
+
+        self.subst(IvySort::Action(args, ret))
+    }
+
     fn vector(
         &mut self,
         _original_elem: &mut IvySort,
@@ -162,23 +185,6 @@ impl Visitor<IvySort> for SortSubstituter {
         discriminants: &mut Vec<Token>,
     ) -> crate::visitor::VisitorResult<IvySort, IvySort> {
         self.subst(IvySort::Enum(discriminants.clone()))
-    }
-
-    fn function(
-        &mut self,
-        _args: &mut ActionArgs,
-        _ret: &mut ActionRet,
-        args_t: Option<Vec<IvySort>>,
-        ret_t: IvySort,
-    ) -> crate::visitor::VisitorResult<IvySort, IvySort> {
-        let args = match args_t {
-            None => ActionArgs::Unknown,
-            Some(args) => ActionArgs::List(args),
-        };
-        self.subst(IvySort::Action(
-            args,
-            ActionRet::named("TODO".into(), ret_t),
-        ))
     }
 
     fn relation(

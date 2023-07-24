@@ -154,10 +154,33 @@ impl Resolver {
 
     fn unify_action_rets(
         &mut self,
-        _lhs: &ActionRet,
-        _rhs: &ActionRet,
+        lhs: &ActionRet,
+        rhs: &ActionRet,
     ) -> Result<ActionRet, TypeError> {
-        todo!()
+        match (lhs, rhs) {
+            (ActionRet::Unknown, ActionRet::Unknown) => Ok(ActionRet::Unknown),
+
+            (ActionRet::Unknown, ActionRet::Unit)
+            | (ActionRet::Unit, ActionRet::Unknown)
+            | (ActionRet::Unit, ActionRet::Unit) => Ok(ActionRet::Unit),
+
+            (ActionRet::Unknown, n @ ActionRet::Named(_))
+            | (n @ ActionRet::Named(_), ActionRet::Unknown) => Ok(n.clone()),
+
+            (ActionRet::Unit, ActionRet::Named(binding))
+            | (ActionRet::Named(binding), ActionRet::Unit) => self
+                .unify(&binding.decl, &IvySort::Unit)
+                .map(|s| ActionRet::named(binding.name.clone(), s)),
+            (ActionRet::Named(lhs), ActionRet::Named(rhs)) => {
+                // TODO: we can't support alpha-renaming in unification because we assume argument names
+                // are bound to consistent names.
+                //if lhs.name != rhs.name {
+                //    return Err(TypeError::FargMismatch { expected: lhs.name.clone(), actual: rhs.name.clone() });
+                // }
+                self.unify(&lhs.decl, &rhs.decl)
+                    .map(|s| ActionRet::named(lhs.name.clone(), s))
+            }
+        }
     }
 
     pub fn unify(&mut self, lhs: &IvySort, rhs: &IvySort) -> Result<IvySort, TypeError> {
@@ -207,9 +230,11 @@ impl Resolver {
                 p @ IvySort::Object(Object { args, .. }),
                 IvySort::Action(ActionArgs::List(fargs), fret),
             ) => {
-                todo!();
-                /*
-                let unified = self.unify(fret, p)?;
+                let unified = match fret {
+                    ActionRet::Unknown => p.clone(),
+                    ActionRet::Unit => IvySort::Unit,
+                    ActionRet::Named(binding) => self.unify(&binding.decl, p)?,
+                };
 
                 // XXX: args is unordered so we can't unify them in the multiple argument case.
                 // see https://github.com/dijkstracula/irving/issues/25 .
@@ -218,7 +243,6 @@ impl Resolver {
                     return Err(TypeError::LenMismatch(fargs.clone(), pargs));
                 }
                 Ok(unified)
-                */
             }
 
             // This subtyping relationship says that `this` shoudl only

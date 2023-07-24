@@ -42,10 +42,10 @@ pub enum TypeError {
     #[error("Sort sequence {0:?} mismatches {1:?}")]
     LenMismatch(Vec<IvySort>, Vec<IvySort>),
 
-    #[error("Symbol {expected:?} redefined as {actual:?}")]
+    #[error("Token {expected:?} redefined as {actual:?}")]
     FargMismatch { expected: Token, actual: Token },
 
-    #[error("Symbol {sym:?} defined as {prev:?} and rebound as {new:?}")]
+    #[error("Token {sym:?} defined as {prev:?} and rebound as {new:?}")]
     ReboundVariable {
         sym: Token,
         prev: IvySort,

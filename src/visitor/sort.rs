@@ -53,7 +53,7 @@ where
         Ok(ControlMut::Produce(T::default()))
     }
 
-    fn function(
+    fn action(
         &mut self,
         _args: &mut ActionArgs,
         _ret: &mut ActionRet,
@@ -128,14 +128,17 @@ where
                 };
                 let ret_t = match ret {
                     crate::typechecker::sorts::ActionRet::Unknown => todo!(),
-                    crate::typechecker::sorts::ActionRet::Unit => todo!(),
+                    crate::typechecker::sorts::ActionRet::Unit => {
+                        let mut s = IvySort::Unit;
+                        s.visit(visitor)?.modifying(&mut s)?
+                    }
                     crate::typechecker::sorts::ActionRet::Named(binding) => {
                         binding.decl.visit(visitor)?.modifying(&mut binding.decl)?
                     }
                 };
 
                 /*ret.visit(visitor)?.modifying(ret)?;*/
-                visitor.function(fargs, ret, farg_t, ret_t)
+                visitor.action(fargs, ret, farg_t, ret_t)
             }
             IvySort::Relation(args) => {
                 let args_t = args
