@@ -9,7 +9,7 @@ mod tests {
         parser::ivy::{IvyParser, Rule},
         typechecker::{
             inference::TypeChecker,
-            sorts::{ActionArgs, IvySort},
+            sorts::{self, IvySort},
             TypeError,
         },
         visitor::ast::Visitable,
@@ -43,7 +43,7 @@ mod tests {
     #[test]
     fn test_noop_action_decl() {
         let mut decl = decl_from_src("action a() {}");
-        let sort = IvySort::Action(ActionArgs::List(vec![]), Box::new(IvySort::Unit));
+        let sort = IvySort::action_sort(vec![], sorts::ActionRet::Unit);
 
         let mut tc = TypeChecker::new();
         let res = decl.visit(&mut tc).unwrap().modifying(&mut decl).unwrap();
@@ -58,10 +58,7 @@ mod tests {
 
         let mut tc = TypeChecker::new();
         let res = decl.visit(&mut tc).unwrap().modifying(&mut decl).unwrap();
-        assert_eq!(
-            res,
-            IvySort::Action(ActionArgs::List(vec!()), Box::new(IvySort::Unit))
-        );
+        assert_eq!(res, IvySort::action_sort(vec!(), sorts::ActionRet::Unit));
 
         // Make sure that `b` does not escape the local context.
         assert_eq!(tc.bindings.lookup_sym("b"), None);
@@ -75,17 +72,17 @@ mod tests {
         let res = decl.visit(&mut tc).unwrap().modifying(&mut decl).unwrap();
         assert_eq!(
             res,
-            IvySort::Action(
-                ActionArgs::List(vec!(IvySort::Bool)),
-                Box::new(IvySort::Bool)
+            IvySort::action_sort(
+                vec!(IvySort::Bool),
+                sorts::ActionRet::named("b".into(), IvySort::Bool)
             )
         );
 
         assert_eq!(
             tc.bindings.lookup_sym("id"),
-            Some(&IvySort::Action(
-                ActionArgs::List(vec!(IvySort::Bool)),
-                Box::new(IvySort::Bool)
+            Some(&IvySort::action_sort(
+                vec!(IvySort::Bool),
+                sorts::ActionRet::named("b".into(), IvySort::Bool)
             ))
         );
 
@@ -114,9 +111,9 @@ mod tests {
 
         assert_eq!(
             tc.bindings.lookup_sym("id"),
-            Some(&IvySort::Action(
-                ActionArgs::List(vec!(IvySort::Bool)),
-                Box::new(IvySort::Bool)
+            Some(&IvySort::action_sort(
+                vec!(IvySort::Bool),
+                sorts::ActionRet::named("b".into(), IvySort::Bool)
             ))
         );
     }
@@ -170,9 +167,9 @@ mod tests {
 
         assert_eq!(
             tc.bindings.lookup_sym("id"),
-            Some(&IvySort::Action(
-                ActionArgs::List(vec!(IvySort::Bool)),
-                Box::new(IvySort::Bool)
+            Some(&IvySort::action_sort(
+                vec!(IvySort::Bool),
+                sorts::ActionRet::named("b".into(), IvySort::Bool)
             ))
         );
 
@@ -219,7 +216,10 @@ mod tests {
             .lookup_ident(&vec!["m".into(), "doit".into()])
             .unwrap()
             .clone();
-        assert_eq!(action_sort, IvySort::action_sort(vec![], IvySort::Bool));
+        assert_eq!(
+            action_sort,
+            IvySort::action_sort(vec![], sorts::ActionRet::named("b".into(), IvySort::Bool))
+        );
 
         // Applying the action should produce a bool.
         let mut action_app = expr_from_src("m.doit()");
@@ -251,7 +251,10 @@ mod tests {
             .clone();
         assert_eq!(
             action_sort,
-            IvySort::action_sort(vec![IvySort::Bool], IvySort::Bool)
+            IvySort::action_sort(
+                vec![IvySort::Bool],
+                sorts::ActionRet::named("y".into(), IvySort::Bool)
+            )
         );
 
         let mut action_app = expr_from_src("m.doit()");
@@ -302,7 +305,10 @@ mod tests {
             .clone();
         assert_eq!(
             action_sort,
-            IvySort::action_sort(vec![IvySort::This], IvySort::Bool)
+            IvySort::action_sort(
+                vec![IvySort::This],
+                sorts::ActionRet::named("y".into(), IvySort::Bool)
+            )
         );
 
         let mut action_app = expr_from_src("m.doit()");
@@ -342,7 +348,10 @@ mod tests {
             .lookup_ident(&vec!["m".into(), "doit".into()])
             .unwrap()
             .clone();
-        assert_eq!(action_sort, IvySort::action_sort(vec![], IvySort::Bool));
+        assert_eq!(
+            action_sort,
+            IvySort::action_sort(vec![], sorts::ActionRet::named("y".into(), IvySort::Bool))
+        );
 
         let mut action_app = expr_from_src("m.doit()");
         let res = action_app

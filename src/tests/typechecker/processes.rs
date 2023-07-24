@@ -7,7 +7,7 @@ mod tests {
         parser::ivy::{IvyParser, Rule},
         typechecker::{
             inference::TypeChecker,
-            sorts::{IvySort, Module, Object},
+            sorts::{self, IvySort, Module, Object},
         },
         visitor::ast::Visitable,
     };
@@ -53,14 +53,14 @@ mod tests {
                                     "send".into(),
                                     IvySort::action_sort(
                                         vec![tc.bindings.lookup_sym("pid").unwrap().clone()],
-                                        IvySort::Unit,
+                                        sorts::ActionRet::Unit,
                                     ),
                                 ),
                                 (
                                     "recv".into(),
                                     IvySort::action_sort(
                                         vec![IvySort::Bool, IvySort::BitVec(8)],
-                                        IvySort::Unit,
+                                        sorts::ActionRet::Unit,
                                     ),
                                 ),
                             ]

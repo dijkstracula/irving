@@ -6,7 +6,7 @@ mod tests {
         parser::ivy::{IvyParser, Rule},
         typechecker::{
             inference::TypeChecker,
-            sorts::{ActionArgs, IvySort, Object},
+            sorts::{self, ActionArgs, IvySort, Object},
             TypeError,
         },
         visitor::ast::Visitable,
@@ -144,7 +144,10 @@ mod tests {
         tc.bindings
             .append(
                 "f".into(),
-                IvySort::Action(ActionArgs::List(vec![]), Box::new(IvySort::Number)),
+                IvySort::action_sort(
+                    vec![],
+                    sorts::ActionRet::named("ret".into(), IvySort::Number),
+                ),
             )
             .unwrap();
         let res = callop
@@ -196,7 +199,7 @@ mod tests {
             res,
             TypeError::UnificationError(
                 IvySort::Number,
-                IvySort::action_sort(vec!(), IvySort::SortVar(0))
+                IvySort::Action(ActionArgs::List(vec!()), sorts::ActionRet::Unknown)
             )
         )
     }

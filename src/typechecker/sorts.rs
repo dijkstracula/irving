@@ -3,7 +3,10 @@
 use std::collections::BTreeMap;
 
 use crate::{
-    ast::expressions::{Expr, Token},
+    ast::{
+        declarations::Binding,
+        expressions::{Expr, Token},
+    },
     visitor::{sort::Visitor, ControlMut},
 };
 
@@ -24,7 +27,7 @@ pub struct Module {
 
 impl Module {
     pub fn init_action_sort() -> IvySort {
-        IvySort::action_sort(vec![], IvySort::Unit)
+        IvySort::action_sort(vec![], ActionRet::Unit)
     }
 }
 
@@ -35,9 +38,16 @@ pub enum ActionArgs {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]
-pub enum Fargs {
-    Unknown, /* Still to be unified. */
-    List(Vec<IvySort>),
+pub enum ActionRet {
+    Unknown,                      /* Still to be unified. */
+    Unit,                         /* An implicit Void-producing action */
+    Named(Box<Binding<IvySort>>), /* An explicit (possibly Void-producing) return type */
+}
+
+impl ActionRet {
+    pub fn named(name: String, sort: IvySort) -> Self {
+        ActionRet::Named(Box::new(Binding::from(name, sort)))
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]
@@ -52,7 +62,7 @@ pub enum IvySort {
     Vector(Box<IvySort>),
     Range(Box<Expr>, Box<Expr>),
     Enum(Vec<Token>),
-    Action(ActionArgs, Box<IvySort>),
+    Action(ActionArgs, ActionRet),
     Relation(Vec<IvySort>),
     Subclass(Token),
     Module(Module),
@@ -63,8 +73,8 @@ pub enum IvySort {
 }
 
 impl IvySort {
-    pub fn action_sort(args: Vec<IvySort>, ret: IvySort) -> IvySort {
-        IvySort::Action(ActionArgs::List(args), Box::new(ret))
+    pub fn action_sort(args: Vec<IvySort>, ret: ActionRet) -> IvySort {
+        IvySort::Action(ActionArgs::List(args), ret)
     }
 
     pub fn range_sort(lo: Expr, hi: Expr) -> IvySort {
@@ -157,7 +167,7 @@ impl Visitor<IvySort> for SortSubstituter {
     fn function(
         &mut self,
         _args: &mut ActionArgs,
-        _ret: &mut IvySort,
+        _ret: &mut ActionRet,
         args_t: Option<Vec<IvySort>>,
         ret_t: IvySort,
     ) -> crate::visitor::VisitorResult<IvySort, IvySort> {
@@ -165,7 +175,10 @@ impl Visitor<IvySort> for SortSubstituter {
             None => ActionArgs::Unknown,
             Some(args) => ActionArgs::List(args),
         };
-        self.subst(IvySort::Action(args, Box::new(ret_t)))
+        self.subst(IvySort::Action(
+            args,
+            ActionRet::named("TODO".into(), ret_t),
+        ))
     }
 
     fn relation(
