@@ -59,7 +59,7 @@ mod tests {
         assert_eq!(
             IvyParser::action_decl(res),
             Ok(Binding::from(
-                "foo".into(),
+                "foo",
                 ActionDecl {
                     params: [Symbol {
                         id: "a".into(),
@@ -83,7 +83,7 @@ mod tests {
         assert_eq!(
             IvyParser::action_decl(res),
             Ok(Binding::from(
-                "foo".into(),
+                "foo",
                 ActionDecl {
                     params: [Symbol {
                         id: "a".into(),
@@ -121,7 +121,7 @@ mod tests {
         assert_eq!(
             IvyParser::action_decl(res),
             Ok(Binding::from(
-                "foo".into(),
+                "foo",
                 ActionDecl {
                     params: [Symbol {
                         id: "a".into(),

@@ -437,7 +437,7 @@ impl IvyParser {
         [symbol(sym)] => {
             Ok(Binding::from(sym, Sort::ToBeInferred))
         },
-        [_THIS] => Ok(Binding::from("this".into(), Sort::Resolved(IvySort::This))),
+        [_THIS] => Ok(Binding::from("this", Sort::Resolved(IvySort::This))),
         )
     }
 

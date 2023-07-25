@@ -156,7 +156,7 @@ mod tests {
         assert_eq!(
             IvyParser::decl(res).unwrap(),
             Decl::Module(Binding::from(
-                "net".into(),
+                "net",
                 ModuleDecl {
                     sortsyms: vec!("pid".into()),
                     body: vec!()

@@ -152,7 +152,10 @@ where
 
         if let Some(stmts) = &mut ast.els {
             self.pp.write_str("} else {\n")?;
-            self.write_separated(stmts, ";\n")?;
+            for stmt in stmts {
+                stmt.visit(self)?.modifying(stmt)?;
+                self.pp.write_str(";\n")?;
+            }
         }
         self.pp.write_str("}\n")?;
 
@@ -519,7 +522,7 @@ where
         {
             decl.visit(self)?.modifying(decl)?;
             self.pp.write_str(";")?;
-            self.pp.write_fmt(format_args!(" // {:?}", decl))?;
+            //self.pp.write_fmt(format_args!(" // {:?}", decl))?;
             self.pp.write_str("\n;")?;
         }
 

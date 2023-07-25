@@ -88,12 +88,12 @@ impl TypeChecker {
             (None, Some(ret)) => IvySort::Action(
                 action_args,
                 ActionArgs::Unknown,
-                sorts::ActionRet::Named(Box::new(Binding::from("TODO".into(), ret))),
+                sorts::ActionRet::Named(Box::new(Binding::from("TODO", ret))),
             ),
             (Some(params), Some(ret)) => IvySort::Action(
                 action_args,
                 ActionArgs::List(params),
-                sorts::ActionRet::Named(Box::new(Binding::from("TODO".into(), ret))),
+                sorts::ActionRet::Named(Box::new(Binding::from("TODO", ret))),
             ),
         };
 
