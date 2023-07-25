@@ -272,15 +272,11 @@ where
 
     fn begin_implement_decl(
         &mut self,
-        ast: &mut declarations::ImplementDecl,
+        ast: &mut declarations::ActionMixinDecl,
     ) -> VisitorResult<(), declarations::Decl> {
         ast.name.visit(self)?.modifying(&mut ast.name)?;
         self.pp.write_str(".on((")?;
-        self.write_lambda(
-            ast.params.as_mut().unwrap(),
-            &mut ast.ret,
-            ast.body.as_mut().unwrap(),
-        )?;
+        self.write_lambda(ast.params.as_mut().unwrap(), &mut ast.ret, &mut ast.body)?;
         Ok(ControlMut::SkipSiblings(()))
     }
 

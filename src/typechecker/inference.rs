@@ -36,6 +36,70 @@ impl TypeChecker {
             action_locals: BTreeMap::new(),
         }
     }
+
+    // When a Before/After/Implement is mixed into an Action, we need to
+    // ensure that the former, if it has parameter/return values set, are
+    // in line with the latter's signature.
+    fn resolve_mixin(
+        &mut self,
+        mixin: &mut declarations::ActionMixinDecl,
+        action_sort: IvySort,
+        mixin_params_sort: Option<Vec<IvySort>>,
+        mixin_ret_sort: Option<IvySort>,
+    ) -> VisitorResult<IvySort, declarations::Decl> {
+        let action_args = match &action_sort {
+            IvySort::Action(args, _, _) => args,
+            s => unreachable!(),
+        };
+        let action_args = match &mixin.params {
+            // a) If the mixin has no parameter signature used, we simply reuse
+            // the parameter list from the action definition's sort.
+            None => action_args.clone(),
+
+            // b) If the mixin has a parameter signature, it has to match the
+            // action declaration's signature in terms of arity but NOT in
+            // identifier names (that is, an Ivy programmer can rebind parameter
+            // names to something else, but can't add/remove them or change
+            // their sorts.)
+            Some(mixin_args) => {
+                if action_args.len() != mixin_args.len() {
+                    bail!(TypeError::LenMismatch {
+                        expected: action_args.len(),
+                        actual: mixin_args.len()
+                    });
+                } else {
+                    mixin_args
+                        .iter()
+                        .map(|sym| sym.id.clone())
+                        .collect::<Vec<_>>()
+                }
+            }
+        };
+
+        // To unify the mixin against its action declaration, we need to
+        // extract as much as we can about the sort side of the parameter
+        // list.  Unlike parameter names, we can't change the sorts in the
+        // parameter list.
+        let mixin_sort = match (mixin_params_sort, mixin_ret_sort) {
+            (None, None) => self.bindings.new_sortvar(),
+            (Some(params), None) => {
+                IvySort::action_sort(action_args, params, sorts::ActionRet::Unknown)
+            }
+            (None, Some(ret)) => IvySort::Action(
+                action_args,
+                ActionArgs::Unknown,
+                sorts::ActionRet::Named(Box::new(Binding::from("TODO".into(), ret))),
+            ),
+            (Some(params), Some(ret)) => IvySort::Action(
+                action_args,
+                ActionArgs::List(params),
+                sorts::ActionRet::Named(Box::new(Binding::from("TODO".into(), ret))),
+            ),
+        };
+
+        let unified = self.bindings.unify(&action_sort, &mixin_sort)?;
+        Ok(ControlMut::Produce(unified))
+    }
 }
 
 impl Visitor<IvySort> for TypeChecker {
@@ -198,10 +262,16 @@ impl Visitor<IvySort> for TypeChecker {
         argsorts: Vec<IvySort>,
     ) -> VisitorResult<IvySort, Expr> {
         let retsort = self.bindings.new_sortvar();
-        let expected_sort = IvySort::action_sort(argsorts, sorts::ActionRet::Unknown);
+
+        // XXX: This is hacky.
+        let dummy_argnames = (0..argsorts.len())
+            .map(|i| format!("arg{i}"))
+            .collect::<Vec<_>>();
+        let expected_sort =
+            IvySort::action_sort(dummy_argnames, argsorts, sorts::ActionRet::Unknown);
         let unified = self.bindings.unify(&fsort, &expected_sort);
         match unified {
-            Ok(IvySort::Action(_, action_ret)) => match action_ret {
+            Ok(IvySort::Action(_argnames, _argsorts, action_ret)) => match action_ret {
                 sorts::ActionRet::Unknown => Ok(ControlMut::Produce(retsort)),
                 sorts::ActionRet::Unit => Ok(ControlMut::Produce(IvySort::Unit)),
                 sorts::ActionRet::Named(binding) => Ok(ControlMut::Produce(binding.decl)),
@@ -327,13 +397,21 @@ impl Visitor<IvySort> for TypeChecker {
         // to curry it.  (TODO: might be that the common aspect is not a requirement
         // but I need to understand why;  See https://github.com/dijkstracula/irving/issues/35 .)
         .map(|s| match s {
-            IvySort::Action(ActionArgs::List(args), ret) if !is_common => {
-                let first_arg = args.get(0).map(|s| self.bindings.resolve(s));
+            IvySort::Action(argnames, ActionArgs::List(argsorts), ret) if !is_common => {
+                let first_arg = argsorts.get(0).map(|s| self.bindings.resolve(s));
                 if first_arg == Some(&IvySort::This) {
-                    let remaining_args = args.clone().into_iter().skip(1).collect::<Vec<_>>();
-                    Ok(IvySort::action_sort(remaining_args, ret))
+                    let remaining_argnames =
+                        argnames.clone().into_iter().skip(1).collect::<Vec<_>>();
+                    let remaining_argsorts =
+                        argsorts.clone().into_iter().skip(1).collect::<Vec<_>>();
+
+                    Ok(IvySort::action_sort(
+                        remaining_argnames,
+                        remaining_argsorts,
+                        ret,
+                    ))
                 } else {
-                    Ok::<_, TypeError>(IvySort::action_sort(args, ret))
+                    Ok::<_, TypeError>(IvySort::action_sort(argnames, argsorts, ret))
                 }
             }
             _ => Ok(s),
@@ -367,8 +445,8 @@ impl Visitor<IvySort> for TypeChecker {
         name: &mut Token,
         ast: &mut declarations::ActionDecl,
         name_sort: IvySort,
-        params: Vec<IvySort>,
-        ret: Option<Binding<IvySort>>,
+        param_sorts: Vec<IvySort>,
+        ret_sort: Option<Binding<IvySort>>,
         _body: Option<Vec<IvySort>>,
     ) -> VisitorResult<IvySort, declarations::Decl> {
         let mut locals = ast.params.iter().map(|p| p.id.clone()).collect::<Vec<_>>();
@@ -377,11 +455,17 @@ impl Visitor<IvySort> for TypeChecker {
         }
         self.action_locals.insert(name.clone(), locals);
 
-        let retsort = match ret {
+        let ret_sort = match ret_sort {
             None => sorts::ActionRet::Unit,
             Some(binding) => sorts::ActionRet::Named(Box::new(binding)),
         };
-        let actsort = IvySort::action_sort(params, retsort);
+
+        let param_names = ast
+            .params
+            .iter()
+            .map(|sym| sym.id.clone())
+            .collect::<Vec<_>>();
+        let actsort = IvySort::action_sort(param_names, param_sorts, ret_sort);
         let unified = self.bindings.unify(&name_sort, &actsort)?;
 
         self.bindings.pop_scope();
@@ -412,30 +496,14 @@ impl Visitor<IvySort> for TypeChecker {
 
     fn finish_after_decl(
         &mut self,
-        _ast: &mut declarations::ActionMixinDecl,
+        ast: &mut declarations::ActionMixinDecl,
         action_sort: IvySort,
         after_params_sort: Option<Vec<IvySort>>,
         after_ret_sort: Option<IvySort>,
         _after_body_sort: Vec<IvySort>,
     ) -> VisitorResult<IvySort, declarations::Decl> {
         self.bindings.pop_scope();
-
-        let mixin_sort = match (after_params_sort, after_ret_sort) {
-            (None, None) => self.bindings.new_sortvar(),
-            (Some(params), None) => IvySort::action_sort(params, sorts::ActionRet::Unknown),
-            (None, Some(ret)) => IvySort::Action(
-                ActionArgs::Unknown,
-                sorts::ActionRet::Named(Box::new(Binding::from("TODO".into(), ret))),
-            ),
-            (Some(params), Some(ret)) => IvySort::Action(
-                ActionArgs::List(params),
-                sorts::ActionRet::Named(Box::new(Binding::from("TODO".into(), ret))),
-            ),
-        };
-
-        let unified = self.bindings.unify(&action_sort, &mixin_sort)?;
-
-        Ok(ControlMut::Produce(unified))
+        self.resolve_mixin(ast, action_sort, after_params_sort, after_ret_sort)
     }
 
     fn begin_alias_decl(
@@ -482,20 +550,13 @@ impl Visitor<IvySort> for TypeChecker {
     }
     fn finish_before_decl(
         &mut self,
-        _ast: &mut declarations::ActionMixinDecl,
+        ast: &mut declarations::ActionMixinDecl,
         action_sort: IvySort,
         param_sort: Option<Vec<IvySort>>,
         _body_sorts: Vec<IvySort>,
     ) -> VisitorResult<IvySort, declarations::Decl> {
         self.bindings.pop_scope();
-
-        let mixin_sort = match param_sort {
-            None => IvySort::Action(ActionArgs::Unknown, sorts::ActionRet::Unknown),
-            Some(params) => IvySort::Action(ActionArgs::List(params), sorts::ActionRet::Unknown),
-        };
-
-        let unified = self.bindings.unify(&action_sort, &mixin_sort)?;
-        Ok(ControlMut::Produce(unified))
+        self.resolve_mixin(ast, action_sort, param_sort, None)
     }
 
     fn begin_function_decl(
@@ -512,12 +573,19 @@ impl Visitor<IvySort> for TypeChecker {
     fn finish_function_decl(
         &mut self,
         _name: &mut Token,
-        _ast: &mut declarations::FunctionDecl,
+        ast: &mut declarations::FunctionDecl,
         name_sort: IvySort,
         param_sorts: Vec<IvySort>,
         ret_sort: IvySort,
     ) -> VisitorResult<IvySort, declarations::Decl> {
+        let param_names = ast
+            .params
+            .iter()
+            .map(|sym| sym.id.clone())
+            .collect::<Vec<_>>();
+
         let fnsort = IvySort::action_sort(
+            param_names,
             param_sorts,
             sorts::ActionRet::named("TODO".into(), ret_sort),
         );
@@ -528,7 +596,7 @@ impl Visitor<IvySort> for TypeChecker {
 
     fn begin_implement_decl(
         &mut self,
-        ast: &mut declarations::ImplementDecl,
+        ast: &mut declarations::ActionMixinDecl,
     ) -> VisitorResult<IvySort, declarations::Decl> {
         if let Some(sym) = ast.name.first() {
             self.bindings.push_scope();
@@ -547,25 +615,19 @@ impl Visitor<IvySort> for TypeChecker {
     }
     fn finish_implement_decl(
         &mut self,
-        _ast: &mut declarations::ImplementDecl,
-        name: IvySort,
-        params: Option<Vec<IvySort>>,
-        ret: Option<Binding<IvySort>>,
-        _body: Option<Vec<IvySort>>,
+        ast: &mut declarations::ActionMixinDecl,
+        action_sort: IvySort,
+        param_sort: Option<Vec<IvySort>>,
+        ret_sort: Option<Binding<IvySort>>,
+        _body: Vec<IvySort>,
     ) -> VisitorResult<IvySort, declarations::Decl> {
-        let psort = match params {
-            None => ActionArgs::Unknown,
-            Some(s) => ActionArgs::List(s),
-        };
-        let retsort = match ret {
-            None => sorts::ActionRet::Unknown,
-            Some(binding) => sorts::ActionRet::named(binding.name.clone(), binding.decl.clone()),
-        };
-        let actsort = IvySort::Action(psort, retsort);
-        let _unifed = self.bindings.unify(&name, &actsort)?;
-
         self.bindings.pop_scope();
-        Ok(ControlMut::Produce(IvySort::Unit))
+        self.resolve_mixin(
+            ast,
+            action_sort,
+            param_sort,
+            ret_sort.map(|o| o.decl.clone()),
+        )
     }
 
     fn begin_import_decl(
@@ -583,7 +645,12 @@ impl Visitor<IvySort> for TypeChecker {
         decl_sortvar: IvySort,
         param_sorts: Vec<IvySort>,
     ) -> VisitorResult<IvySort, declarations::Decl> {
-        let relsort = IvySort::Action(ActionArgs::List(param_sorts), sorts::ActionRet::Unit);
+        // TODO
+        let relsort = IvySort::Action(
+            vec![],
+            ActionArgs::List(param_sorts),
+            sorts::ActionRet::Unit,
+        );
         let unifed = self.bindings.unify(&decl_sortvar, &relsort)?;
         Ok(ControlMut::Produce(unifed))
     }
@@ -673,7 +740,7 @@ impl Visitor<IvySort> for TypeChecker {
             .filter_map(|(decl, curr_sort)| match decl {
                 declarations::Decl::AfterAction(ActionMixinDecl { name, .. })
                 | declarations::Decl::BeforeAction(ActionMixinDecl { name, .. })
-                | declarations::Decl::Implement(ImplementDecl { name, .. }) => {
+                | declarations::Decl::Implement(ActionMixinDecl { name, .. }) => {
                     Some((name, curr_sort))
                 }
                 _ => None,

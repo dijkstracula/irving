@@ -319,16 +319,16 @@ impl IvyParser {
         )
     }
 
-    pub fn implement_action_decl(input: Node) -> Result<ImplementDecl> {
+    pub fn implement_action_decl(input: Node) -> Result<ActionMixinDecl> {
         // XXX: Looks like `handle_before_after` in ivy_parser.py just treats
         // implement like defining an action, modulo internal name mangling.
         match_nodes!(
         input.into_children();
             [mixin_sig(MixinSig{name, params}), decl_ret(ret), stmt_block(body)] => Ok(
-                ImplementDecl{name, params, ret, body: Some(body)}
+                ActionMixinDecl{name, params, ret, body}
             ),
             [mixin_sig(MixinSig{name, params}), stmt_block(body)] => Ok(
-                ImplementDecl{name, params, ret: None, body: Some(body)}
+                ActionMixinDecl{name, params, ret: None, body: body}
             ),
         )
     }

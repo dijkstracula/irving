@@ -326,7 +326,7 @@ where
 
     fn begin_implement_decl(
         &mut self,
-        ast: &mut declarations::ImplementDecl,
+        ast: &mut declarations::ActionMixinDecl,
     ) -> VisitorResult<(), declarations::Decl> {
         self.pp.write_str("implement ")?;
         self.identifier(&mut ast.name)?;
@@ -343,11 +343,9 @@ where
             self.pp.write_str(")")?;
         }
 
-        if let Some(stmts) = &mut ast.body {
-            self.pp.write_str(" {\n")?;
-            self.write_separated(stmts, "\n")?;
-            self.pp.write_str("\n}\n")?;
-        }
+        self.pp.write_str(" {\n")?;
+        self.write_separated(&mut ast.body, "\n")?;
+        self.pp.write_str("\n}\n")?;
 
         Ok(ControlMut::SkipSiblings(()))
     }

@@ -2,7 +2,10 @@
 
 use thiserror::Error;
 
-use crate::ast::{declarations::Decl, expressions::Token};
+use crate::ast::{
+    declarations::Decl,
+    expressions::{ParamList, Token},
+};
 
 use self::sorts::IvySort;
 
@@ -39,11 +42,17 @@ pub enum TypeError {
     #[error("Sort {0:?} mismatches {1:?}")]
     UnificationError(IvySort, IvySort),
 
+    #[error("Sequence of length {expected:?} mismatches {actual:?}")]
+    LenMismatch { expected: usize, actual: usize },
+
+    #[error("Parameter list {0:?} mismatches {1:?}")]
+    ParamListMismatch(ParamList, ParamList),
+
     #[error("Sort sequence {0:?} mismatches {1:?}")]
-    LenMismatch(Vec<IvySort>, Vec<IvySort>),
+    SortListMismatch(Vec<IvySort>, Vec<IvySort>),
 
     #[error("Token {expected:?} redefined as {actual:?}")]
-    FargMismatch { expected: Token, actual: Token },
+    TokenMismatch { expected: Token, actual: Token },
 
     #[error("Token {sym:?} defined as {prev:?} and rebound as {new:?}")]
     ReboundVariable {

@@ -5,7 +5,7 @@ use std::collections::BTreeMap;
 use crate::{
     ast::{
         declarations::Binding,
-        expressions::{Expr, Token},
+        expressions::{Expr, Symbol, Token},
     },
     visitor::{sort::Visitor, ControlMut},
 };
@@ -27,7 +27,7 @@ pub struct Module {
 
 impl Module {
     pub fn init_action_sort() -> IvySort {
-        IvySort::action_sort(vec![], ActionRet::Unit)
+        IvySort::action_sort(vec![], vec![], ActionRet::Unit)
     }
 }
 
@@ -62,7 +62,7 @@ pub enum IvySort {
     Vector(Box<IvySort>),
     Range(Box<Expr>, Box<Expr>),
     Enum(Vec<Token>),
-    Action(ActionArgs, ActionRet),
+    Action(Vec<Token>, ActionArgs, ActionRet),
     Relation(Vec<IvySort>),
     Subclass(Token),
     Module(Module),
@@ -73,8 +73,14 @@ pub enum IvySort {
 }
 
 impl IvySort {
-    pub fn action_sort(args: Vec<IvySort>, ret: ActionRet) -> IvySort {
-        IvySort::Action(ActionArgs::List(args), ret)
+    pub fn action_sort(arg_names: Vec<Token>, arg_sorts: Vec<IvySort>, ret: ActionRet) -> IvySort {
+        // TODO: Do we want this?  Seems like a panic is strictly worse than constructing
+        // the sort and then letting unification fail shortly thereafter.
+        //if arg_names.len() != arg_sorts.len() {
+        //    panic!("mismatch between arg_names and arg_sorts");
+        //}
+
+        IvySort::Action(arg_names, ActionArgs::List(arg_sorts), ret)
     }
 
     pub fn range_sort(lo: Expr, hi: Expr) -> IvySort {
@@ -143,6 +149,7 @@ impl Visitor<IvySort> for SortSubstituter {
 
     fn action(
         &mut self,
+        arg_syms: Vec<Token>,
         _args: &mut ActionArgs,
         ret: &mut ActionRet,
         args_t: Option<Vec<IvySort>>,
@@ -161,7 +168,7 @@ impl Visitor<IvySort> for SortSubstituter {
             },
         };
 
-        self.subst(IvySort::Action(args, ret))
+        self.subst(IvySort::Action(arg_syms, args, ret))
     }
 
     fn vector(

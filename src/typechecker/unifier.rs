@@ -140,7 +140,7 @@ impl Resolver {
             (ActionArgs::List(lhs), ActionArgs::Unknown) => Ok(ActionArgs::List(lhs.clone())),
             (ActionArgs::List(lhs), ActionArgs::List(rhs)) => {
                 if lhs.len() != rhs.len() {
-                    Err(TypeError::LenMismatch(lhs.clone(), rhs.clone()))
+                    Err(TypeError::SortListMismatch(lhs.clone(), rhs.clone()))
                 } else {
                     let mut args = vec![];
                     for (a1, a2) in lhs.iter().zip(rhs.iter()) {
@@ -207,10 +207,22 @@ impl Resolver {
                 self.ctx[*j] = lhs.clone();
                 Ok(lhs)
             }
-            (IvySort::Action(lhsargs, lhsret), IvySort::Action(rhsargs, rhsret)) => {
-                let args = self.unify_action_args(lhsargs, rhsargs)?;
+            (
+                IvySort::Action(lhsargnames, lhsargsorts, lhsret),
+                IvySort::Action(rhsargnames, rhsargsorts, rhsret),
+            ) => {
+                if lhsargnames.len() != rhsargnames.len() {
+                    return Err(TypeError::LenMismatch {
+                        expected: lhsargnames.len(),
+                        actual: rhsargnames.len(),
+                    });
+                }
+                let args = self.unify_action_args(lhsargsorts, rhsargsorts)?;
                 let ret = self.unify_action_rets(lhsret, rhsret)?;
-                Ok(IvySort::Action(args, ret))
+
+                // XXX: choosing the LHS' argument list arbitrarily!  Maybe we
+                // can't treat the arguments to unify() as symmetric...
+                Ok(IvySort::Action(lhsargnames.clone(), args, ret))
             }
 
             // This subtyping relationship is fine, because Ivy's range datatype
@@ -223,12 +235,12 @@ impl Resolver {
             // This subtyping relationship is for indexing into an isolate
             // definition by its arguments.
             (
-                IvySort::Action(ActionArgs::List(fargs), fret),
+                IvySort::Action(_, ActionArgs::List(fargs), fret),
                 p @ IvySort::Object(Object { args, .. }),
             )
             | (
                 p @ IvySort::Object(Object { args, .. }),
-                IvySort::Action(ActionArgs::List(fargs), fret),
+                IvySort::Action(_, ActionArgs::List(fargs), fret),
             ) => {
                 let unified = match fret {
                     ActionRet::Unknown => p.clone(),
@@ -240,7 +252,7 @@ impl Resolver {
                 // see https://github.com/dijkstracula/irving/issues/25 .
                 if fargs.len() != args.len() || fargs.len() > 1 {
                     let pargs = args.iter().map(|(_, v)| v.clone()).collect::<Vec<_>>();
-                    return Err(TypeError::LenMismatch(fargs.clone(), pargs));
+                    return Err(TypeError::SortListMismatch(fargs.clone(), pargs));
                 }
                 Ok(unified)
             }

@@ -51,7 +51,11 @@ mod tests {
         tc.bindings
             .append(
                 "foo".into(),
-                IvySort::action_sort(vec![IvySort::Number, IvySort::Bool], sorts::ActionRet::Unit),
+                IvySort::action_sort(
+                    vec!["i".into(), "b".into()],
+                    vec![IvySort::Number, IvySort::Bool],
+                    sorts::ActionRet::Unit,
+                ),
             )
             .unwrap();
 
@@ -100,6 +104,7 @@ mod tests {
             .append(
                 "inc".into(),
                 IvySort::action_sort(
+                    vec!["i".into()],
                     vec![IvySort::Number],
                     sorts::ActionRet::named("ret".into(), IvySort::Number),
                 ),

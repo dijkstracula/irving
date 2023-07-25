@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use crate::{
-    ast::expressions::{Expr, Token},
+    ast::expressions::{self, Expr, Token},
     typechecker::sorts::{ActionArgs, ActionRet, IvySort, Module, Object},
 };
 
@@ -55,6 +55,7 @@ where
 
     fn action(
         &mut self,
+        _arg_syms: Vec<expressions::Token>,
         _args: &mut ActionArgs,
         _ret: &mut ActionRet,
         _args_t: Option<Vec<T>>,
@@ -116,8 +117,8 @@ where
             }
             IvySort::Range(lo, hi) => visitor.range(lo.as_mut(), hi.as_mut()),
             IvySort::Enum(discs) => visitor.enumeration(discs),
-            IvySort::Action(ref mut fargs, ref mut ret) => {
-                let farg_t = match fargs {
+            IvySort::Action(fargnames, ref mut fargsorts, ref mut ret) => {
+                let farg_t = match fargsorts {
                     ActionArgs::Unknown => None,
                     ActionArgs::List(sorts) => Some(
                         sorts
@@ -138,7 +139,7 @@ where
                 };
 
                 /*ret.visit(visitor)?.modifying(ret)?;*/
-                visitor.action(fargs, ret, farg_t, ret_t)
+                visitor.action(fargnames.clone(), fargsorts, ret, farg_t, ret_t)
             }
             IvySort::Relation(args) => {
                 let args_t = args

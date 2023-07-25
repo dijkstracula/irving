@@ -146,6 +146,7 @@ mod tests {
                 "f".into(),
                 IvySort::action_sort(
                     vec![],
+                    vec![],
                     sorts::ActionRet::named("ret".into(), IvySort::Number),
                 ),
             )
@@ -199,7 +200,7 @@ mod tests {
             res,
             TypeError::UnificationError(
                 IvySort::Number,
-                IvySort::Action(ActionArgs::List(vec!()), sorts::ActionRet::Unknown)
+                IvySort::Action(vec!(), ActionArgs::List(vec!()), sorts::ActionRet::Unknown)
             )
         )
     }

@@ -235,16 +235,16 @@ where
         Ok(ControlMut::Produce(T::default()))
     }
 
-    fn begin_implement_decl(&mut self, _ast: &mut ImplementDecl) -> VisitorResult<T, Decl> {
+    fn begin_implement_decl(&mut self, _ast: &mut ActionMixinDecl) -> VisitorResult<T, Decl> {
         Ok(ControlMut::Produce(T::default()))
     }
     fn finish_implement_decl(
         &mut self,
-        _ast: &mut ImplementDecl,
+        _ast: &mut ActionMixinDecl,
         _name: T,
         _params: Option<Vec<T>>,
         ret: Option<Binding<T>>,
-        _body: Option<Vec<T>>,
+        _body: Vec<T>,
     ) -> VisitorResult<T, Decl> {
         Ok(ControlMut::Produce(T::default()))
     }
@@ -786,12 +786,7 @@ where
                         visitor.param(sym)?.modifying(sym)?,
                     )),
                 };
-                let body = decl
-                    .body
-                    .as_mut()
-                    .map(|b| b.visit(visitor)?.modifying(b))
-                    .transpose()?;
-
+                let body = decl.body.visit(visitor)?.modifying(&mut decl.body)?;
                 visitor.finish_implement_decl(decl, n, params, ret, body)
             }),
             Decl::Import(decl) => visitor.begin_import_decl(decl)?.and_then(|_| {

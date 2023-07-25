@@ -149,7 +149,7 @@ pub enum Decl {
 
     Globals(Vec<Decl>),
 
-    Implement(ImplementDecl),
+    Implement(ActionMixinDecl),
 
     Import(ImportDecl),
 
