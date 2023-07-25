@@ -147,7 +147,7 @@ mod tests {
                 IvySort::action_sort(
                     vec![],
                     vec![],
-                    sorts::ActionRet::named("ret".into(), IvySort::Number),
+                    sorts::ActionRet::named("ret", IvySort::Number),
                 ),
             )
             .unwrap();

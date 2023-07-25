@@ -36,7 +36,6 @@ pub type Ident = Vec<Token>;
 
 #[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]
 pub struct Symbol {
-    // TODO: this should become a Symbol.
     pub id: Token,
     pub sort: Sort,
 }

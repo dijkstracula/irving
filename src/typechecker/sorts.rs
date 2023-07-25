@@ -45,8 +45,11 @@ pub enum ActionRet {
 }
 
 impl ActionRet {
-    pub fn named(name: String, sort: IvySort) -> Self {
-        ActionRet::Named(Box::new(Binding::from(name, sort)))
+    pub fn named<S>(name: S, sort: IvySort) -> Self
+    where
+        S: Into<String>,
+    {
+        ActionRet::Named(Box::new(Binding::from(name.into(), sort)))
     }
 }
 

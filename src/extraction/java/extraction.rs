@@ -276,6 +276,7 @@ where
     ) -> VisitorResult<(), declarations::Decl> {
         ast.name.visit(self)?.modifying(&mut ast.name)?;
         self.pp.write_str(".on((")?;
+
         self.write_lambda(ast.params.as_mut().unwrap(), &mut ast.ret, &mut ast.body)?;
         Ok(ControlMut::SkipSiblings(()))
     }

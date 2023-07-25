@@ -78,7 +78,7 @@ mod tests {
             IvySort::action_sort(
                 vec!("x".into()),
                 vec!(IvySort::Bool),
-                sorts::ActionRet::named("b".into(), IvySort::Bool)
+                sorts::ActionRet::named("b", IvySort::Bool)
             )
         );
 
@@ -87,7 +87,7 @@ mod tests {
             Some(&IvySort::action_sort(
                 vec!("x".into()),
                 vec!(IvySort::Bool),
-                sorts::ActionRet::named("b".into(), IvySort::Bool)
+                sorts::ActionRet::named("b", IvySort::Bool)
             ))
         );
 
@@ -119,7 +119,7 @@ mod tests {
             Some(&IvySort::action_sort(
                 vec!("a".into()),
                 vec!(IvySort::Bool),
-                sorts::ActionRet::named("b".into(), IvySort::Bool)
+                sorts::ActionRet::named("b", IvySort::Bool)
             ))
         );
     }
@@ -176,7 +176,7 @@ mod tests {
             Some(&IvySort::action_sort(
                 vec!("a".into()),
                 vec!(IvySort::Bool),
-                sorts::ActionRet::named("b".into(), IvySort::Bool)
+                sorts::ActionRet::named("b", IvySort::Bool)
             ))
         );
 
@@ -225,11 +225,7 @@ mod tests {
             .clone();
         assert_eq!(
             action_sort,
-            IvySort::action_sort(
-                vec![],
-                vec![],
-                sorts::ActionRet::named("y".into(), IvySort::Bool)
-            )
+            IvySort::action_sort(vec![], vec![], sorts::ActionRet::named("y", IvySort::Bool))
         );
 
         // Applying the action should produce a bool.
@@ -265,7 +261,7 @@ mod tests {
             IvySort::action_sort(
                 vec!("x".into()),
                 vec![IvySort::Bool],
-                sorts::ActionRet::named("y".into(), IvySort::Bool)
+                sorts::ActionRet::named("y", IvySort::Bool)
             )
         );
 
@@ -323,7 +319,7 @@ mod tests {
             IvySort::action_sort(
                 vec!["x".into()],
                 vec![IvySort::This],
-                sorts::ActionRet::named("y".into(), IvySort::Bool)
+                sorts::ActionRet::named("y", IvySort::Bool)
             )
         );
 
@@ -369,11 +365,7 @@ mod tests {
             .clone();
         assert_eq!(
             action_sort,
-            IvySort::action_sort(
-                vec![],
-                vec![],
-                sorts::ActionRet::named("y".into(), IvySort::Bool)
-            )
+            IvySort::action_sort(vec![], vec![], sorts::ActionRet::named("y", IvySort::Bool))
         );
 
         let mut action_app = expr_from_src("m.doit()");

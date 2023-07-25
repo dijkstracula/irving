@@ -101,7 +101,7 @@ mod tests {
                     IvySort::action_sort(
                         vec!["a".into(), "x".into()],
                         vec![IvySort::This, IvySort::SortVar(1)],
-                        sorts::ActionRet::named("y".into(), IvySort::SortVar(2)),
+                        sorts::ActionRet::named("y", IvySort::SortVar(2)),
                     ),
                 ),
                 (
@@ -109,7 +109,7 @@ mod tests {
                     IvySort::action_sort(
                         vec!["a".into(), "x".into(), "y".into()],
                         vec![IvySort::This, IvySort::SortVar(1), IvySort::SortVar(2)],
-                        sorts::ActionRet::named("a".into(), IvySort::This),
+                        sorts::ActionRet::named("a", IvySort::This),
                     ),
                 ),
                 ("init".into(), Module::init_action_sort()),
