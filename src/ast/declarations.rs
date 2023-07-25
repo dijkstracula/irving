@@ -60,14 +60,6 @@ pub struct ImportDecl {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ImplementDecl {
-    pub name: Ident,
-    pub params: Option<ParamList>,
-    pub ret: Option<Symbol>,
-    pub body: Option<Vec<Stmt>>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct InstanceDecl {
     pub sort: Ident,
     pub args: ParamList,

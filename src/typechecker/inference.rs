@@ -9,7 +9,7 @@ use super::{
 use crate::{
     ast::{
         actions::{self, Action},
-        declarations::{self, ActionMixinDecl, Binding, ImplementDecl},
+        declarations::{self, ActionMixinDecl, Binding},
         expressions::{self, Expr, Sort, Token},
         statements,
     },
@@ -49,7 +49,7 @@ impl TypeChecker {
     ) -> VisitorResult<IvySort, declarations::Decl> {
         let action_args = match &action_sort {
             IvySort::Action(args, _, _) => args,
-            s => unreachable!(),
+            _ => unreachable!(),
         };
         let action_args = match &mixin.params {
             // a) If the mixin has no parameter signature used, we simply reuse
@@ -400,8 +400,7 @@ impl Visitor<IvySort> for TypeChecker {
             IvySort::Action(argnames, ActionArgs::List(argsorts), ret) if !is_common => {
                 let first_arg = argsorts.get(0).map(|s| self.bindings.resolve(s));
                 if first_arg == Some(&IvySort::This) {
-                    let remaining_argnames =
-                        argnames.clone().into_iter().skip(1).collect::<Vec<_>>();
+                    let remaining_argnames = argnames.into_iter().skip(1).collect::<Vec<_>>();
                     let remaining_argsorts =
                         argsorts.clone().into_iter().skip(1).collect::<Vec<_>>();
 
@@ -622,12 +621,7 @@ impl Visitor<IvySort> for TypeChecker {
         _body: Vec<IvySort>,
     ) -> VisitorResult<IvySort, declarations::Decl> {
         self.bindings.pop_scope();
-        self.resolve_mixin(
-            ast,
-            action_sort,
-            param_sort,
-            ret_sort.map(|o| o.decl.clone()),
-        )
+        self.resolve_mixin(ast, action_sort, param_sort, ret_sort.map(|o| o.decl))
     }
 
     fn begin_import_decl(

@@ -9,7 +9,7 @@
                               |___/
 ```
 
-Irving is a tiny subset of [IVy](github.com/kenmcmil/ivy/), geared for
+Irving is a tiny subset of [IVy](https://github.com/kenmcmil/ivy/), geared for
 extracting protocols to other backends than C++.  Pairs great with
 [Melina](https://github.com/dijkstracula/melina).
 

@@ -328,7 +328,7 @@ impl IvyParser {
                 ActionMixinDecl{name, params, ret, body}
             ),
             [mixin_sig(MixinSig{name, params}), stmt_block(body)] => Ok(
-                ActionMixinDecl{name, params, ret: None, body: body}
+                ActionMixinDecl{name, params, ret: None, body}
             ),
         )
     }

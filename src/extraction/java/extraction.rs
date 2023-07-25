@@ -91,11 +91,11 @@ where
             self.pp.write_str(";\n")?;
         }
 
-        ret.as_mut().map(|ret| {
+        if let Some(ret) = ret.as_mut() {
             self.pp
                 .write_fmt(format_args!("return {};\n", ret.id))
                 .unwrap();
-        });
+        }
 
         self.pp.write_str("})")?;
 

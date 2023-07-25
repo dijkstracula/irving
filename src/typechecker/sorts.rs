@@ -5,7 +5,7 @@ use std::collections::BTreeMap;
 use crate::{
     ast::{
         declarations::Binding,
-        expressions::{Expr, Symbol, Token},
+        expressions::{Expr, Token},
     },
     visitor::{sort::Visitor, ControlMut},
 };

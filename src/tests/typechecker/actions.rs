@@ -311,7 +311,7 @@ mod tests {
         );
 
         let mut tc = TypeChecker::new();
-        let isolate_sort = prog.visit(&mut tc).unwrap().modifying(&mut prog).unwrap();
+        let _ = prog.visit(&mut tc).unwrap().modifying(&mut prog).unwrap();
 
         let action_sort = tc
             .bindings

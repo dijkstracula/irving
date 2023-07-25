@@ -38,7 +38,7 @@ mod tests {
         ast.visit(&mut e).expect("extraction failed");
         assert_eq!(
             "protected Action2<Long, Boolean, Void> foo = new Action2<>((Long i, Boolean b) -> {})",
-            e.pp.out.replace("\n", "")
+            e.pp.out.replace('\n', "")
         );
     }
 
