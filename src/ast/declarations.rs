@@ -80,7 +80,6 @@ pub struct ModuleDecl {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ObjectDecl {
     pub params: ParamList,
-    pub fields: Vec<Decl>,
 
     // The non-action and non-field declarations go here, stuff like
     // axioms, attributes, invariants, etc...
@@ -88,11 +87,21 @@ pub struct ObjectDecl {
 }
 
 impl ObjectDecl {
-    pub fn actions(&self) -> Vec<&Binding<ActionDecl>> {
+    pub fn actions(&mut self) -> Vec<&mut Decl> {
         self.body
-            .iter()
+            .iter_mut()
             .filter_map(|d| match d {
-                Decl::Export(ExportDecl::Action(binding)) | Decl::Action(binding) => Some(binding),
+                Decl::Export(ExportDecl::Action(_)) | Decl::Action(_) => Some(d),
+                _ => None,
+            })
+            .collect()
+    }
+
+    pub fn vars(&mut self) -> Vec<&mut Decl> {
+        self.body
+            .iter_mut()
+            .filter_map(|d| match d {
+                Decl::Var(_) => Some(d),
                 _ => None,
             })
             .collect()
@@ -178,7 +187,6 @@ pub enum Decl {
 
 impl Decl {
     /// For declarations that bind a new name, produce that name.
-    /// TODO: https://github.com/dijkstracula/irving/issues/19
     pub fn name_for_binding(&self) -> Option<&str> {
         match self {
             Decl::Action(Binding { name, .. }) => Some(name),

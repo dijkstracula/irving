@@ -336,7 +336,7 @@ impl IvyParser {
     pub fn implementation_decl(input: Node) -> Result<ObjectDecl> {
         match_nodes!(
         input.into_children();
-            [decl_block(decls)] => Ok(ObjectDecl { params: vec!(), fields: vec!(), body: decls })
+            [decl_block(decls)] => Ok(ObjectDecl { params: vec!(), body: decls })
         )
     }
 
@@ -384,7 +384,6 @@ impl IvyParser {
         [decl_sig(DeclSig{name, params}), decl_block(body)] => {
             Ok(Binding::from(name, ObjectDecl{
                 params,
-                fields: vec!(),
                 body
                 })
             )
@@ -402,7 +401,7 @@ impl IvyParser {
         match_nodes!(
         input.into_children();
         [symbol(name), decl_block(body)] => Ok(
-            Binding::from(name, ObjectDecl{params: vec!(), fields: vec!(), body})))
+            Binding::from(name, ObjectDecl{params: vec!(), body})))
     }
 
     pub fn range_decl(input: Node) -> Result<(Expr, Expr)> {
@@ -424,7 +423,7 @@ impl IvyParser {
     pub fn specification_decl(input: Node) -> Result<ObjectDecl> {
         match_nodes!(
         input.into_children();
-            [decl_block(decls)] => Ok(ObjectDecl { params: vec![], fields: vec!(), body: decls })
+            [decl_block(decls)] => Ok(ObjectDecl { params: vec![], body: decls })
         )
     }
 

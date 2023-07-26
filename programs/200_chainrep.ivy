@@ -1,0 +1,95 @@
+#lang ivy1.8
+
+#
+# Use a strategy called "chain replication" to maintain a consistent
+# ordering of operations on a replicated object. Fill in the "TODO"
+# regions below to complete the program.
+#
+# Host 0 is the "primary" and receives all updates first. After
+# performing an update, each host passes it on to the next host in the
+# chain. We test for eventual consistency.
+#
+# This algorithm is optimal in terms of message complexity (using N
+# messages per update).
+#
+# Questions:
+#
+# - What determines the update order in this algorithm?
+#     The order of updates is determined by arrival at host 0
+# - Does this algorithm have a disadvantage from a client point of view?
+#     The client sees its own updates with some delay (And, to avoid non-monotonic
+#     reads or lost updates, the client needs to consistently read from the same
+#     node, or at least never read further ahead in the chain, since a subsequent
+#     read concurrent with replication may observe that final value to disappear.)
+# - What assumptions does it make about the network?
+#     Update ordering relies on an ordered network.
+#
+
+#include numbers
+#include collections
+#include network
+
+global {
+
+    # Some global resources
+
+    alias byte = bv[8]
+    instance file : vector(byte)
+
+    type pid = {0..2}
+    instance net : tcp.net(byte)
+
+}
+
+process host(self:pid) = {
+
+    export action append(val:byte)
+    import action show(content:file)
+    
+    instance sock : net.socket
+    var contents : file
+
+    after init {
+        contents := file.empty();
+    }
+   
+    # Implement the client 'append' request
+
+    implement append {
+        # All append events are forwarded to the primary, even if the append
+        # happens to take place on the primary.  (We could have avoided this
+        # redundant sent by special-casing the behaviour for the primary here,
+        # but that seems like that's mixing test logic and business logic?)
+        sock.send(host(0).sock.id, val);
+    }
+    
+    implement sock.recv(src:tcp.endpoint,val:byte) {
+        # Propagate the value down the chain.
+        contents := contents.append(val);
+        if (self < 2) {
+            sock.send(host(self+1).sock.id, val);
+        }
+        show(contents);
+    }
+
+    specification {
+
+        var msg_count : unbounded_sequence
+
+        after init {
+            msg_count := 0;
+        }
+
+        after sock.send(self:pid, dst:tcp.endpoint, val:byte) {
+            msg_count := msg_count + 1;
+        }
+
+        after sock.recv(self:pid, dst:tcp.endpoint, val:byte) {
+            msg_count := msg_count - 1;
+
+            ensure forall P1:pid,P2:pid, I. msg_count = 0 -> 
+                host(P1).contents.end = host(P2).contents.end & 
+                (I < host(P1).contents.end -> host(P1).contents.value(I) = host(P2).contents.value(I));
+        }
+    }
+}

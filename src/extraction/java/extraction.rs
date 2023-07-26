@@ -91,11 +91,15 @@ where
             self.pp.write_str(";\n")?;
         }
 
-        ret.as_mut().map(|ret| {
-            self.pp
-                .write_fmt(format_args!("return {};\n", ret.id))
-                .unwrap();
-        });
+        // The final declaration needs to wrap the return value in a Right<U>.
+        // (For void-producing actions, U=j.l.Void, the only inhabitant of which
+        // is `null`.)
+        match ret {
+            None => self.pp.write_str("return Either.right(null);\n")?,
+            Some(ret) => self
+                .pp
+                .write_fmt(format_args!("return Either.right({});\n", ret.id))?,
+        }
 
         self.pp.write_str("})")?;
 
@@ -370,10 +374,8 @@ where
         name: &mut Token,
         sort: &mut expressions::Sort,
     ) -> VisitorResult<(), declarations::Decl> {
-        self.pp.write_fmt(format_args!(
-            "private {} ",
-            Self::jtype_from_sort(sort).as_jval()
-        ))?;
+        self.pp
+            .write_fmt(format_args!("{} ", Self::jtype_from_sort(sort).as_jval()))?;
         name.visit(self)?.modifying(name)?;
         Ok(ControlMut::SkipSiblings(()))
     }
@@ -489,20 +491,18 @@ where
         self.pp.write_fmt(format_args!("class IvyObj_{name}"))?;
         self.pp.write_str(" {\n")?;
 
-        // Other bindings
-        for decl in &mut ast
-            .body
-            .iter_mut()
-            .filter(|d| d.name_for_binding().is_some())
-        {
-            // Type declarations don't emit any Java source lines.
-            if let declarations::Decl::Type(_) = decl {
-                continue;
-            }
-
+        for decl in ast.actions() {
             decl.visit(self)?.modifying(decl)?;
-            self.pp.write_str(";\n\n")?;
+            self.pp.write_str(";\n")?;
         }
+        self.pp.write_str("\n")?;
+
+        for decl in ast.vars() {
+            self.pp.write_str("private ")?;
+            decl.visit(self)?.modifying(decl)?;
+            self.pp.write_str(";\n")?;
+        }
+        self.pp.write_str("\n")?;
 
         // Constructor
         self.pp.write_fmt(format_args!("public IvyObj_{name}("))?;
@@ -522,7 +522,7 @@ where
         {
             decl.visit(self)?.modifying(decl)?;
             self.pp.write_str(";")?;
-            //self.pp.write_fmt(format_args!(" // {:?}", decl))?;
+            self.pp.write_fmt(format_args!(" // {:?}", decl))?;
             self.pp.write_str("\n;")?;
         }
 
