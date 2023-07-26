@@ -11,7 +11,7 @@ use crate::{
         actions::{self, Action},
         declarations::{self, ActionMixinDecl, Binding},
         expressions::{self, Expr, Sort, Symbol, Token},
-        statements,
+        logic, statements,
     },
     passes::module_instantiation,
     typechecker::{sorts::Module, TypeError},
@@ -154,6 +154,7 @@ impl Visitor<IvySort> for TypeChecker {
         &mut self,
         p: &mut expressions::Symbol,
     ) -> VisitorResult<IvySort, expressions::Symbol> {
+        println!("NBT: visiting param {:?}", p);
         match &mut p.sort {
             Sort::ToBeInferred => Ok(ControlMut::Produce(self.bindings.new_sortvar())),
             Sort::Annotated(id) => {
@@ -170,7 +171,6 @@ impl Visitor<IvySort> for TypeChecker {
                 ))
             }
             Sort::Resolved(ivysort) => {
-                // XXX: early return if sort is already an ivyosrt?
                 self.bindings.append(p.id.clone(), ivysort.clone())?;
                 Ok(ControlMut::Produce(ivysort.clone()))
             }
@@ -446,6 +446,22 @@ impl Visitor<IvySort> for TypeChecker {
             }
             None => bail!(TypeError::MissingRecordField(lhs_sort, rhs.id.clone())),
         }
+    }
+
+    // Formulas
+
+    fn begin_forall(&mut self, _ast: &mut logic::Forall) -> VisitorResult<IvySort, logic::Fmla> {
+        self.bindings.push_scope();
+        Ok(ControlMut::Produce(IvySort::Unit))
+    }
+    fn finish_forall(
+        &mut self,
+        ast: &mut logic::Forall,
+        _vars: Vec<IvySort>,
+        _fmla: IvySort,
+    ) -> VisitorResult<IvySort, logic::Fmla> {
+        self.bindings.pop_scope();
+        Ok(ControlMut::Produce(IvySort::Unit))
     }
 
     // actions and decls

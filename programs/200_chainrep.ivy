@@ -80,11 +80,11 @@ process host(self:pid) = {
             msg_count := 0;
         }
 
-        after sock.send(self:pid, dst:tcp.endpoint, val:byte) {
+        after sock.send(dst:tcp.endpoint, val:byte) {
             msg_count := msg_count + 1;
         }
 
-        after sock.recv(self:pid, dst:tcp.endpoint, val:byte) {
+        after sock.recv(dst:tcp.endpoint, val:byte) {
             msg_count := msg_count - 1;
 
             ensure forall P1:pid,P2:pid, I. msg_count = 0 -> 

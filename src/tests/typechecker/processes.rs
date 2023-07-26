@@ -245,4 +245,60 @@ mod tests {
         let mut tc = typechecker_with_bindings();
         let _res = iso.visit(&mut tc).unwrap().modifying(&mut iso).unwrap();
     }
+
+    #[test]
+    fn test_relation_inference() {
+        let mut iso = process_from_src(
+            "process host(self:pid) = {
+                # Here, we don't know the types of X and Y...
+                relation connected(X, Y)
+            
+                after init {
+                    # ... but here, we know they are unbounded_sequences.
+                    connected(0,0) := true;
+                }
+            }",
+        );
+
+        let mut tc = typechecker_with_bindings();
+        let _res = iso.visit(&mut tc).unwrap().modifying(&mut iso).unwrap();
+    }
+
+    #[test]
+    fn test_relation_inference_bad_assign() {
+        let mut iso = process_from_src(
+            "process host(self:pid) = {
+                relation connected(X, Y)
+            
+                after init {
+                    # We can't assign a non-Boolean expression to a relation.
+                    connected(0,0) := 42;
+                }
+            }",
+        );
+
+        let mut tc = typechecker_with_bindings();
+        let _res = iso.visit(&mut tc).unwrap().modifying(&mut iso).unwrap();
+    }
+
+    #[test]
+    fn test_relation_bad_inference() {
+        let mut iso = process_from_src(
+            "process host(self:pid) = {
+                # Here, we don't know the types of X and Y...
+                relation connected(X, Y)
+            
+                after init {
+                    # ... but here, we know they are unbounded_sequences ...
+                    connected(0,0) := true;
+
+                    # ... which means they can't also be booleans here!
+                    connected(false, true) := true;
+                }
+            }",
+        );
+
+        let mut tc = typechecker_with_bindings();
+        let _res = iso.visit(&mut tc).unwrap().modifying(&mut iso).unwrap();
+    }
 }

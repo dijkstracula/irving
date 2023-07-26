@@ -391,14 +391,24 @@ where
     fn begin_exists(&mut self, _ast: &mut Exists) -> VisitorResult<T, Fmla> {
         Ok(ControlMut::Produce(T::default()))
     }
-    fn finish_exists(&mut self, _ast: &mut Exists) -> VisitorResult<T, Fmla> {
+    fn finish_exists(
+        &mut self,
+        _ast: &mut Exists,
+        _vars: Vec<T>,
+        _fmla: T,
+    ) -> VisitorResult<T, Fmla> {
         Ok(ControlMut::Produce(T::default()))
     }
 
     fn begin_forall(&mut self, _ast: &mut Forall) -> VisitorResult<T, Fmla> {
         Ok(ControlMut::Produce(T::default()))
     }
-    fn finish_forall(&mut self, _ast: &mut Forall) -> VisitorResult<T, Fmla> {
+    fn finish_forall(
+        &mut self,
+        _ast: &mut Forall,
+        _vars: Vec<T>,
+        _fmla: T,
+    ) -> VisitorResult<T, Fmla> {
         Ok(ControlMut::Produce(T::default()))
     }
 
@@ -609,14 +619,14 @@ where
     fn visit(&mut self, visitor: &mut dyn Visitor<T>) -> VisitorResult<T, Self> {
         let t = match self {
             Fmla::Forall(fmla) => visitor.begin_forall(fmla)?.and_then(|_| {
-                let _vars = fmla.vars.visit(visitor)?.modifying(&mut fmla.vars);
-                let _flma = fmla.fmla.visit(visitor)?.modifying(&mut fmla.fmla);
-                visitor.finish_forall(fmla)
+                let vars_t = fmla.vars.visit(visitor)?.modifying(&mut fmla.vars)?;
+                let fmla_t = fmla.fmla.visit(visitor)?.modifying(&mut fmla.fmla)?;
+                visitor.finish_forall(fmla, vars_t, fmla_t)
             }),
             Fmla::Exists(fmla) => visitor.begin_exists(fmla)?.and_then(|_| {
-                let _vars = fmla.vars.visit(visitor)?.modifying(&mut fmla.vars);
-                let _flma = fmla.fmla.visit(visitor)?.modifying(&mut fmla.fmla);
-                visitor.finish_exists(fmla)
+                let vars_t = fmla.vars.visit(visitor)?.modifying(&mut fmla.vars)?;
+                let fmla_t = fmla.fmla.visit(visitor)?.modifying(&mut fmla.fmla)?;
+                visitor.finish_exists(fmla, vars_t, fmla_t)
             }),
             Fmla::Pred(expr) => expr
                 .visit(visitor)?
