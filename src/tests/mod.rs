@@ -115,11 +115,11 @@ mod helpers {
         IvyParser::decl(res).expect("AST generation failed")
     }
 
-    pub fn expr_from_src(prog: &str) -> Expr {
-        let res = IvyParser::parse(Rule::expr, prog)
+    pub fn rval_from_src(prog: &str) -> Expr {
+        let res = IvyParser::parse(Rule::rval, prog)
             .expect("Parsing failed")
             .single()
             .unwrap();
-        IvyParser::expr(res).expect("AST generation failed")
+        IvyParser::rval(res).expect("AST generation failed")
     }
 }

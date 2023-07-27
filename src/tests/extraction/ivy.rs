@@ -11,12 +11,12 @@ mod tests {
     };
     use pest_consume::Parser;
 
-    fn parse_expr(fragment: &str) -> Result<Expr> {
-        let res = IvyParser::parse(Rule::expr, fragment)
+    fn parse_rval(fragment: &str) -> Result<Expr> {
+        let res = IvyParser::parse(Rule::rval, fragment)
             .expect("Parsing failed")
             .single()
             .unwrap();
-        IvyParser::expr(res)
+        IvyParser::rval(res)
     }
 
     fn parse_fmla(fragment: &str) -> Result<Fmla> {
@@ -32,7 +32,7 @@ mod tests {
         let mut e = Extractor::<String>::new();
 
         let fragment = "foo(a, b, c)";
-        let mut ast = parse_expr(fragment).expect("Parsing failed");
+        let mut ast = parse_rval(fragment).expect("Parsing failed");
         ast.visit(&mut e).expect("traversal failed");
         assert_eq!(fragment, e.pp.out);
     }
@@ -42,7 +42,7 @@ mod tests {
         let mut e = Extractor::<String>::new();
 
         let fragment = "43 - 1";
-        let mut ast = parse_expr(fragment).expect("Parsing failed");
+        let mut ast = parse_rval(fragment).expect("Parsing failed");
         ast.visit(&mut e).expect("traversal failed");
         assert_eq!(fragment, e.pp.out);
     }
@@ -52,7 +52,7 @@ mod tests {
         let mut e = Extractor::<String>::new();
 
         let fragment = "sock.send(host(1 - self).sock.id, val)";
-        let mut ast = parse_expr(fragment).expect("Parsing failed");
+        let mut ast = parse_rval(fragment).expect("Parsing failed");
         ast.visit(&mut e).expect("traversal failed");
         assert_eq!(fragment, e.pp.out);
     }

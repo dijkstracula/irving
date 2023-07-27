@@ -33,11 +33,11 @@ mod tests {
     }
 
     fn expr_from_src(src: &str) -> Expr {
-        let parsed = IvyParser::parse(Rule::expr, src)
+        let parsed = IvyParser::parse(Rule::rval, src)
             .expect("Parsing failed")
             .single()
             .unwrap();
-        IvyParser::expr(parsed).expect("AST generation failed")
+        IvyParser::rval(parsed).expect("AST generation failed")
     }
 
     #[test]

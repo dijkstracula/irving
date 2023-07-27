@@ -8,24 +8,24 @@ paramlist = { param ~ ("," ~ param)* }
 // Expressions
 
 // https://pest.rs/book/precedence.html
-expr            =  { atom ~ (infix_op ~ atom)* }
+rval            =  { atom ~ (infix_op ~ atom)* }
 atom            = _{ prefix_op? ~ primary ~ postfix_op? }
     prefix_op   = _{ UMINUS | NOT }
     infix_op    = _{ PLUS | MINUS | TIMES | DIV |
                      LT | LE | GT | GE | EQ | NEQ |
                      AND | OR | DOT }
     postfix_op  = _{ fnapp_args | index }
-primary         = _{ THIS | symbol | number | boollit | "(" ~ expr ~ ")" }
+primary         = _{ THIS | symbol | number | boollit | "(" ~ rval ~ ")" }
 
-fnapp_args = { "(" ~ (expr ~ ("," ~ expr)* )? ~ ")" }
+fnapp_args = { "(" ~ (rval ~ ("," ~ rval)* )? ~ ")" }
 //TODO: only one dimension of indexing, right?
-index      = { "[" ~ expr ~ "]" }
+index      = { "[" ~ rval ~ "]" }
 
 // Types
 
 bv_decl = { BV ~ "[" ~ number ~ "]" }
 enum_decl  = { "{" ~ symbol ~ ("," ~ symbol)* ~ "}" }
-range_decl = { "{" ~ expr ~ ".." ~ expr ~ "}" }
+range_decl = { "{" ~ rval ~ ".." ~ rval ~ "}" }
 
 builtin_type = { bv_decl | enum_decl | range_decl | THIS }
 
@@ -40,7 +40,7 @@ mod_sig = { symbol ~ ( "(" ~ symbol ~ ("," ~ symbol)? ~ ")")? }
 include_decl      = { INCLUDE ~ symbol }
 var_decl          = { VAR ~ param }
 
-attribute_decl    = { ATTRIBUTE ~ expr } // TODO: wildly overspecified: shoudl be constrained beyond just an expr.
+attribute_decl    = { ATTRIBUTE ~ rval } // TODO: wildly overspecified: shoudl be constrained beyond just an expr.
 
 alias_decl        = { ALIAS ~ symbol ~ "=" ~ builtin_type }
 axiom_decl        = { AXIOM ~ fmla }
@@ -120,10 +120,10 @@ implement_action_decl    = { IMPLEMENT ~ mixin_sig ~ decl_ret? ~ stmt_block }
 // name needs to be a qualified identifier and not just a symbol token.
 mixin_sig =  { ident ~ ("(" ~ paramlist ~ ")")? }
 
-assign_action = { (var_decl | expr) ~ ":=" ~ expr} //TODO
-assert_action = { ASSERT ~ expr}
-assume_action = { ASSUME ~ expr}
-call_action =   { expr }
+assign_action = { (var_decl | rval) ~ ":=" ~ rval} //TODO
+assert_action = { ASSERT ~ rval}
+assume_action = { ASSUME ~ rval}
+call_action =   { rval }
 ensure_action = { ENSURE ~ fmla }
 requires_action = { REQUIRE ~ fmla }
 
@@ -142,9 +142,9 @@ actions = { action ~ (";" ~ action)* }
 
 stmt_block = { "{" ~ (stmt ~ ";"?)* ~ "}" }
 
-return_stmt = { "return" ~ expr}
-if_stmt     = { "if"    ~ expr ~ stmt_block ~ ("else" ~ stmt_block)? }
-while_stmt  = { "while" ~ expr ~ stmt_block }
+return_stmt = { "return" ~ rval }
+if_stmt     = { "if"    ~ rval ~ stmt_block ~ ("else" ~ stmt_block)? }
+while_stmt  = { "while" ~ rval ~ stmt_block }
 
 stmt = {
       actions

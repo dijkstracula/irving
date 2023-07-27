@@ -16,11 +16,11 @@ mod tests {
     #[test]
     fn test_unbound_this() {
         let prog = "this";
-        let parsed = IvyParser::parse(Rule::expr, prog)
+        let parsed = IvyParser::parse(Rule::rval, prog)
             .expect("Parsing failed")
             .single()
             .unwrap();
-        let mut binop = IvyParser::expr(parsed).expect("AST generation failed");
+        let mut binop = IvyParser::rval(parsed).expect("AST generation failed");
         let mut tc = TypeChecker::new();
 
         // `this` has to be explicitly bound from the enclosing context.
@@ -34,11 +34,11 @@ mod tests {
     #[test]
     fn test_bool_binop() {
         let prog = "1 < 2";
-        let parsed = IvyParser::parse(Rule::expr, prog)
+        let parsed = IvyParser::parse(Rule::rval, prog)
             .expect("Parsing failed")
             .single()
             .unwrap();
-        let mut binop = IvyParser::expr(parsed).expect("AST generation failed");
+        let mut binop = IvyParser::rval(parsed).expect("AST generation failed");
 
         let mut tc = TypeChecker::new();
         let res = binop.visit(&mut tc).unwrap().modifying(&mut binop).unwrap();
@@ -48,11 +48,11 @@ mod tests {
     #[test]
     fn test_numeric_binop() {
         let prog = "1 + 2";
-        let parsed = IvyParser::parse(Rule::expr, prog)
+        let parsed = IvyParser::parse(Rule::rval, prog)
             .expect("Parsing failed")
             .single()
             .unwrap();
-        let mut binop = IvyParser::expr(parsed).expect("AST generation failed");
+        let mut binop = IvyParser::rval(parsed).expect("AST generation failed");
 
         let mut tc = TypeChecker::new();
         let res = binop.visit(&mut tc).unwrap().modifying(&mut binop).unwrap();
@@ -62,11 +62,11 @@ mod tests {
     #[test]
     fn test_invalid_numeric_binop() {
         let prog = "1 + true";
-        let parsed = IvyParser::parse(Rule::expr, prog)
+        let parsed = IvyParser::parse(Rule::rval, prog)
             .expect("Parsing failed")
             .single()
             .unwrap();
-        let mut binop = IvyParser::expr(parsed).expect("AST generation failed");
+        let mut binop = IvyParser::rval(parsed).expect("AST generation failed");
 
         let mut tc = TypeChecker::new();
         let res = binop.visit(&mut tc);
@@ -79,11 +79,11 @@ mod tests {
     #[test]
     fn test_ident() {
         let prog = "foo";
-        let parsed = IvyParser::parse(Rule::expr, prog)
+        let parsed = IvyParser::parse(Rule::rval, prog)
             .expect("Parsing failed")
             .single()
             .unwrap();
-        let mut identop = IvyParser::expr(parsed).expect("AST generation failed");
+        let mut identop = IvyParser::rval(parsed).expect("AST generation failed");
 
         // Unbound identifiers should not be resolvable.
 
@@ -134,11 +134,11 @@ mod tests {
     #[test]
     fn test_call_resolved() {
         let prog = "f()";
-        let parsed = IvyParser::parse(Rule::expr, prog)
+        let parsed = IvyParser::parse(Rule::rval, prog)
             .expect("Parsing failed")
             .single()
             .unwrap();
-        let mut callop = IvyParser::expr(parsed).expect("AST generation failed");
+        let mut callop = IvyParser::rval(parsed).expect("AST generation failed");
 
         let mut tc = TypeChecker::new();
         tc.bindings
@@ -162,11 +162,11 @@ mod tests {
     #[test]
     fn test_call_unresolved() {
         let prog = "f()";
-        let parsed = IvyParser::parse(Rule::expr, prog)
+        let parsed = IvyParser::parse(Rule::rval, prog)
             .expect("Parsing failed")
             .single()
             .unwrap();
-        let mut callop = IvyParser::expr(parsed).expect("AST generation failed");
+        let mut callop = IvyParser::rval(parsed).expect("AST generation failed");
 
         let mut tc = TypeChecker::new();
         let var = tc.bindings.new_sortvar();
@@ -182,11 +182,11 @@ mod tests {
     #[test]
     fn test_call_invalid() {
         let prog = "f()";
-        let parsed = IvyParser::parse(Rule::expr, prog)
+        let parsed = IvyParser::parse(Rule::rval, prog)
             .expect("Parsing failed")
             .single()
             .unwrap();
-        let mut callop = IvyParser::expr(parsed).expect("AST generation failed");
+        let mut callop = IvyParser::rval(parsed).expect("AST generation failed");
 
         let mut tc = TypeChecker::new();
         tc.bindings.append("f".into(), IvySort::Number).unwrap();
@@ -208,11 +208,11 @@ mod tests {
     #[test]
     fn test_field_access() {
         let prog = "a.b";
-        let parsed = IvyParser::parse(Rule::expr, prog)
+        let parsed = IvyParser::parse(Rule::rval, prog)
             .expect("Parsing failed")
             .single()
             .unwrap();
-        let mut getop = IvyParser::expr(parsed).expect("AST generation failed");
+        let mut getop = IvyParser::rval(parsed).expect("AST generation failed");
 
         // Accessing 'b' should be fine when 'a' is bound to a Process.
         let procsort = Object {

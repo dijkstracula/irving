@@ -9,7 +9,7 @@ use crate::ast::logic::*;
 use crate::ast::statements::*;
 use crate::ast::toplevels::*;
 
-use crate::parser::expressions::parse_expr;
+use crate::parser::expressions::parse_rval;
 use crate::typechecker::sorts::IvySort;
 
 use super::logic::parse_log_term;
@@ -126,15 +126,15 @@ impl IvyParser {
 
     // Exprs
 
-    pub fn expr(input: Node) -> Result<Expr> {
+    pub fn rval(input: Node) -> Result<Expr> {
         let pairs = input.as_pair().to_owned().into_inner();
-        parse_expr(pairs)
+        parse_rval(pairs)
     }
 
     pub fn fnapp_args(input: Node) -> Result<Vec<Expr>> {
         match_nodes!(
         input.into_children();
-        [expr(args)..] => {
+        [rval(args)..] => {
             Ok(args.collect())
         })
     }
@@ -226,7 +226,7 @@ impl IvyParser {
     pub fn attribute_decl(input: Node) -> Result<Expr> {
         match_nodes!(
         input.into_children();
-        [expr(e)] => Ok(e)
+        [rval(e)] => Ok(e)
         )
     }
 
@@ -407,7 +407,7 @@ impl IvyParser {
     pub fn range_decl(input: Node) -> Result<(Expr, Expr)> {
         match_nodes!(
         input.into_children();
-            [expr(lo), expr(hi)] => Ok((lo, hi)),
+            [rval(lo), rval(hi)] => Ok((lo, hi)),
         )
     }
 
@@ -500,10 +500,10 @@ impl IvyParser {
     pub fn assign_action(input: Node) -> Result<AssignAction> {
         match_nodes!(
         input.into_children();
-        [var_decl(Binding{name, decl}), expr(rhs)] => Ok(
+        [var_decl(Binding{name, decl}), rval(rhs)] => Ok(
             AssignAction{lhs: Expr::Symbol(Symbol{id: name, sort: decl}), rhs}
         ),
-        [expr(lhs), expr(rhs)] => match lhs {
+        [rval(lhs), rval(rhs)] => match lhs {
             Expr::App(_) | Expr::FieldAccess(_) | Expr::Index(_) | Expr::Symbol(_) | Expr::This => Ok(AssignAction{lhs, rhs}),
             _ => todo!(),
         },
@@ -513,14 +513,14 @@ impl IvyParser {
     pub fn assert_action(input: Node) -> Result<AssertAction> {
         match_nodes!(
         input.into_children();
-        [expr(pred)] => Ok(AssertAction{pred}),
+        [rval(pred)] => Ok(AssertAction{pred}),
         )
     }
 
     pub fn assume_action(input: Node) -> Result<AssumeAction> {
         match_nodes!(
         input.into_children();
-        [expr(pred)] => Ok(AssumeAction{pred}),
+        [rval(pred)] => Ok(AssumeAction{pred}),
         )
     }
 
@@ -529,7 +529,7 @@ impl IvyParser {
 
         match_nodes!(
         input.into_children();
-        [expr(call)] => match call {
+        [rval(call)] => match call {
             Expr::App(call) => Ok(call),
             _ => Err(Error::new_from_span(ErrorVariant::<Rule>::CustomError { message: format!("Expected function call, got {:?}", call) }, span))
         })
@@ -561,10 +561,10 @@ impl IvyParser {
     pub fn if_stmt(input: Node) -> Result<If> {
         match_nodes!(
         input.into_children();
-        [expr(tst), stmt_block(thens)] => Ok(
+        [rval(tst), stmt_block(thens)] => Ok(
             If{tst, thn: thens, els: None}
         ),
-        [expr(tst), stmt_block(thens), stmt_block(elses)] => Ok(
+        [rval(tst), stmt_block(thens), stmt_block(elses)] => Ok(
             If{tst, thn: thens, els: Some(elses)}
         ),
         )
@@ -573,7 +573,7 @@ impl IvyParser {
     pub fn while_stmt(input: Node) -> Result<While> {
         match_nodes!(
         input.into_children();
-        [expr(test), stmt_block(stmts)] => Ok(
+        [rval(test), stmt_block(stmts)] => Ok(
             While{test, doit: stmts}
         ),
         )
