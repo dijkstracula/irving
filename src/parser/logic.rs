@@ -1,4 +1,4 @@
-use pest::iterators::Pairs;
+use pest::iterators::{Pair, Pairs};
 use pest::pratt_parser::{Assoc, Op, PrattParser};
 
 use crate::ast::expressions::*;
@@ -32,6 +32,24 @@ lazy_static::lazy_static! {
         .op(Op::postfix(Rule::log_app_args));
 }
 
+// TODO: this should be something other than a Symbol.
+pub fn parse_lsym<'a>(primary: Pair<'a, Rule>) -> Result<Symbol> {
+    // TODO: we need a separate AST node for logicvars.
+    let mut pairs = primary.into_inner();
+    let id = pairs.next().unwrap().as_str().to_owned();
+    let sort = pairs.next().map(|s| vec![s.as_str().to_owned()]);
+    match sort {
+        None => Ok(Symbol {
+            id,
+            sort: Sort::ToBeInferred,
+        }),
+        Some(sort) => Ok(Symbol {
+            id,
+            sort: Sort::Annotated(sort),
+        }),
+    }
+}
+
 pub fn parse_log_term(pairs: Pairs<Rule>) -> Result<Expr> {
     PRATT
         .map_primary(|primary| match primary.as_rule() {
@@ -50,17 +68,8 @@ pub fn parse_log_term(pairs: Pairs<Rule>) -> Result<Expr> {
                     args,
                 }))
             }
-            Rule::logicvar => {
-                // TODO: we need a separate AST node for logicvars.
-                let mut pairs = primary.into_inner();
-                let id = pairs.next().unwrap().as_str().to_owned();
-                let sort = pairs.next().map(|s| vec![s.as_str().to_owned()]);
-                match sort {
-                    None => Ok(Expr::inferred_symbol(id)),
-                    Some(sort) => Ok(Expr::annotated_symbol(id, sort)),
-                }
-            }
-            Rule::token => {
+            Rule::logicsym => Ok(Expr::Symbol(parse_lsym(primary)?)),
+            Rule::progsym => {
                 let tok = primary.as_str().to_owned();
                 Ok(Expr::inferred_symbol(tok))
             }

@@ -216,12 +216,12 @@ mod tests {
 
     #[test]
     fn parse_relation_decl() {
-        let fragment = "relation foo(a: int, b: int)";
+        let fragment = "relation foo(A: int, B: int)";
         let res = IvyParser::parse(Rule::relation_decl, fragment)
             .expect("Parsing failed")
             .single()
             .unwrap();
-        assert!(IvyParser::relation_decl(res).is_ok());
+        IvyParser::relation_decl(res).unwrap();
     }
 
     #[test]

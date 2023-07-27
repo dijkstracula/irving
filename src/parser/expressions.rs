@@ -46,7 +46,7 @@ pub fn parse_rval(pairs: Pairs<Rule>) -> Result<Expr> {
     PRATT
         .map_primary(|primary| match primary.as_rule() {
             Rule::THIS => Ok(Expr::This),
-            Rule::token => Ok(Expr::Symbol(Symbol {
+            Rule::progsym => Ok(Expr::Symbol(Symbol {
                 id: primary.as_str().into(),
                 sort: Sort::ToBeInferred,
             })),

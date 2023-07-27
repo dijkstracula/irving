@@ -16,14 +16,13 @@ mod tests {
 
     #[test]
     fn parse_symbol_expr() {
-        let _ast = parse_rval("a").unwrap();
-        assert_eq!(
-            _ast,
-            Expr::Symbol(Symbol {
-                id: "a".into(),
-                sort: Sort::ToBeInferred
-            })
-        );
+        let ast = parse_rval("a").unwrap();
+        assert_eq!(ast, Expr::inferred_symbol("a".into()));
+    }
+
+    #[test]
+    fn parse_logicvar() {
+        IvyParser::parse(Rule::rval, "X").expect_err("Uppercase letters cannot be a valid symbol");
     }
 
     #[test]

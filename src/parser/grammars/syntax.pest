@@ -1,8 +1,8 @@
 COMMENT = _{ !SOI ~ "#" ~ !"lang " ~ (!"\n" ~ ANY)* }
 
-// A param is a token with an optional type annotation.  These are for things
+// A param is a progsym with an optional type annotation.  These are for things
 // like function argument lists.
-param = { token ~ ( ":" ~ ident)? }
+param = { progsym ~ ( ":" ~ ident)? }
 paramlist = { param ~ ("," ~ param)* }
 
 // Expressions
@@ -15,9 +15,9 @@ atom            = _{ prefix_op? ~ primary ~ postfix_op? }
                      LT | LE | GT | GE | EQ | NEQ |
                      AND | OR | DOT }
     postfix_op  = _{ fnapp_args | index }
-primary         = _{ THIS | token | number | boollit | "(" ~ rval ~ ")" }
+primary         = _{ THIS | progsym | number | boollit | "(" ~ rval ~ ")" }
 
-lval            = _{ rval }
+lval            = _{ relation_lval | rval }
 
 fnapp_args = { "(" ~ (rval ~ ("," ~ rval)* )? ~ ")" }
 //TODO: only one dimension of indexing, right?
@@ -26,7 +26,7 @@ index      = { "[" ~ rval ~ "]" }
 // Types
 
 bv_decl = { BV ~ "[" ~ number ~ "]" }
-enum_decl  = { "{" ~ token ~ ("," ~ token)* ~ "}" }
+enum_decl  = { "{" ~ progsym ~ ("," ~ progsym)* ~ "}" }
 range_decl = { "{" ~ rval ~ ".." ~ rval ~ "}" }
 
 builtin_type = { bv_decl | enum_decl | range_decl | THIS }
@@ -34,47 +34,47 @@ builtin_type = { bv_decl | enum_decl | range_decl | THIS }
 // Decls
 
 decl_ret   = { "returns" ~ "(" ~ param ~ ")" } //TODO: needs to be a paramlist
-decl_sig =  { token ~ ("(" ~ paramlist ~ ")")? }
+decl_sig =  { progsym ~ ("(" ~ paramlist ~ ")")? }
 decl_block = { "{" ~ (decl ~ ";"?)* ~ "}" }
 
-mod_sig = { token ~ ( "(" ~ token ~ ("," ~ token)? ~ ")")? }
+mod_sig = { progsym ~ ( "(" ~ progsym ~ ("," ~ progsym)? ~ ")")? }
 
-include_decl      = { INCLUDE ~ token }
+include_decl      = { INCLUDE ~ progsym }
 var_decl          = { VAR ~ param }
 
 attribute_decl    = { ATTRIBUTE ~ rval } // TODO: wildly overspecified: shoudl be constrained beyond just an expr.
 
-alias_decl        = { ALIAS ~ token ~ "=" ~ builtin_type }
+alias_decl        = { ALIAS ~ progsym ~ "=" ~ builtin_type }
 axiom_decl        = { AXIOM ~ fmla }
 
-function_decl     = { FUNCTION ~ decl_sig ~ ":" ~ token }
-relation_decl     = { RELATION ~ decl_sig }
+function_decl     = { FUNCTION ~ decl_sig ~ ":" ~ progsym }
+relation_decl     = { RELATION ~ progsym ~ "(" ~ lparamlist ~ ")" }
 
 global_decl       = { GLOBAL ~ decl_block }
 process_decl      = { PROCESS ~ decl_sig ~ "=" ~ decl_block }
-object_decl       = { OBJECT ~ token ~ "=" ~ decl_block }
+object_decl       = { OBJECT ~ progsym ~ "=" ~ decl_block }
 
 import_decl       = { IMPORT ~ ACTION ~ decl_sig }
-export_decl       = { EXPORT ~ (token | action_decl) }
+export_decl       = { EXPORT ~ (progsym | action_decl) }
 
 module_decl       = { MODULE ~ mod_sig ~ "=" ~ decl_block }
 
-instance_decl     = { INSTANCE ~ token ~ ":" ~ mixin_sig }
+instance_decl     = { INSTANCE ~ progsym ~ ":" ~ mixin_sig }
 
 implementation_decl    = { IMPLEMENTATION ~ decl_block }
 specification_decl     = { SPECIFICATION ~ decl_block }
 common_decl            = { COMMON ~ decl_block }
 
 // TODO: struct decl
-//type_name         = { token | THIS }
-type_decl         = { TYPE ~ (THIS | (token ~ (("=" ~ builtin_type) | ("of" ~ token))?)) } // superclass might have to be more than a token
+//type_name         = { progsym | THIS }
+type_decl         = { TYPE ~ (THIS | (progsym ~ (("=" ~ builtin_type) | ("of" ~ progsym))?)) } // superclass might have to be more than a progsym
 
 invariant_decl    = { INVARIANT ~ fmla }
 
 // TODO: not sure exactly about these ones yet.
-header_decl       = { HEADER ~ token }
-interpret_decl    = { INTERPRET ~ token ~ ("->" ~ ident)? }
-instantiate_decl  = { INSTANTIATE ~ token }
+header_decl       = { HEADER ~ progsym }
+interpret_decl    = { INTERPRET ~ progsym ~ ("->" ~ ident)? }
+instantiate_decl  = { INSTANTIATE ~ progsym }
 autoinstance_decl = { AUTOINSTANCE ~ decl_sig }
 
 decl = {
@@ -119,7 +119,7 @@ before_decl       = { BEFORE ~ (mixin_sig ~ decl_ret?)? ~ stmt_block }
 implement_action_decl    = { IMPLEMENT ~ mixin_sig ~ decl_ret? ~ stmt_block }
 
 // NB: Because a mixin signature can refer to an action outside the current scope, the sig
-// name needs to be a qualified identifier and not just a symbol token.
+// name needs to be a qualified identifier and not just a symbol progsym.
 mixin_sig =  { ident ~ ("(" ~ paramlist ~ ")")? }
 
 assign_action = { (var_decl | lval) ~ ":=" ~ rval} //TODO
