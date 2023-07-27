@@ -25,7 +25,8 @@ mod tests {
             .expect("Parsing failed")
             .single()
             .unwrap();
-        IvyParser::stmt(res).expect("generate ast");
+        let _ast = IvyParser::stmt(res).expect("generate ast");
+        println!("{:?}", _ast);
     }
 
     #[test]

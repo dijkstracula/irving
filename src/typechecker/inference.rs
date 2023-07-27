@@ -156,7 +156,11 @@ impl Visitor<IvySort> for TypeChecker {
     ) -> VisitorResult<IvySort, expressions::Symbol> {
         println!("NBT: visiting param {:?}", p);
         match &mut p.sort {
-            Sort::ToBeInferred => Ok(ControlMut::Produce(self.bindings.new_sortvar())),
+            Sort::ToBeInferred => {
+                let sortvar = self.bindings.new_sortvar();
+                self.bindings.append(p.id.clone(), sortvar.clone())?;
+                Ok(ControlMut::Produce(sortvar))
+            }
             Sort::Annotated(id) => {
                 let resolved = id.visit(self)?.modifying(id)?;
                 // Note that because a parameter binds a new name, we add it
