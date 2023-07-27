@@ -129,6 +129,22 @@ impl Resolver {
         }
     }
 
+    fn unify_vec(
+        &mut self,
+        lhs: &Vec<IvySort>,
+        rhs: &Vec<IvySort>,
+    ) -> Result<Vec<IvySort>, TypeError> {
+        if lhs.len() != rhs.len() {
+            Err(TypeError::SortListMismatch(lhs.clone(), rhs.clone()))
+        } else {
+            let mut args = vec![];
+            for (a1, a2) in lhs.iter().zip(rhs.iter()) {
+                args.push(self.unify(a1, a2)?);
+            }
+            Ok(args)
+        }
+    }
+
     fn unify_action_args(
         &mut self,
         lhs: &ActionArgs,
@@ -139,15 +155,7 @@ impl Resolver {
             (ActionArgs::Unknown, ActionArgs::List(rhs)) => Ok(ActionArgs::List(rhs.clone())),
             (ActionArgs::List(lhs), ActionArgs::Unknown) => Ok(ActionArgs::List(lhs.clone())),
             (ActionArgs::List(lhs), ActionArgs::List(rhs)) => {
-                if lhs.len() != rhs.len() {
-                    Err(TypeError::SortListMismatch(lhs.clone(), rhs.clone()))
-                } else {
-                    let mut args = vec![];
-                    for (a1, a2) in lhs.iter().zip(rhs.iter()) {
-                        args.push(self.unify(a1, a2)?);
-                    }
-                    Ok(ActionArgs::List(args))
-                }
+                Ok(ActionArgs::List(self.unify_vec(lhs, rhs)?))
             }
         }
     }
@@ -255,6 +263,20 @@ impl Resolver {
                     return Err(TypeError::SortListMismatch(fargs.clone(), pargs));
                 }
                 Ok(unified)
+            }
+
+            // This subtyping relation says that "calling" a Relation with well-typed
+            // arguments of the correct arity produces a Bool.
+            (
+                IvySort::Action(_, ActionArgs::List(aargsorts), ActionRet::Unknown),
+                IvySort::Relation(rargsorts),
+            )
+            | (
+                IvySort::Relation(rargsorts),
+                IvySort::Action(_, ActionArgs::List(aargsorts), ActionRet::Unknown),
+            ) => {
+                let unified_sorts = self.unify_vec(aargsorts, rargsorts)?;
+                Ok(IvySort::Relation(unified_sorts))
             }
 
             // This subtyping relationship says that `this` shoudl only

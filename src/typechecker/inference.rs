@@ -298,6 +298,7 @@ impl Visitor<IvySort> for TypeChecker {
                 sorts::ActionRet::Unit => Ok(ControlMut::Produce(IvySort::Unit)),
                 sorts::ActionRet::Named(binding) => Ok(ControlMut::Produce(binding.decl)),
             },
+            Ok(IvySort::Relation(_)) => Ok(ControlMut::Produce(IvySort::Bool)),
             Ok(unified) => bail!(TypeError::InvalidApplication(unified)),
             Err(e) => bail!(e),
         }
@@ -835,7 +836,7 @@ impl Visitor<IvySort> for TypeChecker {
 
     fn finish_object_decl(
         &mut self,
-        _name: &mut Token,
+        name: &mut Token,
         ast: &mut declarations::ObjectDecl,
         decl_sort: IvySort,
         param_sorts: Vec<IvySort>,
@@ -861,7 +862,13 @@ impl Visitor<IvySort> for TypeChecker {
 
         let proc = IvySort::Object(Object { args, fields });
         let unified = self.bindings.unify(&decl_sort, &proc)?;
-        self.bindings.pop_scope();
+
+        // Don't create a new scope if we're at the special top-level declaration.
+        // This is needed for the typechecker visiting multiple Progs and expecting
+        // earlier declarations to be in scope.
+        if name != "top" {
+            self.bindings.push_scope();
+        }
         Ok(ControlMut::Produce(unified))
     }
 

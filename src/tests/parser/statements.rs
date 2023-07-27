@@ -29,6 +29,16 @@ mod tests {
     }
 
     #[test]
+    fn parse_assign_to_relation_2() {
+        let fragment = "r(0) := (1 = 1)";
+        let res = IvyParser::parse(Rule::stmt, fragment)
+            .expect("Parsing failed")
+            .single()
+            .unwrap();
+        IvyParser::stmt(res).expect("generate ast");
+    }
+
+    #[test]
     fn parse_assign_annot() {
         let fragment = "var a:int := b";
         let res = IvyParser::parse(Rule::stmt, fragment)

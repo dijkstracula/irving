@@ -8,6 +8,7 @@ mod tests {
         typechecker::{
             inference::TypeChecker,
             sorts::{self, IvySort, Module, Object},
+            TypeError,
         },
         visitor::ast::Visitable,
     };
@@ -256,12 +257,32 @@ mod tests {
                 after init {
                     # ... but here, we know they are unbounded_sequences.
                     connected(0,0) := true;
+                    connected(1-1,1+2+3) := (1 = 2);
                 }
             }",
         );
 
         let mut tc = typechecker_with_bindings();
         let _res = iso.visit(&mut tc).unwrap().modifying(&mut iso).unwrap();
+    }
+    #[test]
+    fn test_relation_inference_bad_arity() {
+        let mut iso = process_from_src(
+            "process host(self:pid) = {
+                relation connected(X, Y)
+            
+                after init {
+                    # connected is a two-tuple
+                    connected(0,0,0) := true;
+                }
+            }",
+        );
+
+        let mut tc = typechecker_with_bindings();
+        let res = iso.visit(&mut tc).expect_err("Should get a type error");
+        let Ok(TypeError::SortListMismatch(_, _)) = res.downcast::<TypeError>() else {
+            unreachable!()
+        };
     }
 
     #[test]
@@ -278,7 +299,11 @@ mod tests {
         );
 
         let mut tc = typechecker_with_bindings();
-        let _res = iso.visit(&mut tc).unwrap().modifying(&mut iso).unwrap();
+        let res = iso.visit(&mut tc).expect_err("Should get a type error");
+        assert_eq!(
+            res.downcast::<TypeError>().unwrap(),
+            TypeError::UnificationError(IvySort::Bool, IvySort::Number)
+        )
     }
 
     #[test]
@@ -299,6 +324,10 @@ mod tests {
         );
 
         let mut tc = typechecker_with_bindings();
-        let _res = iso.visit(&mut tc).unwrap().modifying(&mut iso).unwrap();
+        let res = iso.visit(&mut tc).expect_err("Should get a type error");
+        assert_eq!(
+            res.downcast::<TypeError>().unwrap(),
+            TypeError::UnificationError(IvySort::Bool, IvySort::Number)
+        )
     }
 }
