@@ -35,27 +35,35 @@ lazy_static::lazy_static! {
 pub fn parse_log_term(pairs: Pairs<Rule>) -> Result<Expr> {
     PRATT
         .map_primary(|primary| match primary.as_rule() {
+            Rule::relation_lval => {
+                let mut pairs = primary.into_inner();
+                let name = pairs.next().unwrap().as_str().to_owned();
+                let args = pairs
+                    .next()
+                    .unwrap()
+                    .into_inner()
+                    .map(|e| parse_log_term(e.into_inner()))
+                    .collect::<Result<Vec<_>>>()?;
+
+                Ok(Expr::App(AppExpr {
+                    func: Box::new(Expr::inferred_symbol(name)),
+                    args,
+                }))
+            }
             Rule::logicvar => {
+                // TODO: we need a separate AST node for logicvars.
                 let mut pairs = primary.into_inner();
                 let id = pairs.next().unwrap().as_str().to_owned();
                 let sort = pairs.next().map(|s| vec![s.as_str().to_owned()]);
                 match sort {
-                    // TODO: wondering if either return path should just be a Term.
-                    // TODO: we need a separate AST node for logicvars.
-                    None => Ok(Expr::Symbol(Symbol {
-                        id,
-                        sort: Sort::ToBeInferred,
-                    })),
-                    Some(sort) => Ok(Expr::Symbol(Symbol {
-                        id,
-                        sort: Sort::Annotated(sort),
-                    })),
+                    None => Ok(Expr::inferred_symbol(id)),
+                    Some(sort) => Ok(Expr::annotated_symbol(id, sort)),
                 }
             }
-            Rule::symbol => Ok(Expr::Symbol(Symbol {
-                id: primary.as_str().to_owned(),
-                sort: Sort::ToBeInferred,
-            })),
+            Rule::symbol => {
+                let id = primary.as_str().to_owned();
+                Ok(Expr::inferred_symbol(id))
+            }
             Rule::boollit => {
                 let val = match primary.as_str() {
                     "true" => true,
@@ -103,20 +111,6 @@ pub fn parse_log_term(pairs: Pairs<Rule>) -> Result<Expr> {
                 op: verb,
                 rhs: Box::new(rhs?),
             }))
-        })
-        .map_postfix(|lhs, op| match op.as_rule() {
-            Rule::log_app_args => {
-                let results = op
-                    .into_inner()
-                    .map(|e| parse_log_term(e.into_inner()))
-                    .collect::<Vec<Result<_>>>();
-                let args = results.into_iter().collect::<Result<Vec<_>>>()?;
-                Ok(Expr::App(AppExpr {
-                    func: Box::new(lhs?),
-                    args,
-                }))
-            }
-            _ => unimplemented!(),
         })
         .parse(pairs)
 }
