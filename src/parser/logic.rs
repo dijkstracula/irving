@@ -60,9 +60,9 @@ pub fn parse_log_term(pairs: Pairs<Rule>) -> Result<Expr> {
                     Some(sort) => Ok(Expr::annotated_symbol(id, sort)),
                 }
             }
-            Rule::symbol => {
-                let id = primary.as_str().to_owned();
-                Ok(Expr::inferred_symbol(id))
+            Rule::token => {
+                let tok = primary.as_str().to_owned();
+                Ok(Expr::inferred_symbol(tok))
             }
             Rule::boollit => {
                 let val = match primary.as_str() {

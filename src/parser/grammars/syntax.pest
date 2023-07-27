@@ -2,7 +2,7 @@ COMMENT = _{ !SOI ~ "#" ~ !"lang " ~ (!"\n" ~ ANY)* }
 
 // A param is a token with an optional type annotation.  These are for things
 // like function argument lists.
-param = { symbol ~ ( ":" ~ ident)? }
+param = { token ~ ( ":" ~ ident)? }
 paramlist = { param ~ ("," ~ param)* }
 
 // Expressions
@@ -15,7 +15,7 @@ atom            = _{ prefix_op? ~ primary ~ postfix_op? }
                      LT | LE | GT | GE | EQ | NEQ |
                      AND | OR | DOT }
     postfix_op  = _{ fnapp_args | index }
-primary         = _{ THIS | symbol | number | boollit | "(" ~ rval ~ ")" }
+primary         = _{ THIS | token | number | boollit | "(" ~ rval ~ ")" }
 
 lval            = _{ rval }
 
@@ -26,7 +26,7 @@ index      = { "[" ~ rval ~ "]" }
 // Types
 
 bv_decl = { BV ~ "[" ~ number ~ "]" }
-enum_decl  = { "{" ~ symbol ~ ("," ~ symbol)* ~ "}" }
+enum_decl  = { "{" ~ token ~ ("," ~ token)* ~ "}" }
 range_decl = { "{" ~ rval ~ ".." ~ rval ~ "}" }
 
 builtin_type = { bv_decl | enum_decl | range_decl | THIS }
@@ -34,47 +34,47 @@ builtin_type = { bv_decl | enum_decl | range_decl | THIS }
 // Decls
 
 decl_ret   = { "returns" ~ "(" ~ param ~ ")" } //TODO: needs to be a paramlist
-decl_sig =  { symbol ~ ("(" ~ paramlist ~ ")")? }
+decl_sig =  { token ~ ("(" ~ paramlist ~ ")")? }
 decl_block = { "{" ~ (decl ~ ";"?)* ~ "}" }
 
-mod_sig = { symbol ~ ( "(" ~ symbol ~ ("," ~ symbol)? ~ ")")? }
+mod_sig = { token ~ ( "(" ~ token ~ ("," ~ token)? ~ ")")? }
 
-include_decl      = { INCLUDE ~ symbol }
+include_decl      = { INCLUDE ~ token }
 var_decl          = { VAR ~ param }
 
 attribute_decl    = { ATTRIBUTE ~ rval } // TODO: wildly overspecified: shoudl be constrained beyond just an expr.
 
-alias_decl        = { ALIAS ~ symbol ~ "=" ~ builtin_type }
+alias_decl        = { ALIAS ~ token ~ "=" ~ builtin_type }
 axiom_decl        = { AXIOM ~ fmla }
 
-function_decl     = { FUNCTION ~ decl_sig ~ ":" ~ symbol }
+function_decl     = { FUNCTION ~ decl_sig ~ ":" ~ token }
 relation_decl     = { RELATION ~ decl_sig }
 
 global_decl       = { GLOBAL ~ decl_block }
 process_decl      = { PROCESS ~ decl_sig ~ "=" ~ decl_block }
-object_decl       = { OBJECT ~ symbol ~ "=" ~ decl_block }
+object_decl       = { OBJECT ~ token ~ "=" ~ decl_block }
 
 import_decl       = { IMPORT ~ ACTION ~ decl_sig }
-export_decl       = { EXPORT ~ (symbol | action_decl) }
+export_decl       = { EXPORT ~ (token | action_decl) }
 
 module_decl       = { MODULE ~ mod_sig ~ "=" ~ decl_block }
 
-instance_decl     = { INSTANCE ~ symbol ~ ":" ~ mixin_sig }
+instance_decl     = { INSTANCE ~ token ~ ":" ~ mixin_sig }
 
 implementation_decl    = { IMPLEMENTATION ~ decl_block }
 specification_decl     = { SPECIFICATION ~ decl_block }
 common_decl            = { COMMON ~ decl_block }
 
 // TODO: struct decl
-//type_name         = { symbol | THIS }
-type_decl         = { TYPE ~ (THIS | (symbol ~ (("=" ~ builtin_type) | ("of" ~ symbol))?)) } // superclass might have to be more than a symbol
+//type_name         = { token | THIS }
+type_decl         = { TYPE ~ (THIS | (token ~ (("=" ~ builtin_type) | ("of" ~ token))?)) } // superclass might have to be more than a token
 
 invariant_decl    = { INVARIANT ~ fmla }
 
 // TODO: not sure exactly about these ones yet.
-header_decl       = { HEADER ~ symbol }
-interpret_decl    = { INTERPRET ~ symbol ~ ("->" ~ ident)? }
-instantiate_decl  = { INSTANTIATE ~ symbol }
+header_decl       = { HEADER ~ token }
+interpret_decl    = { INTERPRET ~ token ~ ("->" ~ ident)? }
+instantiate_decl  = { INSTANTIATE ~ token }
 autoinstance_decl = { AUTOINSTANCE ~ decl_sig }
 
 decl = {
