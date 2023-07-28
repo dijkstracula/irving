@@ -920,21 +920,18 @@ impl Visitor<IvySort> for TypeChecker {
         if let IvySort::Module(module) = module_sort {
             if !mod_args_sorts.is_empty() {
                 // Will have to monomorphize with the module instantiation pass.
-                println!("Uh oh: {:?} {:?}", name, module);
-                for (i, x) in self.bindings.ctx.iter().enumerate() {
-                    println!("ctx[{i}]: {x:?}");
-                 }
+                //println!("Uh oh: {:?} {:?}", name, module);
+                //for (i, x) in self.bindings.ctx.iter().enumerate() {
+                //    println!("ctx[{i}]: {x:?}");
+                // }
 
                 for ((_name, s1), s2) in module.args.iter().zip(mod_args_sorts.iter()) {
-                    println!("{:?} {:?}", s1, s2);
                     self.bindings.unify(s1, s2)?;
                 }
 
-                let monomorphized = module_instantiation::instantiate(
-                    module, 
-                    mod_args_sorts)?;
+                let monomorphized = module_instantiation::instantiate(module, mod_args_sorts)?;
                 let unified = self.bindings.unify(&decl_sort, &monomorphized)?;
-                println!("Yay? {name} {:?}", unified);
+                //println!("Yay? {name} {:?}", unified);
 
                 if let IvySort::Module(Module { .. }) = unified {
                     return Ok(ControlMut::Produce(unified));

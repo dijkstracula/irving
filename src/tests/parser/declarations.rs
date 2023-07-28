@@ -74,7 +74,7 @@ mod tests {
 
     #[test]
     fn parse_function_decl() {
-        let fragment = "function foo(a: int, b: int): int";
+        let fragment = "function foo(A: int, B: int): int";
         let res = IvyParser::parse(Rule::function_decl, fragment)
             .expect("Parsing failed")
             .single()
@@ -217,6 +217,16 @@ mod tests {
     #[test]
     fn parse_relation_decl() {
         let fragment = "relation foo(A: int, B: int)";
+        let res = IvyParser::parse(Rule::relation_decl, fragment)
+            .expect("Parsing failed")
+            .single()
+            .unwrap();
+        IvyParser::relation_decl(res).unwrap();
+    }
+
+    #[test]
+    fn parse_nullary_relation() {
+        let fragment = "relation foo";
         let res = IvyParser::parse(Rule::relation_decl, fragment)
             .expect("Parsing failed")
             .single()

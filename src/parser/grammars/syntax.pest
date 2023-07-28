@@ -17,7 +17,7 @@ atom            = _{ prefix_op? ~ primary ~ postfix_op? }
     postfix_op  = _{ fnapp_args | index }
 primary         = _{ THIS | progsym | number | boollit | "(" ~ rval ~ ")" }
 
-lval            = _{ relation_lval | rval }
+lval            = { relation_lval | rval }
 
 fnapp_args = { "(" ~ (rval ~ ("," ~ rval)* )? ~ ")" }
 //TODO: only one dimension of indexing, right?
@@ -47,8 +47,8 @@ attribute_decl    = { ATTRIBUTE ~ rval } // TODO: wildly overspecified: shoudl b
 alias_decl        = { ALIAS ~ progsym ~ "=" ~ builtin_type }
 axiom_decl        = { AXIOM ~ fmla }
 
-function_decl     = { FUNCTION ~ decl_sig ~ ":" ~ progsym }
-relation_decl     = { RELATION ~ progsym ~ "(" ~ lparamlist ~ ")" }
+function_decl     = { FUNCTION ~ progsym ~ ("(" ~ lparamlist ~ ")") ~ ":" ~ progsym }
+relation_decl     = { RELATION ~ progsym ~ ("(" ~ lparamlist ~ ")")? }
 
 global_decl       = { GLOBAL ~ decl_block }
 process_decl      = { PROCESS ~ decl_sig ~ "=" ~ decl_block }

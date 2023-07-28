@@ -164,7 +164,7 @@ module counter(t) = {
 }
 
 type foo
-instance c : counter(foo)"
+instance c : counter(foo)",
         );
 
         let mut tc = TypeChecker::new();
@@ -186,10 +186,11 @@ module counter(t) = {
     after init { val := 0 }
 }
 
-instance c : counter(bool)"
+instance c : counter(bool)",
         );
 
         let mut tc = TypeChecker::new();
-        proc.visit(&mut tc).expect_err("bool should not be unifiable with a numeric sort for argument `t`");
+        proc.visit(&mut tc)
+            .expect_err("bool should not be unifiable with a numeric sort for argument `t`");
     }
 }

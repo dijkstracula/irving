@@ -391,14 +391,24 @@ where
     fn begin_exists(&mut self, _ast: &mut Exists) -> VisitorResult<T, Fmla> {
         Ok(ControlMut::Produce(T::default()))
     }
-    fn finish_exists(&mut self, _ast: &mut Exists, _vars: Vec<T>, _fmla: T) -> VisitorResult<T, Fmla> {
+    fn finish_exists(
+        &mut self,
+        _ast: &mut Exists,
+        _vars: Vec<T>,
+        _fmla: T,
+    ) -> VisitorResult<T, Fmla> {
         Ok(ControlMut::Produce(T::default()))
     }
 
     fn begin_forall(&mut self, _ast: &mut Forall) -> VisitorResult<T, Fmla> {
         Ok(ControlMut::Produce(T::default()))
     }
-    fn finish_forall(&mut self, _ast: &mut Forall, _vars: Vec<T>, _fmla: T) -> VisitorResult<T, Fmla> {
+    fn finish_forall(
+        &mut self,
+        _ast: &mut Forall,
+        _vars: Vec<T>,
+        _fmla: T,
+    ) -> VisitorResult<T, Fmla> {
         Ok(ControlMut::Produce(T::default()))
     }
 

@@ -17,7 +17,7 @@ forall           =  { FORALL ~ logicsym ~ ("," ~ logicsym)* ~ "." ~ fmla }
 log_subscr      =  { progsym ~ ("." ~ progsym)* }
 
 log_term        =  { log_atom ~ (log_infix_op ~ log_atom)* }
-log_atom        = _{ log_prefix_op? ~ log_primary }
+log_atom        = _{ log_prefix_op? ~ log_primary ~ log_app_args? }
     log_prefix_op   = _{ NOT }
     log_infix_op    = _{ IFF | ARROW |
                      LE | LT | GE | GT | EQ | NEQ |

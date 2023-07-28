@@ -121,5 +121,19 @@ pub fn parse_log_term(pairs: Pairs<Rule>) -> Result<Expr> {
                 rhs: Box::new(rhs?),
             }))
         })
+        .map_postfix(|lhs, op| match op.as_rule() {
+            Rule::log_app_args => {
+                let results = op
+                    .into_inner()
+                    .map(|e| parse_log_term(e.into_inner()))
+                    .collect::<Vec<Result<_>>>();
+                let args = results.into_iter().collect::<Result<Vec<_>>>()?;
+                Ok(Expr::App(AppExpr {
+                    func: Box::new(lhs?),
+                    args,
+                }))
+            }
+            _ => unimplemented!(),
+        })
         .parse(pairs)
 }

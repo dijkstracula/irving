@@ -128,18 +128,20 @@ impl IvyParser {
 
     // Lvals
 
+    pub fn lval(input: Node) -> Result<Expr> {
+        match_nodes!(
+        input.into_children();
+        [relation_lval(lval)] => Ok(lval),
+        [rval(lval)] => Ok(lval),
+        )
+    }
+
     pub fn relation_lval(input: Node) -> Result<Expr> {
         match_nodes!(
         input.into_children();
         [rval(func), log_app_args(args)] => {
             Ok(Expr::App(AppExpr {
                 func: Box::new(func),
-                args
-            }))
-        },
-        [progsym(func), log_app_args(args)] => {
-            Ok(Expr::App(AppExpr {
-                func: Box::new(Expr::inferred_symbol(func)),
                 args
             }))
         })
@@ -343,9 +345,8 @@ impl IvyParser {
     pub fn function_decl(input: Node) -> Result<Binding<FunctionDecl>> {
         match_nodes!(
         input.into_children();
-            [decl_sig(DeclSig{name, params}), progsym(ret)] => Ok(
-                Binding::from(name, FunctionDecl { params, ret })
-            ),
+            [progsym(name), lparamlist(params), progsym(ret)] =>
+                Ok(Binding::from(name, FunctionDecl {params, ret}))
         )
     }
 
@@ -451,6 +452,10 @@ impl IvyParser {
     pub fn relation_decl(input: Node) -> Result<Binding<Relation>> {
         match_nodes!(
         input.into_children();
+        [progsym(name)] => {
+            let params = vec!();
+            Ok(Binding::from(name, Relation{params}))
+        },
         [progsym(name), lparamlist(params)] =>
             Ok(Binding::from(name, Relation{params}))
         )
@@ -539,12 +544,10 @@ impl IvyParser {
         [var_decl(Binding{name, decl}), rval(rhs)] => Ok(
             AssignAction{lhs: Expr::Symbol(Symbol{id: name, sort: decl}), rhs}
         ),
-        // XXX: why don't we have a `lval: { rval | relation_lval }` rule???
-        [rval(lhs), rval(rhs)] => match lhs {
+        [lval(lhs), rval(rhs)] => match lhs {
             Expr::App(_) | Expr::FieldAccess(_) | Expr::Index(_) | Expr::Symbol(_) | Expr::This => Ok(AssignAction{lhs, rhs}),
             _ => todo!(),
-        },
-        [relation_lval(lhs), rval(rhs)] => Ok(AssignAction{lhs, rhs}),
+        }
         )
     }
 
