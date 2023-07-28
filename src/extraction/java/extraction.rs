@@ -460,6 +460,7 @@ where
     fn finish_ensure(
         &mut self,
         _ast: &mut actions::EnsureAction,
+        _pred_t: (),
     ) -> VisitorResult<(), actions::Action> {
         self.pp.write_str(")")?;
         Ok(ControlMut::Produce(()))

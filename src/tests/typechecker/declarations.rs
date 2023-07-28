@@ -14,6 +14,51 @@ mod tests {
     use pest_consume::Parser;
 
     #[test]
+    fn test_ensure() {
+        let prog = "ensure true";
+        let mut decl_ast = helpers::decl_from_src(prog);
+
+        let mut tc = TypeChecker::new();
+        decl_ast.visit(&mut tc).expect("typecheck");
+    }
+
+    #[test]
+    fn test_ensure_bad() {
+        let prog = "ensure 1+1";
+        let mut decl_ast = helpers::decl_from_src(prog);
+
+        let mut tc = TypeChecker::new();
+        decl_ast.visit(&mut tc).expect_err("visit");
+    }
+
+    #[test]
+    fn test_ensure_quantified() {
+        let prog = "ensure forall X . X = X";
+        let mut decl_ast = helpers::decl_from_src(prog);
+
+        let mut tc = TypeChecker::new();
+        decl_ast.visit(&mut tc).expect_err("visit");
+    }
+
+    #[test]
+    fn test_require() {
+        let prog = "require true";
+        let mut decl_ast = helpers::decl_from_src(prog);
+
+        let mut tc = TypeChecker::new();
+        decl_ast.visit(&mut tc).expect("typecheck");
+    }
+
+    #[test]
+    fn test_require_bad() {
+        let prog = "require 1+1";
+        let mut decl_ast = helpers::decl_from_src(prog);
+
+        let mut tc = TypeChecker::new();
+        decl_ast.visit(&mut tc).expect_err("visit");
+    }
+
+    #[test]
     fn test_instance_decl_no_args() {
         let prog = "instance socket: net.sock";
         let mut decl_ast = helpers::decl_from_src(prog);

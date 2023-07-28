@@ -110,14 +110,18 @@ where
     fn begin_ensure(&mut self, _ast: &mut EnsureAction) -> VisitorResult<T, Action> {
         Ok(ControlMut::Produce(T::default()))
     }
-    fn finish_ensure(&mut self, _ast: &mut EnsureAction) -> VisitorResult<T, Action> {
+    fn finish_ensure(&mut self, _ast: &mut EnsureAction, _pred_p: T) -> VisitorResult<T, Action> {
         Ok(ControlMut::Produce(T::default()))
     }
 
     fn begin_requires(&mut self, _ast: &mut RequiresAction) -> VisitorResult<T, Action> {
         Ok(ControlMut::Produce(T::default()))
     }
-    fn finish_requires(&mut self, _ast: &mut RequiresAction) -> VisitorResult<T, Action> {
+    fn finish_requires(
+        &mut self,
+        _ast: &mut RequiresAction,
+        _pred_t: T,
+    ) -> VisitorResult<T, Action> {
         Ok(ControlMut::Produce(T::default()))
     }
 
@@ -543,14 +547,14 @@ where
                 let args = expr.args.visit(visitor)?.modifying(&mut expr.args)?;
                 visitor.finish_call(expr, func, args)
             }),
-            Action::Ensure(action) => visitor
-                .begin_ensure(action)?
-                .map(|_| action.pred.visit(visitor)?.modifying(&mut action.pred))?
-                .and_then(|_| visitor.finish_ensure(action)),
-            Action::Requires(action) => visitor
-                .begin_requires(action)?
-                .map(|_| action.pred.visit(visitor)?.modifying(&mut action.pred))?
-                .and_then(|_| visitor.finish_requires(action)),
+            Action::Ensure(action) => visitor.begin_ensure(action)?.and_then(|_| {
+                let p = action.pred.visit(visitor)?.modifying(&mut action.pred)?;
+                visitor.finish_ensure(action, p)
+            }),
+            Action::Requires(action) => visitor.begin_requires(action)?.and_then(|_| {
+                let p = action.pred.visit(visitor)?.modifying(&mut action.pred)?;
+                visitor.finish_requires(action, p)
+            }),
         }
     }
 }

@@ -611,6 +611,24 @@ impl Visitor<IvySort> for TypeChecker {
         ))
     }
 
+    fn finish_ensure(
+        &mut self,
+        _ast: &mut actions::EnsureAction,
+        pred_sort: IvySort,
+    ) -> VisitorResult<IvySort, Action> {
+        self.bindings.unify(&IvySort::Bool, &pred_sort)?;
+        Ok(ControlMut::Produce(IvySort::Unit))
+    }
+
+    fn finish_requires(
+        &mut self,
+        _ast: &mut actions::RequiresAction,
+        pred_sort: IvySort,
+    ) -> VisitorResult<IvySort, Action> {
+        self.bindings.unify(&IvySort::Bool, &pred_sort)?;
+        Ok(ControlMut::Produce(IvySort::Unit))
+    }
+
     fn begin_function_decl(
         &mut self,
         name: &mut Token,
