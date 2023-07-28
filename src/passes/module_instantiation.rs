@@ -16,10 +16,8 @@ pub fn instantiate(mut m: Module, args: Vec<IvySort>) -> Result<IvySort> {
     let curried = m.args.drain(0..args.len());
     let substs = curried
         .zip(args.into_iter())
-        .map(|((name, s1), s2)| {
-            let IvySort::SortVar(_) = s1 else {
-                bail!(ModuleInstantiationError::ModuleArgumentRebinding(name, s1));
-            };
+        .map(|((_name, s1), s2)| {
+            //let unified = ctx.unify(&s1, &s2)?;
             Ok((s1, s2))
         })
         .collect::<Result<BTreeMap<_, _>>>()?;

@@ -461,7 +461,7 @@ impl Visitor<IvySort> for TypeChecker {
     }
     fn finish_forall(
         &mut self,
-        ast: &mut logic::Forall,
+        _ast: &mut logic::Forall,
         _vars: Vec<IvySort>,
         _fmla: IvySort,
     ) -> VisitorResult<IvySort, logic::Fmla> {
@@ -920,14 +920,21 @@ impl Visitor<IvySort> for TypeChecker {
         if let IvySort::Module(module) = module_sort {
             if !mod_args_sorts.is_empty() {
                 // Will have to monomorphize with the module instantiation pass.
-                //println!("Uh oh: {:?} {:?}", name, decl_sort);
-                //for (i, x) in self.bindings.ctx.iter().enumerate() {
-                //    println!("ctx[{i}]: {x:?}");
-                // }
+                println!("Uh oh: {:?} {:?}", name, module);
+                for (i, x) in self.bindings.ctx.iter().enumerate() {
+                    println!("ctx[{i}]: {x:?}");
+                 }
 
-                let monomorphized = module_instantiation::instantiate(module, mod_args_sorts)?;
+                for ((_name, s1), s2) in module.args.iter().zip(mod_args_sorts.iter()) {
+                    println!("{:?} {:?}", s1, s2);
+                    self.bindings.unify(s1, s2)?;
+                }
+
+                let monomorphized = module_instantiation::instantiate(
+                    module, 
+                    mod_args_sorts)?;
                 let unified = self.bindings.unify(&decl_sort, &monomorphized)?;
-                //println!("Yay? {name} {:?}", unified);
+                println!("Yay? {name} {:?}", unified);
 
                 if let IvySort::Module(Module { .. }) = unified {
                     return Ok(ControlMut::Produce(unified));

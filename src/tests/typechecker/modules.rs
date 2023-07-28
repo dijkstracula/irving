@@ -147,4 +147,49 @@ mod tests {
         );
         println!("{:?}", tc.bindings.resolve(&IvySort::SortVar(2)));
     }
+
+    #[test]
+    fn instantiation_with_overloaded_numerals() {
+        // From http://microsoft.github.io/ivy/language.html :
+        //
+        // The types of numerals are inferred from context. For example, if x
+        // has type foo, then in the expression x+1, the numeral 1 is inferred
+        // to have type foo."
+        let mut proc = helpers::prog_from_decls(
+            "
+#lang ivy1.8
+module counter(t) = {
+    individual val : t
+    after init { val := 0 }
+}
+
+type foo
+instance c : counter(foo)"
+        );
+
+        let mut tc = TypeChecker::new();
+        proc.visit(&mut tc).unwrap().modifying(&mut proc).unwrap();
+    }
+
+    #[test]
+    fn instantiation_with_invalid_overloaded_numerals() {
+        // From http://microsoft.github.io/ivy/language.html :
+        //
+        // The types of numerals are inferred from context. For example, if x
+        // has type foo, then in the expression x+1, the numeral 1 is inferred
+        // to have type foo."
+        let mut proc = helpers::prog_from_decls(
+            "
+#lang ivy1.8
+module counter(t) = {
+    individual val : t
+    after init { val := 0 }
+}
+
+instance c : counter(bool)"
+        );
+
+        let mut tc = TypeChecker::new();
+        proc.visit(&mut tc).expect_err("bool should not be unifiable with a numeric sort for argument `t`");
+    }
 }

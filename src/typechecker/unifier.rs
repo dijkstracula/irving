@@ -233,12 +233,24 @@ impl Resolver {
                 Ok(IvySort::Action(lhsargnames.clone(), args, ret))
             }
 
-            // This subtyping relationship is fine, because Ivy's range datatype
-            // saturates arithmetic operations.
+            // These subtyping relationship are meant to capture part of the
+            // aspect that in Ivy, numerals' types are entirely inferred from
+            // context.
             (IvySort::Number, IvySort::Range(lo, hi))
             | (IvySort::Range(lo, hi), IvySort::Number) => {
+                // This subtyping relationship is fine, because Ivy's range
+                // datatype saturates arithmetic operations.
                 Ok(IvySort::Range(lo.clone(), hi.clone()))
+            },
+            (IvySort::Number, IvySort::Uninterpreted)
+            | (IvySort::Uninterpreted, IvySort::Number) => {
+                Ok(IvySort::Uninterpreted)
             }
+            // TODO: I need to experiment with weird typings like 
+            // `var x: bool := 42`: if the types are truly inferred from
+            // context, then `42` should be treated of course as a bool.  Is
+            // this actually what happens???
+
 
             // This subtyping relationship is for indexing into an isolate
             // definition by its arguments.

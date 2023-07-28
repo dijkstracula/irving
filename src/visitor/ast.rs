@@ -391,24 +391,14 @@ where
     fn begin_exists(&mut self, _ast: &mut Exists) -> VisitorResult<T, Fmla> {
         Ok(ControlMut::Produce(T::default()))
     }
-    fn finish_exists(
-        &mut self,
-        _ast: &mut Exists,
-        _vars: Vec<T>,
-        _fmla: T,
-    ) -> VisitorResult<T, Fmla> {
+    fn finish_exists(&mut self, _ast: &mut Exists, _vars: Vec<T>, _fmla: T) -> VisitorResult<T, Fmla> {
         Ok(ControlMut::Produce(T::default()))
     }
 
     fn begin_forall(&mut self, _ast: &mut Forall) -> VisitorResult<T, Fmla> {
         Ok(ControlMut::Produce(T::default()))
     }
-    fn finish_forall(
-        &mut self,
-        _ast: &mut Forall,
-        _vars: Vec<T>,
-        _fmla: T,
-    ) -> VisitorResult<T, Fmla> {
+    fn finish_forall(&mut self, _ast: &mut Forall, _vars: Vec<T>, _fmla: T) -> VisitorResult<T, Fmla> {
         Ok(ControlMut::Produce(T::default()))
     }
 
@@ -814,7 +804,11 @@ where
             }) => visitor.begin_instance_decl(name, decl)?.and_then(|_| {
                 let n = name.visit(visitor)?.modifying(name)?;
                 let s = decl.sort.visit(visitor)?.modifying(&mut decl.sort)?;
-                let a = decl.args.visit(visitor)?.modifying(&mut decl.args)?;
+                let a = decl
+                    .args
+                    .iter_mut()
+                    .map(|p| p.id.visit(visitor)?.modifying(&mut p.id))
+                    .collect::<Result<Vec<_>, _>>()?;
                 visitor.finish_instance_decl(name, decl, n, s, a)
             }),
             Decl::Instantiate { name, prms } => todo!(),

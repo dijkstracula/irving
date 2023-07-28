@@ -27,6 +27,10 @@ mod helpers {
 
     pub fn prog_from_filename(path: &str) -> Prog {
         let prog = std::fs::read_to_string(path).unwrap();
+        prog_from_decls(&prog)
+    }
+
+    pub fn prog_from_decls(prog: &str) -> Prog {
         let res = IvyParser::parse(Rule::prog, &prog)
             .expect("Parsing failed")
             .single()

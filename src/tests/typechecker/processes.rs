@@ -198,7 +198,7 @@ mod tests {
         );
         let _ = iso
             .visit(&mut tc)
-            .expect_err("Bool is not unifiable with Number");
+            .expect_err("Bool should not be unifiable with Number");
     }
 
     #[test]
