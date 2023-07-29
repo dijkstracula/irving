@@ -69,7 +69,7 @@ pub fn parse_log_term(pairs: Pairs<Rule>) -> Result<Expr> {
                 }))
             }
             Rule::logicsym => Ok(Expr::ProgramSymbol(parse_lsym(primary)?)),
-            Rule::progsym => {
+            Rule::PROGTOK => {
                 let tok = primary.as_str().to_owned();
                 Ok(Expr::inferred_progsym(tok))
             }

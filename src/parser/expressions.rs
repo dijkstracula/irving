@@ -50,7 +50,7 @@ pub fn parse_rval(pairs: Pairs<Rule>) -> Result<Expr> {
                 id: primary.as_str().into(),
                 sort: Sort::ToBeInferred,
             })),
-            Rule::progsym => Ok(Expr::ProgramSymbol(Symbol {
+            Rule::PROGTOK => Ok(Expr::ProgramSymbol(Symbol {
                 id: primary.as_str().into(),
                 sort: Sort::ToBeInferred,
             })),

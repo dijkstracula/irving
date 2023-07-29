@@ -1,8 +1,8 @@
 COMMENT = _{ !SOI ~ "#" ~ !"lang " ~ (!"\n" ~ ANY)* }
 
-// A param is a progsym with an optional type annotation.  These are for things
+// A param is a PROGTOK with an optional type annotation.  These are for things
 // like function argument lists.
-param = { progsym ~ ( ":" ~ ident)? }
+param = { PROGTOK ~ ( ":" ~ ident)? }
 paramlist = { param ~ ("," ~ param)* }
 
 // Expressions
@@ -15,7 +15,7 @@ atom            = _{ prefix_op? ~ primary ~ postfix_op? }
                      LT | LE | GT | GE | EQ | NEQ |
                      AND | OR | DOT }
     postfix_op  = _{ fnapp_args | index }
-primary         = _{ THIS | logicsym | progsym | number | boollit | "(" ~ rval ~ ")" }
+primary         = _{ THIS | logicsym | PROGTOK | number | boollit | "(" ~ rval ~ ")" }
 
 lval            = { relation_lval | rval }
 
@@ -26,7 +26,7 @@ index      = { "[" ~ rval ~ "]" }
 // Types
 
 bv_decl = { BV ~ "[" ~ number ~ "]" }
-enum_decl  = { "{" ~ progsym ~ ("," ~ progsym)* ~ "}" }
+enum_decl  = { "{" ~ PROGTOK ~ ("," ~ PROGTOK)* ~ "}" }
 range_decl = { "{" ~ rval ~ ".." ~ rval ~ "}" }
 
 builtin_type = { bv_decl | enum_decl | range_decl | THIS }
@@ -34,47 +34,47 @@ builtin_type = { bv_decl | enum_decl | range_decl | THIS }
 // Decls
 
 decl_ret   = { "returns" ~ "(" ~ param ~ ")" } //TODO: needs to be a paramlist
-decl_sig =  { progsym ~ ("(" ~ paramlist ~ ")")? }
+decl_sig =  { PROGTOK ~ ("(" ~ paramlist ~ ")")? }
 decl_block = { "{" ~ (decl ~ ";"?)* ~ "}" }
 
-mod_sig = { progsym ~ ( "(" ~ progsym ~ ("," ~ progsym)? ~ ")")? }
+mod_sig = { PROGTOK ~ ( "(" ~ PROGTOK ~ ("," ~ PROGTOK)? ~ ")")? }
 
-include_decl      = { INCLUDE ~ progsym }
+include_decl      = { INCLUDE ~ PROGTOK }
 var_decl          = { VAR ~ param }
 
 attribute_decl    = { ATTRIBUTE ~ rval } // TODO: wildly overspecified: shoudl be constrained beyond just an expr.
 
-alias_decl        = { ALIAS ~ progsym ~ "=" ~ builtin_type }
+alias_decl        = { ALIAS ~ PROGTOK ~ "=" ~ builtin_type }
 axiom_decl        = { AXIOM ~ fmla }
 
-function_decl     = { FUNCTION ~ progsym ~ ("(" ~ lparamlist ~ ")") ~ ":" ~ progsym }
-relation_decl     = { RELATION ~ progsym ~ ("(" ~ lparamlist ~ ")")? }
+function_decl     = { FUNCTION ~ PROGTOK ~ ("(" ~ lparamlist ~ ")") ~ ":" ~ PROGTOK }
+relation_decl     = { RELATION ~ PROGTOK ~ ("(" ~ lparamlist ~ ")")? }
 
 global_decl       = { GLOBAL ~ decl_block }
 process_decl      = { PROCESS ~ decl_sig ~ "=" ~ decl_block }
-object_decl       = { OBJECT ~ progsym ~ "=" ~ decl_block }
+object_decl       = { OBJECT ~ PROGTOK ~ "=" ~ decl_block }
 
 import_decl       = { IMPORT ~ ACTION ~ decl_sig }
-export_decl       = { EXPORT ~ (progsym | action_decl) }
+export_decl       = { EXPORT ~ (PROGTOK | action_decl) }
 
 module_decl       = { MODULE ~ mod_sig ~ "=" ~ decl_block }
 
-instance_decl     = { INSTANCE ~ progsym ~ ":" ~ mixin_sig }
+instance_decl     = { INSTANCE ~ PROGTOK ~ ":" ~ mixin_sig }
 
 implementation_decl    = { IMPLEMENTATION ~ decl_block }
 specification_decl     = { SPECIFICATION ~ decl_block }
 common_decl            = { COMMON ~ decl_block }
 
 // TODO: struct decl
-//type_name         = { progsym | THIS }
-type_decl         = { TYPE ~ (THIS | (progsym ~ (("=" ~ builtin_type) | ("of" ~ progsym))?)) } // superclass might have to be more than a progsym
+//type_name         = { PROGTOK | THIS }
+type_decl         = { TYPE ~ (THIS | (PROGTOK ~ (("=" ~ builtin_type) | ("of" ~ PROGTOK))?)) } // superclass might have to be more than a PROGTOK
 
 invariant_decl    = { INVARIANT ~ fmla }
 
 // TODO: not sure exactly about these ones yet.
-header_decl       = { HEADER ~ progsym }
-interpret_decl    = { INTERPRET ~ progsym ~ ("->" ~ ident)? }
-instantiate_decl  = { INSTANTIATE ~ progsym }
+header_decl       = { HEADER ~ PROGTOK }
+interpret_decl    = { INTERPRET ~ PROGTOK ~ ("->" ~ ident)? }
+instantiate_decl  = { INSTANTIATE ~ PROGTOK }
 autoinstance_decl = { AUTOINSTANCE ~ decl_sig }
 
 decl = {
@@ -119,7 +119,7 @@ before_decl       = { BEFORE ~ (mixin_sig ~ decl_ret?)? ~ stmt_block }
 implement_action_decl    = { IMPLEMENT ~ mixin_sig ~ decl_ret? ~ stmt_block }
 
 // NB: Because a mixin signature can refer to an action outside the current scope, the sig
-// name needs to be a qualified identifier and not just a symbol progsym.
+// name needs to be a qualified identifier and not just a symbol PROGTOK.
 mixin_sig =  { ident ~ ("(" ~ paramlist ~ ")")? }
 
 assign_action = { (var_decl | lval) ~ ":=" ~ rval} //TODO

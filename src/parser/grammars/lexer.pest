@@ -131,8 +131,8 @@ reserved = {
 | THIS
 }
 
-progsym   = @{ !reserved ~ ASCII_ALPHA_LOWER       ~ ("_" | ASCII_ALPHANUMERIC)* }
+PROGTOK   = @{ !reserved ~ ASCII_ALPHA_LOWER       ~ ("_" | ASCII_ALPHANUMERIC)* }
 
 // An identifier is a program variable, possibly qualified with a module
 // prefix.
-ident = { THIS | (progsym ~ ("." ~ progsym)*) }
+ident = { THIS | (PROGTOK ~ ("." ~ PROGTOK)*) }
