@@ -435,4 +435,21 @@ mod tests {
         );
         let _ = prog.visit(&mut tc).unwrap_err();
     }
+
+    #[test]
+    fn test_action_read_relation() {
+        let mut iso = isolate_from_src(
+            "process foo = {
+            type node
+            relation failed(X: node)
+
+            action connect(x: node, y: node) = {
+                require ~failed(y);
+            }
+        } ",
+        );
+
+        let mut tc = TypeChecker::new();
+        let _ = iso.visit(&mut tc).unwrap().modifying(&mut iso).unwrap();
+    }
 }

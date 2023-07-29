@@ -461,7 +461,12 @@ where
     fn begin_unary_op(&mut self, _op: &mut Verb, _rhs: &mut Expr) -> VisitorResult<T, Expr> {
         Ok(ControlMut::Produce(T::default()))
     }
-    fn finish_unary_op(&mut self, _op: &mut Verb, _rhs: &mut Expr) -> VisitorResult<T, Expr> {
+    fn finish_unary_op(
+        &mut self,
+        _op: &mut Verb,
+        _rhs: &mut Expr,
+        _rhs_t: T,
+    ) -> VisitorResult<T, Expr> {
         Ok(ControlMut::Produce(T::default()))
     }
 
@@ -612,8 +617,8 @@ where
                 ref mut expr,
             } => visitor.begin_unary_op(op, expr)?.and_then(|_| {
                 let _ = visitor.verb(op)?.modifying(op)?;
-                let _ = expr.visit(visitor)?.modifying(expr)?;
-                visitor.finish_unary_op(op, expr)
+                let expr_t = expr.visit(visitor)?.modifying(expr)?;
+                visitor.finish_unary_op(op, expr, expr_t)
             }),
             Expr::ProgramSymbol(p) => visitor
                 .symbol(p)?

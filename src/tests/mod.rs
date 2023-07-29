@@ -15,7 +15,7 @@ fn init() {
 }
 
 #[cfg(test)]
-mod helpers {
+pub mod helpers {
     use crate::{
         ast::{declarations::Decl, expressions::Expr, toplevels::Prog},
         parser::ivy::{IvyParser, Rule},

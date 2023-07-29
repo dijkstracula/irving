@@ -77,6 +77,20 @@ mod tests {
     }
 
     #[test]
+    fn test_unary_op() {
+        let prog = "~true";
+        let parsed = IvyParser::parse(Rule::rval, prog)
+            .expect("Parsing failed")
+            .single()
+            .unwrap();
+        let mut binop = IvyParser::rval(parsed).expect("AST generation failed");
+
+        let mut tc = TypeChecker::new();
+        let res = binop.visit(&mut tc).unwrap().modifying(&mut binop).unwrap();
+        assert_eq!(res, IvySort::Bool);
+    }
+
+    #[test]
     fn test_ident() {
         let prog = "foo";
         let parsed = IvyParser::parse(Rule::rval, prog)

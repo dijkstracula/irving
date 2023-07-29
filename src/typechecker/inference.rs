@@ -453,6 +453,23 @@ impl Visitor<IvySort> for TypeChecker {
         }
     }
 
+    fn finish_unary_op(
+        &mut self,
+        op: &mut expressions::Verb,
+        _rhs: &mut Expr,
+        rhs_sort: IvySort,
+    ) -> VisitorResult<IvySort, Expr> {
+        match op {
+            expressions::Verb::Not => Ok(ControlMut::Produce(
+                self.bindings.unify(&IvySort::Bool, &rhs_sort)?,
+            )),
+            expressions::Verb::Minus => Ok(ControlMut::Produce(
+                self.bindings.unify(&IvySort::Number, &rhs_sort)?,
+            )),
+            _ => unimplemented!(),
+        }
+    }
+
     // Formulas
 
     fn begin_forall(&mut self, _ast: &mut logic::Forall) -> VisitorResult<IvySort, logic::Fmla> {
