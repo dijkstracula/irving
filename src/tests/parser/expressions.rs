@@ -22,11 +22,30 @@ mod tests {
 
     #[test]
     fn parse_logicvar() {
-        let ast = parse_rval("X").unwrap();
-        let expected = Expr::LogicSymbol(Symbol {
+        parse_rval("X").unwrap();
+    }
+
+    #[test]
+    fn parse_logicvar_in_subexpr() {
+        parse_rval("X + 1").unwrap();
+    }
+
+    #[test]
+    fn parse_logicvar_in_fnapp() {
+        let ast = parse_rval("f(X)").unwrap();
+
+        let arg = Expr::LogicSymbol(Symbol {
             id: "X".into(),
             sort: Sort::ToBeInferred,
         });
+        let app = AppExpr {
+            func: Box::new(Expr::ProgramSymbol(Symbol {
+                id: "f".into(),
+                sort: Sort::ToBeInferred,
+            })),
+            args: vec![arg],
+        };
+        let expected = Expr::App(app);
         assert_eq!(ast, expected);
     }
 

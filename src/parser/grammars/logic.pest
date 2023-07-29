@@ -28,6 +28,8 @@ log_primary    = _{ relation_lval | logicsym | PROGTOK | boollit | number | "(" 
 // 0) for some bound variable `x`) or with a logical variable which acts as a
 // placeholder (e.g.  r(X, 0) for some free `X`).
 relation_lval   = { rval ~ log_app_args }
+
+
 log_app_args    = { "(" ~ log_term ~ ("," ~ log_term)* ~ ")" }
 
 // An lparam is a logicsym with an optional type annotation.  These are for

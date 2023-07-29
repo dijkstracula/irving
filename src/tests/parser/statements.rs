@@ -20,7 +20,7 @@ mod tests {
 
     #[test]
     fn parse_assign_to_relation() {
-        let fragment = "r(X) := false";
+        let fragment = "r(X, y) := false";
         let res = IvyParser::parse(Rule::stmt, fragment)
             .expect("Parsing failed")
             .single()

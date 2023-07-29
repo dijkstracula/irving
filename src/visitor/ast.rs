@@ -480,12 +480,6 @@ where
         Ok(ControlMut::Produce(T::default()))
     }
 
-    fn logic_sym(&mut self, p: &mut Symbol) -> VisitorResult<T, Symbol> {
-        self.token(&mut p.id)?.modifying(&mut p.id)?;
-        self.sort(&mut p.sort)?.modifying(&mut p.sort)?;
-        Ok(ControlMut::Produce(T::default()))
-    }
-
     fn number(&mut self, _n: &mut i64) -> VisitorResult<T, i64> {
         Ok(ControlMut::Produce(T::default()))
     }
@@ -605,7 +599,7 @@ where
                 .and_then(|_| expr.idx.visit(visitor))?
                 .and_then(|_| visitor.finish_index(expr)),
             Expr::LogicSymbol(s) => visitor
-                .logic_sym(s)?
+                .symbol(s)?
                 .modifying(s)
                 .map(|t| ControlMut::Produce(t)),
             Expr::Number(n) => {

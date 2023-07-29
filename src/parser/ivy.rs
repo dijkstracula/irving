@@ -129,10 +129,21 @@ impl IvyParser {
     // Lvals
 
     pub fn lval(input: Node) -> Result<Expr> {
+        let span = input.as_pair().as_span(); // Irritating!
+
         match_nodes!(
         input.into_children();
         [relation_lval(lval)] => Ok(lval),
-        [rval(lval)] => Ok(lval),
+        [rval(lval)] => match lval {
+            Expr::App(_) |
+            Expr::FieldAccess(_) |
+            Expr::Index(_) |
+            Expr::ProgramSymbol(_) => Ok(lval),
+            // Can it be This? Expr::This => todo!(),
+            _ => Err(
+                Error::new_from_span(ErrorVariant::<Rule>::CustomError { message:
+                    format!("invalid lvalue: {:?}", lval) }, span))
+        }
         )
     }
 
@@ -168,14 +179,6 @@ impl IvyParser {
     pub fn rval(input: Node) -> Result<Expr> {
         let pairs = input.as_pair().to_owned().into_inner();
         parse_rval(pairs)
-    }
-
-    pub fn fnapp_args(input: Node) -> Result<Vec<Expr>> {
-        match_nodes!(
-        input.into_children();
-        [rval(args)..] => {
-            Ok(args.collect())
-        })
     }
 
     pub fn builtin_type(input: Node) -> Result<expressions::Sort> {

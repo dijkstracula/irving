@@ -10,7 +10,7 @@ use crate::{
     ast::{
         actions::{self, Action},
         declarations::{self, ActionMixinDecl, Binding},
-        expressions::{self, Expr, Sort, Symbol, Token},
+        expressions::{self, AppExpr, Expr, Sort, Symbol, Token},
         logic, statements,
     },
     passes::module_instantiation,
@@ -233,13 +233,32 @@ impl Visitor<IvySort> for TypeChecker {
 
     // Actions
 
+    fn begin_assign(&mut self, ast: &mut actions::AssignAction) -> VisitorResult<IvySort, Action> {
+        self.bindings.push_scope();
+        match &ast.lhs {
+            Expr::App(AppExpr { args, .. }) => {
+                for arg in args {
+                    if let Expr::LogicSymbol(sym) = arg {
+                        let s = self.bindings.new_sortvar();
+                        self.bindings.append(sym.id.clone(), s)?;
+                    }
+                }
+            }
+            _ => (),
+        }
+
+        Ok(ControlMut::Produce(IvySort::Unit))
+    }
+
     fn finish_assign(
         &mut self,
         _ast: &mut actions::AssignAction,
         lhs_sort: IvySort,
         rhs_sort: IvySort,
     ) -> VisitorResult<IvySort, Action> {
+        println!("NBT: {:?} := {:?}", lhs_sort, rhs_sort);
         self.bindings.unify(&lhs_sort, &rhs_sort)?;
+        self.bindings.pop_scope();
         Ok(ControlMut::Produce(IvySort::Unit))
     }
 

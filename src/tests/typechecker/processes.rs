@@ -330,4 +330,20 @@ mod tests {
             TypeError::UnificationError(IvySort::Bool, IvySort::Number)
         )
     }
+
+    #[test]
+    fn test_relation_logical_assign() {
+        let mut iso = process_from_src(
+            "process host(self:pid) = {
+                relation connected(X, Y)
+            
+                after init {
+                    connected(X,Y) := false;
+                }
+            }",
+        );
+
+        let mut tc = typechecker_with_bindings();
+        let _res = iso.visit(&mut tc).unwrap().modifying(&mut iso).unwrap();
+    }
 }
