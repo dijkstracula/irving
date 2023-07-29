@@ -46,7 +46,11 @@ pub fn parse_rval(pairs: Pairs<Rule>) -> Result<Expr> {
     PRATT
         .map_primary(|primary| match primary.as_rule() {
             Rule::THIS => Ok(Expr::This),
-            Rule::progsym => Ok(Expr::Symbol(Symbol {
+            Rule::logicsym => Ok(Expr::LogicSymbol(Symbol {
+                id: primary.as_str().into(),
+                sort: Sort::ToBeInferred,
+            })),
+            Rule::progsym => Ok(Expr::ProgramSymbol(Symbol {
                 id: primary.as_str().into(),
                 sort: Sort::ToBeInferred,
             })),
@@ -98,7 +102,7 @@ pub fn parse_rval(pairs: Pairs<Rule>) -> Result<Expr> {
 
             if verb == Verb::Dot {
                 let field = match rhs? {
-                    Expr::Symbol(field) => field,
+                    Expr::ProgramSymbol(field) => field,
                     _ => {
                         return Err(Error::new_from_span(
                             ErrorVariant::CustomError {

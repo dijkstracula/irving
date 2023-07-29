@@ -15,14 +15,19 @@ mod tests {
     }
 
     #[test]
-    fn parse_symbol_expr() {
+    fn parse_progsym() {
         let ast = parse_rval("a").unwrap();
-        assert_eq!(ast, Expr::inferred_symbol("a".into()));
+        assert_eq!(ast, Expr::inferred_progsym("a".into()));
     }
 
     #[test]
     fn parse_logicvar() {
-        IvyParser::parse(Rule::rval, "X").expect_err("Uppercase letters cannot be a valid symbol");
+        let ast = parse_rval("X").unwrap();
+        let expected = Expr::LogicSymbol(Symbol {
+            id: "X".into(),
+            sort: Sort::ToBeInferred,
+        });
+        assert_eq!(ast, expected);
     }
 
     #[test]
@@ -66,7 +71,7 @@ mod tests {
         assert_eq!(
             _ast,
             Expr::BinOp(BinOp {
-                lhs: Box::new(Expr::inferred_symbol("i".into())),
+                lhs: Box::new(Expr::inferred_progsym("i".into())),
                 op: Verb::Gt,
                 rhs: Box::new(Expr::Number(0)),
             })
@@ -80,13 +85,13 @@ mod tests {
             _ast,
             Expr::BinOp(BinOp {
                 lhs: Box::new(Expr::BinOp(BinOp {
-                    lhs: Box::new(Expr::inferred_symbol("b".into())),
+                    lhs: Box::new(Expr::inferred_progsym("b".into())),
                     op: Verb::Equals,
                     rhs: Box::new(Expr::Boolean(true))
                 })),
                 op: Verb::Or,
                 rhs: Box::new(Expr::BinOp(BinOp {
-                    lhs: Box::new(Expr::inferred_symbol("b".into())),
+                    lhs: Box::new(Expr::inferred_progsym("b".into())),
                     op: Verb::Equals,
                     rhs: Box::new(Expr::Boolean(false))
                 }))
@@ -105,7 +110,7 @@ mod tests {
         assert_eq!(
             _ast,
             Expr::FieldAccess(FieldAccess {
-                record: Box::new(Expr::inferred_symbol("a".into())),
+                record: Box::new(Expr::inferred_progsym("a".into())),
                 field: Symbol {
                     id: "b".into(),
                     sort: Sort::ToBeInferred

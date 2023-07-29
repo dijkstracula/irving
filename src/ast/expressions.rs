@@ -99,24 +99,26 @@ pub enum Expr {
 
     Index(IndexExpr),
 
+    LogicSymbol(Symbol),
+
     Number(i64),
 
     UnaryOp { op: Verb, expr: Box<Expr> },
 
-    Symbol(Symbol),
+    ProgramSymbol(Symbol),
 
     This,
 }
 
 impl Expr {
-    pub fn inferred_symbol(s: String) -> Self {
-        Self::Symbol(Symbol {
+    pub fn inferred_progsym(s: String) -> Self {
+        Self::ProgramSymbol(Symbol {
             id: s,
             sort: Sort::ToBeInferred,
         })
     }
-    pub fn annotated_symbol(s: String, id: Ident) -> Self {
-        Self::Symbol(Symbol {
+    pub fn annotated_progsym(s: String, id: Ident) -> Self {
+        Self::ProgramSymbol(Symbol {
             id: s,
             sort: Sort::Annotated(id),
         })

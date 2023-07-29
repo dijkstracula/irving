@@ -64,14 +64,14 @@ pub fn parse_log_term(pairs: Pairs<Rule>) -> Result<Expr> {
                     .collect::<Result<Vec<_>>>()?;
 
                 Ok(Expr::App(AppExpr {
-                    func: Box::new(Expr::inferred_symbol(name)),
+                    func: Box::new(Expr::inferred_progsym(name)),
                     args,
                 }))
             }
-            Rule::logicsym => Ok(Expr::Symbol(parse_lsym(primary)?)),
+            Rule::logicsym => Ok(Expr::ProgramSymbol(parse_lsym(primary)?)),
             Rule::progsym => {
                 let tok = primary.as_str().to_owned();
-                Ok(Expr::inferred_symbol(tok))
+                Ok(Expr::inferred_progsym(tok))
             }
             Rule::boollit => {
                 let val = match primary.as_str() {

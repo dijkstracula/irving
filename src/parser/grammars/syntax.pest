@@ -15,7 +15,7 @@ atom            = _{ prefix_op? ~ primary ~ postfix_op? }
                      LT | LE | GT | GE | EQ | NEQ |
                      AND | OR | DOT }
     postfix_op  = _{ fnapp_args | index }
-primary         = _{ THIS | progsym | number | boollit | "(" ~ rval ~ ")" }
+primary         = _{ THIS | logicsym | progsym | number | boollit | "(" ~ rval ~ ")" }
 
 lval            = { relation_lval | rval }
 
