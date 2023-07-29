@@ -156,7 +156,11 @@ impl Visitor<IvySort> for TypeChecker {
     ) -> VisitorResult<IvySort, expressions::Symbol> {
         println!("NBT: visiting param {:?}", p);
         match &mut p.sort {
-            Sort::ToBeInferred => Ok(ControlMut::Produce(self.bindings.new_sortvar())),
+            Sort::ToBeInferred => {
+                let sortvar = self.bindings.new_sortvar();
+                self.bindings.append(p.id.clone(), sortvar.clone())?;
+                Ok(ControlMut::Produce(sortvar))
+            }
             Sort::Annotated(id) => {
                 let resolved = id.visit(self)?.modifying(id)?;
                 // Note that because a parameter binds a new name, we add it
@@ -457,7 +461,7 @@ impl Visitor<IvySort> for TypeChecker {
     }
     fn finish_forall(
         &mut self,
-        ast: &mut logic::Forall,
+        _ast: &mut logic::Forall,
         _vars: Vec<IvySort>,
         _fmla: IvySort,
     ) -> VisitorResult<IvySort, logic::Fmla> {
@@ -605,6 +609,24 @@ impl Visitor<IvySort> for TypeChecker {
             declarations::Decl::BeforeAction(new_ast),
             sort,
         ))
+    }
+
+    fn finish_ensure(
+        &mut self,
+        _ast: &mut actions::EnsureAction,
+        pred_sort: IvySort,
+    ) -> VisitorResult<IvySort, Action> {
+        self.bindings.unify(&IvySort::Bool, &pred_sort)?;
+        Ok(ControlMut::Produce(IvySort::Unit))
+    }
+
+    fn finish_requires(
+        &mut self,
+        _ast: &mut actions::RequiresAction,
+        pred_sort: IvySort,
+    ) -> VisitorResult<IvySort, Action> {
+        self.bindings.unify(&IvySort::Bool, &pred_sort)?;
+        Ok(ControlMut::Produce(IvySort::Unit))
     }
 
     fn begin_function_decl(
@@ -916,10 +938,14 @@ impl Visitor<IvySort> for TypeChecker {
         if let IvySort::Module(module) = module_sort {
             if !mod_args_sorts.is_empty() {
                 // Will have to monomorphize with the module instantiation pass.
-                //println!("Uh oh: {:?} {:?}", name, decl_sort);
+                //println!("Uh oh: {:?} {:?}", name, module);
                 //for (i, x) in self.bindings.ctx.iter().enumerate() {
                 //    println!("ctx[{i}]: {x:?}");
                 // }
+
+                for ((_name, s1), s2) in module.args.iter().zip(mod_args_sorts.iter()) {
+                    self.bindings.unify(s1, s2)?;
+                }
 
                 let monomorphized = module_instantiation::instantiate(module, mod_args_sorts)?;
                 let unified = self.bindings.unify(&decl_sort, &monomorphized)?;

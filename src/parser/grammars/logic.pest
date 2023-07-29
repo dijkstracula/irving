@@ -1,20 +1,20 @@
 // Grammar for first-order logic rules.
 
-LOGICVAR = @{ !reserved ~ ASCII_ALPHA_UPPER ~ ("_" | ASCII_ALPHANUMERIC)* }
+LOGICTOK = @{ !reserved ~ ASCII_ALPHA_UPPER ~ ("_" | ASCII_ALPHANUMERIC)* }
 
 // aka simplevar in ivy_logic_utils
 // TODO: The sort ought to be an ident, I think
 // https://github.com/dijkstracula/irving/issues/27
-logicvar         = { LOGICVAR ~ (":" ~ symbol)? }
+logicsym         = { LOGICTOK ~ (":" ~ PROGTOK)? }
 
 fmla             =  { 
     exists | forall | log_term
 }
 
-exists           =  { EXISTS ~ logicvar ~ ("," ~ logicvar)* ~ "." ~ fmla }
-forall           =  { FORALL ~ logicvar ~ ("," ~ logicvar)* ~ "." ~ fmla }
+exists           =  { EXISTS ~ logicsym ~ ("," ~ logicsym)* ~ "." ~ fmla }
+forall           =  { FORALL ~ logicsym ~ ("," ~ logicsym)* ~ "." ~ fmla }
 
-log_subscr      =  { symbol ~ ("." ~ symbol)* }
+log_subscr      =  { PROGTOK ~ ("." ~ PROGTOK)* }
 
 log_term        =  { log_atom ~ (log_infix_op ~ log_atom)* }
 log_atom        = _{ log_prefix_op? ~ log_primary ~ log_app_args? }
@@ -22,6 +22,14 @@ log_atom        = _{ log_prefix_op? ~ log_primary ~ log_app_args? }
     log_infix_op    = _{ IFF | ARROW |
                      LE | LT | GE | GT | EQ | NEQ |
                      AND | OR | DOT }
-log_primary    = _{ logicvar | symbol | boollit | number | "(" ~ log_term ~ ")" }
+log_primary    = _{ relation_lval | logicsym | PROGTOK | boollit | number | "(" ~ log_term ~ ")" }
 
+// relations are assignable either all with expressions as arguments (e.g. r(x,
+// 0) for some bound variable `x`) or with a logical variable which acts as a
+// placeholder (e.g.  r(X, 0) for some free `X`).
+relation_lval   = { rval ~ log_app_args }
 log_app_args    = { "(" ~ log_term ~ ("," ~ log_term)* ~ ")" }
+
+// An lparam is a logicsym with an optional type annotation.  These are for
+// things like relation declaration lists.
+lparamlist = { logicsym ~ ("," ~ logicsym)* }

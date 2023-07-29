@@ -6,44 +6,48 @@ mod tests {
 
     // Expressions
 
-    fn parse_expr(fragment: &str) -> Result<Expr> {
-        let res = IvyParser::parse(Rule::expr, fragment)
+    fn parse_rval(fragment: &str) -> Result<Expr> {
+        let res = IvyParser::parse(Rule::rval, fragment)
             .expect("Parsing failed")
             .single()
             .unwrap();
-        IvyParser::expr(res)
+        IvyParser::rval(res)
     }
 
     #[test]
-    fn parse_symbol_expr() {
-        let _ast = parse_expr("a").unwrap();
-        assert_eq!(
-            _ast,
-            Expr::Symbol(Symbol {
-                id: "a".into(),
-                sort: Sort::ToBeInferred
-            })
-        );
+    fn parse_progsym() {
+        let ast = parse_rval("a").unwrap();
+        assert_eq!(ast, Expr::inferred_progsym("a".into()));
+    }
+
+    #[test]
+    fn parse_logicvar() {
+        let ast = parse_rval("X").unwrap();
+        let expected = Expr::LogicSymbol(Symbol {
+            id: "X".into(),
+            sort: Sort::ToBeInferred,
+        });
+        assert_eq!(ast, expected);
     }
 
     #[test]
     fn parse_negation_expr() {
-        let _ast = parse_expr("~a").unwrap();
+        let _ast = parse_rval("~a").unwrap();
     }
 
     #[test]
     fn parse_number_expr() {
-        let _ast = parse_expr("42").unwrap();
+        let _ast = parse_rval("42").unwrap();
     }
 
     #[test]
     fn parse_negative_number_expr() {
-        let _ast = parse_expr("-42").unwrap();
+        let _ast = parse_rval("-42").unwrap();
     }
 
     #[test]
     fn parse_sub() {
-        let _ast = parse_expr("42 - 1").unwrap();
+        let _ast = parse_rval("42 - 1").unwrap();
         assert_eq!(
             _ast,
             Expr::BinOp(BinOp {
@@ -57,17 +61,17 @@ mod tests {
     #[test]
     fn parse_complex_expr() {
         let fragment = "sock.send(host(1-self).sock.id, val)";
-        let _ast = parse_expr(fragment).unwrap();
+        let _ast = parse_rval(fragment).unwrap();
         println!("{:?}", _ast);
     }
 
     #[test]
     fn parse_pred() {
-        let _ast = parse_expr("i > 0").unwrap();
+        let _ast = parse_rval("i > 0").unwrap();
         assert_eq!(
             _ast,
             Expr::BinOp(BinOp {
-                lhs: Box::new(Expr::inferred_symbol("i".into())),
+                lhs: Box::new(Expr::inferred_progsym("i".into())),
                 op: Verb::Gt,
                 rhs: Box::new(Expr::Number(0)),
             })
@@ -76,18 +80,18 @@ mod tests {
 
     #[test]
     fn parse_pred_2() {
-        let _ast = parse_expr("b = true | b = false").unwrap();
+        let _ast = parse_rval("b = true | b = false").unwrap();
         assert_eq!(
             _ast,
             Expr::BinOp(BinOp {
                 lhs: Box::new(Expr::BinOp(BinOp {
-                    lhs: Box::new(Expr::inferred_symbol("b".into())),
+                    lhs: Box::new(Expr::inferred_progsym("b".into())),
                     op: Verb::Equals,
                     rhs: Box::new(Expr::Boolean(true))
                 })),
                 op: Verb::Or,
                 rhs: Box::new(Expr::BinOp(BinOp {
-                    lhs: Box::new(Expr::inferred_symbol("b".into())),
+                    lhs: Box::new(Expr::inferred_progsym("b".into())),
                     op: Verb::Equals,
                     rhs: Box::new(Expr::Boolean(false))
                 }))
@@ -97,16 +101,16 @@ mod tests {
 
     #[test]
     fn parse_symbol_with_underscore() {
-        assert!(parse_expr("hello_world").is_ok());
+        assert!(parse_rval("hello_world").is_ok());
     }
 
     #[test]
     fn parse_dot_expr() {
-        let _ast = parse_expr("a.b").unwrap();
+        let _ast = parse_rval("a.b").unwrap();
         assert_eq!(
             _ast,
             Expr::FieldAccess(FieldAccess {
-                record: Box::new(Expr::inferred_symbol("a".into())),
+                record: Box::new(Expr::inferred_progsym("a".into())),
                 field: Symbol {
                     id: "b".into(),
                     sort: Sort::ToBeInferred
@@ -117,31 +121,31 @@ mod tests {
 
     #[test]
     fn parse_unary_fnapp() {
-        let _ast = parse_expr("foo(a)").expect("Parsing failed");
+        let _ast = parse_rval("foo(a)").expect("Parsing failed");
     }
 
     #[test]
     fn parse_fnapp_and_index() {
-        let _ast = parse_expr("foo(a).b.c").unwrap();
+        let _ast = parse_rval("foo(a).b.c").unwrap();
     }
 
     #[test]
     fn parse_nested_fnapp() {
-        let _ast = parse_expr("sock.send(host(1-self).sock.id, val)").unwrap();
+        let _ast = parse_rval("sock.send(host(1-self).sock.id, val)").unwrap();
     }
 
     #[test]
     fn parse_unary_fnapp_and_negation() {
-        let _ast = parse_expr("~foo(a)").expect("Parsing failed");
+        let _ast = parse_rval("~foo(a)").expect("Parsing failed");
     }
 
     #[test]
     fn parse_multi_fnapp() {
-        let _ast = parse_expr("foo(a, b)").unwrap();
+        let _ast = parse_rval("foo(a, b)").unwrap();
     }
 
     #[test]
     fn parse_fnapp_in_conj() {
-        let _ast = parse_expr("foo(a,b) & b").unwrap();
+        let _ast = parse_rval("foo(a,b) & b").unwrap();
     }
 }

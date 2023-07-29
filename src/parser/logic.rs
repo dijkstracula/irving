@@ -1,4 +1,4 @@
-use pest::iterators::Pairs;
+use pest::iterators::{Pair, Pairs};
 use pest::pratt_parser::{Assoc, Op, PrattParser};
 
 use crate::ast::expressions::*;
@@ -32,30 +32,47 @@ lazy_static::lazy_static! {
         .op(Op::postfix(Rule::log_app_args));
 }
 
+// TODO: this should be something other than a Symbol.
+pub fn parse_lsym<'a>(primary: Pair<'a, Rule>) -> Result<Symbol> {
+    // TODO: we need a separate AST node for logicvars.
+    let mut pairs = primary.into_inner();
+    let id = pairs.next().unwrap().as_str().to_owned();
+    let sort = pairs.next().map(|s| vec![s.as_str().to_owned()]);
+    match sort {
+        None => Ok(Symbol {
+            id,
+            sort: Sort::ToBeInferred,
+        }),
+        Some(sort) => Ok(Symbol {
+            id,
+            sort: Sort::Annotated(sort),
+        }),
+    }
+}
+
 pub fn parse_log_term(pairs: Pairs<Rule>) -> Result<Expr> {
     PRATT
         .map_primary(|primary| match primary.as_rule() {
-            Rule::logicvar => {
+            Rule::relation_lval => {
                 let mut pairs = primary.into_inner();
-                let id = pairs.next().unwrap().as_str().to_owned();
-                let sort = pairs.next().map(|s| vec![s.as_str().to_owned()]);
-                match sort {
-                    // TODO: wondering if either return path should just be a Term.
-                    // TODO: we need a separate AST node for logicvars.
-                    None => Ok(Expr::Symbol(Symbol {
-                        id,
-                        sort: Sort::ToBeInferred,
-                    })),
-                    Some(sort) => Ok(Expr::Symbol(Symbol {
-                        id,
-                        sort: Sort::Annotated(sort),
-                    })),
-                }
+                let name = pairs.next().unwrap().as_str().to_owned();
+                let args = pairs
+                    .next()
+                    .unwrap()
+                    .into_inner()
+                    .map(|e| parse_log_term(e.into_inner()))
+                    .collect::<Result<Vec<_>>>()?;
+
+                Ok(Expr::App(AppExpr {
+                    func: Box::new(Expr::inferred_progsym(name)),
+                    args,
+                }))
             }
-            Rule::symbol => Ok(Expr::Symbol(Symbol {
-                id: primary.as_str().to_owned(),
-                sort: Sort::ToBeInferred,
-            })),
+            Rule::logicsym => Ok(Expr::ProgramSymbol(parse_lsym(primary)?)),
+            Rule::PROGTOK => {
+                let tok = primary.as_str().to_owned();
+                Ok(Expr::inferred_progsym(tok))
+            }
             Rule::boollit => {
                 let val = match primary.as_str() {
                     "true" => true,

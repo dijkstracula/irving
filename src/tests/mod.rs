@@ -27,6 +27,10 @@ mod helpers {
 
     pub fn prog_from_filename(path: &str) -> Prog {
         let prog = std::fs::read_to_string(path).unwrap();
+        prog_from_decls(&prog)
+    }
+
+    pub fn prog_from_decls(prog: &str) -> Prog {
         let res = IvyParser::parse(Rule::prog, &prog)
             .expect("Parsing failed")
             .single()
@@ -115,11 +119,11 @@ mod helpers {
         IvyParser::decl(res).expect("AST generation failed")
     }
 
-    pub fn expr_from_src(prog: &str) -> Expr {
-        let res = IvyParser::parse(Rule::expr, prog)
+    pub fn rval_from_src(prog: &str) -> Expr {
+        let res = IvyParser::parse(Rule::rval, prog)
             .expect("Parsing failed")
             .single()
             .unwrap();
-        IvyParser::expr(res).expect("AST generation failed")
+        IvyParser::rval(res).expect("AST generation failed")
     }
 }

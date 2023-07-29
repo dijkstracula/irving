@@ -42,11 +42,15 @@ lazy_static::lazy_static! {
 
 }
 
-pub fn parse_expr(pairs: Pairs<Rule>) -> Result<Expr> {
+pub fn parse_rval(pairs: Pairs<Rule>) -> Result<Expr> {
     PRATT
         .map_primary(|primary| match primary.as_rule() {
             Rule::THIS => Ok(Expr::This),
-            Rule::symbol => Ok(Expr::Symbol(Symbol {
+            Rule::logicsym => Ok(Expr::LogicSymbol(Symbol {
+                id: primary.as_str().into(),
+                sort: Sort::ToBeInferred,
+            })),
+            Rule::PROGTOK => Ok(Expr::ProgramSymbol(Symbol {
                 id: primary.as_str().into(),
                 sort: Sort::ToBeInferred,
             })),
@@ -62,7 +66,7 @@ pub fn parse_expr(pairs: Pairs<Rule>) -> Result<Expr> {
                 let val: i64 = primary.as_str().parse().unwrap();
                 Ok(Expr::Number(val))
             }
-            Rule::expr => parse_expr(primary.into_inner()),
+            Rule::rval => parse_rval(primary.into_inner()),
             _ => unreachable!("parse_expr expected primary, found {:?}", primary),
         })
         .map_prefix(|op, rhs| {
@@ -98,7 +102,7 @@ pub fn parse_expr(pairs: Pairs<Rule>) -> Result<Expr> {
 
             if verb == Verb::Dot {
                 let field = match rhs? {
-                    Expr::Symbol(field) => field,
+                    Expr::ProgramSymbol(field) => field,
                     _ => {
                         return Err(Error::new_from_span(
                             ErrorVariant::CustomError {
@@ -124,7 +128,7 @@ pub fn parse_expr(pairs: Pairs<Rule>) -> Result<Expr> {
             Rule::fnapp_args => {
                 let results = op
                     .into_inner()
-                    .map(|e| parse_expr(e.into_inner()))
+                    .map(|e| parse_rval(e.into_inner()))
                     .collect::<Vec<Result<_>>>();
                 let args = results.into_iter().collect::<Result<Vec<_>>>()?;
                 Ok(Expr::App(AppExpr {
@@ -133,7 +137,7 @@ pub fn parse_expr(pairs: Pairs<Rule>) -> Result<Expr> {
                 }))
             }
             Rule::index => {
-                let idx = parse_expr(op.into_inner());
+                let idx = parse_rval(op.into_inner());
                 Ok(Expr::Index(IndexExpr {
                     lhs: Box::new(lhs?),
                     idx: Box::new(idx?),

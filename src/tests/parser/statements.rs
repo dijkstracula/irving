@@ -25,12 +25,23 @@ mod tests {
             .expect("Parsing failed")
             .single()
             .unwrap();
-        IvyParser::stmt(res).expect("generate ast");
+        let _ast = IvyParser::stmt(res).expect("generate ast");
+        println!("{:?}", _ast);
     }
 
     #[test]
     fn parse_assign_to_relation_2() {
         let fragment = "r(0) := (1 = 1)";
+        let res = IvyParser::parse(Rule::stmt, fragment)
+            .expect("Parsing failed")
+            .single()
+            .unwrap();
+        IvyParser::stmt(res).expect("generate ast");
+    }
+
+    #[test]
+    fn parse_assign_with_rhs_logicvar() {
+        let fragment = "link(x,Y) := Y = y";
         let res = IvyParser::parse(Rule::stmt, fragment)
             .expect("Parsing failed")
             .single()
@@ -61,7 +72,7 @@ mod tests {
             Stmt::ActionSequence(
                 [Action::Assign(AssignAction {
                     lhs: Expr::FieldAccess(FieldAccess {
-                        record: Box::new(Expr::inferred_symbol("foo".into())),
+                        record: Box::new(Expr::inferred_progsym("foo".into())),
                         field: Symbol {
                             id: "bar".into(),
                             sort: Sort::ToBeInferred
@@ -137,8 +148,8 @@ mod tests {
                 pred: Fmla::Pred(Expr::UnaryOp {
                     op: Verb::Not,
                     expr: Box::new(Expr::App(AppExpr {
-                        func: Box::new(Expr::inferred_symbol("failed".to_owned())),
-                        args: [Expr::inferred_symbol("y".into())].into()
+                        func: Box::new(Expr::inferred_progsym("failed".to_owned())),
+                        args: [Expr::inferred_progsym("y".into())].into()
                     }))
                 })
             }
@@ -157,7 +168,7 @@ mod tests {
             stmt,
             RequiresAction {
                 pred: Fmla::Pred(Expr::BinOp(BinOp {
-                    lhs: Box::new(Expr::inferred_symbol("x".into())),
+                    lhs: Box::new(Expr::inferred_progsym("x".into())),
                     op: Verb::Ge,
                     rhs: Box::new(Expr::Number(0))
                 }))

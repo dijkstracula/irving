@@ -9,7 +9,7 @@ use crate::ast::logic::*;
 use crate::ast::statements::*;
 use crate::ast::toplevels::*;
 
-use crate::parser::expressions::parse_expr;
+use crate::parser::expressions::parse_rval;
 use crate::typechecker::sorts::IvySort;
 
 use super::logic::parse_log_term;
@@ -45,19 +45,19 @@ impl IvyParser {
             .map_err(|_| input.error("Expected number"))
     }
 
-    fn symbol(input: Node) -> Result<String> {
+    fn PROGTOK(input: Node) -> Result<String> {
         Ok(input.as_str().to_owned())
     }
 
-    fn LOGICVAR(input: Node) -> Result<String> {
+    fn LOGICTOK(input: Node) -> Result<String> {
         Ok(input.as_str().to_owned())
     }
 
     fn param(input: Node) -> Result<Symbol> {
         match_nodes!(
         input.into_children();
-        [symbol(id), ident(sort)] => Ok(Symbol { id, sort: Sort::Annotated(sort) }),
-        [symbol(id)] => Ok(Symbol {id, sort: Sort::ToBeInferred })
+        [PROGTOK(id), ident(sort)] => Ok(Symbol { id, sort: Sort::Annotated(sort) }),
+        [PROGTOK(id)] => Ok(Symbol {id, sort: Sort::ToBeInferred })
         )
     }
 
@@ -73,7 +73,7 @@ impl IvyParser {
         match_nodes!(
         input.into_children();
         // TODO: This is wrong: we need Ident to be an enum of qualifiers or the "this" keyword.
-        [symbol(qualifiers)..] => Ok(qualifiers.collect()),
+        [PROGTOK(qualifiers)..] => Ok(qualifiers.collect()),
         [THIS(_)] => Ok(vec!("this".into())),
         )
     }
@@ -86,11 +86,11 @@ impl IvyParser {
 
     // Formulas
 
-    fn logicvar(input: Node) -> Result<Symbol> {
+    fn logicsym(input: Node) -> Result<Symbol> {
         match_nodes!(
         input.into_children();
-        [LOGICVAR(id), symbol(sort)] => Ok(Symbol {id, sort: Sort::Annotated(vec!(sort)) }),
-        [LOGICVAR(id)]               => Ok(Symbol {id, sort: Sort::ToBeInferred })
+        [LOGICTOK(id), PROGTOK(sort)] => Ok(Symbol {id, sort: Sort::Annotated(vec!(sort)) }),
+        [LOGICTOK(id)]               => Ok(Symbol {id, sort: Sort::ToBeInferred })
         )
     }
 
@@ -102,7 +102,7 @@ impl IvyParser {
     pub fn forall(input: Node) -> Result<Forall> {
         match_nodes!(
         input.into_children();
-        [logicvar(vars).., fmla(f)] => {
+        [logicsym(vars).., fmla(f)] => {
             Ok(Forall { vars: vars.collect(), fmla: Box::new(f)})
         })
     }
@@ -110,7 +110,7 @@ impl IvyParser {
     pub fn exists(input: Node) -> Result<Exists> {
         match_nodes!(
         input.into_children();
-        [logicvar(vars).., fmla(f)] => {
+        [logicsym(vars).., fmla(f)] => {
             Ok(Exists { vars: vars.collect(), fmla: Box::new(f)})
         })
     }
@@ -126,15 +126,54 @@ impl IvyParser {
 
     // Exprs
 
-    pub fn expr(input: Node) -> Result<Expr> {
+    // Lvals
+
+    pub fn lval(input: Node) -> Result<Expr> {
+        match_nodes!(
+        input.into_children();
+        [relation_lval(lval)] => Ok(lval),
+        [rval(lval)] => Ok(lval),
+        )
+    }
+
+    pub fn relation_lval(input: Node) -> Result<Expr> {
+        match_nodes!(
+        input.into_children();
+        [rval(func), log_app_args(args)] => {
+            Ok(Expr::App(AppExpr {
+                func: Box::new(func),
+                args
+            }))
+        })
+    }
+
+    pub fn lparamlist(input: Node) -> Result<Vec<Symbol>> {
+        match_nodes!(
+        input.into_children();
+        [logicsym(args)..] => {
+            Ok(args.collect())
+        })
+    }
+
+    pub fn log_app_args(input: Node) -> Result<Vec<Expr>> {
+        match_nodes!(
+        input.into_children();
+        [log_term(args)..] => {
+            Ok(args.collect())
+        })
+    }
+
+    // Rvals
+
+    pub fn rval(input: Node) -> Result<Expr> {
         let pairs = input.as_pair().to_owned().into_inner();
-        parse_expr(pairs)
+        parse_rval(pairs)
     }
 
     pub fn fnapp_args(input: Node) -> Result<Vec<Expr>> {
         match_nodes!(
         input.into_children();
-        [expr(args)..] => {
+        [rval(args)..] => {
             Ok(args.collect())
         })
     }
@@ -145,7 +184,7 @@ impl IvyParser {
         [bv_decl(width)] => Ok(Sort::Resolved(IvySort::BitVec(width))),
         [enum_decl(cstrs)] => Ok(Sort::Resolved(IvySort::Enum(cstrs))),
         [range_decl((lo, hi))] => Ok(Sort::Resolved(IvySort::Range(Box::new(lo), Box::new(hi)))),
-        [symbol(supr)] => Ok(Sort::Resolved(IvySort::Subclass(supr))),
+        [PROGTOK(supr)] => Ok(Sort::Resolved(IvySort::Subclass(supr))),
         [_THIS] => Ok(Sort::Resolved(IvySort::This)),
         )
     }
@@ -161,10 +200,10 @@ impl IvyParser {
     pub fn decl_sig(input: Node) -> Result<DeclSig> {
         match_nodes!(
         input.into_children();
-        [symbol(name), paramlist(params)] => {
+        [PROGTOK(name), paramlist(params)] => {
             Ok(DeclSig { name, params})
         },
-        [symbol(name)] => {
+        [PROGTOK(name)] => {
             Ok(DeclSig { name, params: vec!()})
         })
     }
@@ -180,7 +219,7 @@ impl IvyParser {
     pub fn mod_sig(input: Node) -> Result<ModSig> {
         match_nodes!(
         input.into_children();
-        [symbol(name), symbol(sortsyms)..] => {
+        [PROGTOK(name), PROGTOK(sortsyms)..] => {
             Ok(ModSig{name, sortsyms: sortsyms.collect()})
         })
     }
@@ -219,14 +258,14 @@ impl IvyParser {
     pub fn alias_decl(input: Node) -> Result<Binding<expressions::Sort>> {
         match_nodes!(
         input.into_children();
-        [symbol(lhs), builtin_type(rhs)] => Ok(Binding::from(lhs, rhs)),
+        [PROGTOK(lhs), builtin_type(rhs)] => Ok(Binding::from(lhs, rhs)),
         )
     }
 
     pub fn attribute_decl(input: Node) -> Result<Expr> {
         match_nodes!(
         input.into_children();
-        [expr(e)] => Ok(e)
+        [rval(e)] => Ok(e)
         )
     }
 
@@ -287,14 +326,14 @@ impl IvyParser {
     pub fn enum_decl(input: Node) -> Result<Vec<Token>> {
         match_nodes!(
         input.into_children();
-            [symbol(cstrs)..] => Ok(cstrs.collect())
+            [PROGTOK(cstrs)..] => Ok(cstrs.collect())
         )
     }
 
     pub fn export_decl(input: Node) -> Result<ExportDecl> {
         match_nodes!(
         input.into_children();
-            [symbol(name)] => Ok(
+            [PROGTOK(name)] => Ok(
                 ExportDecl::ForwardRef(name)
             ),
             [action_decl(binding)] => Ok(
@@ -306,9 +345,8 @@ impl IvyParser {
     pub fn function_decl(input: Node) -> Result<Binding<FunctionDecl>> {
         match_nodes!(
         input.into_children();
-            [decl_sig(DeclSig{name, params}), symbol(ret)] => Ok(
-                Binding::from(name, FunctionDecl { params, ret })
-            ),
+            [PROGTOK(name), lparamlist(params), PROGTOK(ret)] =>
+                Ok(Binding::from(name, FunctionDecl {params, ret}))
         )
     }
 
@@ -350,14 +388,14 @@ impl IvyParser {
     pub fn include_decl(input: Node) -> Result<Token> {
         match_nodes!(
         input.into_children();
-            [symbol(module)] => Ok(module)
+            [PROGTOK(module)] => Ok(module)
         )
     }
 
     pub fn instance_decl(input: Node) -> Result<Binding<InstanceDecl>> {
         match_nodes!(
         input.into_children();
-        [symbol(name), mixin_sig(MixinSig{name: sort, params: sort_args})] =>
+        [PROGTOK(name), mixin_sig(MixinSig{name: sort, params: sort_args})] =>
             Ok(Binding::from(name, InstanceDecl{sort, args: sort_args.unwrap_or_default()}))
         )
     }
@@ -365,9 +403,9 @@ impl IvyParser {
     pub fn interpret_decl(input: Node) -> Result<InterpretDecl> {
         match_nodes!(
         input.into_children();
-        [symbol(name), builtin_type(sort)] => Ok(InterpretDecl { name, sort } ),
-        [symbol(name), ident(rhs)] => Ok(InterpretDecl{name, sort: Sort::Annotated(rhs)}),
-        [symbol(name)] => Ok(InterpretDecl{name, sort: Sort::Resolved(IvySort::Uninterpreted)})
+        [PROGTOK(name), builtin_type(sort)] => Ok(InterpretDecl { name, sort } ),
+        [PROGTOK(name), ident(rhs)] => Ok(InterpretDecl{name, sort: Sort::Annotated(rhs)}),
+        [PROGTOK(name)] => Ok(InterpretDecl{name, sort: Sort::Resolved(IvySort::Uninterpreted)})
         )
     }
 
@@ -400,23 +438,26 @@ impl IvyParser {
     pub fn object_decl(input: Node) -> Result<Binding<ObjectDecl>> {
         match_nodes!(
         input.into_children();
-        [symbol(name), decl_block(body)] => Ok(
+        [PROGTOK(name), decl_block(body)] => Ok(
             Binding::from(name, ObjectDecl{params: vec!(), body})))
     }
 
     pub fn range_decl(input: Node) -> Result<(Expr, Expr)> {
         match_nodes!(
         input.into_children();
-            [expr(lo), expr(hi)] => Ok((lo, hi)),
+            [rval(lo), rval(hi)] => Ok((lo, hi)),
         )
     }
 
     pub fn relation_decl(input: Node) -> Result<Binding<Relation>> {
         match_nodes!(
         input.into_children();
-            [decl_sig(DeclSig{name, params})] => Ok(
-                Binding::from(name, Relation{params})
-            ),
+        [PROGTOK(name)] => {
+            let params = vec!();
+            Ok(Binding::from(name, Relation{params}))
+        },
+        [PROGTOK(name), lparamlist(params)] =>
+            Ok(Binding::from(name, Relation{params}))
         )
     }
 
@@ -430,10 +471,10 @@ impl IvyParser {
     pub fn type_decl(input: Node) -> Result<Binding<Sort>> {
         match_nodes!(
         input.into_children();
-        [symbol(sym), builtin_type(resolved)] => Ok(Binding::from(sym, resolved)),
-        [symbol(lhs), symbol(rhs)] => Ok(Binding::from(lhs, Sort::Resolved(IvySort::Subclass(rhs)))),
-        [symbol(sym)] => Ok(Binding::from(sym, Sort::ToBeInferred)),
-        [symbol(sym)] => {
+        [PROGTOK(sym), builtin_type(resolved)] => Ok(Binding::from(sym, resolved)),
+        [PROGTOK(lhs), PROGTOK(rhs)] => Ok(Binding::from(lhs, Sort::Resolved(IvySort::Subclass(rhs)))),
+        [PROGTOK(sym)] => Ok(Binding::from(sym, Sort::ToBeInferred)),
+        [PROGTOK(sym)] => {
             Ok(Binding::from(sym, Sort::ToBeInferred))
         },
         [_THIS] => Ok(Binding::from("this", Sort::Resolved(IvySort::This))),
@@ -500,27 +541,27 @@ impl IvyParser {
     pub fn assign_action(input: Node) -> Result<AssignAction> {
         match_nodes!(
         input.into_children();
-        [var_decl(Binding{name, decl}), expr(rhs)] => Ok(
-            AssignAction{lhs: Expr::Symbol(Symbol{id: name, sort: decl}), rhs}
+        [var_decl(Binding{name, decl}), rval(rhs)] => Ok(
+            AssignAction{lhs: Expr::ProgramSymbol(Symbol{id: name, sort: decl}), rhs}
         ),
-        [expr(lhs), expr(rhs)] => match lhs {
-            Expr::App(_) | Expr::FieldAccess(_) | Expr::Index(_) | Expr::Symbol(_) | Expr::This => Ok(AssignAction{lhs, rhs}),
+        [lval(lhs), rval(rhs)] => match lhs {
+            Expr::App(_) | Expr::FieldAccess(_) | Expr::Index(_) | Expr::ProgramSymbol(_) | Expr::This => Ok(AssignAction{lhs, rhs}),
             _ => todo!(),
-        },
+        }
         )
     }
 
     pub fn assert_action(input: Node) -> Result<AssertAction> {
         match_nodes!(
         input.into_children();
-        [expr(pred)] => Ok(AssertAction{pred}),
+        [rval(pred)] => Ok(AssertAction{pred}),
         )
     }
 
     pub fn assume_action(input: Node) -> Result<AssumeAction> {
         match_nodes!(
         input.into_children();
-        [expr(pred)] => Ok(AssumeAction{pred}),
+        [rval(pred)] => Ok(AssumeAction{pred}),
         )
     }
 
@@ -529,9 +570,9 @@ impl IvyParser {
 
         match_nodes!(
         input.into_children();
-        [expr(call)] => match call {
+        [rval(call)] => match call {
             Expr::App(call) => Ok(call),
-            _ => Err(Error::new_from_span(ErrorVariant::<Rule>::CustomError { message: format!("Expected function call, got {:?}", call) }, span))
+            _ => Err(Error::new_from_span(ErrorVariant::<Rule>::CustomError { message: format!("Expected function application, got {:?}", call) }, span))
         })
     }
 
@@ -561,10 +602,10 @@ impl IvyParser {
     pub fn if_stmt(input: Node) -> Result<If> {
         match_nodes!(
         input.into_children();
-        [expr(tst), stmt_block(thens)] => Ok(
+        [rval(tst), stmt_block(thens)] => Ok(
             If{tst, thn: thens, els: None}
         ),
-        [expr(tst), stmt_block(thens), stmt_block(elses)] => Ok(
+        [rval(tst), stmt_block(thens), stmt_block(elses)] => Ok(
             If{tst, thn: thens, els: Some(elses)}
         ),
         )
@@ -573,7 +614,7 @@ impl IvyParser {
     pub fn while_stmt(input: Node) -> Result<While> {
         match_nodes!(
         input.into_children();
-        [expr(test), stmt_block(stmts)] => Ok(
+        [rval(test), stmt_block(stmts)] => Ok(
             While{test, doit: stmts}
         ),
         )

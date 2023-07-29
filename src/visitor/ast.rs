@@ -110,14 +110,18 @@ where
     fn begin_ensure(&mut self, _ast: &mut EnsureAction) -> VisitorResult<T, Action> {
         Ok(ControlMut::Produce(T::default()))
     }
-    fn finish_ensure(&mut self, _ast: &mut EnsureAction) -> VisitorResult<T, Action> {
+    fn finish_ensure(&mut self, _ast: &mut EnsureAction, _pred_p: T) -> VisitorResult<T, Action> {
         Ok(ControlMut::Produce(T::default()))
     }
 
     fn begin_requires(&mut self, _ast: &mut RequiresAction) -> VisitorResult<T, Action> {
         Ok(ControlMut::Produce(T::default()))
     }
-    fn finish_requires(&mut self, _ast: &mut RequiresAction) -> VisitorResult<T, Action> {
+    fn finish_requires(
+        &mut self,
+        _ast: &mut RequiresAction,
+        _pred_t: T,
+    ) -> VisitorResult<T, Action> {
         Ok(ControlMut::Produce(T::default()))
     }
 
@@ -471,6 +475,12 @@ where
         Ok(ControlMut::Produce(T::default()))
     }
 
+    fn logic_sym(&mut self, p: &mut Symbol) -> VisitorResult<T, Symbol> {
+        self.token(&mut p.id)?.modifying(&mut p.id)?;
+        self.sort(&mut p.sort)?.modifying(&mut p.sort)?;
+        Ok(ControlMut::Produce(T::default()))
+    }
+
     fn number(&mut self, _n: &mut i64) -> VisitorResult<T, i64> {
         Ok(ControlMut::Produce(T::default()))
     }
@@ -543,14 +553,14 @@ where
                 let args = expr.args.visit(visitor)?.modifying(&mut expr.args)?;
                 visitor.finish_call(expr, func, args)
             }),
-            Action::Ensure(action) => visitor
-                .begin_ensure(action)?
-                .map(|_| action.pred.visit(visitor)?.modifying(&mut action.pred))?
-                .and_then(|_| visitor.finish_ensure(action)),
-            Action::Requires(action) => visitor
-                .begin_requires(action)?
-                .map(|_| action.pred.visit(visitor)?.modifying(&mut action.pred))?
-                .and_then(|_| visitor.finish_requires(action)),
+            Action::Ensure(action) => visitor.begin_ensure(action)?.and_then(|_| {
+                let p = action.pred.visit(visitor)?.modifying(&mut action.pred)?;
+                visitor.finish_ensure(action, p)
+            }),
+            Action::Requires(action) => visitor.begin_requires(action)?.and_then(|_| {
+                let p = action.pred.visit(visitor)?.modifying(&mut action.pred)?;
+                visitor.finish_requires(action, p)
+            }),
         }
     }
 }
@@ -589,6 +599,10 @@ where
                 .and_then(|_| expr.lhs.visit(visitor))?
                 .and_then(|_| expr.idx.visit(visitor))?
                 .and_then(|_| visitor.finish_index(expr)),
+            Expr::LogicSymbol(s) => visitor
+                .logic_sym(s)?
+                .modifying(s)
+                .map(|t| ControlMut::Produce(t)),
             Expr::Number(n) => {
                 let t = visitor.number(n)?.modifying(n)?;
                 Ok(ControlMut::Produce(t))
@@ -601,7 +615,7 @@ where
                 let _ = expr.visit(visitor)?.modifying(expr)?;
                 visitor.finish_unary_op(op, expr)
             }),
-            Expr::Symbol(p) => visitor
+            Expr::ProgramSymbol(p) => visitor
                 .symbol(p)?
                 .modifying(p)
                 .map(|t| ControlMut::Produce(t)),
@@ -814,7 +828,11 @@ where
             }) => visitor.begin_instance_decl(name, decl)?.and_then(|_| {
                 let n = name.visit(visitor)?.modifying(name)?;
                 let s = decl.sort.visit(visitor)?.modifying(&mut decl.sort)?;
-                let a = decl.args.visit(visitor)?.modifying(&mut decl.args)?;
+                let a = decl
+                    .args
+                    .iter_mut()
+                    .map(|p| p.id.visit(visitor)?.modifying(&mut p.id))
+                    .collect::<Result<Vec<_>, _>>()?;
                 visitor.finish_instance_decl(name, decl, n, s, a)
             }),
             Decl::Instantiate { name, prms } => todo!(),
