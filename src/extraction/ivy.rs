@@ -100,11 +100,17 @@ where
         ast.tst.visit(self)?;
         self.pp.write_str(" {\n")?;
 
-        self.write_separated(&mut ast.thn, ";\n")?;
+        for stmt in &mut ast.thn {
+            stmt.visit(self)?.modifying(stmt)?;
+            self.pp.write_str(";\n")?;
+        }
 
         if let Some(stmts) = &mut ast.els {
             self.pp.write_str("} else {\n")?;
-            self.write_separated(stmts, ";\n")?;
+            for stmt in stmts {
+                stmt.visit(self)?.modifying(stmt)?;
+                self.pp.write_str(";\n")?;
+            }
         }
         self.pp.write_str("}\n")?;
 
