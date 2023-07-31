@@ -113,15 +113,21 @@ pub enum Expr {
 }
 
 impl Expr {
-    pub fn inferred_progsym(s: String) -> Self {
+    pub fn inferred_progsym<S>(s: S) -> Self
+    where
+        S: Into<String>,
+    {
         Self::ProgramSymbol(Symbol {
-            id: s,
+            id: s.into(),
             sort: Sort::ToBeInferred,
         })
     }
-    pub fn annotated_progsym(s: String, id: Ident) -> Self {
+    pub fn annotated_progsym<S>(s: S, id: Ident) -> Self
+    where
+        S: Into<String>,
+    {
         Self::ProgramSymbol(Symbol {
-            id: s,
+            id: s.into(),
             sort: Sort::Annotated(id),
         })
     }

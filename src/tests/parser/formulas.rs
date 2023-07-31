@@ -78,23 +78,23 @@ mod tests {
                 fmla: Box::new(Fmla::Pred(Expr::BinOp(BinOp {
                     lhs: Box::new(Expr::BinOp(BinOp {
                         lhs: Box::new(Expr::BinOp(BinOp {
-                            lhs: Box::new(Expr::inferred_progsym("X".into())),
+                            lhs: Box::new(Expr::inferred_progsym("X")),
                             op: Verb::Equals,
                             rhs: Box::new(Expr::BinOp(BinOp {
-                                lhs: Box::new(Expr::inferred_progsym("Y".into())),
+                                lhs: Box::new(Expr::inferred_progsym("Y")),
                                 op: Verb::And,
-                                rhs: Box::new(Expr::inferred_progsym("Y".into()))
+                                rhs: Box::new(Expr::inferred_progsym("Y"))
                             }))
                         })),
                         op: Verb::Equals,
                         rhs: Box::new(Expr::BinOp(BinOp {
-                            lhs: Box::new(Expr::inferred_progsym("Z".into())),
+                            lhs: Box::new(Expr::inferred_progsym("Z")),
                             op: Verb::Arrow,
-                            rhs: Box::new(Expr::inferred_progsym("X".into()))
+                            rhs: Box::new(Expr::inferred_progsym("X"))
                         }))
                     })),
                     op: Verb::Equals,
-                    rhs: Box::new(Expr::inferred_progsym("Y".into()))
+                    rhs: Box::new(Expr::inferred_progsym("Y"))
                 })))
             })
         )

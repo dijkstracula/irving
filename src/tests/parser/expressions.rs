@@ -17,7 +17,7 @@ mod tests {
     #[test]
     fn parse_progsym() {
         let ast = parse_rval("a").unwrap();
-        assert_eq!(ast, Expr::inferred_progsym("a".into()));
+        assert_eq!(ast, Expr::inferred_progsym("a"));
     }
 
     #[test]
@@ -90,7 +90,7 @@ mod tests {
         assert_eq!(
             _ast,
             Expr::BinOp(BinOp {
-                lhs: Box::new(Expr::inferred_progsym("i".into())),
+                lhs: Box::new(Expr::inferred_progsym("i")),
                 op: Verb::Gt,
                 rhs: Box::new(Expr::Number(0)),
             })
@@ -104,13 +104,13 @@ mod tests {
             _ast,
             Expr::BinOp(BinOp {
                 lhs: Box::new(Expr::BinOp(BinOp {
-                    lhs: Box::new(Expr::inferred_progsym("b".into())),
+                    lhs: Box::new(Expr::inferred_progsym("b")),
                     op: Verb::Equals,
                     rhs: Box::new(Expr::Boolean(true))
                 })),
                 op: Verb::Or,
                 rhs: Box::new(Expr::BinOp(BinOp {
-                    lhs: Box::new(Expr::inferred_progsym("b".into())),
+                    lhs: Box::new(Expr::inferred_progsym("b")),
                     op: Verb::Equals,
                     rhs: Box::new(Expr::Boolean(false))
                 }))
@@ -129,7 +129,7 @@ mod tests {
         assert_eq!(
             _ast,
             Expr::FieldAccess(FieldAccess {
-                record: Box::new(Expr::inferred_progsym("a".into())),
+                record: Box::new(Expr::inferred_progsym("a")),
                 field: Symbol {
                     id: "b".into(),
                     sort: Sort::ToBeInferred

@@ -10,7 +10,7 @@ mod tests {
     fn clone_emit_assign_numeric_literal() {
         let mut action = helpers::action_from_src("a := 42");
         let expected = Action::Assign(AssignAction {
-            lhs: Expr::inferred_progsym("a".into()),
+            lhs: Expr::inferred_progsym("a"),
             rhs: Expr::Number(42),
         });
         assert_eq!(action, expected);
@@ -30,8 +30,8 @@ mod tests {
         assert_eq!(
             action,
             Action::Assign(AssignAction {
-                lhs: Expr::inferred_progsym("b".into()),
-                rhs: Expr::inferred_progsym("a".into()),
+                lhs: Expr::inferred_progsym("b"),
+                rhs: Expr::inferred_progsym("a"),
             })
         );
 
@@ -44,8 +44,8 @@ mod tests {
         assert_eq!(
             action,
             Action::Assign(AssignAction {
-                lhs: Expr::inferred_progsym("b".into()),
-                rhs: Expr::Clone(Box::new(Expr::inferred_progsym("a".into()))),
+                lhs: Expr::inferred_progsym("b"),
+                rhs: Expr::Clone(Box::new(Expr::inferred_progsym("a"))),
             })
         );
     }
@@ -56,9 +56,9 @@ mod tests {
         assert_eq!(
             action,
             Action::Assign(AssignAction {
-                lhs: Expr::inferred_progsym("b".into()),
+                lhs: Expr::inferred_progsym("b"),
                 rhs: Expr::FieldAccess(FieldAccess {
-                    record: Box::new(Expr::inferred_progsym("a".into())),
+                    record: Box::new(Expr::inferred_progsym("a")),
                     field: Symbol {
                         id: "x".into(),
                         sort: Sort::ToBeInferred
@@ -76,9 +76,9 @@ mod tests {
         assert_eq!(
             action,
             Action::Assign(AssignAction {
-                lhs: Expr::inferred_progsym("b".into()),
+                lhs: Expr::inferred_progsym("b"),
                 rhs: Expr::Clone(Box::new(Expr::FieldAccess(FieldAccess {
-                    record: Box::new(Expr::inferred_progsym("a".into())),
+                    record: Box::new(Expr::inferred_progsym("a")),
                     field: Symbol {
                         id: "x".into(),
                         sort: Sort::ToBeInferred
@@ -101,10 +101,10 @@ mod tests {
         assert_eq!(
             action,
             Expr::App(AppExpr {
-                func: Box::new(Expr::inferred_progsym("f".into())),
+                func: Box::new(Expr::inferred_progsym("f")),
                 args: vec!(
                     // Clone wrapper
-                    Expr::Clone(Box::new(Expr::inferred_progsym("a".into()))),
+                    Expr::Clone(Box::new(Expr::inferred_progsym("a"))),
                     // No clone wrapper
                     Expr::Number(123)
                 )
