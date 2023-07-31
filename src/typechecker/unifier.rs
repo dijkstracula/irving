@@ -10,20 +10,12 @@ use super::{
     TypeError,
 };
 
-pub struct Bindings(Vec<HashMap<Token, IvySort>>);
-
-impl Bindings {
-    pub fn new() -> Self {
-        Bindings(vec![])
-    }
-}
-
-pub struct Resolver {
+pub struct BindingResolver {
     pub sorts: Vec<HashMap<String, IvySort>>,
     pub ctx: Vec<IvySort>,
 }
 
-impl Resolver {
+impl BindingResolver {
     pub fn new() -> Self {
         let mut s = Self {
             sorts: vec![],
@@ -134,6 +126,7 @@ impl Resolver {
         lhs: &Vec<IvySort>,
         rhs: &Vec<IvySort>,
     ) -> Result<Vec<IvySort>, TypeError> {
+        log::debug!(target: "type-inference", "unify({lhs:?},{rhs:?})");
         if lhs.len() != rhs.len() {
             Err(TypeError::SortListMismatch(lhs.clone(), rhs.clone()))
         } else {
@@ -150,6 +143,7 @@ impl Resolver {
         lhs: &ActionArgs,
         rhs: &ActionArgs,
     ) -> Result<ActionArgs, TypeError> {
+        log::debug!(target: "type-inference", "unify({lhs:?},{rhs:?})");
         match (lhs, rhs) {
             (ActionArgs::Unknown, ActionArgs::Unknown) => Ok(ActionArgs::Unknown),
             (ActionArgs::Unknown, ActionArgs::List(rhs)) => Ok(ActionArgs::List(rhs.clone())),
@@ -165,6 +159,7 @@ impl Resolver {
         lhs: &ActionRet,
         rhs: &ActionRet,
     ) -> Result<ActionRet, TypeError> {
+        log::debug!(target: "type-inference", "unify({lhs:?},{rhs:?})");
         match (lhs, rhs) {
             (ActionRet::Unknown, ActionRet::Unknown) => Ok(ActionRet::Unknown),
 
@@ -194,7 +189,7 @@ impl Resolver {
     pub fn unify(&mut self, lhs: &IvySort, rhs: &IvySort) -> Result<IvySort, TypeError> {
         let lhs = self.resolve(lhs).clone();
         let rhs = self.resolve(rhs).clone();
-        log::debug!(target: "typechecker", "unify({lhs:?},{rhs:?})");
+        log::debug!(target: "type-inference", "unify({lhs:?},{rhs:?})");
         match (&lhs, &rhs) {
             (IvySort::SortVar(i), IvySort::SortVar(j)) => {
                 if i < j {

@@ -4,7 +4,7 @@ use anyhow::bail;
 
 use super::{
     sorts::{self, ActionArgs, IvySort, Object},
-    unifier::Resolver,
+    unifier::BindingResolver,
 };
 use crate::{
     ast::{
@@ -18,21 +18,21 @@ use crate::{
     visitor::{ast::Visitable, ast::Visitor, control::ControlMut, VisitorResult},
 };
 
-pub struct TypeChecker {
+pub struct SortInferer {
     // All the sorts we know about, at the current and shadowing scope
-    pub bindings: Resolver,
+    pub bindings: BindingResolver,
 
     // Remember the function signature (arguments; named ret) from the
     // function definition, so we are always sure how to bind those values locally.
     pub action_locals: BTreeMap<Token, Vec<Token>>,
 }
 
-impl TypeChecker {
+impl SortInferer {
     // TODO: this should take a ref to bindings because the visitor will
     // want to hold onto it.
     pub fn new() -> Self {
-        TypeChecker {
-            bindings: Resolver::new(),
+        SortInferer {
+            bindings: BindingResolver::new(),
             action_locals: BTreeMap::new(),
         }
     }
@@ -124,7 +124,7 @@ impl TypeChecker {
     }
 }
 
-impl Visitor<IvySort> for TypeChecker {
+impl Visitor<IvySort> for SortInferer {
     fn boolean(&mut self, _b: &mut bool) -> VisitorResult<IvySort, bool> {
         Ok(ControlMut::Produce(IvySort::Bool))
     }

@@ -4,7 +4,7 @@ mod tests {
         extraction::java::extraction::Extractor,
         tests::helpers,
         typechecker::{
-            inference::TypeChecker,
+            inference::SortInferer,
             sorts::{self, IvySort},
         },
         visitor::ast::Visitable,
@@ -15,7 +15,7 @@ mod tests {
         let fragment = "action foo(i: unbounded_sequence, b: bool)";
         let mut ast = helpers::decl_from_src(fragment);
 
-        let mut tc = TypeChecker::new();
+        let mut tc = SortInferer::new();
         ast.visit(&mut tc).expect("typechecking failed");
 
         let mut e = Extractor::<String>::new();
@@ -31,7 +31,7 @@ mod tests {
         let fragment = "action foo(i: unbounded_sequence, b: bool) = { } ";
         let mut ast = helpers::decl_from_src(fragment);
 
-        let mut tc = TypeChecker::new();
+        let mut tc = SortInferer::new();
         ast.visit(&mut tc).expect("typechecking failed");
 
         let mut e = Extractor::<String>::new();
@@ -49,7 +49,7 @@ mod tests {
         let fragment = "after foo(i: unbounded_sequence, b: bool) { count := 0 } ";
         let mut ast = helpers::decl_from_src(fragment);
 
-        let mut tc = TypeChecker::new();
+        let mut tc = SortInferer::new();
         tc.bindings
             .append(
                 "foo".into(),
@@ -82,7 +82,7 @@ mod tests {
         let fragment = "after init { count := 0 } ";
         let mut ast = helpers::decl_from_src(fragment);
 
-        let mut tc = TypeChecker::new();
+        let mut tc = SortInferer::new();
         tc.bindings
             .append("init".into(), sorts::Module::init_action_sort())
             .unwrap();
@@ -101,7 +101,7 @@ mod tests {
         let fragment = "inc(1)";
         let mut ast = helpers::rval_from_src(fragment);
 
-        let mut tc = TypeChecker::new();
+        let mut tc = SortInferer::new();
         tc.bindings
             .append(
                 "inc".into(),
@@ -162,7 +162,7 @@ mod tests {
         let fragment = "var i: unbounded_sequence";
         let mut ast = helpers::decl_from_src(fragment);
 
-        let mut tc = TypeChecker::new();
+        let mut tc = SortInferer::new();
         ast.visit(&mut tc).expect("typechecking failed");
 
         let mut e = Extractor::<String>::new();

@@ -2,7 +2,7 @@ use crate::{
     ast::toplevels::Prog,
     parser::ivy::{IvyParser, Rule},
     passes::global_lowerer::GlobalLowerer,
-    typechecker::inference::TypeChecker,
+    typechecker::inference::SortInferer,
     visitor::ast::Visitable,
 };
 use anyhow::Result;
@@ -28,8 +28,8 @@ fn prog_from_filename(path: &str) -> Result<Prog> {
     Ok(prog)
 }
 
-pub fn load_stdlib() -> Result<TypeChecker> {
-    let mut tc = TypeChecker::new();
+pub fn load_stdlib() -> Result<SortInferer> {
+    let mut tc = SortInferer::new();
 
     let mut decl = prog_from_filename("src/stdlib/ivy/network.ivy")?;
     decl.visit(&mut tc)?.modifying(&mut decl)?;

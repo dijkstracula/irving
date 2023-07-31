@@ -8,7 +8,7 @@ mod tests {
         },
         parser::ivy::{IvyParser, Rule},
         typechecker::{
-            inference::TypeChecker,
+            inference::SortInferer,
             sorts::{self, IvySort},
             TypeError,
         },
@@ -45,7 +45,7 @@ mod tests {
         let mut decl = decl_from_src("action a() {}");
         let sort = IvySort::action_sort(vec![], vec![], sorts::ActionRet::Unit);
 
-        let mut tc = TypeChecker::new();
+        let mut tc = SortInferer::new();
         let res = decl.visit(&mut tc).unwrap().modifying(&mut decl).unwrap();
         assert_eq!(res, sort);
 
@@ -56,7 +56,7 @@ mod tests {
     fn test_noop_action_decl_with_local() {
         let mut decl = decl_from_src("action a() { var b = 42 } ");
 
-        let mut tc = TypeChecker::new();
+        let mut tc = SortInferer::new();
         let res = decl.visit(&mut tc).unwrap().modifying(&mut decl).unwrap();
         assert_eq!(
             res,
@@ -71,7 +71,7 @@ mod tests {
     fn test_ident_action_decl() {
         let mut decl = decl_from_src("action id(x: bool) returns (b: bool) = { b := x }");
 
-        let mut tc = TypeChecker::new();
+        let mut tc = SortInferer::new();
         let res = decl.visit(&mut tc).unwrap().modifying(&mut decl).unwrap();
         assert_eq!(
             res,
@@ -101,7 +101,7 @@ mod tests {
         let mut action_decl = decl_from_src("action id(a: bool) returns (b: bool)");
         let mut imp_decl = decl_from_src("implement id { b := a }");
 
-        let mut tc = TypeChecker::new();
+        let mut tc = SortInferer::new();
 
         action_decl
             .visit(&mut tc)
@@ -129,7 +129,7 @@ mod tests {
         let mut action_decl = decl_from_src("action id(a: bool) returns (b: bool)");
         let mut imp_decl = decl_from_src("implement id { foo := a }");
 
-        let mut tc = TypeChecker::new();
+        let mut tc = SortInferer::new();
 
         action_decl
             .visit(&mut tc)
@@ -153,7 +153,7 @@ mod tests {
         let mut before_decl = decl_from_src("before id { require a = false | a = true }");
         let mut after_decl = decl_from_src("after id { ensure a = b }");
 
-        let mut tc = TypeChecker::new();
+        let mut tc = SortInferer::new();
 
         action_decl
             .visit(&mut tc)
@@ -190,7 +190,7 @@ mod tests {
         let mut action_decl = decl_from_src("action const_true returns (b: bool) { b := true }");
         let mut before_decl = decl_from_src("after const_true(uhoh: bool) { }");
 
-        let mut tc = TypeChecker::new();
+        let mut tc = SortInferer::new();
 
         action_decl
             .visit(&mut tc)
@@ -214,7 +214,7 @@ mod tests {
         }",
         );
 
-        let mut tc = TypeChecker::new();
+        let mut tc = SortInferer::new();
         let _ = prog.visit(&mut tc).unwrap().modifying(&mut prog).unwrap();
 
         // The type of the action should be nullary to a bool.
@@ -248,7 +248,7 @@ mod tests {
         }",
         );
 
-        let mut tc = TypeChecker::new();
+        let mut tc = SortInferer::new();
         let _ = prog.visit(&mut tc).unwrap().modifying(&mut prog).unwrap();
 
         let action_sort = tc
@@ -306,7 +306,7 @@ mod tests {
         }",
         );
 
-        let mut tc = TypeChecker::new();
+        let mut tc = SortInferer::new();
         let _ = prog.visit(&mut tc).unwrap().modifying(&mut prog).unwrap();
 
         let action_sort = tc
@@ -355,7 +355,7 @@ mod tests {
         }",
         );
 
-        let mut tc = TypeChecker::new();
+        let mut tc = SortInferer::new();
         let _ = prog.visit(&mut tc).unwrap().modifying(&mut prog).unwrap();
 
         let action_sort = tc
@@ -423,7 +423,7 @@ mod tests {
         }",
         );
 
-        let mut tc = TypeChecker::new();
+        let mut tc = SortInferer::new();
         let _ = prog.visit(&mut tc).unwrap().modifying(&mut prog).unwrap();
 
         let mut prog = decl_from_src(
@@ -449,7 +449,7 @@ mod tests {
         } ",
         );
 
-        let mut tc = TypeChecker::new();
+        let mut tc = SortInferer::new();
         let _ = iso.visit(&mut tc).unwrap().modifying(&mut iso).unwrap();
     }
 }

@@ -3,7 +3,7 @@ mod tests {
     use crate::{
         tests::helpers,
         typechecker::{
-            inference::TypeChecker,
+            inference::SortInferer,
             sorts::{self, IvySort, Module},
         },
         visitor::ast::Visitable,
@@ -19,7 +19,7 @@ mod tests {
             fields: [("init".into(), Module::init_action_sort())].into(),
         });
 
-        let mut tc = TypeChecker::new();
+        let mut tc = SortInferer::new();
         let res = iso.visit(&mut tc).unwrap().modifying(&mut iso).unwrap();
         assert_eq!(res, sort);
         assert_eq!(tc.bindings.lookup_sym("m"), Some(&sort));
@@ -39,7 +39,7 @@ mod tests {
             fields: [("init".into(), Module::init_action_sort())].into(),
         });
 
-        let mut tc = TypeChecker::new();
+        let mut tc = SortInferer::new();
         let res = iso.visit(&mut tc).unwrap().modifying(&mut iso).unwrap();
         assert_eq!(res, sort);
         assert_eq!(tc.bindings.lookup_sym("m"), Some(&sort));
@@ -68,7 +68,7 @@ mod tests {
             .into(),
         });
 
-        let mut tc = TypeChecker::new();
+        let mut tc = SortInferer::new();
         let res = iso.visit(&mut tc).unwrap().modifying(&mut iso).unwrap();
         assert_eq!(res, sort);
         assert_eq!(tc.bindings.lookup_sym("array"), Some(&sort));
@@ -117,7 +117,7 @@ mod tests {
             .into(),
         });
 
-        let mut tc = TypeChecker::new();
+        let mut tc = SortInferer::new();
         let res = iso.visit(&mut tc).unwrap().modifying(&mut iso).unwrap();
 
         assert_eq!(res, sort);
@@ -131,7 +131,7 @@ mod tests {
     fn multimod_instantiation() {
         // Our dependent module.
         let mut tcp = helpers::tcp_moduledecl();
-        let mut tc = TypeChecker::new();
+        let mut tc = SortInferer::new();
         tcp.visit(&mut tc).unwrap().modifying(&mut tcp).unwrap();
 
         let mut proc = helpers::process_from_decl(
@@ -167,7 +167,7 @@ type foo
 instance c : counter(foo)",
         );
 
-        let mut tc = TypeChecker::new();
+        let mut tc = SortInferer::new();
         proc.visit(&mut tc).unwrap().modifying(&mut proc).unwrap();
     }
 
@@ -189,7 +189,7 @@ module counter(t) = {
 instance c : counter(bool)",
         );
 
-        let mut tc = TypeChecker::new();
+        let mut tc = SortInferer::new();
         proc.visit(&mut tc)
             .expect_err("bool should not be unifiable with a numeric sort for argument `t`");
     }

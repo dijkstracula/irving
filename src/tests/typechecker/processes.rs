@@ -6,7 +6,7 @@ mod tests {
         ast::{declarations::Decl, expressions::Expr},
         parser::ivy::{IvyParser, Rule},
         typechecker::{
-            inference::TypeChecker,
+            inference::SortInferer,
             sorts::{self, IvySort, Module, Object},
             TypeError,
         },
@@ -22,8 +22,8 @@ mod tests {
         Decl::Object(IvyParser::process_decl(res).expect("AST generation failed"))
     }
 
-    fn typechecker_with_bindings() -> TypeChecker {
-        let mut tc = TypeChecker::new();
+    fn typechecker_with_bindings() -> SortInferer {
+        let mut tc = SortInferer::new();
 
         // type pid: 0..3
         tc.bindings
@@ -119,7 +119,7 @@ mod tests {
             fields: [("init".to_owned(), Module::init_action_sort())].into(),
         });
 
-        let mut tc = TypeChecker::new();
+        let mut tc = SortInferer::new();
         let res = iso.visit(&mut tc).unwrap().modifying(&mut iso).unwrap();
         assert_eq!(res, sort);
 

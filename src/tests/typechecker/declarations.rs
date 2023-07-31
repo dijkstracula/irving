@@ -5,7 +5,7 @@ mod tests {
         parser::ivy::{IvyParser, Rule},
         tests::helpers,
         typechecker::{
-            inference::TypeChecker,
+            inference::SortInferer,
             sorts::{IvySort, Module},
             TypeError,
         },
@@ -18,7 +18,7 @@ mod tests {
         let prog = "ensure true";
         let mut decl_ast = helpers::decl_from_src(prog);
 
-        let mut tc = TypeChecker::new();
+        let mut tc = SortInferer::new();
         decl_ast.visit(&mut tc).expect("typecheck");
     }
 
@@ -27,7 +27,7 @@ mod tests {
         let prog = "ensure 1+1";
         let mut decl_ast = helpers::decl_from_src(prog);
 
-        let mut tc = TypeChecker::new();
+        let mut tc = SortInferer::new();
         decl_ast.visit(&mut tc).expect_err("visit");
     }
 
@@ -36,7 +36,7 @@ mod tests {
         let prog = "ensure forall X . X = X";
         let mut decl_ast = helpers::decl_from_src(prog);
 
-        let mut tc = TypeChecker::new();
+        let mut tc = SortInferer::new();
         decl_ast.visit(&mut tc).expect_err("visit");
     }
 
@@ -45,7 +45,7 @@ mod tests {
         let prog = "require true";
         let mut decl_ast = helpers::decl_from_src(prog);
 
-        let mut tc = TypeChecker::new();
+        let mut tc = SortInferer::new();
         decl_ast.visit(&mut tc).expect("typecheck");
     }
 
@@ -54,7 +54,7 @@ mod tests {
         let prog = "require 1+1";
         let mut decl_ast = helpers::decl_from_src(prog);
 
-        let mut tc = TypeChecker::new();
+        let mut tc = SortInferer::new();
         decl_ast.visit(&mut tc).expect_err("visit");
     }
 
@@ -64,7 +64,7 @@ mod tests {
         let mut decl_ast = helpers::decl_from_src(prog);
 
         // With an empty context, `net` should produce an unbound identifier error.
-        let mut tc = TypeChecker::new();
+        let mut tc = SortInferer::new();
         let res = decl_ast.visit(&mut tc).expect_err("visit");
         assert_eq!(
             res.downcast::<TypeError>().unwrap(),
@@ -163,7 +163,7 @@ mod tests {
             .unwrap();
         let mut decl_ast = IvyParser::decl(parsed).expect("AST generation failed");
 
-        let mut tc = TypeChecker::new();
+        let mut tc = SortInferer::new();
         let res = decl_ast
             .visit(&mut tc)
             .expect("visit")
@@ -188,7 +188,7 @@ mod tests {
         let prog = "relation is_up(X: bool, Y: bool)";
         let mut decl_ast = helpers::decl_from_src(prog);
 
-        let mut tc = TypeChecker::new();
+        let mut tc = SortInferer::new();
         let res = decl_ast
             .visit(&mut tc)
             .expect("visit")
@@ -207,7 +207,7 @@ mod tests {
         let prog = "type addr = bv[32]";
         let mut decl_ast = helpers::decl_from_src(prog);
 
-        let mut tc = TypeChecker::new();
+        let mut tc = SortInferer::new();
         let res = decl_ast
             .visit(&mut tc)
             .expect("visit")
@@ -230,7 +230,7 @@ mod tests {
         let prog = "type this";
         let mut decl_ast = helpers::decl_from_src(prog);
 
-        let mut tc = TypeChecker::new();
+        let mut tc = SortInferer::new();
         let res = decl_ast
             .visit(&mut tc)
             .expect("visit")
@@ -245,7 +245,7 @@ mod tests {
         let prog = "type node";
         let mut decl_ast = helpers::decl_from_src(prog);
 
-        let mut tc = TypeChecker::new();
+        let mut tc = SortInferer::new();
         let res = decl_ast
             .visit(&mut tc)
             .expect("visit")
@@ -261,7 +261,7 @@ mod tests {
         let prog = "type status = {on, off}";
         let mut decl_ast = helpers::decl_from_src(prog);
 
-        let mut tc = TypeChecker::new();
+        let mut tc = SortInferer::new();
         let res = decl_ast
             .visit(&mut tc)
             .expect("visit")
@@ -280,7 +280,7 @@ mod tests {
         let prog = "type numbers = {0..100}";
         let mut decl_ast = helpers::decl_from_src(prog);
 
-        let mut tc = TypeChecker::new();
+        let mut tc = SortInferer::new();
         let res = decl_ast
             .visit(&mut tc)
             .expect("visit")
@@ -305,7 +305,7 @@ mod tests {
         let prog = "var i";
         let mut decl_ast = helpers::decl_from_src(prog);
 
-        let mut tc = TypeChecker::new();
+        let mut tc = SortInferer::new();
         let res = decl_ast
             .visit(&mut tc)
             .expect("visit")
@@ -321,7 +321,7 @@ mod tests {
         let prog = "var b: bool";
         let mut decl_ast = helpers::decl_from_src(prog);
 
-        let mut tc = TypeChecker::new();
+        let mut tc = SortInferer::new();
         let res = decl_ast
             .visit(&mut tc)
             .expect("visit")
@@ -347,7 +347,7 @@ mod tests {
         let mut decl_ast = IvyParser::decl_block(parsed).expect("AST generation failed");
         println!("{:?}", decl_ast);
 
-        let mut tc = TypeChecker::new();
+        let mut tc = SortInferer::new();
         decl_ast
             .visit(&mut tc)
             .expect("visit")

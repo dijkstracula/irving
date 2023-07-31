@@ -4,13 +4,13 @@ mod tests {
         ast::expressions::Expr,
         typechecker::{
             sorts::{IvySort, Module},
-            unifier::Resolver,
+            unifier::BindingResolver,
             TypeError,
         },
     };
 
-    fn resolver_with_bindings() -> Resolver {
-        let mut r = Resolver::new();
+    fn resolver_with_bindings() -> BindingResolver {
+        let mut r = BindingResolver::new();
 
         // type pid: 0..3
         r.append(

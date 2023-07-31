@@ -6,7 +6,7 @@ mod tests {
         ast::declarations::Decl,
         parser::ivy::{IvyParser, Rule},
         typechecker::{
-            inference::TypeChecker,
+            inference::SortInferer,
             sorts::{self, IvySort, Module, Object},
             TypeError,
         },
@@ -47,7 +47,7 @@ mod tests {
             .into(),
         });
 
-        let mut tc = TypeChecker::new();
+        let mut tc = SortInferer::new();
         let res = proc.visit(&mut tc).unwrap().modifying(&mut proc).unwrap();
         assert_eq!(res, sort);
 
@@ -79,7 +79,7 @@ mod tests {
             .into(),
         });
 
-        let mut tc = TypeChecker::new();
+        let mut tc = SortInferer::new();
         let res = proc.visit(&mut tc).unwrap().modifying(&mut proc).unwrap();
         assert_eq!(res, sort);
         assert_eq!(tc.bindings.lookup_sym("p"), Some(&sort));
@@ -110,7 +110,7 @@ mod tests {
             .into(),
         });
 
-        let mut tc = TypeChecker::new();
+        let mut tc = SortInferer::new();
         let res = proc.visit(&mut tc).unwrap().modifying(&mut proc).unwrap();
         assert_eq!(res, sort);
         assert_eq!(tc.bindings.lookup_sym("p"), Some(&sort));
@@ -125,7 +125,7 @@ mod tests {
         }",
         );
 
-        let mut tc = TypeChecker::new();
+        let mut tc = SortInferer::new();
         let res = proc.visit(&mut tc).expect_err("Should not typecheck");
         assert_eq!(
             res.downcast::<TypeError>().unwrap(),

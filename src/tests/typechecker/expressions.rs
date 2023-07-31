@@ -5,7 +5,7 @@ mod tests {
     use crate::{
         parser::ivy::{IvyParser, Rule},
         typechecker::{
-            inference::TypeChecker,
+            inference::SortInferer,
             sorts::{self, ActionArgs, IvySort, Object},
             TypeError,
         },
@@ -21,7 +21,7 @@ mod tests {
             .single()
             .unwrap();
         let mut binop = IvyParser::rval(parsed).expect("AST generation failed");
-        let mut tc = TypeChecker::new();
+        let mut tc = SortInferer::new();
 
         // `this` has to be explicitly bound from the enclosing context.
         let res = binop.visit(&mut tc).expect_err("visit");
@@ -40,7 +40,7 @@ mod tests {
             .unwrap();
         let mut binop = IvyParser::rval(parsed).expect("AST generation failed");
 
-        let mut tc = TypeChecker::new();
+        let mut tc = SortInferer::new();
         let res = binop.visit(&mut tc).unwrap().modifying(&mut binop).unwrap();
         assert_eq!(res, IvySort::Bool);
     }
@@ -54,7 +54,7 @@ mod tests {
             .unwrap();
         let mut binop = IvyParser::rval(parsed).expect("AST generation failed");
 
-        let mut tc = TypeChecker::new();
+        let mut tc = SortInferer::new();
         let res = binop.visit(&mut tc).unwrap().modifying(&mut binop).unwrap();
         assert_eq!(res, IvySort::Number);
     }
@@ -68,7 +68,7 @@ mod tests {
             .unwrap();
         let mut binop = IvyParser::rval(parsed).expect("AST generation failed");
 
-        let mut tc = TypeChecker::new();
+        let mut tc = SortInferer::new();
         let res = binop.visit(&mut tc);
         assert_eq!(
             res.unwrap_err().downcast::<TypeError>().unwrap(),
@@ -85,7 +85,7 @@ mod tests {
             .unwrap();
         let mut binop = IvyParser::rval(parsed).expect("AST generation failed");
 
-        let mut tc = TypeChecker::new();
+        let mut tc = SortInferer::new();
         let res = binop.visit(&mut tc).unwrap().modifying(&mut binop).unwrap();
         assert_eq!(res, IvySort::Bool);
     }
@@ -101,7 +101,7 @@ mod tests {
 
         // Unbound identifiers should not be resolvable.
 
-        let mut tc = TypeChecker::new();
+        let mut tc = SortInferer::new();
         let res = identop.visit(&mut tc);
         assert_eq!(
             res.unwrap_err().downcast::<TypeError>().unwrap(),
@@ -154,7 +154,7 @@ mod tests {
             .unwrap();
         let mut callop = IvyParser::rval(parsed).expect("AST generation failed");
 
-        let mut tc = TypeChecker::new();
+        let mut tc = SortInferer::new();
         tc.bindings
             .append(
                 "f".into(),
@@ -182,7 +182,7 @@ mod tests {
             .unwrap();
         let mut callop = IvyParser::rval(parsed).expect("AST generation failed");
 
-        let mut tc = TypeChecker::new();
+        let mut tc = SortInferer::new();
         let var = tc.bindings.new_sortvar();
         tc.bindings.append("f".into(), var).unwrap();
         let res = callop
@@ -202,7 +202,7 @@ mod tests {
             .unwrap();
         let mut callop = IvyParser::rval(parsed).expect("AST generation failed");
 
-        let mut tc = TypeChecker::new();
+        let mut tc = SortInferer::new();
         tc.bindings.append("f".into(), IvySort::Number).unwrap();
 
         let res = callop
@@ -234,7 +234,7 @@ mod tests {
             fields: BTreeMap::from([("b".into(), IvySort::Bool)]),
         };
 
-        let mut tc = TypeChecker::new();
+        let mut tc = SortInferer::new();
         tc.bindings
             .append("a".into(), IvySort::Object(procsort))
             .unwrap();

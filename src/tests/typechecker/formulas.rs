@@ -2,7 +2,7 @@
 mod tests {
     use crate::ast::logic::*;
     use crate::parser::ivy::{IvyParser, Rule};
-    use crate::typechecker::inference::TypeChecker;
+    use crate::typechecker::inference::SortInferer;
     use crate::visitor::ast::Visitable;
     use pest_consume::Parser;
 
@@ -13,7 +13,7 @@ mod tests {
             .unwrap();
         let mut ast = IvyParser::fmla(res)?;
 
-        let mut tc = TypeChecker::new();
+        let mut tc = SortInferer::new();
         ast.visit(&mut tc)?.modifying(&mut ast)?;
         Ok(ast)
     }

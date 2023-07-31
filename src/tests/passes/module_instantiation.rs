@@ -3,7 +3,7 @@ mod tests {
     use crate::ast::declarations::Decl;
     use crate::parser::ivy::{IvyParser, Rule};
     use crate::passes::module_instantiation;
-    use crate::typechecker::inference::TypeChecker;
+    use crate::typechecker::inference::SortInferer;
     use crate::typechecker::sorts::{IvySort, Module};
     use crate::visitor::ast::Visitable;
     use pest_consume::Parser;
@@ -15,7 +15,7 @@ mod tests {
             .unwrap();
         let mut module = Decl::Module(IvyParser::module_decl(res).expect("AST generation"));
 
-        let mut tc = TypeChecker::new();
+        let mut tc = SortInferer::new();
         match module
             .visit(&mut tc)
             .expect("Typechecking")
