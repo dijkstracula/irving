@@ -438,6 +438,13 @@ where
         Ok(ControlMut::Produce(T::default()))
     }
 
+    fn begin_clone(&mut self, _ast: &mut Expr) -> VisitorResult<T, Expr> {
+        Ok(ControlMut::Produce(T::default()))
+    }
+    fn finish_clone(&mut self, _ast: &mut Expr, _expr_t: T) -> VisitorResult<T, Expr> {
+        Ok(ControlMut::Produce(T::default()))
+    }
+
     fn begin_field_access(&mut self, _lhs: &mut Expr, rhs: &mut Symbol) -> VisitorResult<T, Expr> {
         Ok(ControlMut::Produce(T::default()))
     }
@@ -585,6 +592,10 @@ where
                 .boolean(b)?
                 .modifying(b)
                 .map(|t| ControlMut::Produce(t)),
+            Expr::Clone(ident) => visitor.begin_clone(ident)?.and_then(|_| {
+                let c_t = ident.visit(visitor)?.modifying(ident)?;
+                visitor.finish_clone(ident, c_t)
+            }),
             Expr::FieldAccess(FieldAccess {
                 ref mut record,
                 ref mut field,

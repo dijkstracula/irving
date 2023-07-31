@@ -2,7 +2,7 @@
 mod tests {
     use crate::ast::declarations::Decl;
     use crate::parser::ivy::{IvyParser, Rule};
-    use crate::visitor::global_lowerer::GlobalLowerer;
+    use crate::passes::global_lowerer::GlobalLowerer;
     use pest_consume::Parser;
 
     #[test]
@@ -23,8 +23,8 @@ object abc = {
             .unwrap();
         let mut ast = IvyParser::prog(res).expect("AST generation failed");
 
-        assert!(ast.top.body.len() == 2);
-        match ast.top.body.get(0) {
+        assert!(ast.top.len() == 2);
+        match ast.top.get(0) {
             Some(Decl::Globals(gs)) => {
                 assert!(gs.len() == 1);
             }
@@ -36,7 +36,7 @@ object abc = {
         // Implementation detail: the lowerer collects all the globals and then appends
         // the collated collection to the end of the isolate body, so look at the final
         // element here.
-        match ast.top.body.last() {
+        match ast.top.last() {
             Some(Decl::Globals(gs)) => {
                 //
                 assert!(gs.len() == 2);

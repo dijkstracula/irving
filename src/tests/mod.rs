@@ -17,7 +17,7 @@ fn init() {
 #[cfg(test)]
 pub mod helpers {
     use crate::{
-        ast::{declarations::Decl, expressions::Expr, toplevels::Prog},
+        ast::{actions::Action, declarations::Decl, expressions::Expr, toplevels::Prog},
         parser::ivy::{IvyParser, Rule},
         passes::global_lowerer::GlobalLowerer,
         stdlib::load_stdlib,
@@ -108,6 +108,14 @@ pub mod helpers {
             .unwrap();
 
         prog
+    }
+
+    pub fn action_from_src(prog: &str) -> Action {
+        let res = IvyParser::parse(Rule::action, prog)
+            .expect("Parsing failed")
+            .single()
+            .unwrap();
+        IvyParser::action(res).expect("AST generation failed")
     }
 
     pub fn decl_from_src(prog: &str) -> Decl {

@@ -95,6 +95,8 @@ pub enum Expr {
 
     Boolean(bool),
 
+    Clone(Box<Expr>),
+
     FieldAccess(FieldAccess),
 
     Index(IndexExpr),
