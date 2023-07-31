@@ -31,7 +31,7 @@ pub mod helpers {
     }
 
     pub fn prog_from_decls(prog: &str) -> Prog {
-        let res = IvyParser::parse(Rule::prog, &prog)
+        let res = IvyParser::parse(Rule::prog, prog)
             .expect("Parsing failed")
             .single()
             .unwrap();
@@ -84,8 +84,7 @@ pub mod helpers {
         )
     }
 
-    #[allow(dead_code)]
-    pub fn typechecked_from_filename(path: &str) -> Prog {
+    pub fn typeinference_from_filename(path: &str) -> Prog {
         let text = std::fs::read_to_string(path).unwrap();
         let res = IvyParser::parse(Rule::prog, &text)
             .expect("Parsing failed")
@@ -104,7 +103,7 @@ pub mod helpers {
             .unwrap();
 
         prog.visit(&mut tc)
-            .expect("typechecking")
+            .expect("type inference")
             .modifying(&mut prog)
             .unwrap();
 

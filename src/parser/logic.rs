@@ -33,7 +33,7 @@ lazy_static::lazy_static! {
 }
 
 // TODO: this should be something other than a Symbol.
-pub fn parse_lsym<'a>(primary: Pair<'a, Rule>) -> Result<Symbol> {
+pub fn parse_lsym(primary: Pair<'_, Rule>) -> Result<Symbol> {
     // TODO: we need a separate AST node for logicvars.
     let mut pairs = primary.into_inner();
     let id = pairs.next().unwrap().as_str().to_owned();

@@ -39,7 +39,7 @@ mod tests {
         assert_eq!(
             "protected Action2<Long, Boolean, Void> foo = new Action2<>((Long i, Boolean b) -> {return Either.right(null);})",
             e.pp.out
-                .replace("\n", "")
+                .replace('\n', "")
                 .replace("    ", "")
         );
     }

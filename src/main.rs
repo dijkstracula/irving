@@ -16,10 +16,8 @@ fn main() -> anyhow::Result<()> {
     let mut gl = GlobalLowerer::new();
     log::info!(target: "pass", "lowering globals");
     prog.visit(&mut gl)?.modifying(&mut prog)?;
-    let mut tc = irving::stdlib::load_stdlib()?;
-
     log::info!("[pass] typechecking");
-    prog.visit(&mut tc)?.modifying(&mut prog)?;
+    irving::stdlib::typecheck(&mut prog)?;
 
     match cli.cmd {
         Commands::Extract(ExtractTarget::Ivy) => {

@@ -19,7 +19,7 @@ mod tests {
         let mut decl_ast = helpers::decl_from_src(prog);
 
         let mut tc = SortInferer::new();
-        decl_ast.visit(&mut tc).expect("typecheck");
+        decl_ast.visit(&mut tc).expect("sort inference");
     }
 
     #[test]
@@ -46,7 +46,7 @@ mod tests {
         let mut decl_ast = helpers::decl_from_src(prog);
 
         let mut tc = SortInferer::new();
-        decl_ast.visit(&mut tc).expect("typecheck");
+        decl_ast.visit(&mut tc).expect("sort inference");
     }
 
     #[test]

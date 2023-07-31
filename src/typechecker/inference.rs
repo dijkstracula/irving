@@ -183,7 +183,10 @@ impl Visitor<IvySort> for SortInferer {
 
     fn sort(&mut self, s: &mut Sort) -> VisitorResult<IvySort, Sort> {
         let ctrl = match s {
-            Sort::ToBeInferred => ControlMut::Produce(self.bindings.new_sortvar()),
+            Sort::ToBeInferred => {
+                let s = self.bindings.new_sortvar();
+                ControlMut::Mutation(Sort::Resolved(s.clone()), s)
+            }
             Sort::Annotated(ident) => {
                 let resolved = self.identifier(ident)?.modifying(ident)?;
                 ControlMut::Mutation(Sort::Resolved(resolved.clone()), resolved)
@@ -446,8 +449,7 @@ impl Visitor<IvySort> for SortInferer {
             IvySort::Action(argnames, ActionArgs::List(argsorts), ret) if !is_common => {
                 let first_arg = argsorts.get(0).map(|s| self.bindings.resolve(s));
                 if first_arg == Some(&IvySort::This) {
-                    let remaining_argnames =
-                        argnames.clone().into_iter().skip(1).collect::<Vec<_>>();
+                    let remaining_argnames = argnames.into_iter().skip(1).collect::<Vec<_>>();
                     let remaining_argsorts =
                         argsorts.clone().into_iter().skip(1).collect::<Vec<_>>();
 
@@ -1010,13 +1012,18 @@ impl Visitor<IvySort> for SortInferer {
         name: &mut Token,
         sort: &mut Sort,
     ) -> VisitorResult<IvySort, declarations::Decl> {
-        let binding = match sort {
+        let resolved = match sort {
             Sort::ToBeInferred => self.bindings.new_sortvar(),
             Sort::Annotated(_) => unreachable!(),
             Sort::Resolved(sort) => sort.clone(),
         };
-        self.bindings.append(name.clone(), binding.clone())?;
-        Ok(ControlMut::SkipSiblings(binding))
+        self.bindings.append(name.clone(), resolved.clone())?;
+
+        let binding = Binding::from(name.clone(), Sort::Resolved(resolved.clone()));
+        Ok(ControlMut::Mutation(
+            declarations::Decl::Type(binding),
+            resolved,
+        ))
     }
 
     fn begin_vardecl(

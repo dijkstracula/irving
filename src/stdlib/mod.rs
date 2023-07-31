@@ -1,8 +1,8 @@
 use crate::{
-    ast::toplevels::Prog,
+    ast::toplevels::{self, Prog},
     parser::ivy::{IvyParser, Rule},
     passes::global_lowerer::GlobalLowerer,
-    typechecker::inference::SortInferer,
+    typechecker::{inference::SortInferer, subst::SortSubstituter},
     visitor::ast::Visitable,
 };
 use anyhow::Result;
@@ -17,7 +17,7 @@ use pest_consume::Parser;
 //
 // See https://github.com/dijkstracula/irving/issues/5 .
 fn prog_from_filename(path: &str) -> Result<Prog> {
-    log::debug!(target: "stdlib", "adding {path}");
+    log::info!(target: "stdlib", "loading {path}");
 
     let text = std::fs::read_to_string(path).unwrap();
     let res = IvyParser::parse(Rule::prog, &text)?.single().unwrap();
@@ -38,4 +38,16 @@ pub fn load_stdlib() -> Result<SortInferer> {
     decl.visit(&mut tc)?.modifying(&mut decl)?;
 
     Ok(tc)
+}
+
+// XXX: Not a great place for this to live.
+pub fn typecheck(prog: &mut toplevels::Prog) -> anyhow::Result<()> {
+    let mut inferer = load_stdlib().unwrap();
+    prog.visit(&mut inferer)?.modifying(prog)?;
+
+    println!("{:?}", inferer.bindings.ctx.get(14));
+    let mut subst = SortSubstituter::from_inferer(inferer);
+    prog.visit(&mut subst)?.modifying(prog)?;
+
+    Ok(())
 }

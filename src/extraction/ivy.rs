@@ -688,8 +688,7 @@ where
                     self.pp.write_str(&m.name)?;
                 }
                 _ => {
-                    println!("Uh oh! {:?}", s);
-                    self.pp.write_str("???")?;
+                    self.pp.write_fmt(format_args!("???{:?}???", s))?;
                 }
             },
         };
