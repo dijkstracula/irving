@@ -577,7 +577,12 @@ impl IvyParser {
         input.into_children();
         [rval(call)] => match call {
             Expr::App(call) => Ok(call),
-            _ => Err(Error::new_from_span(ErrorVariant::<Rule>::CustomError { message: format!("Expected function application, got {:?}", call) }, span))
+            // TODO: This error message can be improved by restricting the grammar
+            // to avoid arbitrary rvals being call_actions.  For details, see:
+            // https://github.com/dijkstracula/irving/issues/49
+            _ => Err(Error::new_from_span(ErrorVariant::<Rule>::CustomError {
+                message: format!("Unexpected expression {:?}", call) },
+                span))
         })
     }
 

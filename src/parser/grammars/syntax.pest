@@ -127,7 +127,7 @@ mixin_sig =  { ident ~ ("(" ~ paramlist ~ ")")? }
 assign_action = { (var_decl | lval) ~ ":=" ~ rval} //TODO
 assert_action = { ASSERT ~ rval}
 assume_action = { ASSUME ~ rval}
-call_action =   { rval }
+call_action =   { rval } // XXX: This is not restrictive enough: see  https://github.com/dijkstracula/irving/issues/49 .
 ensure_action = { ENSURE ~ fmla }
 requires_action = { REQUIRE ~ fmla }
 
@@ -151,11 +151,11 @@ if_stmt     = { "if"    ~ rval ~ stmt_block ~ ("else" ~ stmt_block)? }
 while_stmt  = { "while" ~ rval ~ stmt_block }
 
 stmt = {
-      actions
-    | if_stmt
+    if_stmt
     | return_stmt
     | while_stmt
     | var_decl // or something??  Feels weird to mix a decl into a stmt like this.
+    | actions
 }
 
 // Toplevels 

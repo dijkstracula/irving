@@ -59,13 +59,25 @@ pub fn parse_rval(pairs: Pairs<Rule>) -> Result<Expr> {
                 Ok(Expr::Number(val))
             }
             Rule::rval => parse_rval(primary.into_inner()),
-            _ => unreachable!("parse_expr expected primary, found {:?}", primary),
+            x => Err(Error::new_from_span(
+                ErrorVariant::CustomError {
+                    message: format!("Expected expression, got {x:?}"),
+                },
+                primary.as_span(),
+            )),
         })
         .map_prefix(|op, rhs| {
             let verb = match op.as_rule() {
                 Rule::UMINUS => Verb::Minus,
                 Rule::NOT => Verb::Not,
-                _ => unreachable!("Unexpected unary op"),
+                x => {
+                    return Err(Error::new_from_span(
+                        ErrorVariant::CustomError {
+                            message: format!("Expected prefix operator, got {x:?}"),
+                        },
+                        op.as_span(),
+                    ))
+                }
             };
             Ok(Expr::UnaryOp {
                 op: verb,
@@ -89,16 +101,23 @@ pub fn parse_rval(pairs: Pairs<Rule>) -> Result<Expr> {
                 Rule::MINUS => Verb::Minus,
                 Rule::TIMES => Verb::Times,
                 Rule::DIV => Verb::Div,
-                _ => unreachable!("Unexpected binary op"),
+                x => {
+                    return Err(Error::new_from_span(
+                        ErrorVariant::CustomError {
+                            message: format!("Expected logical operator, got {x:?}"),
+                        },
+                        op.as_span(),
+                    ))
+                }
             };
 
             if verb == Verb::Dot {
                 let field = match rhs? {
                     Expr::ProgramSymbol(field) => field,
-                    _ => {
+                    x => {
                         return Err(Error::new_from_span(
                             ErrorVariant::CustomError {
-                                message: "invalid field access expression".into(),
+                                message: format!("invalid field {x:?}"),
                             },
                             op.as_span(),
                         ));
@@ -135,7 +154,14 @@ pub fn parse_rval(pairs: Pairs<Rule>) -> Result<Expr> {
                     idx: Box::new(idx?),
                 }))
             }
-            _ => unimplemented!(),
+            x => {
+                return Err(Error::new_from_span(
+                    ErrorVariant::CustomError {
+                        message: format!("Expected postfix operator, got {x:?}"),
+                    },
+                    op.as_span(),
+                ))
+            }
         })
         .parse(pairs)
 }
