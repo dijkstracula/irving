@@ -6,7 +6,7 @@ mod tests {
     #[test]
     fn parse_hashlang_major_minor() {
         let body = "#lang ivy1.8";
-        let res = IvyParser::parse(Rule::hashlang, body)
+        let res = IvyParser::parse_with_userdata(Rule::hashlang, body, body.into())
             .expect("Parsing failed")
             .single()
             .unwrap();
@@ -19,7 +19,7 @@ mod tests {
     #[test]
     fn parse_hashlang_major_only() {
         let body = "#lang ivy2";
-        let res = IvyParser::parse(Rule::hashlang, body)
+        let res = IvyParser::parse_with_userdata(Rule::hashlang, body, body.into())
             .expect("Parsing failed")
             .single()
             .unwrap();
@@ -35,7 +35,7 @@ mod tests {
     fn parse_trivial_prog() {
         let body = "#lang ivy2";
 
-        let res = IvyParser::parse(Rule::prog, body)
+        let res = IvyParser::parse_with_userdata(Rule::prog, body, body.into())
             .expect("Parsing failed")
             .single()
             .unwrap();
@@ -55,7 +55,7 @@ isolate net(pid: node) = {
     }
 }";
 
-        let res = IvyParser::parse(Rule::prog, body)
+        let res = IvyParser::parse_with_userdata(Rule::prog, body, body.to_owned().into())
             .expect("Parsing failed")
             .single()
             .unwrap();

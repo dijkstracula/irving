@@ -1,12 +1,10 @@
 use crate::{
     ast::toplevels::{self, Prog},
-    parser::ivy::{IvyParser, Rule},
     passes::global_lowerer::GlobalLowerer,
     typechecker::{inference::SortInferer, subst::SortSubstituter},
     visitor::ast::Visitable,
 };
 use anyhow::Result;
-use pest_consume::Parser;
 
 // TODO: This should really be a prog_from_decl, but we have an irritating issue
 // that's popped up in a few different places: `Prog` contains a top level
@@ -20,8 +18,7 @@ fn prog_from_filename(path: &str) -> Result<Prog> {
     log::info!(target: "stdlib", "loading {path}");
 
     let text = std::fs::read_to_string(path).unwrap();
-    let res = IvyParser::parse(Rule::prog, &text)?.single().unwrap();
-    let mut prog = IvyParser::prog(res)?;
+    let mut prog = crate::parser::prog_from_str(&text)?;
 
     let mut gl = GlobalLowerer::new();
     prog.visit(&mut gl)?.modifying(&mut prog)?;

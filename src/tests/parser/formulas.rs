@@ -1,12 +1,18 @@
 #[cfg(test)]
 mod tests {
+    use std::rc::Rc;
+
     use crate::ast::expressions::*;
     use crate::ast::logic::*;
     use crate::parser::ivy::{IvyParser, Result, Rule};
     use pest_consume::Parser;
 
-    fn parse_fmla(fragment: &str) -> Result<Fmla> {
-        let res = IvyParser::parse(Rule::fmla, fragment)
+    fn parse_fmla<S>(fragment: S) -> Result<Fmla>
+    where
+        S: Into<Rc<str>>,
+    {
+        let rc = fragment.into();
+        let res = IvyParser::parse_with_userdata(Rule::fmla, &rc, rc.clone())
             .expect("Parsing failed")
             .single()
             .unwrap();

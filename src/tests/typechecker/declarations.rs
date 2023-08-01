@@ -156,12 +156,7 @@ mod tests {
     #[test]
     fn test_relation_decl_unannotated() {
         let prog = "relation is_up(X, Y)";
-
-        let parsed = IvyParser::parse(Rule::decl, prog)
-            .expect("Parsing failed")
-            .single()
-            .unwrap();
-        let mut decl_ast = IvyParser::decl(parsed).expect("AST generation failed");
+        let mut decl_ast = helpers::decl_from_src(prog);
 
         let mut tc = SortInferer::new();
         let res = decl_ast
@@ -218,7 +213,7 @@ mod tests {
         assert_eq!(tc.bindings.lookup_sym("addr"), Some(&IvySort::BitVec(32)));
 
         let prog = "type addr = bv[256]";
-        let res = IvyParser::parse(Rule::decl, prog)
+        let res = IvyParser::parse_with_userdata(Rule::decl, prog, prog.into())
             .expect("Parsing failed")
             .single()
             .unwrap();
@@ -340,12 +335,11 @@ mod tests {
             relation link(X:client, Y:server)
             relation semaphore(X:server) # X was previously defined to be a client.
         }";
-        let parsed = IvyParser::parse(Rule::decl_block, prog)
+        let parsed = IvyParser::parse_with_userdata(Rule::decl_block, prog, prog.into())
             .expect("Parsing failed")
             .single()
             .unwrap();
         let mut decl_ast = IvyParser::decl_block(parsed).expect("AST generation failed");
-        println!("{:?}", decl_ast);
 
         let mut tc = SortInferer::new();
         decl_ast

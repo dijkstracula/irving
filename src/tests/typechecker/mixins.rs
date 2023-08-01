@@ -15,7 +15,7 @@ mod tests {
     use pest_consume::Parser;
 
     fn process_from_src(prog: &str) -> Decl {
-        let res = IvyParser::parse(Rule::process_decl, prog)
+        let res = IvyParser::parse_with_userdata(Rule::process_decl, prog, prog.into())
             .expect("Parsing failed")
             .single()
             .unwrap();

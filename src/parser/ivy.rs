@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use pest::error::ErrorVariant;
 use pest_consume::{match_nodes, Error, Parser};
 
@@ -27,7 +29,7 @@ const _LOGIC: &str = include_str!("grammars/logic.pest");
 pub struct IvyParser;
 
 pub type Result<T> = std::result::Result<T, Error<Rule>>;
-type Node<'i> = pest_consume::Node<'i, Rule, ()>; //TODO: consume a UserData thing rather than ()
+type Node<'i> = pest_consume::Node<'i, Rule, Rc<str>>;
 
 #[pest_consume::parser]
 #[allow(dead_code)]

@@ -12,7 +12,7 @@ mod tests {
     use pest_consume::Parser;
 
     fn parse_rval(fragment: &str) -> Result<Expr> {
-        let res = IvyParser::parse(Rule::rval, fragment)
+        let res = IvyParser::parse_with_userdata(Rule::rval, fragment, fragment.to_owned().into())
             .expect("Parsing failed")
             .single()
             .unwrap();
@@ -20,7 +20,7 @@ mod tests {
     }
 
     fn parse_fmla(fragment: &str) -> Result<Fmla> {
-        let res = IvyParser::parse(Rule::fmla, fragment)
+        let res = IvyParser::parse_with_userdata(Rule::fmla, fragment, fragment.to_owned().into())
             .expect("Parsing failed")
             .single()
             .unwrap();

@@ -7,7 +7,7 @@ mod tests {
     use pest_consume::Parser;
 
     fn parse_fmla(fragment: &str) -> anyhow::Result<Fmla> {
-        let res = IvyParser::parse(Rule::fmla, fragment)
+        let res = IvyParser::parse_with_userdata(Rule::fmla, fragment, fragment.into())
             .expect("Parsing failed")
             .single()
             .unwrap();

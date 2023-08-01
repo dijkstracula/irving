@@ -17,7 +17,7 @@ fn init() {
 #[cfg(test)]
 pub mod helpers {
     use crate::{
-        ast::{declarations::Decl, expressions::Expr, toplevels::Prog},
+        ast::{declarations::Decl, expressions::Expr, statements::Stmt, toplevels::Prog},
         parser::ivy::{IvyParser, Rule},
         passes::global_lowerer::GlobalLowerer,
         stdlib::load_stdlib,
@@ -31,7 +31,7 @@ pub mod helpers {
     }
 
     pub fn prog_from_decls(prog: &str) -> Prog {
-        let res = IvyParser::parse(Rule::prog, prog)
+        let res = IvyParser::parse_with_userdata(Rule::prog, prog, prog.to_string().into())
             .expect("Parsing failed")
             .single()
             .unwrap();
@@ -39,7 +39,7 @@ pub mod helpers {
     }
 
     pub fn process_from_decl(prog: &str) -> Decl {
-        let res = IvyParser::parse(Rule::process_decl, prog)
+        let res = IvyParser::parse_with_userdata(Rule::process_decl, prog, prog.to_owned().into())
             .expect("Parsing failed")
             .single()
             .unwrap();
@@ -47,7 +47,7 @@ pub mod helpers {
     }
 
     pub fn module_from_src(prog: &str) -> Decl {
-        let res = IvyParser::parse(Rule::module_decl, prog)
+        let res = IvyParser::parse_with_userdata(Rule::module_decl, prog, prog.to_owned().into())
             .expect("Parsing failed")
             .single()
             .unwrap();
@@ -86,7 +86,7 @@ pub mod helpers {
 
     pub fn typeinference_from_filename(path: &str) -> Prog {
         let text = std::fs::read_to_string(path).unwrap();
-        let res = IvyParser::parse(Rule::prog, &text)
+        let res = IvyParser::parse_with_userdata(Rule::prog, &text, text.to_owned().into())
             .expect("Parsing failed")
             .single()
             .unwrap();
@@ -111,15 +111,23 @@ pub mod helpers {
     }
 
     pub fn decl_from_src(prog: &str) -> Decl {
-        let res = IvyParser::parse(Rule::decl, prog)
+        let res = IvyParser::parse_with_userdata(Rule::decl, prog, prog.into())
             .expect("Parsing failed")
             .single()
             .unwrap();
         IvyParser::decl(res).expect("AST generation failed")
     }
 
+    pub fn stmt_from_src(prog: &str) -> Stmt {
+        let res = IvyParser::parse_with_userdata(Rule::stmt, prog, prog.into())
+            .expect("Parsing failed")
+            .single()
+            .unwrap();
+        IvyParser::stmt(res).expect("AST generation failed")
+    }
+
     pub fn rval_from_src(prog: &str) -> Expr {
-        let res = IvyParser::parse(Rule::rval, prog)
+        let res = IvyParser::parse_with_userdata(Rule::rval, prog, prog.into())
             .expect("Parsing failed")
             .single()
             .unwrap();

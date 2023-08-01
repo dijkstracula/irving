@@ -3,7 +3,7 @@ mod tests {
     use std::collections::BTreeMap;
 
     use crate::{
-        parser::ivy::{IvyParser, Rule},
+        tests::helpers,
         typechecker::{
             inference::SortInferer,
             sorts::{self, ActionArgs, IvySort, Object},
@@ -11,20 +11,15 @@ mod tests {
         },
         visitor::ast::Visitable,
     };
-    use pest_consume::Parser;
 
     #[test]
     fn test_unbound_this() {
         let prog = "this";
-        let parsed = IvyParser::parse(Rule::rval, prog)
-            .expect("Parsing failed")
-            .single()
-            .unwrap();
-        let mut binop = IvyParser::rval(parsed).expect("AST generation failed");
+        let mut ast = helpers::rval_from_src(prog);
         let mut tc = SortInferer::new();
 
         // `this` has to be explicitly bound from the enclosing context.
-        let res = binop.visit(&mut tc).expect_err("visit");
+        let res = ast.visit(&mut tc).expect_err("visit");
         assert_eq!(
             res.downcast::<TypeError>().unwrap(),
             TypeError::UnboundVariable("this".into())
@@ -34,42 +29,30 @@ mod tests {
     #[test]
     fn test_bool_binop() {
         let prog = "1 < 2";
-        let parsed = IvyParser::parse(Rule::rval, prog)
-            .expect("Parsing failed")
-            .single()
-            .unwrap();
-        let mut binop = IvyParser::rval(parsed).expect("AST generation failed");
+        let mut ast = helpers::rval_from_src(prog);
 
         let mut tc = SortInferer::new();
-        let res = binop.visit(&mut tc).unwrap().modifying(&mut binop).unwrap();
+        let res = ast.visit(&mut tc).unwrap().modifying(&mut ast).unwrap();
         assert_eq!(res, IvySort::Bool);
     }
 
     #[test]
     fn test_numeric_binop() {
         let prog = "1 + 2";
-        let parsed = IvyParser::parse(Rule::rval, prog)
-            .expect("Parsing failed")
-            .single()
-            .unwrap();
-        let mut binop = IvyParser::rval(parsed).expect("AST generation failed");
+        let mut ast = helpers::rval_from_src(prog);
 
         let mut tc = SortInferer::new();
-        let res = binop.visit(&mut tc).unwrap().modifying(&mut binop).unwrap();
+        let res = ast.visit(&mut tc).unwrap().modifying(&mut ast).unwrap();
         assert_eq!(res, IvySort::Number);
     }
 
     #[test]
     fn test_invalid_numeric_binop() {
         let prog = "1 + true";
-        let parsed = IvyParser::parse(Rule::rval, prog)
-            .expect("Parsing failed")
-            .single()
-            .unwrap();
-        let mut binop = IvyParser::rval(parsed).expect("AST generation failed");
+        let mut ast = helpers::rval_from_src(prog);
 
         let mut tc = SortInferer::new();
-        let res = binop.visit(&mut tc);
+        let res = ast.visit(&mut tc);
         assert_eq!(
             res.unwrap_err().downcast::<TypeError>().unwrap(),
             TypeError::UnificationError(IvySort::Number, IvySort::Bool)
@@ -79,25 +62,17 @@ mod tests {
     #[test]
     fn test_unary_op() {
         let prog = "~true";
-        let parsed = IvyParser::parse(Rule::rval, prog)
-            .expect("Parsing failed")
-            .single()
-            .unwrap();
-        let mut binop = IvyParser::rval(parsed).expect("AST generation failed");
+        let mut ast = helpers::rval_from_src(prog);
 
         let mut tc = SortInferer::new();
-        let res = binop.visit(&mut tc).unwrap().modifying(&mut binop).unwrap();
+        let res = ast.visit(&mut tc).unwrap().modifying(&mut ast).unwrap();
         assert_eq!(res, IvySort::Bool);
     }
 
     #[test]
     fn test_ident() {
         let prog = "foo";
-        let parsed = IvyParser::parse(Rule::rval, prog)
-            .expect("Parsing failed")
-            .single()
-            .unwrap();
-        let mut identop = IvyParser::rval(parsed).expect("AST generation failed");
+        let mut identop = helpers::rval_from_src(prog);
 
         // Unbound identifiers should not be resolvable.
 
@@ -148,11 +123,7 @@ mod tests {
     #[test]
     fn test_call_resolved() {
         let prog = "f()";
-        let parsed = IvyParser::parse(Rule::rval, prog)
-            .expect("Parsing failed")
-            .single()
-            .unwrap();
-        let mut callop = IvyParser::rval(parsed).expect("AST generation failed");
+        let mut callop = helpers::rval_from_src(prog);
 
         let mut tc = SortInferer::new();
         tc.bindings
@@ -176,11 +147,7 @@ mod tests {
     #[test]
     fn test_call_unresolved() {
         let prog = "f()";
-        let parsed = IvyParser::parse(Rule::rval, prog)
-            .expect("Parsing failed")
-            .single()
-            .unwrap();
-        let mut callop = IvyParser::rval(parsed).expect("AST generation failed");
+        let mut callop = helpers::rval_from_src(prog);
 
         let mut tc = SortInferer::new();
         let var = tc.bindings.new_sortvar();
@@ -196,11 +163,7 @@ mod tests {
     #[test]
     fn test_call_invalid() {
         let prog = "f()";
-        let parsed = IvyParser::parse(Rule::rval, prog)
-            .expect("Parsing failed")
-            .single()
-            .unwrap();
-        let mut callop = IvyParser::rval(parsed).expect("AST generation failed");
+        let mut callop = helpers::rval_from_src(prog);
 
         let mut tc = SortInferer::new();
         tc.bindings.append("f".into(), IvySort::Number).unwrap();
@@ -222,11 +185,7 @@ mod tests {
     #[test]
     fn test_field_access() {
         let prog = "a.b";
-        let parsed = IvyParser::parse(Rule::rval, prog)
-            .expect("Parsing failed")
-            .single()
-            .unwrap();
-        let mut getop = IvyParser::rval(parsed).expect("AST generation failed");
+        let mut getop = helpers::rval_from_src(prog);
 
         // Accessing 'b' should be fine when 'a' is bound to a Process.
         let procsort = Object {

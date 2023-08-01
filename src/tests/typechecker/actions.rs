@@ -17,7 +17,7 @@ mod tests {
     use pest_consume::Parser;
 
     fn isolate_from_src(prog: &str) -> Decl {
-        let res = IvyParser::parse(Rule::process_decl, prog)
+        let res = IvyParser::parse_with_userdata(Rule::process_decl, prog, prog.into())
             .expect("Parsing failed")
             .single()
             .unwrap();
@@ -25,7 +25,7 @@ mod tests {
     }
 
     fn decl_from_src(src: &str) -> Decl {
-        let parsed = IvyParser::parse(Rule::decl, src)
+        let parsed = IvyParser::parse_with_userdata(Rule::decl, src, src.into())
             .expect("Parsing failed")
             .single()
             .unwrap();
@@ -33,7 +33,7 @@ mod tests {
     }
 
     fn expr_from_src(src: &str) -> Expr {
-        let parsed = IvyParser::parse(Rule::rval, src)
+        let parsed = IvyParser::parse_with_userdata(Rule::rval, src, src.into())
             .expect("Parsing failed")
             .single()
             .unwrap();
