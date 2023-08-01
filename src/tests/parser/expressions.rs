@@ -6,7 +6,7 @@ mod tests {
 
     // Expressions
 
-    fn parse_rval(fragment: &str) -> Result<Expr> {
+    fn parse_rval(fragment: &str) -> Result<ExprKind> {
         let res = IvyParser::parse(Rule::rval, fragment)
             .expect("Parsing failed")
             .single()
@@ -17,7 +17,7 @@ mod tests {
     #[test]
     fn parse_progsym() {
         let ast = parse_rval("a").unwrap();
-        assert_eq!(ast, Expr::inferred_progsym("a".into()));
+        assert_eq!(ast, ExprKind::inferred_progsym("a".into()));
     }
 
     #[test]
@@ -34,18 +34,18 @@ mod tests {
     fn parse_logicvar_in_fnapp() {
         let ast = parse_rval("f(X)").unwrap();
 
-        let arg = Expr::LogicSymbol(Symbol {
+        let arg = ExprKind::LogicSymbol(Symbol {
             id: "X".into(),
             sort: Sort::ToBeInferred,
         });
         let app = AppExpr {
-            func: Box::new(Expr::ProgramSymbol(Symbol {
+            func: Box::new(ExprKind::ProgramSymbol(Symbol {
                 id: "f".into(),
                 sort: Sort::ToBeInferred,
             })),
             args: vec![arg],
         };
-        let expected = Expr::App(app);
+        let expected = ExprKind::App(app);
         assert_eq!(ast, expected);
     }
 
@@ -69,10 +69,10 @@ mod tests {
         let _ast = parse_rval("42 - 1").unwrap();
         assert_eq!(
             _ast,
-            Expr::BinOp(BinOp {
-                lhs: Box::new(Expr::Number(42)),
+            ExprKind::BinOp(BinOp {
+                lhs: Box::new(ExprKind::Number(42)),
                 op: Verb::Minus,
-                rhs: Box::new(Expr::Number(1)),
+                rhs: Box::new(ExprKind::Number(1)),
             })
         );
     }
@@ -89,10 +89,10 @@ mod tests {
         let _ast = parse_rval("i > 0").unwrap();
         assert_eq!(
             _ast,
-            Expr::BinOp(BinOp {
-                lhs: Box::new(Expr::inferred_progsym("i".into())),
+            ExprKind::BinOp(BinOp {
+                lhs: Box::new(ExprKind::inferred_progsym("i".into())),
                 op: Verb::Gt,
-                rhs: Box::new(Expr::Number(0)),
+                rhs: Box::new(ExprKind::Number(0)),
             })
         );
     }
@@ -102,17 +102,17 @@ mod tests {
         let _ast = parse_rval("b = true | b = false").unwrap();
         assert_eq!(
             _ast,
-            Expr::BinOp(BinOp {
-                lhs: Box::new(Expr::BinOp(BinOp {
-                    lhs: Box::new(Expr::inferred_progsym("b".into())),
+            ExprKind::BinOp(BinOp {
+                lhs: Box::new(ExprKind::BinOp(BinOp {
+                    lhs: Box::new(ExprKind::inferred_progsym("b".into())),
                     op: Verb::Equals,
-                    rhs: Box::new(Expr::Boolean(true))
+                    rhs: Box::new(ExprKind::Boolean(true))
                 })),
                 op: Verb::Or,
-                rhs: Box::new(Expr::BinOp(BinOp {
-                    lhs: Box::new(Expr::inferred_progsym("b".into())),
+                rhs: Box::new(ExprKind::BinOp(BinOp {
+                    lhs: Box::new(ExprKind::inferred_progsym("b".into())),
                     op: Verb::Equals,
-                    rhs: Box::new(Expr::Boolean(false))
+                    rhs: Box::new(ExprKind::Boolean(false))
                 }))
             })
         );
@@ -128,8 +128,8 @@ mod tests {
         let _ast = parse_rval("a.b").unwrap();
         assert_eq!(
             _ast,
-            Expr::FieldAccess(FieldAccess {
-                record: Box::new(Expr::inferred_progsym("a".into())),
+            ExprKind::FieldAccess(FieldAccess {
+                record: Box::new(ExprKind::inferred_progsym("a".into())),
                 field: Symbol {
                     id: "b".into(),
                     sort: Sort::ToBeInferred

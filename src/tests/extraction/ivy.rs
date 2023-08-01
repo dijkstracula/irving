@@ -6,12 +6,12 @@ mod tests {
     use crate::tests::helpers::prog_from_filename;
     use crate::visitor::ast::Visitable;
     use crate::{
-        ast::{expressions::Expr, logic::Fmla},
+        ast::{expressions::ExprKind, logic::Fmla},
         parser::ivy::{IvyParser, Result, Rule},
     };
     use pest_consume::Parser;
 
-    fn parse_rval(fragment: &str) -> Result<Expr> {
+    fn parse_rval(fragment: &str) -> Result<ExprKind> {
         let res = IvyParser::parse(Rule::rval, fragment)
             .expect("Parsing failed")
             .single()

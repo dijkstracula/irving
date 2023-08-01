@@ -75,26 +75,26 @@ mod tests {
                     }
                 ]
                 .into(),
-                fmla: Box::new(Fmla::Pred(Expr::BinOp(BinOp {
-                    lhs: Box::new(Expr::BinOp(BinOp {
-                        lhs: Box::new(Expr::BinOp(BinOp {
-                            lhs: Box::new(Expr::inferred_progsym("X".into())),
+                fmla: Box::new(Fmla::Pred(ExprKind::BinOp(BinOp {
+                    lhs: Box::new(ExprKind::BinOp(BinOp {
+                        lhs: Box::new(ExprKind::BinOp(BinOp {
+                            lhs: Box::new(ExprKind::inferred_progsym("X".into())),
                             op: Verb::Equals,
-                            rhs: Box::new(Expr::BinOp(BinOp {
-                                lhs: Box::new(Expr::inferred_progsym("Y".into())),
+                            rhs: Box::new(ExprKind::BinOp(BinOp {
+                                lhs: Box::new(ExprKind::inferred_progsym("Y".into())),
                                 op: Verb::And,
-                                rhs: Box::new(Expr::inferred_progsym("Y".into()))
+                                rhs: Box::new(ExprKind::inferred_progsym("Y".into()))
                             }))
                         })),
                         op: Verb::Equals,
-                        rhs: Box::new(Expr::BinOp(BinOp {
-                            lhs: Box::new(Expr::inferred_progsym("Z".into())),
+                        rhs: Box::new(ExprKind::BinOp(BinOp {
+                            lhs: Box::new(ExprKind::inferred_progsym("Z".into())),
                             op: Verb::Arrow,
-                            rhs: Box::new(Expr::inferred_progsym("X".into()))
+                            rhs: Box::new(ExprKind::inferred_progsym("X".into()))
                         }))
                     })),
                     op: Verb::Equals,
-                    rhs: Box::new(Expr::inferred_progsym("Y".into()))
+                    rhs: Box::new(ExprKind::inferred_progsym("Y".into()))
                 })))
             })
         )

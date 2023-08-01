@@ -418,14 +418,19 @@ where
 
     // Expressions
 
-    fn begin_app(&mut self, _ast: &mut AppExpr) -> VisitorResult<T, Expr> {
+    fn begin_app(&mut self, _ast: &mut AppExpr) -> VisitorResult<T, ExprKind> {
         Ok(ControlMut::Produce(T::default()))
     }
-    fn finish_app(&mut self, _ast: &mut AppExpr, _f: T, _args: Vec<T>) -> VisitorResult<T, Expr> {
+    fn finish_app(
+        &mut self,
+        _ast: &mut AppExpr,
+        _f: T,
+        _args: Vec<T>,
+    ) -> VisitorResult<T, ExprKind> {
         Ok(ControlMut::Produce(T::default()))
     }
 
-    fn begin_binop(&mut self, _ast: &mut BinOp) -> VisitorResult<T, Expr> {
+    fn begin_binop(&mut self, _ast: &mut BinOp) -> VisitorResult<T, ExprKind> {
         Ok(ControlMut::Produce(T::default()))
     }
     fn finish_binop(
@@ -434,39 +439,47 @@ where
         _lhs_ret: T,
         _op_ret: T,
         _rhs_ret: T,
-    ) -> VisitorResult<T, Expr> {
+    ) -> VisitorResult<T, ExprKind> {
         Ok(ControlMut::Produce(T::default()))
     }
 
-    fn begin_field_access(&mut self, _lhs: &mut Expr, rhs: &mut Symbol) -> VisitorResult<T, Expr> {
+    fn begin_field_access(
+        &mut self,
+        _lhs: &mut ExprKind,
+        rhs: &mut Symbol,
+    ) -> VisitorResult<T, ExprKind> {
         Ok(ControlMut::Produce(T::default()))
     }
     fn finish_field_access(
         &mut self,
-        _lhs: &mut Expr,
+        _lhs: &mut ExprKind,
         rhs: &mut Symbol,
         _lhs_res: T,
         _rhs_res: T,
-    ) -> VisitorResult<T, Expr> {
+    ) -> VisitorResult<T, ExprKind> {
         Ok(ControlMut::Produce(T::default()))
     }
 
-    fn begin_index(&mut self, _ast: &mut IndexExpr) -> VisitorResult<T, Expr> {
+    fn begin_index(&mut self, _ast: &mut IndexExpr) -> VisitorResult<T, ExprKind> {
         Ok(ControlMut::Produce(T::default()))
     }
-    fn finish_index(&mut self, _lhs: &mut IndexExpr) -> VisitorResult<T, Expr> {
+    fn finish_index(&mut self, _lhs: &mut IndexExpr) -> VisitorResult<T, ExprKind> {
         Ok(ControlMut::Produce(T::default()))
     }
 
-    fn begin_unary_op(&mut self, _op: &mut Verb, _rhs: &mut Expr) -> VisitorResult<T, Expr> {
+    fn begin_unary_op(
+        &mut self,
+        _op: &mut Verb,
+        _rhs: &mut ExprKind,
+    ) -> VisitorResult<T, ExprKind> {
         Ok(ControlMut::Produce(T::default()))
     }
     fn finish_unary_op(
         &mut self,
         _op: &mut Verb,
-        _rhs: &mut Expr,
+        _rhs: &mut ExprKind,
         _rhs_t: T,
-    ) -> VisitorResult<T, Expr> {
+    ) -> VisitorResult<T, ExprKind> {
         Ok(ControlMut::Produce(T::default()))
     }
 
@@ -503,7 +516,7 @@ where
         Ok(ControlMut::Produce(T::default()))
     }
 
-    fn this(&mut self) -> VisitorResult<T, Expr> {
+    fn this(&mut self) -> VisitorResult<T, ExprKind> {
         Ok(ControlMut::Produce(T::default()))
     }
 
@@ -564,28 +577,28 @@ where
     }
 }
 
-impl<T> Visitable<T> for Expr
+impl<T> Visitable<T> for ExprKind
 where
     T: Default,
 {
     fn visit(&mut self, visitor: &mut dyn Visitor<T>) -> VisitorResult<T, Self> {
         let t = match self {
-            Expr::App(expr) => visitor.begin_app(expr)?.and_then(|_| {
+            ExprKind::App(expr) => visitor.begin_app(expr)?.and_then(|_| {
                 let func = expr.func.visit(visitor)?.modifying(&mut expr.func)?;
                 let args = expr.args.visit(visitor)?.modifying(&mut expr.args)?;
                 visitor.finish_app(expr, func, args)
             }),
-            Expr::BinOp(expr) => visitor.begin_binop(expr)?.and_then(|foo| {
+            ExprKind::BinOp(expr) => visitor.begin_binop(expr)?.and_then(|foo| {
                 let l = expr.lhs.visit(visitor)?.modifying(&mut expr.lhs)?;
                 let o = visitor.verb(&mut expr.op)?.modifying(&mut expr.op)?;
                 let r = expr.rhs.visit(visitor)?.modifying(&mut expr.rhs)?;
                 visitor.finish_binop(expr, l, o, r)
             }),
-            Expr::Boolean(b) => visitor
+            ExprKind::Boolean(b) => visitor
                 .boolean(b)?
                 .modifying(b)
                 .map(|t| ControlMut::Produce(t)),
-            Expr::FieldAccess(FieldAccess {
+            ExprKind::FieldAccess(FieldAccess {
                 ref mut record,
                 ref mut field,
             }) => visitor.begin_field_access(record, field)?.and_then(|_| {
@@ -593,20 +606,20 @@ where
                 let f = visitor.symbol(field)?.modifying(field)?;
                 visitor.finish_field_access(record, field, r, f)
             }),
-            Expr::Index(expr) => visitor
+            ExprKind::Index(expr) => visitor
                 .begin_index(expr)?
                 .and_then(|_| expr.lhs.visit(visitor))?
                 .and_then(|_| expr.idx.visit(visitor))?
                 .and_then(|_| visitor.finish_index(expr)),
-            Expr::LogicSymbol(s) => visitor
+            ExprKind::LogicSymbol(s) => visitor
                 .symbol(s)?
                 .modifying(s)
                 .map(|t| ControlMut::Produce(t)),
-            Expr::Number(n) => {
+            ExprKind::Number(n) => {
                 let t = visitor.number(n)?.modifying(n)?;
                 Ok(ControlMut::Produce(t))
             }
-            Expr::UnaryOp {
+            ExprKind::UnaryOp {
                 ref mut op,
                 ref mut expr,
             } => visitor.begin_unary_op(op, expr)?.and_then(|_| {
@@ -614,11 +627,11 @@ where
                 let expr_t = expr.visit(visitor)?.modifying(expr)?;
                 visitor.finish_unary_op(op, expr, expr_t)
             }),
-            Expr::ProgramSymbol(p) => visitor
+            ExprKind::ProgramSymbol(p) => visitor
                 .symbol(p)?
                 .modifying(p)
                 .map(|t| ControlMut::Produce(t)),
-            Expr::This => visitor.this(),
+            ExprKind::This => visitor.this(),
         }?
         .modifying(self)?;
         Ok(ControlMut::Produce(t))
@@ -943,7 +956,7 @@ where
 
 // Implementations for compound nodes
 
-impl<T> Visitable<T, Vec<T>> for Vec<Expr>
+impl<T> Visitable<T, Vec<T>> for Vec<ExprKind>
 where
     T: Default,
 {

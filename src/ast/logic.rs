@@ -1,4 +1,4 @@
-use super::expressions::{Expr, ParamList};
+use super::expressions::{ExprKind, ParamList};
 
 /*
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -12,7 +12,7 @@ pub struct LogicVar {
 pub enum Fmla {
     Forall(Forall),
     Exists(Exists),
-    Pred(Expr),
+    Pred(ExprKind),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

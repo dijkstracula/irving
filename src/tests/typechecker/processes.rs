@@ -3,7 +3,7 @@ mod tests {
     use std::{collections::BTreeMap, vec};
 
     use crate::{
-        ast::{declarations::Decl, expressions::Expr},
+        ast::{declarations::Decl, expressions::ExprKind},
         parser::ivy::{IvyParser, Rule},
         typechecker::{
             inference::SortInferer,
@@ -29,7 +29,7 @@ mod tests {
         tc.bindings
             .append(
                 "pid".into(),
-                IvySort::Range(Box::new(Expr::Number(0)), Box::new(Expr::Number(3))),
+                IvySort::Range(Box::new(ExprKind::Number(0)), Box::new(ExprKind::Number(3))),
             )
             .unwrap();
         // interpret byte -> bv[8]
@@ -132,7 +132,7 @@ mod tests {
         let sort = IvySort::Object(Object {
             args: [(
                 "self".into(),
-                IvySort::Range(Box::new(Expr::Number(0)), Box::new(Expr::Number(3))),
+                IvySort::Range(Box::new(ExprKind::Number(0)), Box::new(ExprKind::Number(3))),
             )]
             .into(),
             fields: [("init".to_owned(), Module::init_action_sort())].into(),
@@ -155,7 +155,7 @@ mod tests {
         let sort = IvySort::Object(Object {
             args: [(
                 "self".into(),
-                IvySort::Range(Box::new(Expr::Number(0)), Box::new(Expr::Number(3))),
+                IvySort::Range(Box::new(ExprKind::Number(0)), Box::new(ExprKind::Number(3))),
             )]
             .into(),
             fields: [

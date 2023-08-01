@@ -3,19 +3,19 @@ use super::{expressions::*, logic::Fmla};
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(clippy::large_enum_variant)]
 pub struct AssignAction {
-    pub lhs: Expr,
-    pub rhs: Expr,
+    pub lhs: ExprKind,
+    pub rhs: ExprKind,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(clippy::large_enum_variant)]
 pub struct AssertAction {
-    pub pred: Expr,
+    pub pred: ExprKind,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AssumeAction {
-    pub pred: Expr,
+    pub pred: ExprKind,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

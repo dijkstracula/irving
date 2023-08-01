@@ -13,22 +13,22 @@ impl ast::Visitor<()> for ConstantFold {
         _lhs_ret: (),
         _op_ret: (),
         _rhs_ret: (),
-    ) -> VisitorResult<(), Expr> {
+    ) -> VisitorResult<(), ExprKind> {
         match (expr.lhs.as_ref(), &expr.op, expr.rhs.as_ref()) {
-            (Expr::Number(lhs), Verb::Plus, Expr::Number(rhs)) => {
-                Ok(ControlMut::Mutation(Expr::Number(lhs + rhs), ()))
+            (ExprKind::Number(lhs), Verb::Plus, ExprKind::Number(rhs)) => {
+                Ok(ControlMut::Mutation(ExprKind::Number(lhs + rhs), ()))
             }
-            (Expr::Number(lhs), Verb::Minus, Expr::Number(rhs)) => {
-                Ok(ControlMut::Mutation(Expr::Number(lhs - rhs), ()))
+            (ExprKind::Number(lhs), Verb::Minus, ExprKind::Number(rhs)) => {
+                Ok(ControlMut::Mutation(ExprKind::Number(lhs - rhs), ()))
             }
-            (Expr::Number(lhs), Verb::Times, Expr::Number(rhs)) => {
-                Ok(ControlMut::Mutation(Expr::Number(lhs * rhs), ()))
+            (ExprKind::Number(lhs), Verb::Times, ExprKind::Number(rhs)) => {
+                Ok(ControlMut::Mutation(ExprKind::Number(lhs * rhs), ()))
             }
-            (Expr::Number(lhs), Verb::Div, Expr::Number(rhs)) => {
-                Ok(ControlMut::Mutation(Expr::Number(lhs / rhs), ()))
+            (ExprKind::Number(lhs), Verb::Div, ExprKind::Number(rhs)) => {
+                Ok(ControlMut::Mutation(ExprKind::Number(lhs / rhs), ()))
             }
 
-            (lhs, Verb::Plus, Expr::Number(0)) => Ok(ControlMut::Mutation(lhs.clone(), ())),
+            (lhs, Verb::Plus, ExprKind::Number(0)) => Ok(ControlMut::Mutation(lhs.clone(), ())),
 
             _ => Ok(ControlMut::Produce(())),
         }

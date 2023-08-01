@@ -508,7 +508,7 @@ where
     fn begin_app(
         &mut self,
         ast: &mut expressions::AppExpr,
-    ) -> VisitorResult<(), expressions::Expr> {
+    ) -> VisitorResult<(), expressions::ExprKind> {
         ast.func.visit(self)?;
 
         self.pp.write_str("(")?;
@@ -520,7 +520,7 @@ where
     fn begin_binop(
         &mut self,
         ast: &mut expressions::BinOp,
-    ) -> VisitorResult<(), expressions::Expr> {
+    ) -> VisitorResult<(), expressions::ExprKind> {
         ast.lhs.visit(self)?;
 
         let op_str = match ast.op {
@@ -566,16 +566,16 @@ where
 
     fn begin_field_access(
         &mut self,
-        lhs: &mut expressions::Expr,
+        lhs: &mut expressions::ExprKind,
         rhs: &mut expressions::Symbol,
-    ) -> VisitorResult<(), expressions::Expr> {
+    ) -> VisitorResult<(), expressions::ExprKind> {
         lhs.visit(self)?;
         self.pp.write_str(".")?;
         self.symbol(rhs)?.modifying(rhs)?;
         Ok(ControlMut::SkipSiblings(()))
     }
 
-    fn begin_index(&mut self, expr: &mut IndexExpr) -> VisitorResult<(), expressions::Expr> {
+    fn begin_index(&mut self, expr: &mut IndexExpr) -> VisitorResult<(), expressions::ExprKind> {
         expr.lhs.visit(self)?;
         self.pp.write_str("[")?;
         expr.idx.visit(self)?;
@@ -586,12 +586,12 @@ where
     fn begin_unary_op(
         &mut self,
         op: &mut Verb,
-        rhs: &mut expressions::Expr,
-    ) -> VisitorResult<(), expressions::Expr> {
+        rhs: &mut expressions::ExprKind,
+    ) -> VisitorResult<(), expressions::ExprKind> {
         match op {
             Verb::Not => {
                 self.pp.write_str("~")?;
-                if let expressions::Expr::BinOp(_) = rhs {
+                if let expressions::ExprKind::BinOp(_) = rhs {
                     self.pp.write_str("(")?;
                     rhs.visit(self)?.modifying(rhs)?;
                     self.pp.write_str(")")?;
@@ -701,7 +701,7 @@ where
         Ok(ControlMut::Produce(()))
     }
 
-    fn this(&mut self) -> VisitorResult<(), expressions::Expr> {
+    fn this(&mut self) -> VisitorResult<(), expressions::ExprKind> {
         self.pp.write_str("this")?;
         Ok(ControlMut::Produce(()))
     }

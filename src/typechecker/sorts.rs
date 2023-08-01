@@ -5,7 +5,7 @@ use std::{collections::BTreeMap, fmt::Display};
 use crate::{
     ast::{
         declarations::Binding,
-        expressions::{Expr, Token},
+        expressions::{ExprKind, Token},
     },
     visitor::{sort::Visitor, ControlMut},
 };
@@ -63,7 +63,7 @@ pub enum IvySort {
     Number,
     BitVec(u8),
     Vector(Box<IvySort>),
-    Range(Box<Expr>, Box<Expr>),
+    Range(Box<ExprKind>, Box<ExprKind>),
     Enum(Vec<Token>),
     Action(Vec<Token>, ActionArgs, ActionRet),
     Relation(Vec<IvySort>),
@@ -116,7 +116,7 @@ impl IvySort {
         IvySort::Action(arg_names, ActionArgs::List(arg_sorts), ret)
     }
 
-    pub fn range_sort(lo: Expr, hi: Expr) -> IvySort {
+    pub fn range_sort(lo: ExprKind, hi: ExprKind) -> IvySort {
         IvySort::Range(Box::new(lo), Box::new(hi))
     }
 
@@ -235,8 +235,8 @@ impl Visitor<IvySort> for SortSubstituter {
 
     fn range(
         &mut self,
-        lo: &mut Expr,
-        hi: &mut Expr,
+        lo: &mut ExprKind,
+        hi: &mut ExprKind,
     ) -> crate::visitor::VisitorResult<IvySort, IvySort> {
         self.subst(IvySort::Range(Box::new(lo.clone()), Box::new(hi.clone())))
     }

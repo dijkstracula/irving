@@ -18,7 +18,7 @@ mod tests {
         let mut cf = ConstantFold;
         ast.visit(&mut cf).unwrap();
 
-        assert_eq!(ast, Expr::Number(42));
+        assert_eq!(ast, ExprKind::Number(42));
     }
 
     #[test]
@@ -33,6 +33,6 @@ mod tests {
         let mut cf = ConstantFold;
         ast.visit(&mut cf).unwrap();
 
-        assert_eq!(ast, Expr::inferred_progsym("foo".into()));
+        assert_eq!(ast, ExprKind::inferred_progsym("foo".into()));
     }
 }

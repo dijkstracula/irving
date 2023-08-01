@@ -50,7 +50,7 @@ pub fn parse_lsym(primary: Pair<'_, Rule>) -> Result<Symbol> {
     }
 }
 
-pub fn parse_log_term(pairs: Pairs<Rule>) -> Result<Expr> {
+pub fn parse_log_term(pairs: Pairs<Rule>) -> Result<ExprKind> {
     PRATT
         .map_primary(|primary| match primary.as_rule() {
             Rule::relation_lval => {
@@ -63,15 +63,15 @@ pub fn parse_log_term(pairs: Pairs<Rule>) -> Result<Expr> {
                     .map(|e| parse_log_term(e.into_inner()))
                     .collect::<Result<Vec<_>>>()?;
 
-                Ok(Expr::App(AppExpr {
-                    func: Box::new(Expr::inferred_progsym(name)),
+                Ok(ExprKind::App(AppExpr {
+                    func: Box::new(ExprKind::inferred_progsym(name)),
                     args,
                 }))
             }
-            Rule::logicsym => Ok(Expr::ProgramSymbol(parse_lsym(primary)?)),
+            Rule::logicsym => Ok(ExprKind::ProgramSymbol(parse_lsym(primary)?)),
             Rule::PROGTOK => {
                 let tok = primary.as_str().to_owned();
-                Ok(Expr::inferred_progsym(tok))
+                Ok(ExprKind::inferred_progsym(tok))
             }
             Rule::boollit => {
                 let val = match primary.as_str() {
@@ -79,11 +79,11 @@ pub fn parse_log_term(pairs: Pairs<Rule>) -> Result<Expr> {
                     "false" => false,
                     _ => unreachable!(),
                 };
-                Ok(Expr::Boolean(val))
+                Ok(ExprKind::Boolean(val))
             }
             Rule::number => {
                 let val: i64 = primary.as_str().parse().unwrap();
-                Ok(Expr::Number(val))
+                Ok(ExprKind::Number(val))
             }
             Rule::log_term => parse_log_term(primary.into_inner()),
             _ => unreachable!("parse_log_term expected primary, found {:?}", primary),
@@ -94,7 +94,7 @@ pub fn parse_log_term(pairs: Pairs<Rule>) -> Result<Expr> {
                 Rule::NOT => Verb::Not,
                 _ => unreachable!("Unexpected unary op"),
             };
-            Ok(Expr::UnaryOp {
+            Ok(ExprKind::UnaryOp {
                 op: verb,
                 expr: Box::new(rhs?),
             })
@@ -115,7 +115,7 @@ pub fn parse_log_term(pairs: Pairs<Rule>) -> Result<Expr> {
                 _ => unimplemented!(),
             };
 
-            Ok(Expr::BinOp(BinOp {
+            Ok(ExprKind::BinOp(BinOp {
                 lhs: Box::new(lhs?),
                 op: verb,
                 rhs: Box::new(rhs?),
@@ -128,7 +128,7 @@ pub fn parse_log_term(pairs: Pairs<Rule>) -> Result<Expr> {
                     .map(|e| parse_log_term(e.into_inner()))
                     .collect::<Vec<Result<_>>>();
                 let args = results.into_iter().collect::<Result<Vec<_>>>()?;
-                Ok(Expr::App(AppExpr {
+                Ok(ExprKind::App(AppExpr {
                     func: Box::new(lhs?),
                     args,
                 }))

@@ -71,14 +71,14 @@ mod tests {
             ast,
             Stmt::ActionSequence(
                 [Action::Assign(AssignAction {
-                    lhs: Expr::FieldAccess(FieldAccess {
-                        record: Box::new(Expr::inferred_progsym("foo".into())),
+                    lhs: ExprKind::FieldAccess(FieldAccess {
+                        record: Box::new(ExprKind::inferred_progsym("foo".into())),
                         field: Symbol {
                             id: "bar".into(),
                             sort: Sort::ToBeInferred
                         }
                     }),
-                    rhs: Expr::Boolean(false)
+                    rhs: ExprKind::Boolean(false)
                 })]
                 .into()
             )
@@ -145,11 +145,11 @@ mod tests {
         assert_eq!(
             stmt,
             RequiresAction {
-                pred: Fmla::Pred(Expr::UnaryOp {
+                pred: Fmla::Pred(ExprKind::UnaryOp {
                     op: Verb::Not,
-                    expr: Box::new(Expr::App(AppExpr {
-                        func: Box::new(Expr::inferred_progsym("failed".to_owned())),
-                        args: [Expr::inferred_progsym("y".into())].into()
+                    expr: Box::new(ExprKind::App(AppExpr {
+                        func: Box::new(ExprKind::inferred_progsym("failed".to_owned())),
+                        args: [ExprKind::inferred_progsym("y".into())].into()
                     }))
                 })
             }
@@ -167,10 +167,10 @@ mod tests {
         assert_eq!(
             stmt,
             RequiresAction {
-                pred: Fmla::Pred(Expr::BinOp(BinOp {
-                    lhs: Box::new(Expr::inferred_progsym("x".into())),
+                pred: Fmla::Pred(ExprKind::BinOp(BinOp {
+                    lhs: Box::new(ExprKind::inferred_progsym("x".into())),
                     op: Verb::Ge,
-                    rhs: Box::new(Expr::Number(0))
+                    rhs: Box::new(ExprKind::Number(0))
                 }))
             }
         );

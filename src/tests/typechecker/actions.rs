@@ -3,7 +3,7 @@ mod tests {
     use crate::{
         ast::{
             declarations::{ActionDecl, Binding, Decl},
-            expressions::{Expr, Sort},
+            expressions::{ExprKind, Sort},
             statements::Stmt,
         },
         parser::ivy::{IvyParser, Rule},
@@ -32,7 +32,7 @@ mod tests {
         IvyParser::decl(parsed).expect("AST generation failed")
     }
 
-    fn expr_from_src(src: &str) -> Expr {
+    fn expr_from_src(src: &str) -> ExprKind {
         let parsed = IvyParser::parse(Rule::rval, src)
             .expect("Parsing failed")
             .single()

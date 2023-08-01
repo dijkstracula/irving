@@ -164,7 +164,7 @@ pub enum Decl {
 
     Instance(Binding<InstanceDecl>),
 
-    Instantiate { name: Expr, prms: Vec<Expr> },
+    Instantiate { name: ExprKind, prms: Vec<ExprKind> },
 
     Interpret(InterpretDecl),
 

@@ -1,5 +1,5 @@
 use crate::{
-    ast::expressions::{self, Expr},
+    ast::expressions::{self, ExprKind},
     typechecker::sorts::{IvySort, Module},
 };
 
@@ -74,7 +74,7 @@ impl From<IvySort> for JavaType {
                 Self::ArrayList(Box::new(Into::<JavaType>::into(*elem_type)))
             }
             IvySort::Range(lo, hi) => match (*lo, *hi) {
-                (Expr::Number(lo), Expr::Number(hi)) => Self::BoundedLong(lo, hi),
+                (ExprKind::Number(lo), ExprKind::Number(hi)) => Self::BoundedLong(lo, hi),
                 _ => todo!(),
             },
             IvySort::Enum(_) => todo!(),
@@ -115,7 +115,7 @@ impl From<&IvySort> for JavaType {
                 Self::ArrayList(Box::new(jelem))
             }
             IvySort::Range(lo, hi) => match (lo.as_ref(), hi.as_ref()) {
-                (Expr::Number(lo), Expr::Number(hi)) => Self::BoundedLong(*lo, *hi),
+                (ExprKind::Number(lo), ExprKind::Number(hi)) => Self::BoundedLong(*lo, *hi),
                 _ => todo!(),
             },
             IvySort::Enum(_) => todo!(),

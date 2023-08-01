@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use crate::{
-    ast::expressions::{self, Expr, Token},
+    ast::expressions::{self, ExprKind, Token},
     typechecker::sorts::{ActionArgs, ActionRet, IvySort, Module, Object},
 };
 
@@ -45,7 +45,7 @@ where
         Ok(ControlMut::Produce(T::default()))
     }
 
-    fn range(&mut self, _lo: &mut Expr, _hi: &mut Expr) -> VisitorResult<T, IvySort> {
+    fn range(&mut self, _lo: &mut ExprKind, _hi: &mut ExprKind) -> VisitorResult<T, IvySort> {
         Ok(ControlMut::Produce(T::default()))
     }
 

@@ -10,7 +10,7 @@ use crate::{
     ast::{
         actions::{self, Action},
         declarations::{self, ActionMixinDecl, Binding},
-        expressions::{self, AppExpr, Expr, Sort, Symbol, Token},
+        expressions::{self, AppExpr, ExprKind, Sort, Symbol, Token},
         logic, statements,
     },
     passes::module_instantiation,
@@ -227,7 +227,7 @@ impl Visitor<IvySort> for SortInferer {
         }
     }
 
-    fn this(&mut self) -> VisitorResult<IvySort, Expr> {
+    fn this(&mut self) -> VisitorResult<IvySort, ExprKind> {
         match self.bindings.lookup_sym("this") {
             None => bail!(TypeError::UnboundVariable("this".into())),
             Some(t) => Ok(ControlMut::Produce(t.clone())),
@@ -239,9 +239,9 @@ impl Visitor<IvySort> for SortInferer {
     fn begin_assign(&mut self, ast: &mut actions::AssignAction) -> VisitorResult<IvySort, Action> {
         self.bindings.push_scope();
         match &ast.lhs {
-            Expr::App(AppExpr { args, .. }) => {
+            ExprKind::App(AppExpr { args, .. }) => {
                 for arg in args {
-                    if let Expr::LogicSymbol(sym) = arg {
+                    if let ExprKind::LogicSymbol(sym) = arg {
                         let s = self.bindings.new_sortvar();
                         self.bindings.append(sym.id.clone(), s)?;
                     }
@@ -308,7 +308,7 @@ impl Visitor<IvySort> for SortInferer {
         _ast: &mut expressions::AppExpr,
         fsort: IvySort,
         argsorts: Vec<IvySort>,
-    ) -> VisitorResult<IvySort, Expr> {
+    ) -> VisitorResult<IvySort, ExprKind> {
         let retsort = self.bindings.new_sortvar();
 
         // XXX: This is hacky.
@@ -335,7 +335,7 @@ impl Visitor<IvySort> for SortInferer {
         lhs_sort: IvySort,
         _op_ret: IvySort,
         rhs_sort: IvySort,
-    ) -> VisitorResult<IvySort, Expr> {
+    ) -> VisitorResult<IvySort, ExprKind> {
         match ast.op {
             // Boolean operators
             expressions::Verb::Iff
@@ -408,9 +408,9 @@ impl Visitor<IvySort> for SortInferer {
 
     fn begin_field_access(
         &mut self,
-        lhs: &mut Expr,
+        lhs: &mut ExprKind,
         rhs: &mut expressions::Symbol,
-    ) -> VisitorResult<IvySort, Expr> {
+    ) -> VisitorResult<IvySort, ExprKind> {
         let lhs_sort = lhs.visit(self)?.modifying(lhs)?;
 
         // Note that beecause the rhs's symbol is not in our context, we can't
@@ -476,9 +476,9 @@ impl Visitor<IvySort> for SortInferer {
     fn finish_unary_op(
         &mut self,
         op: &mut expressions::Verb,
-        _rhs: &mut Expr,
+        _rhs: &mut ExprKind,
         rhs_sort: IvySort,
-    ) -> VisitorResult<IvySort, Expr> {
+    ) -> VisitorResult<IvySort, ExprKind> {
         match op {
             expressions::Verb::Not => Ok(ControlMut::Produce(
                 self.bindings.unify(&IvySort::Bool, &rhs_sort)?,

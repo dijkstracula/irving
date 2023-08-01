@@ -78,8 +78,8 @@ impl IvyParser {
         )
     }
 
-    fn THIS(input: Node) -> Result<Expr> {
-        Ok(Expr::This)
+    fn THIS(input: Node) -> Result<ExprKind> {
+        Ok(ExprKind::This)
     }
 
     // Utils
@@ -94,7 +94,7 @@ impl IvyParser {
         )
     }
 
-    pub fn log_term(input: Node) -> Result<Expr> {
+    pub fn log_term(input: Node) -> Result<ExprKind> {
         let pairs = input.as_pair().to_owned().into_inner();
         parse_log_term(pairs)
     }
@@ -128,17 +128,17 @@ impl IvyParser {
 
     // Lvals
 
-    pub fn lval(input: Node) -> Result<Expr> {
+    pub fn lval(input: Node) -> Result<ExprKind> {
         let span = input.as_pair().as_span(); // Irritating!
 
         match_nodes!(
         input.into_children();
         [relation_lval(lval)] => Ok(lval),
         [rval(lval)] => match lval {
-            Expr::App(_) |
-            Expr::FieldAccess(_) |
-            Expr::Index(_) |
-            Expr::ProgramSymbol(_) => Ok(lval),
+            ExprKind::App(_) |
+            ExprKind::FieldAccess(_) |
+            ExprKind::Index(_) |
+            ExprKind::ProgramSymbol(_) => Ok(lval),
             // Can it be This? Expr::This => todo!(),
             _ => Err(
                 Error::new_from_span(ErrorVariant::<Rule>::CustomError { message:
@@ -147,11 +147,11 @@ impl IvyParser {
         )
     }
 
-    pub fn relation_lval(input: Node) -> Result<Expr> {
+    pub fn relation_lval(input: Node) -> Result<ExprKind> {
         match_nodes!(
         input.into_children();
         [rval(func), log_app_args(args)] => {
-            Ok(Expr::App(AppExpr {
+            Ok(ExprKind::App(AppExpr {
                 func: Box::new(func),
                 args
             }))
@@ -166,7 +166,7 @@ impl IvyParser {
         })
     }
 
-    pub fn log_app_args(input: Node) -> Result<Vec<Expr>> {
+    pub fn log_app_args(input: Node) -> Result<Vec<ExprKind>> {
         match_nodes!(
         input.into_children();
         [log_term(args)..] => {
@@ -445,7 +445,7 @@ impl IvyParser {
             Binding::from(name, ObjectDecl{params: vec!(), body})))
     }
 
-    pub fn range_decl(input: Node) -> Result<(Expr, Expr)> {
+    pub fn range_decl(input: Node) -> Result<(ExprKind, ExprKind)> {
         match_nodes!(
         input.into_children();
             [rval(lo), rval(hi)] => Ok((lo, hi)),
@@ -545,10 +545,10 @@ impl IvyParser {
         match_nodes!(
         input.into_children();
         [var_decl(Binding{name, decl}), rval(rhs)] => Ok(
-            AssignAction{lhs: Expr::ProgramSymbol(Symbol{id: name, sort: decl}), rhs}
+            AssignAction{lhs: ExprKind::ProgramSymbol(Symbol{id: name, sort: decl}), rhs}
         ),
         [lval(lhs), rval(rhs)] => match lhs {
-            Expr::App(_) | Expr::FieldAccess(_) | Expr::Index(_) | Expr::ProgramSymbol(_) | Expr::This => Ok(AssignAction{lhs, rhs}),
+            ExprKind::App(_) | ExprKind::FieldAccess(_) | ExprKind::Index(_) | ExprKind::ProgramSymbol(_) | ExprKind::This => Ok(AssignAction{lhs, rhs}),
             _ => todo!(),
         }
         )
@@ -574,7 +574,7 @@ impl IvyParser {
         match_nodes!(
         input.into_children();
         [rval(call)] => match call {
-            Expr::App(call) => Ok(call),
+            ExprKind::App(call) => Ok(call),
             _ => Err(Error::new_from_span(ErrorVariant::<Rule>::CustomError { message: format!("Expected function application, got {:?}", call) }, span))
         })
     }

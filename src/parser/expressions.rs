@@ -4,6 +4,7 @@ use pest::pratt_parser::{Assoc, Op, PrattParser};
 use pest_consume::Error;
 
 use crate::ast::expressions::*;
+use crate::ast::span::Span;
 use crate::parser::ivy::*;
 
 lazy_static::lazy_static! {
@@ -44,38 +45,29 @@ lazy_static::lazy_static! {
 
 pub fn parse_rval(pairs: Pairs<Rule>) -> Result<Expr> {
     PRATT
-        .map_primary(|primary| match primary.as_rule() {
-            Rule::THIS => Ok(Expr::This),
-            Rule::LOGICTOK => Ok(Expr::LogicSymbol(Symbol {
-                id: primary.as_str().into(),
-                sort: Sort::ToBeInferred,
-            })),
-            Rule::PROGTOK => Ok(Expr::ProgramSymbol(Symbol {
-                id: primary.as_str().into(),
-                sort: Sort::ToBeInferred,
-            })),
-            Rule::boollit => {
-                let val = match primary.as_str() {
-                    "true" => true,
-                    "false" => false,
-                    _ => unreachable!(),
-                };
-                Ok(Expr::Boolean(val))
-            }
-            Rule::number => {
-                let val: i64 = primary.as_str().parse().unwrap();
-                Ok(Expr::Number(val))
-            }
-            Rule::rval => parse_rval(primary.into_inner()),
-            _ => unreachable!("parse_expr expected primary, found {:?}", primary),
+        .map_primary(|primary| {
+            let res: Result<Expr> = Expr::from_pair(input, primary.as_span());
+            res
         })
         .map_prefix(|op, rhs| {
             let verb = match op.as_rule() {
                 Rule::UMINUS => Verb::Minus,
                 Rule::NOT => Verb::Not,
-                _ => unreachable!("Unexpected unary op"),
+                _ => {
+                    return Err(Error::new_from_span(
+                        ErrorVariant::CustomError {
+                            message: "Expected unary op".into(),
+                        },
+                        op.as_span(),
+                    ));
+                }
             };
-            Ok(Expr::UnaryOp {
+            let rhs = rhs?;
+
+            let op_span = Span::from_pest(op.as_span());
+            //let rhs_span = rhs.0
+
+            Ok(ExprKind::UnaryOp {
                 op: verb,
                 expr: Box::new(rhs?),
             })
@@ -102,7 +94,7 @@ pub fn parse_rval(pairs: Pairs<Rule>) -> Result<Expr> {
 
             if verb == Verb::Dot {
                 let field = match rhs? {
-                    Expr::ProgramSymbol(field) => field,
+                    ExprKind::ProgramSymbol(field) => field,
                     _ => {
                         return Err(Error::new_from_span(
                             ErrorVariant::CustomError {
@@ -112,12 +104,12 @@ pub fn parse_rval(pairs: Pairs<Rule>) -> Result<Expr> {
                         ));
                     }
                 };
-                Ok(Expr::FieldAccess(FieldAccess {
+                Ok(ExprKind::FieldAccess(FieldAccess {
                     record: Box::new(lhs?),
                     field,
                 }))
             } else {
-                Ok(Expr::BinOp(BinOp {
+                Ok(ExprKind::BinOp(BinOp {
                     lhs: Box::new(lhs?),
                     op: verb,
                     rhs: Box::new(rhs?),
@@ -131,14 +123,14 @@ pub fn parse_rval(pairs: Pairs<Rule>) -> Result<Expr> {
                     .map(|e| parse_rval(e.into_inner()))
                     .collect::<Vec<Result<_>>>();
                 let args = results.into_iter().collect::<Result<Vec<_>>>()?;
-                Ok(Expr::App(AppExpr {
+                Ok(ExprKind::App(AppExpr {
                     func: Box::new(lhs?),
                     args,
                 }))
             }
             Rule::index => {
                 let idx = parse_rval(op.into_inner());
-                Ok(Expr::Index(IndexExpr {
+                Ok(ExprKind::Index(IndexExpr {
                     lhs: Box::new(lhs?),
                     idx: Box::new(idx?),
                 }))
