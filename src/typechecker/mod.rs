@@ -10,6 +10,7 @@ use crate::ast::{
 use self::sorts::IvySort;
 
 pub(crate) mod inference;
+pub(crate) mod programs;
 pub(crate) mod sorts;
 pub(crate) mod subst;
 pub(crate) mod unifier;
