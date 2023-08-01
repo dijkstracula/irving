@@ -81,7 +81,7 @@ where
         // The first declaration needs to define the return value.
         ret.as_mut().map(|ret| {
             let mut retdecl =
-                declarations::Decl::Var(Binding::from(ret.id.clone(), ret.sort.clone()));
+                declarations::Decl::Var(Binding::from(ret.name.clone(), ret.decl.clone()));
             retdecl.visit(self).unwrap();
             self.pp.write_str(";\n").unwrap();
         });
@@ -98,7 +98,7 @@ where
             None => self.pp.write_str("return Either.right(null);\n")?,
             Some(ret) => self
                 .pp
-                .write_fmt(format_args!("return Either.right({});\n", ret.id))?,
+                .write_fmt(format_args!("return Either.right({});\n", ret.name))?,
         }
 
         self.pp.write_str("})")?;
@@ -189,8 +189,8 @@ where
     ) -> VisitorResult<(), declarations::Decl> {
         let arity = ast.params.len();
         let mut ret = ast.ret.clone().or(Some(expressions::Symbol {
-            id: "_void".into(),
-            sort: expressions::Sort::Resolved(crate::typechecker::sorts::IvySort::Unit),
+            name: "_void".into(),
+            decl: expressions::Sort::Resolved(crate::typechecker::sorts::IvySort::Unit),
         }));
 
         self.pp
@@ -199,7 +199,7 @@ where
             .params
             .iter_mut()
             .chain(ret.iter_mut())
-            .map(|sym| sym.sort.clone())
+            .map(|sym| sym.decl.clone())
             .collect::<_>();
         self.write_separated(&mut sorts, ", ")?;
         self.pp
@@ -320,7 +320,7 @@ where
 
             // maybe slightly confusing: because we parameterise modules on their sorts,
             // the `id` field contains the identifier for sort, not the `sort` field.
-            let mut sorts = ast.args.iter().map(|a| a.id.clone()).collect::<Vec<_>>();
+            let mut sorts = ast.args.iter().map(|a| a.name.clone()).collect::<Vec<_>>();
             self.write_separated(&mut sorts, ", ")?;
             self.pp.write_str(">")?;
         }
@@ -472,7 +472,7 @@ where
         rhs: &mut expressions::Symbol,
     ) -> VisitorResult<(), expressions::Expr> {
         lhs.visit(self)?;
-        self.pp.write_fmt(format_args!(".{}", rhs.id))?;
+        self.pp.write_fmt(format_args!(".{}", rhs.name))?;
         Ok(ControlMut::SkipSiblings(()))
     }
 
@@ -512,7 +512,7 @@ where
 
         for param in &ast.params {
             self.pp
-                .write_fmt(format_args!("this.{} = {};\n", param.id, param.id))?;
+                .write_fmt(format_args!("this.{} = {};\n", param.name, param.name))?;
         }
 
         self.pp.write_str("\n")?;
@@ -560,9 +560,9 @@ where
     }
 
     fn param(&mut self, p: &mut expressions::Symbol) -> VisitorResult<(), expressions::Symbol> {
-        self.sort(&mut p.sort)?;
+        self.sort(&mut p.decl)?;
         self.pp.write_str(" ")?;
-        self.pp.write_str(&p.id)?;
+        self.pp.write_str(&p.name)?;
         Ok(ControlMut::Produce(()))
     }
 

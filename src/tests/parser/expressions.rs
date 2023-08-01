@@ -23,7 +23,7 @@ mod tests {
     #[test]
     fn parse_progsym() {
         let ast = parse_rval("a").unwrap();
-        assert_eq!(ast, Expr::inferred_progsym("a".into()));
+        assert_eq!(ast, Expr::inferred_progsym("a"));
     }
 
     #[test]
@@ -40,15 +40,9 @@ mod tests {
     fn parse_logicvar_in_fnapp() {
         let ast = parse_rval("f(X)").unwrap();
 
-        let arg = Expr::LogicSymbol(Symbol {
-            id: "X".into(),
-            sort: Sort::ToBeInferred,
-        });
+        let arg = Expr::LogicSymbol(Symbol::from("X", Sort::ToBeInferred));
         let app = AppExpr {
-            func: Box::new(Expr::ProgramSymbol(Symbol {
-                id: "f".into(),
-                sort: Sort::ToBeInferred,
-            })),
+            func: Box::new(Expr::ProgramSymbol(Symbol::from("f", Sort::ToBeInferred))),
             args: vec![arg],
         };
         let expected = Expr::App(app);
@@ -96,7 +90,7 @@ mod tests {
         assert_eq!(
             _ast,
             Expr::BinOp(BinOp {
-                lhs: Box::new(Expr::inferred_progsym("i".into())),
+                lhs: Box::new(Expr::inferred_progsym("i")),
                 op: Verb::Gt,
                 rhs: Box::new(Expr::Number(0)),
             })
@@ -110,18 +104,39 @@ mod tests {
             _ast,
             Expr::BinOp(BinOp {
                 lhs: Box::new(Expr::BinOp(BinOp {
-                    lhs: Box::new(Expr::inferred_progsym("b".into())),
+                    lhs: Box::new(Expr::inferred_progsym("b")),
                     op: Verb::Equals,
                     rhs: Box::new(Expr::Boolean(true))
                 })),
                 op: Verb::Or,
                 rhs: Box::new(Expr::BinOp(BinOp {
-                    lhs: Box::new(Expr::inferred_progsym("b".into())),
+                    lhs: Box::new(Expr::inferred_progsym("b")),
                     op: Verb::Equals,
                     rhs: Box::new(Expr::Boolean(false))
                 }))
             })
         );
+    }
+
+    #[test]
+    fn parse_conjunction() {
+        let ast = parse_rval("X = Y & Y = Z").unwrap();
+        let lhs = BinOp {
+            lhs: Expr::inferred_logicsym("X").into(),
+            op: Verb::Equals,
+            rhs: Expr::inferred_logicsym("Y").into(),
+        };
+        let rhs = BinOp {
+            lhs: Expr::inferred_logicsym("Y").into(),
+            op: Verb::Equals,
+            rhs: Expr::inferred_logicsym("Z").into(),
+        };
+        let expected = Expr::BinOp(BinOp {
+            lhs: Expr::BinOp(lhs).into(),
+            op: Verb::And,
+            rhs: Expr::BinOp(rhs).into(),
+        });
+        assert_eq!(ast, expected);
     }
 
     #[test]
@@ -135,11 +150,8 @@ mod tests {
         assert_eq!(
             _ast,
             Expr::FieldAccess(FieldAccess {
-                record: Box::new(Expr::inferred_progsym("a".into())),
-                field: Symbol {
-                    id: "b".into(),
-                    sort: Sort::ToBeInferred
-                }
+                record: Box::new(Expr::inferred_progsym("a")),
+                field: Symbol::from("b", Sort::ToBeInferred),
             })
         );
     }

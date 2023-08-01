@@ -607,7 +607,7 @@ where
     // Terminals
 
     fn symbol(&mut self, p: &mut expressions::Symbol) -> VisitorResult<(), expressions::Symbol> {
-        p.id.visit(self)?;
+        p.name.visit(self)?;
 
         Ok(ControlMut::SkipSiblings(()))
     }
@@ -632,13 +632,13 @@ where
     }
 
     fn param(&mut self, p: &mut expressions::Symbol) -> VisitorResult<(), expressions::Symbol> {
-        p.id.visit(self)?;
+        p.name.visit(self)?;
 
-        match &mut p.sort {
+        match &mut p.decl {
             expressions::Sort::ToBeInferred => (),
             expressions::Sort::Annotated(_) | expressions::Sort::Resolved(_) => {
                 self.pp.write_str(":")?;
-                self.sort(&mut p.sort)?;
+                self.sort(&mut p.decl)?;
             }
         }
         Ok(ControlMut::SkipSiblings(()))

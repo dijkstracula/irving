@@ -58,8 +58,8 @@ impl IvyParser {
     fn param(input: Node) -> Result<Symbol> {
         match_nodes!(
         input.into_children();
-        [PROGTOK(id), ident(sort)] => Ok(Symbol { id, sort: Sort::Annotated(sort) }),
-        [PROGTOK(id)] => Ok(Symbol {id, sort: Sort::ToBeInferred })
+        [PROGTOK(name), ident(sort)] => Ok(Symbol::from(name, Sort::Annotated(sort))),
+        [PROGTOK(name)] => Ok(Symbol::from(name, Sort::ToBeInferred))
         )
     }
 
@@ -91,8 +91,8 @@ impl IvyParser {
     fn logicsym(input: Node) -> Result<Symbol> {
         match_nodes!(
         input.into_children();
-        [LOGICTOK(id), PROGTOK(sort)] => Ok(Symbol {id, sort: Sort::Annotated(vec!(sort)) }),
-        [LOGICTOK(id)]               => Ok(Symbol {id, sort: Sort::ToBeInferred })
+        [LOGICTOK(name), PROGTOK(sort)] => Ok(Symbol::from(name, Sort::Annotated(vec!(sort)))),
+        [LOGICTOK(name)]               => Ok(Symbol::from(name, Sort::ToBeInferred))
         )
     }
 
@@ -489,7 +489,7 @@ impl IvyParser {
     pub fn var_decl(input: Node) -> Result<Binding<Sort>> {
         match_nodes!(
         input.into_children();
-        [param(Symbol { id, sort })] => Ok(Binding::from(id, sort)))
+        [param(Symbol { name, decl })] => Ok(Binding::from(name, decl)))
     }
 
     pub fn decl(input: Node) -> Result<Decl> {
@@ -546,8 +546,8 @@ impl IvyParser {
     pub fn assign_action(input: Node) -> Result<AssignAction> {
         match_nodes!(
         input.into_children();
-        [var_decl(Binding{name, decl}), rval(rhs)] => Ok(
-            AssignAction{lhs: Expr::ProgramSymbol(Symbol{id: name, sort: decl}), rhs}
+        [var_decl(binding), rval(rhs)] => Ok(
+            AssignAction{lhs: Expr::ProgramSymbol(binding), rhs}
         ),
         [lval(lhs), rval(rhs)] => match lhs {
             Expr::App(_) | Expr::FieldAccess(_) | Expr::Index(_) | Expr::ProgramSymbol(_) | Expr::This => Ok(AssignAction{lhs, rhs}),

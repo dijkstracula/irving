@@ -2,6 +2,8 @@
 
 use crate::typechecker::sorts::IvySort;
 
+use super::declarations::Binding;
+
 /// Corresponds to a file/line pairing, and possibly additionally docstrings to
 /// be reconstructed in the extracted code.
 #[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]
@@ -34,11 +36,7 @@ pub enum Verb {
 pub type Token = String;
 pub type Ident = Vec<Token>;
 
-#[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]
-pub struct Symbol {
-    pub id: Token,
-    pub sort: Sort,
-}
+pub type Symbol = Binding<Sort>;
 
 #[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]
 pub struct AppExpr {
@@ -111,16 +109,41 @@ pub enum Expr {
 }
 
 impl Expr {
-    pub fn inferred_progsym(s: String) -> Self {
+    pub fn inferred_progsym<S>(s: S) -> Self
+    where
+        S: Into<String>,
+    {
         Self::ProgramSymbol(Symbol {
-            id: s,
-            sort: Sort::ToBeInferred,
+            name: s.into(),
+            decl: Sort::ToBeInferred,
         })
     }
-    pub fn annotated_progsym(s: String, id: Ident) -> Self {
+    pub fn annotated_progsym<S>(s: S, id: Ident) -> Self
+    where
+        S: Into<String>,
+    {
         Self::ProgramSymbol(Symbol {
-            id: s,
-            sort: Sort::Annotated(id),
+            name: s.into(),
+            decl: Sort::Annotated(id),
+        })
+    }
+
+    pub fn inferred_logicsym<S>(s: S) -> Self
+    where
+        S: Into<String>,
+    {
+        Self::LogicSymbol(Symbol {
+            name: s.into(),
+            decl: Sort::ToBeInferred,
+        })
+    }
+    pub fn annotated_logicsym<S>(s: S, id: Ident) -> Self
+    where
+        S: Into<String>,
+    {
+        Self::LogicSymbol(Symbol {
+            name: s.into(),
+            decl: Sort::Annotated(id),
         })
     }
 }

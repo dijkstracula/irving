@@ -7,27 +7,19 @@ use crate::ast::expressions::*;
 use crate::parser::ivy::*;
 
 lazy_static::lazy_static! {
-    // This ordering is taken from the precedence numberings
-    // from ivy2/lang.ivy.
-    static ref PRATT: PrattParser<Rule> =
+    pub static ref PRATT: PrattParser<Rule> =
     PrattParser::new()
         .op(Op::infix(Rule::ARROW, Assoc::Left))
         .op(Op::infix(Rule::COLON, Assoc::Left))
 
-        .op(Op::infix(Rule::LT, Assoc::Left))
-        .op(Op::infix(Rule::LE, Assoc::Left))
-        .op(Op::infix(Rule::GT, Assoc::Left))
-        .op(Op::infix(Rule::GE, Assoc::Left))
-        .op(Op::infix(Rule::PLUS, Assoc::Left))
-        .op(Op::infix(Rule::MINUS, Assoc::Left))
-        .op(Op::infix(Rule::TIMES, Assoc::Left))
-        .op(Op::infix(Rule::DIV, Assoc::Left))
+        .op(Op::infix(Rule::PLUS, Assoc::Left) | Op::infix(Rule::MINUS, Assoc::Left))
+        .op(Op::infix(Rule::TIMES, Assoc::Left) | Op::infix(Rule::DIV, Assoc::Left))
 
-        .op(Op::infix(Rule::OR, Assoc::Left))
-        .op(Op::infix(Rule::AND, Assoc::Left))
+        .op(Op::infix(Rule::OR, Assoc::Left) | Op::infix(Rule::AND, Assoc::Left))
 
-        .op(Op::infix(Rule::EQ, Assoc::Left))
-        .op(Op::infix(Rule::NEQ, Assoc::Left))
+        .op(Op::infix(Rule::LT, Assoc::Left) | Op::infix(Rule::LE, Assoc::Left) |
+            Op::infix(Rule::GT, Assoc::Left) | Op::infix(Rule::GE, Assoc::Left) |
+            Op::infix(Rule::EQ, Assoc::Left) | Op::infix(Rule::NEQ, Assoc::Left))
 
         .op(Op::infix(Rule::IFF, Assoc::Left))
 
@@ -46,14 +38,14 @@ pub fn parse_rval(pairs: Pairs<Rule>) -> Result<Expr> {
     PRATT
         .map_primary(|primary| match primary.as_rule() {
             Rule::THIS => Ok(Expr::This),
-            Rule::LOGICTOK => Ok(Expr::LogicSymbol(Symbol {
-                id: primary.as_str().into(),
-                sort: Sort::ToBeInferred,
-            })),
-            Rule::PROGTOK => Ok(Expr::ProgramSymbol(Symbol {
-                id: primary.as_str().into(),
-                sort: Sort::ToBeInferred,
-            })),
+            Rule::LOGICTOK => Ok(Expr::LogicSymbol(Symbol::from(
+                primary.as_str(),
+                Sort::ToBeInferred,
+            ))),
+            Rule::PROGTOK => Ok(Expr::ProgramSymbol(Symbol::from(
+                primary.as_str(),
+                Sort::ToBeInferred,
+            ))),
             Rule::boollit => {
                 let val = match primary.as_str() {
                     "true" => true,

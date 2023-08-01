@@ -1,52 +1,49 @@
+use pest::error::ErrorVariant;
 use pest::iterators::{Pair, Pairs};
 use pest::pratt_parser::{Assoc, Op, PrattParser};
+use pest_consume::Error;
 
 use crate::ast::expressions::*;
 use crate::parser::ivy::*;
 
 lazy_static::lazy_static! {
-    // This ordering is taken from the precedence numberings
-    // from ivy2/lang.ivy.
     static ref PRATT: PrattParser<Rule> =
     PrattParser::new()
-        .op(Op::infix(Rule::DOT, Assoc::Left))
+        .op(Op::infix(Rule::ARROW, Assoc::Left))
         .op(Op::infix(Rule::COLON, Assoc::Left))
 
-        .op(Op::infix(Rule::LT, Assoc::Left))
-        .op(Op::infix(Rule::LE, Assoc::Left))
-        .op(Op::infix(Rule::GT, Assoc::Left))
-        .op(Op::infix(Rule::GE, Assoc::Left))
+        .op(Op::infix(Rule::PLUS, Assoc::Left) | Op::infix(Rule::MINUS, Assoc::Left))
+        .op(Op::infix(Rule::TIMES, Assoc::Left) | Op::infix(Rule::DIV, Assoc::Left))
 
-        .op(Op::infix(Rule::EQ, Assoc::Left))
-        .op(Op::infix(Rule::NEQ, Assoc::Left))
+        .op(Op::infix(Rule::OR, Assoc::Left) | Op::infix(Rule::AND, Assoc::Left))
+
+        .op(Op::infix(Rule::LT, Assoc::Left) | Op::infix(Rule::LE, Assoc::Left) |
+            Op::infix(Rule::GT, Assoc::Left) | Op::infix(Rule::GE, Assoc::Left) |
+            Op::infix(Rule::EQ, Assoc::Left) | Op::infix(Rule::NEQ, Assoc::Left))
 
         .op(Op::infix(Rule::IFF, Assoc::Left))
-        .op(Op::infix(Rule::ARROW, Assoc::Left))
-        .op(Op::infix(Rule::OR, Assoc::Left))
-        .op(Op::infix(Rule::AND, Assoc::Left))
 
         // Prefix
+        .op(Op::prefix(Rule::UMINUS))
         .op(Op::prefix(Rule::NOT))
 
         // Postfix
-        .op(Op::postfix(Rule::log_app_args));
+        // XXX: it is unfortunate how close the program expression's
+        // Pratt parser is to this one.
+        .op(Op::postfix(Rule::log_app_args))
+
+        .op(Op::infix(Rule::DOT, Assoc::Left));
 }
 
 // TODO: this should be something other than a Symbol.
 pub fn parse_lsym(primary: Pair<'_, Rule>) -> Result<Symbol> {
     // TODO: we need a separate AST node for logicvars.
     let mut pairs = primary.into_inner();
-    let id = pairs.next().unwrap().as_str().to_owned();
+    let name = pairs.next().unwrap().as_str().to_owned();
     let sort = pairs.next().map(|s| vec![s.as_str().to_owned()]);
     match sort {
-        None => Ok(Symbol {
-            id,
-            sort: Sort::ToBeInferred,
-        }),
-        Some(sort) => Ok(Symbol {
-            id,
-            sort: Sort::Annotated(sort),
-        }),
+        None => Ok(Symbol::from(name, Sort::ToBeInferred)),
+        Some(sort) => Ok(Symbol::from(name, Sort::Annotated(sort))),
     }
 }
 
@@ -68,7 +65,7 @@ pub fn parse_log_term(pairs: Pairs<Rule>) -> Result<Expr> {
                     args,
                 }))
             }
-            Rule::logicsym => Ok(Expr::ProgramSymbol(parse_lsym(primary)?)),
+            Rule::logicsym => Ok(Expr::LogicSymbol(parse_lsym(primary)?)),
             Rule::PROGTOK => {
                 let tok = primary.as_str().to_owned();
                 Ok(Expr::inferred_progsym(tok))
@@ -86,13 +83,25 @@ pub fn parse_log_term(pairs: Pairs<Rule>) -> Result<Expr> {
                 Ok(Expr::Number(val))
             }
             Rule::log_term => parse_log_term(primary.into_inner()),
-            _ => unreachable!("parse_log_term expected primary, found {:?}", primary),
+            x => Err(Error::new_from_span(
+                ErrorVariant::CustomError {
+                    message: format!("Expected formula, got {x:?}"),
+                },
+                primary.as_span(),
+            )),
         })
         .map_prefix(|op, rhs| {
             let verb = match op.as_rule() {
                 Rule::UMINUS => Verb::Minus,
                 Rule::NOT => Verb::Not,
-                _ => unreachable!("Unexpected unary op"),
+                x => {
+                    return Err(Error::new_from_span(
+                        ErrorVariant::CustomError {
+                            message: format!("Expected logical operator, got {x:?}"),
+                        },
+                        op.as_span(),
+                    ))
+                }
             };
             Ok(Expr::UnaryOp {
                 op: verb,
@@ -112,7 +121,14 @@ pub fn parse_log_term(pairs: Pairs<Rule>) -> Result<Expr> {
                 Rule::EQ => Verb::Equals,
                 Rule::NEQ => Verb::Notequals,
                 Rule::DOT => Verb::Dot,
-                _ => unimplemented!(),
+                x => {
+                    return Err(Error::new_from_span(
+                        ErrorVariant::CustomError {
+                            message: format!("Expected logical operator, got {x:?}"),
+                        },
+                        op.as_span(),
+                    ))
+                }
             };
 
             Ok(Expr::BinOp(BinOp {
@@ -133,7 +149,14 @@ pub fn parse_log_term(pairs: Pairs<Rule>) -> Result<Expr> {
                     args,
                 }))
             }
-            _ => unimplemented!(),
+            x => {
+                return Err(Error::new_from_span(
+                    ErrorVariant::CustomError {
+                        message: format!("Expected logical operator, got {x:?}"),
+                    },
+                    op.as_span(),
+                ))
+            }
         })
         .parse(pairs)
 }

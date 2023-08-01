@@ -485,8 +485,8 @@ where
     }
 
     fn param(&mut self, p: &mut Symbol) -> VisitorResult<T, Symbol> {
-        self.token(&mut p.id)?.modifying(&mut p.id)?;
-        self.sort(&mut p.sort)?.modifying(&mut p.sort)?;
+        self.token(&mut p.name)?.modifying(&mut p.name)?;
+        self.sort(&mut p.decl)?.modifying(&mut p.decl)?;
         Ok(ControlMut::Produce(T::default()))
     }
 
@@ -498,8 +498,8 @@ where
     }
 
     fn symbol(&mut self, p: &mut Symbol) -> VisitorResult<T, Symbol> {
-        self.token(&mut p.id)?.modifying(&mut p.id)?;
-        self.sort(&mut p.sort)?.modifying(&mut p.sort)?;
+        self.token(&mut p.name)?.modifying(&mut p.name)?;
+        self.sort(&mut p.decl)?.modifying(&mut p.decl)?;
         Ok(ControlMut::Produce(T::default()))
     }
 
@@ -701,7 +701,7 @@ where
                 let ret = match &mut decl.ret {
                     None => None,
                     Some(sym) => Some(Binding::from(
-                        sym.id.clone(),
+                        sym.name.clone(),
                         visitor.param(sym)?.modifying(sym)?,
                     )),
                 };
@@ -767,7 +767,7 @@ where
                     let ret = match &mut decl.ret {
                         None => None,
                         Some(sym) => Some(Binding::from(
-                            sym.id.clone(),
+                            sym.name.clone(),
                             visitor.param(sym)?.modifying(sym)?,
                         )),
                     };
@@ -805,7 +805,7 @@ where
                 let ret = match &mut decl.ret {
                     None => None,
                     Some(sym) => Some(Binding::from(
-                        sym.id.clone(),
+                        sym.name.clone(),
                         visitor.param(sym)?.modifying(sym)?,
                     )),
                 };
@@ -830,7 +830,7 @@ where
                 let a = decl
                     .args
                     .iter_mut()
-                    .map(|p| p.id.visit(visitor)?.modifying(&mut p.id))
+                    .map(|p| p.name.visit(visitor)?.modifying(&mut p.name))
                     .collect::<Result<Vec<_>, _>>()?;
                 visitor.finish_instance_decl(name, decl, n, s, a)
             }),

@@ -47,11 +47,7 @@ mod tests {
             Ok(Binding::from(
                 "foo",
                 ActionDecl {
-                    params: [Symbol {
-                        id: "a".into(),
-                        sort: Sort::Annotated(["int".into()].into())
-                    }]
-                    .into(),
+                    params: vec![Symbol::from("a", Sort::Annotated(vec!["int".into()]))],
                     ret: None,
                     body: None,
                 }
@@ -72,11 +68,7 @@ mod tests {
             Ok(Binding::from(
                 "foo",
                 ActionDecl {
-                    params: [Symbol {
-                        id: "a".into(),
-                        sort: Sort::Annotated(["int".into()].into())
-                    }]
-                    .into(),
+                    params: vec![Symbol::from("a", Sort::Annotated(vec!["int".into()]))],
                     ret: None,
                     body: Some(vec![])
                 }
@@ -112,15 +104,8 @@ mod tests {
             Ok(Binding::from(
                 "foo",
                 ActionDecl {
-                    params: [Symbol {
-                        id: "a".into(),
-                        sort: Sort::Annotated(["int".into()].into())
-                    }]
-                    .into(),
-                    ret: Some(Symbol {
-                        id: "b".into(),
-                        sort: Sort::Annotated(["int".into()].into())
-                    }),
+                    params: vec![Symbol::from("a", Sort::Annotated(vec!["int".into()]))],
+                    ret: Some(Symbol::from("b", Sort::Annotated(vec!["int".into()]))),
                     body: None
                 }
             ))

@@ -70,7 +70,7 @@ impl SortInferer {
                 } else {
                     mixin_args
                         .iter()
-                        .map(|sym| sym.id.clone())
+                        .map(|sym| sym.name.clone())
                         .collect::<Vec<_>>()
                 }
             }
@@ -105,10 +105,7 @@ impl SortInferer {
             IvySort::Action(args, ActionArgs::List(sorts), _) => args
                 .iter()
                 .zip(sorts.iter())
-                .map(|(name, sort)| Symbol {
-                    id: name.clone(),
-                    sort: Sort::Resolved(sort.clone()),
-                })
+                .map(|(name, sort)| Symbol::from(name, Sort::Resolved(sort.clone())))
                 .collect::<Vec<_>>(),
             _ => unreachable!(),
         };
@@ -154,28 +151,24 @@ impl Visitor<IvySort> for SortInferer {
         &mut self,
         p: &mut expressions::Symbol,
     ) -> VisitorResult<IvySort, expressions::Symbol> {
-        println!("NBT: visiting param {:?}", p);
-        match &mut p.sort {
+        match &mut p.decl {
             Sort::ToBeInferred => {
                 let sortvar = self.bindings.new_sortvar();
-                self.bindings.append(p.id.clone(), sortvar.clone())?;
+                self.bindings.append(p.name.clone(), sortvar.clone())?;
                 Ok(ControlMut::Produce(sortvar))
             }
             Sort::Annotated(id) => {
                 let resolved = id.visit(self)?.modifying(id)?;
                 // Note that because a parameter binds a new name, we add it
                 // to the bindings here.  We do not do the same for sort!()
-                self.bindings.append(p.id.clone(), resolved.clone())?;
+                self.bindings.append(p.name.clone(), resolved.clone())?;
                 Ok(ControlMut::Mutation(
-                    expressions::Symbol {
-                        id: p.id.clone(),
-                        sort: Sort::Resolved(resolved.clone()),
-                    },
+                    expressions::Symbol::from(p.name.clone(), Sort::Resolved(resolved.clone())),
                     resolved,
                 ))
             }
             Sort::Resolved(ivysort) => {
-                self.bindings.append(p.id.clone(), ivysort.clone())?;
+                self.bindings.append(p.name.clone(), ivysort.clone())?;
                 Ok(ControlMut::Produce(ivysort.clone()))
             }
         }
@@ -200,9 +193,9 @@ impl Visitor<IvySort> for SortInferer {
         &mut self,
         p: &mut expressions::Symbol,
     ) -> VisitorResult<IvySort, expressions::Symbol> {
-        let sort = match &mut p.sort {
-            Sort::ToBeInferred => match self.bindings.lookup_sym(&p.id) {
-                None => bail!(TypeError::UnboundVariable(p.id.clone())),
+        let sort = match &mut p.decl {
+            Sort::ToBeInferred => match self.bindings.lookup_sym(&p.name) {
+                None => bail!(TypeError::UnboundVariable(p.name.clone())),
                 Some(s) => s.clone(),
             },
             Sort::Annotated(ident) => self.identifier(ident)?.modifying(ident)?,
@@ -243,7 +236,7 @@ impl Visitor<IvySort> for SortInferer {
                 for arg in args {
                     if let Expr::LogicSymbol(sym) = arg {
                         let s = self.bindings.new_sortvar();
-                        self.bindings.append(sym.id.clone(), s)?;
+                        self.bindings.append(sym.name.clone(), s)?;
                     }
                 }
             }
@@ -417,7 +410,7 @@ impl Visitor<IvySort> for SortInferer {
         // Note that beecause the rhs's symbol is not in our context, we can't
         // visit it without getting an unbound identifier, so simply resolve its
         // sort.
-        let annotated_rhs_sort = self.sort(&mut rhs.sort)?.modifying(&mut rhs.sort)?;
+        let annotated_rhs_sort = self.sort(&mut rhs.decl)?.modifying(&mut rhs.decl)?;
 
         let mut is_common = false;
 
@@ -427,10 +420,10 @@ impl Visitor<IvySort> for SortInferer {
         // If it is, get the field's type.
         let rhs_sort = match &lhs_sort {
             IvySort::Module(module) => {
-                Ok::<Option<IvySort>, TypeError>(module.fields.get(&rhs.id).cloned())
+                Ok::<Option<IvySort>, TypeError>(module.fields.get(&rhs.name).cloned())
             }
             IvySort::Object(proc) => {
-                let s = proc.fields.get(&rhs.id);
+                let s = proc.fields.get(&rhs.name);
                 is_common = s.is_none();
                 Ok(s.cloned())
             }
@@ -467,10 +460,10 @@ impl Visitor<IvySort> for SortInferer {
         .transpose()?;
         match rhs_sort {
             Some(sort) => {
-                rhs.sort = Sort::Resolved(sort.clone());
+                rhs.decl = Sort::Resolved(sort.clone());
                 Ok(ControlMut::SkipSiblings(sort))
             }
-            None => bail!(TypeError::MissingRecordField(lhs_sort, rhs.id.clone())),
+            None => bail!(TypeError::MissingRecordField(lhs_sort, rhs.name.clone())),
         }
     }
 
@@ -530,9 +523,13 @@ impl Visitor<IvySort> for SortInferer {
         ret_sort: Option<Binding<IvySort>>,
         _body: Option<Vec<IvySort>>,
     ) -> VisitorResult<IvySort, declarations::Decl> {
-        let mut locals = ast.params.iter().map(|p| p.id.clone()).collect::<Vec<_>>();
+        let mut locals = ast
+            .params
+            .iter()
+            .map(|p| p.name.clone())
+            .collect::<Vec<_>>();
         if let Some(ret) = &ast.ret {
-            locals.push(ret.id.clone())
+            locals.push(ret.name.clone())
         }
         self.action_locals.insert(name.clone(), locals);
 
@@ -544,7 +541,7 @@ impl Visitor<IvySort> for SortInferer {
         let param_names = ast
             .params
             .iter()
-            .map(|sym| sym.id.clone())
+            .map(|sym| sym.name.clone())
             .collect::<Vec<_>>();
         let actsort = IvySort::action_sort(param_names, param_sorts, ret_sort);
         let unified = self.bindings.unify(&name_sort, &actsort)?;
@@ -689,7 +686,7 @@ impl Visitor<IvySort> for SortInferer {
         let param_names = ast
             .params
             .iter()
-            .map(|sym| sym.id.clone())
+            .map(|sym| sym.name.clone())
             .collect::<Vec<_>>();
 
         let fnsort = IvySort::action_sort(
@@ -906,7 +903,7 @@ impl Visitor<IvySort> for SortInferer {
             .params
             .iter()
             .zip(param_sorts.iter())
-            .map(|(name, sort)| (name.id.clone(), self.bindings.resolve(sort).clone()))
+            .map(|(param, sort)| (param.name.clone(), self.bindings.resolve(sort).clone()))
             .collect::<BTreeMap<_, _>>();
 
         let mut fields = ast

@@ -48,11 +48,8 @@ mod tests {
             Stmt::ActionSequence(
                 [Action::Assign(AssignAction {
                     lhs: Expr::FieldAccess(FieldAccess {
-                        record: Box::new(Expr::inferred_progsym("foo".into())),
-                        field: Symbol {
-                            id: "bar".into(),
-                            sort: Sort::ToBeInferred
-                        }
+                        record: Box::new(Expr::inferred_progsym("foo")),
+                        field: Symbol::from("bar", Sort::ToBeInferred),
                     }),
                     rhs: Expr::Boolean(false)
                 })]
@@ -107,7 +104,7 @@ mod tests {
                     op: Verb::Not,
                     expr: Box::new(Expr::App(AppExpr {
                         func: Box::new(Expr::inferred_progsym("failed".to_owned())),
-                        args: [Expr::inferred_progsym("y".into())].into()
+                        args: [Expr::inferred_progsym("y")].into()
                     }))
                 })
             }
@@ -126,7 +123,7 @@ mod tests {
             stmt,
             RequiresAction {
                 pred: Fmla::Pred(Expr::BinOp(BinOp {
-                    lhs: Box::new(Expr::inferred_progsym("x".into())),
+                    lhs: Box::new(Expr::inferred_progsym("x")),
                     op: Verb::Ge,
                     rhs: Box::new(Expr::Number(0))
                 }))
