@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
     use crate::{
-        ast::expressions::Expr,
+        ast::{expressions::Expr, span::Span},
         parser::ivy::{IvyParser, Rule},
         tests::helpers,
         typechecker::{
@@ -75,7 +75,6 @@ mod tests {
         let res = decl_ast.visit(&mut tc).expect_err("visit");
         assert_eq!(res, TypeError::NotARecord(IvySort::Bool.desc()));
 
-
         tc.bindings.pop_scope();
 
         // If it is module, field lookup needs to succeed.
@@ -111,7 +110,6 @@ mod tests {
         let res = decl_ast.visit(&mut tc).expect_err("visit");
         assert_eq!(res, TypeError::NotInstanceable(IvySort::Number.desc()));
         tc.bindings.pop_scope();
-
 
         // If field lookup succeeds, and it can be instantiated, do so!
         let sock_mod = IvySort::Module(Module {
@@ -264,16 +262,33 @@ mod tests {
             .visit(&mut tc)
             .expect("visit")
             .modifying(&mut decl_ast);
+
+        let span = Span::IgnoredForTesting;
         assert_eq!(
             res,
-            IvySort::Range(Box::new(Expr::Number(0)), Box::new(Expr::Number(100)))
+            IvySort::Range(
+                Box::new(Expr::Number {
+                    span: span.clone(),
+                    val: 0
+                }),
+                Box::new(Expr::Number {
+                    span: span.clone(),
+                    val: 100
+                })
+            )
         );
 
         assert_eq!(
             tc.bindings.lookup_sym("numbers"),
             Some(&IvySort::Range(
-                Box::new(Expr::Number(0)),
-                Box::new(Expr::Number(100))
+                Box::new(Expr::Number {
+                    span: span.clone(),
+                    val: 0
+                }),
+                Box::new(Expr::Number {
+                    span: span.clone(),
+                    val: 100
+                })
             ))
         )
     }

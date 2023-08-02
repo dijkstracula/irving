@@ -1,5 +1,8 @@
 use crate::{
-    ast::declarations::{self, Binding},
+    ast::{
+        declarations::{self, Binding},
+        span::Span,
+    },
     extraction::{java::extraction::expressions::Token, ExtractResult},
 };
 use std::{collections::BTreeMap, fmt::Write};
@@ -81,7 +84,10 @@ where
         // The first declaration needs to define the return value.
         ret.as_mut().map(|ret| {
             let mut retdecl =
-                declarations::Decl::Var(Binding::from(ret.name.clone(), ret.decl.clone()));
+                declarations::Decl::Var {
+                    span: Span::Optimized, /* We're just using this to walk the binding, so it doesn't matter */
+                    decl: Binding::from(ret.name.clone(), ret.decl.clone())
+                };
             retdecl.visit(self).unwrap();
             self.pp.write_str(";\n").unwrap();
         });

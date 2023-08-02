@@ -1,9 +1,6 @@
 use thiserror::Error;
 
-use crate::{
-    ast::expressions::Token,
-    visitor::VisitorResult,
-};
+use crate::{ast::expressions::Token, visitor::VisitorResult};
 
 use self::sorts::IvySort;
 

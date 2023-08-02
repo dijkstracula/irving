@@ -3,8 +3,9 @@ mod tests {
     use std::{collections::BTreeMap, vec};
 
     use crate::{
-        ast::{declarations::Decl, expressions::Expr},
+        ast::{declarations::Decl, expressions::Expr, span::Span},
         parser::ivy::{IvyParser, Rule},
+        tests::helpers,
         typechecker::{
             inference::SortInferer,
             sorts::{self, IvySort, Module, Object},
@@ -14,14 +15,6 @@ mod tests {
     };
     use pest_consume::Parser;
 
-    fn process_from_src(prog: &str) -> Decl {
-        let res = IvyParser::parse_with_userdata(Rule::process_decl, prog, prog.into())
-            .expect("Parsing failed")
-            .single()
-            .unwrap();
-        Decl::Object(IvyParser::process_decl(res).expect("AST generation failed"))
-    }
-
     fn typechecker_with_bindings() -> SortInferer {
         let mut tc = SortInferer::new();
 
@@ -29,7 +22,16 @@ mod tests {
         tc.bindings
             .append(
                 "pid".into(),
-                IvySort::Range(Box::new(Expr::Number(0)), Box::new(Expr::Number(3))),
+                IvySort::Range(
+                    Box::new(Expr::Number {
+                        span: Span::IgnoredForTesting,
+                        val: 0,
+                    }),
+                    Box::new(Expr::Number {
+                        span: Span::IgnoredForTesting,
+                        val: 3,
+                    }),
+                ),
             )
             .unwrap();
         // interpret byte -> bv[8]
@@ -88,7 +90,9 @@ mod tests {
             .expect("Parsing failed")
             .single()
             .unwrap();
-        let vecdecl = Decl::Module(IvyParser::module_decl(parsed).expect("AST generation failed"));
+
+        let (span, decl) = IvyParser::module_decl(parsed).expect("Parsing of Vec stub module");
+        let vecdecl = Decl::Module { span, decl };
 
         let mut filedecl = vecdecl;
         /*
@@ -108,7 +112,7 @@ mod tests {
 
     #[test]
     fn test_empty_process() {
-        let mut iso = process_from_src("process p = { }");
+        let mut iso = helpers::process_from_decl("process p = { }");
 
         let sort = IvySort::Object(Object {
             args: BTreeMap::from([]),
@@ -124,11 +128,20 @@ mod tests {
 
     #[test]
     fn test_proc_with_params() {
-        let mut iso = process_from_src("process host(self:pid) = {}");
+        let mut iso = helpers::process_from_decl("process host(self:pid) = {}");
         let sort = IvySort::Object(Object {
             args: [(
                 "self".into(),
-                IvySort::Range(Box::new(Expr::Number(0)), Box::new(Expr::Number(3))),
+                IvySort::Range(
+                    Box::new(Expr::Number {
+                        span: Span::IgnoredForTesting,
+                        val: 0,
+                    }),
+                    Box::new(Expr::Number {
+                        span: Span::IgnoredForTesting,
+                        val: 3,
+                    }),
+                ),
             )]
             .into(),
             fields: [("init".to_owned(), Module::init_action_sort())].into(),
@@ -143,7 +156,7 @@ mod tests {
 
     #[test]
     fn test_proc_with_implicit_impl() {
-        let mut iso = process_from_src(
+        let mut iso = helpers::process_from_decl(
             "process host(self:pid) = {
             var is_up: bool
         }",
@@ -151,7 +164,16 @@ mod tests {
         let sort = IvySort::Object(Object {
             args: [(
                 "self".into(),
-                IvySort::Range(Box::new(Expr::Number(0)), Box::new(Expr::Number(3))),
+                IvySort::Range(
+                    Box::new(Expr::Number {
+                        span: Span::IgnoredForTesting,
+                        val: 0,
+                    }),
+                    Box::new(Expr::Number {
+                        span: Span::IgnoredForTesting,
+                        val: 3,
+                    }),
+                ),
             )]
             .into(),
             fields: [
@@ -170,7 +192,7 @@ mod tests {
 
     #[test]
     fn test_proc_with_local_var() {
-        let mut iso = process_from_src(
+        let mut iso = helpers::process_from_decl(
             "process host(self:pid) = {
                 var foo: bool;
                 action doit = {
@@ -183,7 +205,7 @@ mod tests {
         let mut tc = typechecker_with_bindings();
         let _ = iso.visit(&mut tc).unwrap().modifying(&mut iso);
 
-        let mut iso = process_from_src(
+        let mut iso = helpers::process_from_decl(
             "process host(self:pid) = {
                 var foo: bool;
                 action doit = {
@@ -199,7 +221,7 @@ mod tests {
 
     #[test]
     fn test_bad_parameterized_object_index() {
-        let mut iso = process_from_src(
+        let mut iso = helpers::process_from_decl(
             "process host(self:pid) = {
                 var foo: bool;
             
@@ -215,7 +237,7 @@ mod tests {
 
     #[test]
     fn test_append1_host() {
-        let mut iso = process_from_src(
+        let mut iso = helpers::process_from_decl(
             "process host(self:pid) = {
                 export action append(val: byte)
                 import action show(content: file)
@@ -245,7 +267,7 @@ mod tests {
 
     #[test]
     fn test_relation_inference() {
-        let mut iso = process_from_src(
+        let mut iso = helpers::process_from_decl(
             "process host(self:pid) = {
                 # Here, we don't know the types of X and Y...
                 relation connected(X, Y)
@@ -263,7 +285,7 @@ mod tests {
     }
     #[test]
     fn test_relation_inference_bad_arity() {
-        let mut iso = process_from_src(
+        let mut iso = helpers::process_from_decl(
             "process host(self:pid) = {
                 relation connected(X, Y)
             
@@ -283,7 +305,7 @@ mod tests {
 
     #[test]
     fn test_relation_inference_bad_assign() {
-        let mut iso = process_from_src(
+        let mut iso = helpers::process_from_decl(
             "process host(self:pid) = {
                 relation connected(X, Y)
             
@@ -304,7 +326,7 @@ mod tests {
 
     #[test]
     fn test_relation_bad_inference() {
-        let mut iso = process_from_src(
+        let mut iso = helpers::process_from_decl(
             "process host(self:pid) = {
                 # Here, we don't know the types of X and Y...
                 relation connected(X, Y)
@@ -329,7 +351,7 @@ mod tests {
 
     #[test]
     fn test_relation_logical_assign() {
-        let mut iso = process_from_src(
+        let mut iso = helpers::process_from_decl(
             "process host(self:pid) = {
                 relation connected(X, Y)
             

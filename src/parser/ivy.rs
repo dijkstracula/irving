@@ -8,6 +8,7 @@ use crate::ast::declarations::*;
 use crate::ast::expressions;
 use crate::ast::expressions::*;
 use crate::ast::logic::*;
+use crate::ast::span::Span;
 use crate::ast::statements::*;
 use crate::ast::toplevels::*;
 
@@ -30,7 +31,7 @@ pub struct IvyParser;
 
 pub type ParseError = Error<Rule>;
 pub type Result<T> = std::result::Result<T, ParseError>;
-type Node<'i> = pest_consume::Node<'i, Rule, Rc<str>>;
+pub type Node<'i> = pest_consume::Node<'i, Rule, Rc<str>>;
 
 #[pest_consume::parser]
 #[allow(dead_code)]
@@ -82,7 +83,10 @@ impl IvyParser {
     }
 
     fn THIS(input: Node) -> Result<Expr> {
-        Ok(Expr::This)
+        Ok(Expr::This(Span::from_pest(
+            Rc::clone(&input.user_data()),
+            &input.as_span(),
+        )))
     }
 
     // Utils
@@ -138,10 +142,10 @@ impl IvyParser {
         input.into_children();
         [relation_lval(lval)] => Ok(lval),
         [rval(lval)] => match lval {
-            Expr::App(_) |
-            Expr::FieldAccess(_) |
-            Expr::Index(_) |
-            Expr::ProgramSymbol(_) => Ok(lval),
+            Expr::App{..} |
+            Expr::FieldAccess{..} |
+            Expr::Index{..} |
+            Expr::ProgramSymbol { .. } => Ok(lval),
             // Can it be This? Expr::This => todo!(),
             _ => Err(
                 Error::new_from_span(ErrorVariant::<Rule>::CustomError { message:
@@ -151,13 +155,16 @@ impl IvyParser {
     }
 
     pub fn relation_lval(input: Node) -> Result<Expr> {
+        let span = Span::from_node(&input);
         match_nodes!(
         input.into_children();
         [rval(func), log_app_args(args)] => {
-            Ok(Expr::App(AppExpr {
+            Ok(Expr::App{
+                span,
+                expr: AppExpr {
                 func: Box::new(func),
                 args
-            }))
+            }})
         })
     }
 
@@ -243,68 +250,78 @@ impl IvyParser {
         })
     }
 
-    pub fn action_decl(input: Node) -> Result<Binding<ActionDecl>> {
+    pub fn action_decl(input: Node) -> Result<(Span, Binding<ActionDecl>)> {
+        let span = Span::from_node(&input);
+
         match_nodes!(
         input.into_children();
             [decl_sig(DeclSig{name, params}), decl_ret(ret), stmt_block(body)] => Ok(
-                Binding::from(name, ActionDecl{params, ret, body: Some(body)})
+                (span, Binding::from(name, ActionDecl{params, ret, body: Some(body)}))
             ),
             [decl_sig(DeclSig{name, params}), stmt_block(body)] => Ok(
-                Binding::from(name, ActionDecl{params, ret: None, body: Some(body)})
+                (span, Binding::from(name, ActionDecl{params, ret: None, body: Some(body)}))
             ),
             [decl_sig(DeclSig{name, params}), decl_ret(ret)] => Ok(
-                Binding::from(name, ActionDecl{params, ret, body: None})
+                (span, Binding::from(name, ActionDecl{params, ret, body: None}))
             ),
             [decl_sig(DeclSig{name, params})] => Ok(
-                Binding::from(name, ActionDecl{params, ret: None, body: None})
+                (span, Binding::from(name, ActionDecl{params, ret: None, body: None}))
             ),
         )
     }
 
-    pub fn alias_decl(input: Node) -> Result<Binding<expressions::Sort>> {
+    pub fn alias_decl(input: Node) -> Result<(Span, Binding<expressions::Sort>)> {
+        let span = Span::from_node(&input);
+
         match_nodes!(
         input.into_children();
-        [PROGTOK(lhs), builtin_type(rhs)] => Ok(Binding::from(lhs, rhs)),
+        [PROGTOK(lhs), builtin_type(rhs)] => Ok((span, Binding::from(lhs, rhs))),
         )
     }
 
-    pub fn attribute_decl(input: Node) -> Result<Expr> {
+    pub fn attribute_decl(input: Node) -> Result<(Span, Expr)> {
+        let span = Span::from_node(&input);
         match_nodes!(
         input.into_children();
-        [rval(e)] => Ok(e)
+        [rval(e)] => Ok((span, e))
         )
     }
 
-    pub fn axiom_decl(input: Node) -> Result<Fmla> {
+    pub fn axiom_decl(input: Node) -> Result<(Span, Fmla)> {
+        let span = Span::from_node(&input);
         match_nodes!(
         input.into_children();
-        [fmla(e)] => Ok(e)
+        [fmla(f)] => Ok((span, f))
         )
     }
 
-    pub fn after_decl(input: Node) -> Result<ActionMixinDecl> {
+    pub fn after_decl(input: Node) -> Result<(Span, ActionMixinDecl)> {
+        let span = Span::from_node(&input);
+
         match_nodes!(
         input.into_children();
         [mixin_sig(MixinSig{name, params}), decl_ret(ret), stmt_block(body)] => Ok(
-            ActionMixinDecl { name, params, ret, body}
+            (span, ActionMixinDecl { name, params, ret, body})
         ),
         [mixin_sig(MixinSig{name, params}), stmt_block(body)] => Ok(
-            ActionMixinDecl { name, params, ret: None, body}
+            (span, ActionMixinDecl { name, params, ret: None, body})
         ),
         [ident(name), stmt_block(body)] => Ok(
-            ActionMixinDecl { name, params: None, ret: None, body}
+            (span, ActionMixinDecl { name, params: None, ret: None, body})
         ),
         )
     }
 
-    pub fn before_decl(input: Node) -> Result<ActionMixinDecl> {
+    pub fn before_decl(input: Node) -> Result<(Span, ActionMixinDecl)> {
+        let span = Span::from_node(&input);
+
         match_nodes!(
         input.into_children();
         [mixin_sig(MixinSig{name, params}), stmt_block(body)] => Ok(
-            ActionMixinDecl { name, params, body, ret: None}
+            (span, ActionMixinDecl { name, params, body, ret: None})
         ),
         [ident(name), stmt_block(body)] => Ok(
-            ActionMixinDecl { name, params: None, body, ret: None}
+            (span, ActionMixinDecl { name, params: None, body, ret: None})
         ),
         )
     }
@@ -316,16 +333,18 @@ impl IvyParser {
         input.into_children();
         [number(width)] => {
             u8::try_from(width).map_err(|_|
-                Error::new_from_span(ErrorVariant::<Rule>::CustomError { message:
-                    format!("Bit vector width {} too large", width) }, span))
+                Error::new_from_span(ErrorVariant::<Rule>::CustomError {
+                    message: format!("Bit vector width {} too large", width) },
+                    span))
         }
         )
     }
 
-    pub fn common_decl(input: Node) -> Result<Vec<Decl>> {
+    pub fn common_decl(input: Node) -> Result<(Span, Vec<Decl>)> {
+        let span = Span::from_node(&input);
         match_nodes!(
         input.into_children();
-            [decl_block(decls)] => Ok(decls)
+            [decl_block(decls)] => Ok((span, decls))
         )
     }
 
@@ -336,23 +355,25 @@ impl IvyParser {
         )
     }
 
-    pub fn export_decl(input: Node) -> Result<ExportDecl> {
+    pub fn export_decl(input: Node) -> Result<(Span, ExportDecl)> {
+        let span = Span::from_node(&input);
         match_nodes!(
         input.into_children();
             [PROGTOK(name)] => Ok(
-                ExportDecl::ForwardRef(name)
+                (span, ExportDecl::ForwardRef(name))
             ),
-            [action_decl(binding)] => Ok(
-                ExportDecl::Action(binding)
+            [action_decl((_span, binding))] => Ok(
+                (span, ExportDecl::Action(binding))
             ),
         )
     }
 
-    pub fn function_decl(input: Node) -> Result<Binding<FunctionDecl>> {
+    pub fn function_decl(input: Node) -> Result<(Span, Binding<FunctionDecl>)> {
+        let span = Span::from_node(&input);
         match_nodes!(
         input.into_children();
             [PROGTOK(name), lparamlist(params), PROGTOK(ret)] =>
-                Ok(Binding::from(name, FunctionDecl {params, ret}))
+                Ok((span, Binding::from(name, FunctionDecl {params, ret})))
         )
     }
 
@@ -363,89 +384,102 @@ impl IvyParser {
         )
     }
 
-    pub fn implement_action_decl(input: Node) -> Result<ActionMixinDecl> {
+    pub fn implement_action_decl(input: Node) -> Result<(Span, ActionMixinDecl)> {
+        let span = Span::from_node(&input);
         // XXX: Looks like `handle_before_after` in ivy_parser.py just treats
         // implement like defining an action, modulo internal name mangling.
         match_nodes!(
         input.into_children();
             [mixin_sig(MixinSig{name, params}), decl_ret(ret), stmt_block(body)] => Ok(
-                ActionMixinDecl{name, params, ret, body}
+                (span, ActionMixinDecl{name, params, ret, body})
             ),
             [mixin_sig(MixinSig{name, params}), stmt_block(body)] => Ok(
-                ActionMixinDecl{name, params, ret: None, body}
+                (span, ActionMixinDecl{name, params, ret: None, body})
             ),
         )
     }
 
-    pub fn implementation_decl(input: Node) -> Result<ObjectDecl> {
+    pub fn implementation_decl(input: Node) -> Result<(Span, ObjectDecl)> {
+        let span = Span::from_node(&input);
         match_nodes!(
         input.into_children();
-            [decl_block(decls)] => Ok(ObjectDecl { params: vec!(), body: decls })
+            [decl_block(decls)] => Ok((span, ObjectDecl { params: vec!(), body: decls }))
         )
     }
 
-    pub fn import_decl(input: Node) -> Result<ImportDecl> {
+    pub fn import_decl(input: Node) -> Result<(Span, ImportDecl)> {
+        let span = Span::from_node(&input);
+
         match_nodes!(
         input.into_children();
-            [decl_sig(DeclSig{name, params})] => Ok(ImportDecl{name, params})
+            [decl_sig(DeclSig{name, params})] => Ok((span, ImportDecl{name, params}))
         )
     }
 
-    pub fn include_decl(input: Node) -> Result<Token> {
+    pub fn include_decl(input: Node) -> Result<(Span, Token)> {
+        let span = Span::from_node(&input);
         match_nodes!(
         input.into_children();
-            [PROGTOK(module)] => Ok(module)
+            [PROGTOK(module)] => Ok((span, module))
         )
     }
 
-    pub fn instance_decl(input: Node) -> Result<Binding<InstanceDecl>> {
+    pub fn instance_decl(input: Node) -> Result<(Span, Binding<InstanceDecl>)> {
+        let span = Span::from_node(&input);
         match_nodes!(
         input.into_children();
         [PROGTOK(name), mixin_sig(MixinSig{name: sort, params: sort_args})] =>
-            Ok(Binding::from(name, InstanceDecl{sort, args: sort_args.unwrap_or_default()}))
+            Ok((span, Binding::from(name, InstanceDecl{sort, args: sort_args.unwrap_or_default()})))
         )
     }
 
-    pub fn interpret_decl(input: Node) -> Result<InterpretDecl> {
+    pub fn interpret_decl(input: Node) -> Result<(Span, InterpretDecl)> {
+        let span = Span::from_node(&input);
         match_nodes!(
         input.into_children();
-        [PROGTOK(name), builtin_type(sort)] => Ok(InterpretDecl { name, sort } ),
-        [PROGTOK(name), ident(rhs)] => Ok(InterpretDecl{name, sort: Sort::Annotated(rhs)}),
-        [PROGTOK(name)] => Ok(InterpretDecl{name, sort: Sort::Resolved(IvySort::Uninterpreted)})
+        [PROGTOK(name), builtin_type(sort)] => Ok((span, InterpretDecl { name, sort } )),
+        [PROGTOK(name), ident(rhs)] => Ok((span, InterpretDecl{name, sort: Sort::Annotated(rhs)})),
+        [PROGTOK(name)] => Ok((span, InterpretDecl{name, sort: Sort::Resolved(IvySort::Uninterpreted)}))
         )
     }
 
-    pub fn invariant_decl(input: Node) -> Result<Fmla> {
+    pub fn invariant_decl(input: Node) -> Result<(Span, Fmla)> {
+        let span = Span::from_node(&input);
         match_nodes!(
         input.into_children();
-        [fmla(e)] => Ok(e)
+        [fmla(f)] => Ok((span, f))
         )
     }
 
-    pub fn process_decl(input: Node) -> Result<Binding<ObjectDecl>> {
+    pub fn process_decl(input: Node) -> Result<(Span, Binding<ObjectDecl>)> {
+        let span = Span::from_node(&input);
+
         match_nodes!(
         input.into_children();
         [decl_sig(DeclSig{name, params}), decl_block(body)] => {
-            Ok(Binding::from(name, ObjectDecl{
+            Ok((span, Binding::from(name, ObjectDecl{
                 params,
                 body
-                })
-            )
+                })))
         })
     }
 
-    pub fn module_decl(input: Node) -> Result<Binding<ModuleDecl>> {
+    pub fn module_decl(input: Node) -> Result<(Span, Binding<ModuleDecl>)> {
+        let span = Span::from_node(&input);
+
         match_nodes!(
         input.into_children();
         [mod_sig(ModSig{name, sortsyms}), decl_block(body)] => Ok(
-            Binding::from(name, ModuleDecl{sortsyms, body})))
+            (span, Binding::from(name, ModuleDecl{sortsyms, body}))))
     }
 
-    pub fn object_decl(input: Node) -> Result<Binding<ObjectDecl>> {
+    pub fn object_decl(input: Node) -> Result<(Span, Binding<ObjectDecl>)> {
+        let span = Span::from_node(&input);
+
         match_nodes!(
         input.into_children();
         [PROGTOK(name), decl_block(body)] => Ok(
-            Binding::from(name, ObjectDecl{params: vec!(), body})))
+            (span, Binding::from(name, ObjectDecl{params: vec!(), body}))))
     }
 
     pub fn range_decl(input: Node) -> Result<(Expr, Expr)> {
@@ -455,71 +489,78 @@ impl IvyParser {
         )
     }
 
-    pub fn relation_decl(input: Node) -> Result<Binding<Relation>> {
+    pub fn relation_decl(input: Node) -> Result<(Span, Binding<Relation>)> {
+        let span = Span::from_node(&input);
+
         match_nodes!(
         input.into_children();
         [PROGTOK(name)] => {
             let params = vec!();
-            Ok(Binding::from(name, Relation{params}))
+            Ok((span, Binding::from(name, Relation{params})))
         },
         [PROGTOK(name), lparamlist(params)] =>
-            Ok(Binding::from(name, Relation{params}))
+            Ok((span, Binding::from(name, Relation{params})))
         )
     }
 
-    pub fn specification_decl(input: Node) -> Result<ObjectDecl> {
+    pub fn specification_decl(input: Node) -> Result<(Span, ObjectDecl)> {
+        let span = Span::from_node(&input);
         match_nodes!(
         input.into_children();
-            [decl_block(decls)] => Ok(ObjectDecl { params: vec![], body: decls })
+            [decl_block(decls)] => Ok((span, ObjectDecl { params: vec![], body: decls }))
         )
     }
 
-    pub fn type_decl(input: Node) -> Result<Binding<Sort>> {
+    pub fn type_decl(input: Node) -> Result<(Span, Binding<Sort>)> {
+        let span = Span::from_node(&input);
         match_nodes!(
         input.into_children();
-        [PROGTOK(sym), builtin_type(resolved)] => Ok(Binding::from(sym, resolved)),
-        [PROGTOK(lhs), PROGTOK(rhs)] => Ok(Binding::from(lhs, Sort::Resolved(IvySort::Subclass(rhs)))),
-        [PROGTOK(sym)] => Ok(Binding::from(sym, Sort::ToBeInferred)),
+        [PROGTOK(sym), builtin_type(resolved)] => Ok((span, Binding::from(sym, resolved))),
+        [PROGTOK(lhs), PROGTOK(rhs)] => Ok((span, Binding::from(lhs, Sort::Resolved(IvySort::Subclass(rhs))))),
+        [PROGTOK(sym)] => Ok((span, Binding::from(sym, Sort::ToBeInferred))),
         [PROGTOK(sym)] => {
-            Ok(Binding::from(sym, Sort::ToBeInferred))
+            Ok((span, Binding::from(sym, Sort::ToBeInferred)))
         },
-        [_THIS] => Ok(Binding::from("this", Sort::Resolved(IvySort::This))),
+        [_THIS] => Ok((span, Binding::from("this", Sort::Resolved(IvySort::This)))),
         )
     }
 
-    pub fn var_decl(input: Node) -> Result<Binding<Sort>> {
+    pub fn var_decl(input: Node) -> Result<(Span, Binding<Sort>)> {
+        let src = Rc::clone(&input.user_data());
+        let span = input.as_span();
+
         match_nodes!(
         input.into_children();
-        [param(Symbol { name, decl })] => Ok(Binding::from(name, decl)))
+        [param(Symbol { name, decl })] => Ok((Span::from_pest(src, &span), Binding::from(name, decl))))
     }
 
     pub fn decl(input: Node) -> Result<Decl> {
         match_nodes!(
         input.into_children();
-        [action_decl(binding)]   => Ok(Decl::Action(binding)),
-        [after_decl(decl)]    => Ok(Decl::AfterAction(decl)),
-        [alias_decl(binding)]   => Ok(Decl::Alias(binding)),
-        [attribute_decl(expr)] => Ok(Decl::Attribute(expr)),
-        [axiom_decl(fmla)]    => Ok(Decl::Axiom(fmla)),
-        [before_decl(decl)]    => Ok(Decl::BeforeAction(decl)),
-        [common_decl(decls)] => Ok(Decl::Common(decls)),
-        [export_decl(fmla)]   => Ok(Decl::Export(fmla)),
+        [action_decl((span, decl))]   => Ok(Decl::Action{span, decl}),
+        [after_decl((span, decl))]    => Ok(Decl::AfterAction{span, decl}),
+        [alias_decl((span, decl))]   => Ok(Decl::Alias{span, decl}),
+        [attribute_decl((span, decl))] => Ok(Decl::Attribute{span, decl}),
+        [axiom_decl((span, decl))]    => Ok(Decl::Axiom{span, decl}),
+        [before_decl((span, decl))]    => Ok(Decl::BeforeAction{span, decl}),
+        [common_decl((span, decl))] => Ok(Decl::Common{span, decl}),
+        [export_decl((span, decl))]   => Ok(Decl::Export{span, decl}),
         [global_decl(decls)]  => Ok(Decl::Globals(decls)),
-        [function_decl(binding)] => Ok(Decl::Function(binding)),
-        [implement_action_decl(binding)] => Ok(Decl::Implement(binding)),
-        [implementation_decl(decl)] => Ok(Decl::Object(Binding { name: "impl".into(), decl })),
-        [import_decl(decl)]    => Ok(Decl::Import(decl)),
-        [include_decl(module)] => Ok(Decl::Include(module)),
-        [invariant_decl(fmla)] => Ok(Decl::Invariant(fmla)),
-        [instance_decl(binding)] => Ok(Decl::Instance(binding)),
-        [interpret_decl(decl)] => Ok(Decl::Interpret(decl)),
-        [module_decl(decl)]   => Ok(Decl::Module(decl)),
-        [object_decl(binding)]   => Ok(Decl::Object(binding)),
-        [process_decl(binding)]   => Ok(Decl::Object(binding)),
-        [relation_decl(binding)] => Ok(Decl::Relation(binding)),
-        [specification_decl(decl)] => Ok(Decl::Object(Binding { name: "spec".into(), decl })),
-        [type_decl(binding)]     => Ok(Decl::Type(binding)),
-        [var_decl(binding)]      => Ok(Decl::Var(binding)),
+        [function_decl((span, decl))] => Ok(Decl::Function{ span, decl }),
+        [implement_action_decl((span, decl))] => Ok(Decl::Implement{span, decl}),
+        [implementation_decl((span, decl))] => Ok(Decl::Object{ span, decl: Binding { name: "impl".into(), decl }}),
+        [import_decl((span, decl))]    => Ok(Decl::Import{span, decl}),
+        [include_decl((span, decl))] => Ok(Decl::Include{span, decl}),
+        [invariant_decl((span, decl))] => Ok(Decl::Invariant { span, decl}),
+        [instance_decl((span, decl))] => Ok(Decl::Instance{span, decl}),
+        [interpret_decl((span, decl))] => Ok(Decl::Interpret{span, decl}),
+        [module_decl((span, decl))]   => Ok(Decl::Module{span, decl}),
+        [object_decl((span, decl))]   => Ok(Decl::Object{span, decl}),
+        [process_decl((span, decl))]   => Ok(Decl::Object{span, decl}),
+        [relation_decl((span, decl))] => Ok(Decl::Relation{span, decl}),
+        [specification_decl((span, decl))] => Ok(Decl::Object{ span, decl: Binding { name: "spec".into(), decl }}),
+        [type_decl((span, decl))]     => Ok(Decl::Type { span, decl }),
+        [var_decl((span, decl))]      => Ok(Decl::Var{ span, decl }),
         [stmt(stmts)..]       => Ok(Decl::Stmts(stmts.collect()))
         )
     }
@@ -529,12 +570,12 @@ impl IvyParser {
     pub fn action(input: Node) -> Result<Action> {
         match_nodes!(
         input.into_children();
-        [assert_action(action)] => Ok(Action::Assert(action)),
-        [assign_action(action)] => Ok(Action::Assign(action)),
-        [assume_action(action)] => Ok(Action::Assume(action)),
-        [call_action(expr)]     => Ok(Action::Call(expr)),
-        [ensure_action(action)] => Ok(Action::Ensure(action)),
-        [requires_action(action)] => Ok(Action::Requires(action))
+        [assert_action((span, action))]   => Ok(Action::Assert{ span, action }),
+        [assign_action((span, action))]   => Ok(Action::Assign{ span, action }),
+        [assume_action((span, action))]   => Ok(Action::Assume{ span, action }),
+        [call_action((span, action))]     => Ok(Action::Call { span, action }),
+        [ensure_action((span, action))]   => Ok(Action::Ensure { span, action}),
+        [requires_action((span, action))] => Ok(Action::Requires{ span, action }),
         )
     }
 
@@ -544,40 +585,45 @@ impl IvyParser {
         [action(actions)..] => Ok(actions.collect()))
     }
 
-    pub fn assign_action(input: Node) -> Result<AssignAction> {
+    pub fn assert_action(input: Node) -> Result<(Span, AssertAction)> {
+        let span = Span::from_node(&input);
         match_nodes!(
         input.into_children();
-        [var_decl(binding), rval(rhs)] => Ok(
-            AssignAction{lhs: Expr::ProgramSymbol(binding), rhs}
-        ),
+        [rval(pred)] => Ok((span, AssertAction{pred})),
+        )
+    }
+
+    pub fn assign_action(input: Node) -> Result<(Span, AssignAction)> {
+        let span = Span::from_node(&input);
+        match_nodes!(
+        input.into_children();
+        [var_decl((lhs_span, sym)), rval(rhs)] => {
+            Ok((span, AssignAction{
+                lhs: Expr::ProgramSymbol{span: lhs_span, sym}, rhs}))
+        },
         [lval(lhs), rval(rhs)] => match lhs {
-            Expr::App(_) | Expr::FieldAccess(_) | Expr::Index(_) | Expr::ProgramSymbol(_) | Expr::This => Ok(AssignAction{lhs, rhs}),
+            Expr::App{..} | Expr::FieldAccess{..} | Expr::Index{..} | Expr::ProgramSymbol{..} | Expr::This(_) => Ok((span, AssignAction{lhs, rhs})),
             _ => todo!(),
         }
         )
     }
 
-    pub fn assert_action(input: Node) -> Result<AssertAction> {
+    pub fn assume_action(input: Node) -> Result<(Span, AssumeAction)> {
+        let span = Span::from_node(&input);
+
         match_nodes!(
         input.into_children();
-        [rval(pred)] => Ok(AssertAction{pred}),
+        [rval(pred)] => Ok((span, AssumeAction{pred})),
         )
     }
 
-    pub fn assume_action(input: Node) -> Result<AssumeAction> {
-        match_nodes!(
-        input.into_children();
-        [rval(pred)] => Ok(AssumeAction{pred}),
-        )
-    }
-
-    pub fn call_action(input: Node) -> Result<AppExpr> {
+    pub fn call_action(input: Node) -> Result<(Span, AppExpr)> {
         let span = input.as_pair().as_span(); // Irritating!
 
         match_nodes!(
         input.into_children();
         [rval(call)] => match call {
-            Expr::App(call) => Ok(call),
+            Expr::App { span, expr} => Ok((span, expr)),
             // TODO: This error message can be improved by restricting the grammar
             // to avoid arbitrary rvals being call_actions.  For details, see:
             // https://github.com/dijkstracula/irving/issues/49
@@ -587,17 +633,21 @@ impl IvyParser {
         })
     }
 
-    pub fn ensure_action(input: Node) -> Result<EnsureAction> {
+    pub fn ensure_action(input: Node) -> Result<(Span, EnsureAction)> {
+        let span = Span::from_node(&input);
+
         match_nodes!(
         input.into_children();
-        [fmla(pred)] => Ok(EnsureAction{pred}),
+        [fmla(pred)] => Ok((span, EnsureAction{pred})),
         )
     }
 
-    pub fn requires_action(input: Node) -> Result<RequiresAction> {
+    pub fn requires_action(input: Node) -> Result<(Span, RequiresAction)> {
+        let span = Span::from_node(&input);
+
         match_nodes!(
         input.into_children();
-        [fmla(pred)] => Ok(RequiresAction{pred}),
+        [fmla(pred)] => Ok((span, RequiresAction{pred})),
         )
     }
 
@@ -637,7 +687,7 @@ impl IvyParser {
         [actions(actions)]  => Ok(Stmt::ActionSequence(actions)),
         [if_stmt(stmt)]     => Ok(Stmt::If(stmt)),
         [while_stmt(stmt)]  => Ok(Stmt::While(stmt)),
-        [var_decl(binding)]  => Ok(Stmt::VarDecl(binding)),
+        [var_decl((_span, binding))]  => Ok(Stmt::VarDecl(binding)),
         )
     }
 

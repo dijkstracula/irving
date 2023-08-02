@@ -17,7 +17,13 @@ fn init() {
 #[cfg(test)]
 pub mod helpers {
     use crate::{
-        ast::{declarations::Decl, expressions::Expr, statements::Stmt, toplevels::Prog},
+        ast::{
+            declarations::Decl,
+            expressions::{self, Expr},
+            span::Span,
+            statements::Stmt,
+            toplevels::Prog,
+        },
         parser::ivy::{IvyParser, Rule},
         passes::global_lowerer::GlobalLowerer,
         stdlib::load_stdlib,
@@ -43,7 +49,8 @@ pub mod helpers {
             .expect("Parsing failed")
             .single()
             .unwrap();
-        Decl::Object(IvyParser::process_decl(res).expect("AST generation failed"))
+        let (span, decl) = IvyParser::process_decl(res).expect("AST generation failed");
+        Decl::Object { span, decl }
     }
 
     pub fn module_from_src(prog: &str) -> Decl {
@@ -51,7 +58,9 @@ pub mod helpers {
             .expect("Parsing failed")
             .single()
             .unwrap();
-        Decl::Module(IvyParser::module_decl(res).expect("AST generation failed"))
+
+        let (span, decl) = IvyParser::module_decl(res).expect("AST generation failed");
+        Decl::Module { span, decl }
     }
 
     #[allow(dead_code)]
@@ -130,5 +139,33 @@ pub mod helpers {
             .single()
             .unwrap();
         IvyParser::rval(res).expect("AST generation failed")
+    }
+
+    pub fn inferred_progsym<S>(s: S) -> Expr
+    where
+        S: Into<String>,
+    {
+        expressions::Expr::ProgramSymbol {
+            span: Span::IgnoredForTesting,
+
+            sym: expressions::Symbol {
+                name: s.into(),
+                decl: expressions::Sort::ToBeInferred,
+            },
+        }
+    }
+
+    pub fn inferred_logicsym<S>(s: S) -> Expr
+    where
+        S: Into<String>,
+    {
+        expressions::Expr::LogicSymbol {
+            span: Span::IgnoredForTesting,
+
+            sym: expressions::Symbol {
+                name: s.into(),
+                decl: expressions::Sort::ToBeInferred,
+            },
+        }
     }
 }

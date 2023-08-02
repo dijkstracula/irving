@@ -1,4 +1,4 @@
-use super::{expressions::*, logic::Fmla};
+use super::{expressions::*, logic::Fmla, span::Span};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(clippy::large_enum_variant)]
@@ -30,10 +30,15 @@ pub struct RequiresAction {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Action {
-    Assert(AssertAction),
-    Assign(AssignAction),
-    Assume(AssumeAction),
-    Call(AppExpr),
-    Ensure(EnsureAction),
-    Requires(RequiresAction),
+    Assert { span: Span, action: AssertAction },
+
+    Assign { span: Span, action: AssignAction },
+
+    Assume { span: Span, action: AssumeAction },
+
+    Call { span: Span, action: AppExpr },
+
+    Ensure { span: Span, action: EnsureAction },
+
+    Requires { span: Span, action: RequiresAction },
 }

@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
     use crate::{
-        ast::{actions::*, expressions::*, logic::*, statements::Stmt},
+        ast::{actions::*, expressions::*, logic::*, span::Span, statements::Stmt},
         parser::ivy::{IvyParser, Rule},
         tests::helpers,
     };
@@ -46,13 +46,22 @@ mod tests {
         assert_eq!(
             ast,
             Stmt::ActionSequence(
-                [Action::Assign(AssignAction {
-                    lhs: Expr::FieldAccess(FieldAccess {
-                        record: Box::new(Expr::inferred_progsym("foo")),
-                        field: Symbol::from("bar", Sort::ToBeInferred),
-                    }),
-                    rhs: Expr::Boolean(false)
-                })]
+                [Action::Assign {
+                    span: Span::IgnoredForTesting,
+                    action: AssignAction {
+                        lhs: Expr::FieldAccess {
+                            span: Span::IgnoredForTesting,
+                            expr: FieldAccess {
+                                record: Box::new(helpers::inferred_progsym("foo")),
+                                field: Symbol::from("bar", Sort::ToBeInferred),
+                            }
+                        },
+                        rhs: Expr::Boolean {
+                            span: Span::IgnoredForTesting,
+                            val: false
+                        }
+                    }
+                }]
                 .into()
             )
         );
@@ -96,19 +105,23 @@ mod tests {
             .single()
             .unwrap();
 
-        let stmt = IvyParser::requires_action(res).unwrap();
+        let (_, stmt) = IvyParser::requires_action(res).unwrap();
         assert_eq!(
             stmt,
             RequiresAction {
                 pred: Fmla::Pred(Expr::UnaryOp {
+                    span: Span::IgnoredForTesting,
                     op: Verb::Not,
-                    expr: Box::new(Expr::App(AppExpr {
-                        func: Box::new(Expr::inferred_progsym("failed".to_owned())),
-                        args: [Expr::inferred_progsym("y")].into()
-                    }))
+                    expr: Box::new(Expr::App {
+                        span: Span::IgnoredForTesting,
+                        expr: AppExpr {
+                            func: Box::new(helpers::inferred_progsym("failed".to_owned())),
+                            args: [helpers::inferred_progsym("y")].into()
+                        }
+                    })
                 })
             }
-        )
+        );
     }
 
     #[test]
@@ -118,15 +131,21 @@ mod tests {
             .expect("Parsing failed")
             .single()
             .unwrap();
-        let stmt = IvyParser::requires_action(res).unwrap();
+        let (_, stmt) = IvyParser::requires_action(res).unwrap();
         assert_eq!(
             stmt,
             RequiresAction {
-                pred: Fmla::Pred(Expr::BinOp(BinOp {
-                    lhs: Box::new(Expr::inferred_progsym("x")),
-                    op: Verb::Ge,
-                    rhs: Box::new(Expr::Number(0))
-                }))
+                pred: Fmla::Pred(Expr::BinOp {
+                    span: Span::IgnoredForTesting,
+                    expr: BinOp {
+                        lhs: Box::new(helpers::inferred_progsym("x")),
+                        op: Verb::Ge,
+                        rhs: Box::new(Expr::Number {
+                            span: Span::IgnoredForTesting,
+                            val: 0
+                        })
+                    }
+                })
             }
         );
     }

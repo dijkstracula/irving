@@ -21,7 +21,8 @@ mod tests {
             .expect("Parsing failed")
             .single()
             .unwrap();
-        Decl::Object(IvyParser::process_decl(res).expect("AST generation failed"))
+        let (span, decl) = IvyParser::process_decl(res).expect("AST generation failed");
+        Decl::Object { span, decl }
     }
 
     fn decl_from_src(src: &str) -> Decl {
@@ -377,12 +378,17 @@ mod tests {
             }
         }",
         ) {
-            Decl::Action(Binding {
-                decl: ActionDecl {
-                    body: Some(stmts), ..
-                },
-                ..
-            }) => stmts,
+            Decl::Action {
+                span: _,
+                decl:
+                    Binding {
+                        decl:
+                            ActionDecl {
+                                body: Some(stmts), ..
+                            },
+                        ..
+                    },
+            } => stmts,
             decl => panic!("Got back a {:?} rater than a Decl::Action", decl),
         };
         assert_eq!(

@@ -10,7 +10,9 @@ use crate::{
         actions::{self, Action},
         declarations::{self, ActionMixinDecl, Binding},
         expressions::{self, AppExpr, Expr, Sort, Symbol, Token},
-        logic, statements,
+        logic,
+        span::Span,
+        statements,
     },
     passes::module_instantiation,
     typechecker::{sorts::Module, TypeError},
@@ -219,9 +221,12 @@ impl Visitor<IvySort, TypeError> for SortInferer {
     fn begin_assign(&mut self, ast: &mut actions::AssignAction) -> InferenceResult<Action> {
         self.bindings.push_scope();
         match &ast.lhs {
-            Expr::App(AppExpr { args, .. }) => {
+            Expr::App {
+                expr: AppExpr { args, .. },
+                ..
+            } => {
                 for arg in args {
-                    if let Expr::LogicSymbol(sym) = arg {
+                    if let Expr::LogicSymbol { sym, .. } = arg {
                         let s = self.bindings.new_sortvar();
                         self.bindings.append(sym.name.clone(), s)?;
                     }
@@ -315,7 +320,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
                 sorts::ActionRet::Named(binding) => Ok(ControlMut::Produce(binding.decl)),
             },
             IvySort::Relation(_) => Ok(ControlMut::Produce(IvySort::Bool)),
-            _ => Err(TypeError::InvalidApplication)
+            _ => Err(TypeError::InvalidApplication),
         }
     }
 
@@ -580,7 +585,11 @@ impl Visitor<IvySort, TypeError> for SortInferer {
         let (new_ast, sort) =
             self.resolve_mixin(ast, action_sort, after_params_sort, after_ret_sort)?;
         Ok(ControlMut::Mutation(
-            declarations::Decl::AfterAction(new_ast),
+            // XXX: What's the right span here?  Should we stash a Span in ActionMixinDecl?
+            declarations::Decl::AfterAction {
+                span: Span::Optimized,
+                decl: new_ast,
+            },
             sort,
         ))
     }
@@ -603,7 +612,10 @@ impl Visitor<IvySort, TypeError> for SortInferer {
     ) -> InferenceResult<declarations::Decl> {
         let unified = self.bindings.unify(&sym_sort, &expr_sort)?;
         Ok(ControlMut::Mutation(
-            declarations::Decl::Alias(Binding::from(sym.clone(), Sort::Resolved(unified.clone()))),
+            declarations::Decl::Alias {
+                span: Span::Optimized,
+                decl: Binding::from(sym.clone(), Sort::Resolved(unified.clone())),
+            },
             unified,
         ))
     }
@@ -635,9 +647,14 @@ impl Visitor<IvySort, TypeError> for SortInferer {
         _body_sorts: Vec<IvySort>,
     ) -> InferenceResult<declarations::Decl> {
         self.bindings.pop_scope();
-        let (new_ast, sort) = self.resolve_mixin(ast, action_sort, params_sort, None)?;
+        let (decl, sort) = self.resolve_mixin(ast, action_sort, params_sort, None)?;
+
+        // XXX: What's the right span here?  Should we stash a Span in ActionMixinDecl?
         Ok(ControlMut::Mutation(
-            declarations::Decl::BeforeAction(new_ast),
+            declarations::Decl::BeforeAction {
+                span: Span::Optimized,
+                decl,
+            },
             sort,
         ))
     }
@@ -723,10 +740,13 @@ impl Visitor<IvySort, TypeError> for SortInferer {
         _body: Vec<IvySort>,
     ) -> InferenceResult<declarations::Decl> {
         self.bindings.pop_scope();
-        let (new_ast, sort) =
+        let (decl, sort) =
             self.resolve_mixin(ast, action_sort, params_sort, ret_sort.map(|b| b.decl))?;
         Ok(ControlMut::Mutation(
-            declarations::Decl::Implement(new_ast),
+            declarations::Decl::Implement {
+                span: Span::Optimized,
+                decl,
+            },
             sort,
         ))
     }
@@ -765,10 +785,13 @@ impl Visitor<IvySort, TypeError> for SortInferer {
     ) -> InferenceResult<declarations::Decl> {
         let unified = self.bindings.unify(&n, &s)?;
         Ok(ControlMut::Mutation(
-            declarations::Decl::Interpret(declarations::InterpretDecl {
-                name: name.clone(),
-                sort: Sort::Resolved(unified.clone()),
-            }),
+            declarations::Decl::Interpret {
+                span: Span::Optimized,
+                decl: declarations::InterpretDecl {
+                    name: name.clone(),
+                    sort: Sort::Resolved(unified.clone()),
+                },
+            },
             unified,
         ))
     }
@@ -839,11 +862,18 @@ impl Visitor<IvySort, TypeError> for SortInferer {
             .iter()
             .zip(field_sorts.iter())
             .filter_map(|(decl, curr_sort)| match decl {
-                declarations::Decl::AfterAction(ActionMixinDecl { name, .. })
-                | declarations::Decl::BeforeAction(ActionMixinDecl { name, .. })
-                | declarations::Decl::Implement(ActionMixinDecl { name, .. }) => {
-                    Some((name, curr_sort))
+                declarations::Decl::AfterAction {
+                    decl: ActionMixinDecl { name, .. },
+                    ..
                 }
+                | declarations::Decl::BeforeAction {
+                    decl: ActionMixinDecl { name, .. },
+                    ..
+                }
+                | declarations::Decl::Implement {
+                    decl: ActionMixinDecl { name, .. },
+                    ..
+                } => Some((name, curr_sort)),
                 _ => None,
             })
             .map(|(name, curr_sort)| {
@@ -1014,7 +1044,10 @@ impl Visitor<IvySort, TypeError> for SortInferer {
 
         let binding = Binding::from(name.clone(), Sort::Resolved(resolved.clone()));
         Ok(ControlMut::Mutation(
-            declarations::Decl::Type(binding),
+            declarations::Decl::Type {
+                span: Span::IgnoredForTesting,
+                decl: binding,
+            },
             resolved,
         ))
     }
@@ -1039,10 +1072,10 @@ impl Visitor<IvySort, TypeError> for SortInferer {
         let resolved = self.bindings.unify(&name_sort, &resolved_sort)?;
 
         Ok(ControlMut::Mutation(
-            declarations::Decl::Var(Binding::from(
-                name.clone(),
-                Sort::Resolved(resolved.clone()),
-            )),
+            declarations::Decl::Var {
+                span: Span::Optimized,
+                decl: Binding::from(name.clone(), Sort::Resolved(resolved.clone())),
+            },
             resolved,
         ))
     }

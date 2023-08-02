@@ -3,7 +3,10 @@ mod tests {
     use std::rc::Rc;
 
     use crate::{
-        ast::declarations::{Binding, Decl, ModuleDecl},
+        ast::{
+            declarations::{Binding, Decl, ModuleDecl},
+            span::Span,
+        },
         parser::ivy::{IvyParser, Rule},
         tests::helpers,
     };
@@ -105,14 +108,17 @@ mod tests {
         let decl = helpers::decl_from_src(fragment);
         assert_eq!(
             decl,
-            Decl::Module(Binding::from(
-                "net",
-                ModuleDecl {
-                    sortsyms: vec!("pid".into()),
-                    body: vec!()
-                }
-            ))
-        );
+            Decl::Module {
+                span: Span::IgnoredForTesting,
+                decl: Binding::from(
+                    "net",
+                    ModuleDecl {
+                        sortsyms: vec!("pid".into()),
+                        body: vec!()
+                    }
+                )
+            }
+        )
     }
 
     #[test]
@@ -149,11 +155,19 @@ mod tests {
         let proc_fragment = "process timer(x: bool) = { }";
         let isol_fragment = "isolate timer(x: bool) = { }";
 
-        let proc = helpers::decl_from_src(proc_fragment);
-        let isol = helpers::decl_from_src(isol_fragment);
+        let proc = match helpers::decl_from_src(proc_fragment) {
+            Decl::Object { decl, .. } => decl,
+            _ => unreachable!(),
+        };
+        let isol = match helpers::decl_from_src(isol_fragment) {
+            Decl::Object { decl, .. } => decl,
+            _ => unreachable!(),
+        };
 
         // `process` and `isolate` are indistinguishable for us.  (In regular ivy, the distinction
         // comes from an implicit `extract` directive in the former, which we don't consider.)
+        // (Note that we extract the object declaration from the enclosing Decl because the latter's
+        // Span will be different; it remembers what keyword was used to define the object!)
         assert_eq!(proc, isol);
     }
 

@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
     use crate::{
-        ast::expressions::Expr,
+        ast::{expressions::Expr, span::Span},
         typechecker::{
             sorts::{IvySort, Module},
             unifier::BindingResolver,
@@ -15,7 +15,16 @@ mod tests {
         // type pid: 0..3
         r.append(
             "pid".into(),
-            IvySort::Range(Box::new(Expr::Number(0)), Box::new(Expr::Number(3))),
+            IvySort::Range(
+                Box::new(Expr::Number {
+                    span: Span::IgnoredForTesting,
+                    val: 0,
+                }),
+                Box::new(Expr::Number {
+                    span: Span::IgnoredForTesting,
+                    val: 3,
+                }),
+            ),
         )
         .unwrap();
 
@@ -42,7 +51,16 @@ mod tests {
             Err(TypeError::UnboundVariable("nonsense".into()))
         );
 
-        let pid_sort = IvySort::Range(Box::new(Expr::Number(0)), Box::new(Expr::Number(3)));
+        let pid_sort = IvySort::Range(
+            Box::new(Expr::Number {
+                span: Span::IgnoredForTesting,
+                val: 0,
+            }),
+            Box::new(Expr::Number {
+                span: Span::IgnoredForTesting,
+                val: 3,
+            }),
+        );
         assert_eq!(r.lookup_sym("pid"), Some(&pid_sort));
         assert_eq!(r.lookup_ident(&vec!("pid".to_owned())), Ok(&pid_sort));
         assert_eq!(r.lookup_ident(&vec!("pid".to_owned())), Ok(&pid_sort));

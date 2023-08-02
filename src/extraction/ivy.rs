@@ -567,7 +567,7 @@ where
         match op {
             Verb::Not => {
                 self.pp.write_str("~")?;
-                if let expressions::Expr::BinOp(_) = rhs {
+                if let expressions::Expr::BinOp { .. } = rhs {
                     self.pp.write_str("(")?;
                     rhs.visit(self)?.modifying(rhs);
                     self.pp.write_str(")")?;

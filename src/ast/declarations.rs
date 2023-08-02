@@ -2,6 +2,7 @@
 
 use super::expressions::*;
 use super::logic::Fmla;
+use super::span::Span;
 use super::statements::*;
 
 // Syntactic AST nodes
@@ -91,7 +92,11 @@ impl ObjectDecl {
         self.body
             .iter_mut()
             .filter_map(|d| match d {
-                Decl::Export(ExportDecl::Action(_)) | Decl::Action(_) => Some(d),
+                Decl::Export {
+                    decl: ExportDecl::Action { .. },
+                    ..
+                }
+                | Decl::Action { .. } => Some(d),
                 _ => None,
             })
             .collect()
@@ -101,7 +106,7 @@ impl ObjectDecl {
         self.body
             .iter_mut()
             .filter_map(|d| match d {
-                Decl::Var(_) => Some(d),
+                Decl::Var { .. } => Some(d),
                 _ => None,
             })
             .collect()
@@ -136,91 +141,215 @@ impl<T> Binding<T> {
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(clippy::large_enum_variant)]
 pub enum Decl {
-    Action(Binding<ActionDecl>),
+    Action {
+        span: Span,
+        decl: Binding<ActionDecl>,
+    },
 
-    AfterAction(ActionMixinDecl),
+    AfterAction {
+        span: Span,
+        decl: ActionMixinDecl,
+    },
 
-    Alias(Binding<Sort>),
+    Alias {
+        span: Span,
+        decl: Binding<Sort>,
+    },
 
-    Attribute(Expr),
+    Attribute {
+        span: Span,
+        decl: Expr,
+    },
 
-    Axiom(Fmla),
+    Axiom {
+        span: Span,
+        decl: Fmla,
+    },
 
-    BeforeAction(ActionMixinDecl),
+    BeforeAction {
+        span: Span,
+        decl: ActionMixinDecl,
+    },
 
-    Common(Vec<Decl>),
+    Common {
+        span: Span,
+        decl: Vec<Decl>,
+    },
 
-    Export(ExportDecl),
+    Export {
+        span: Span,
+        decl: ExportDecl,
+    },
 
-    Function(Binding<FunctionDecl>),
+    Function {
+        span: Span,
+        decl: Binding<FunctionDecl>,
+    },
 
     Globals(Vec<Decl>),
 
-    Implement(ActionMixinDecl),
+    Implement {
+        span: Span,
+        decl: ActionMixinDecl,
+    },
 
-    Import(ImportDecl),
+    Import {
+        span: Span,
+        decl: ImportDecl,
+    },
 
-    Include(Token),
+    Include {
+        span: Span,
+        decl: Token,
+    },
 
-    Instance(Binding<InstanceDecl>),
+    Instance {
+        span: Span,
+        decl: Binding<InstanceDecl>,
+    },
 
-    Instantiate { name: Expr, prms: Vec<Expr> },
+    Instantiate {
+        name: Expr,
+        prms: Vec<Expr>,
+    },
 
-    Interpret(InterpretDecl),
+    Interpret {
+        span: Span,
+        decl: InterpretDecl,
+    },
 
-    Invariant(Fmla),
+    Invariant {
+        span: Span,
+        decl: Fmla,
+    },
 
-    Module(Binding<ModuleDecl>),
+    Module {
+        span: Span,
+        decl: Binding<ModuleDecl>,
+    },
 
     Noop,
 
-    Object(Binding<ObjectDecl>),
+    Object {
+        span: Span,
+        decl: Binding<ObjectDecl>,
+    },
 
-    Relation(Binding<Relation>),
+    Relation {
+        span: Span,
+        decl: Binding<Relation>,
+    },
 
     Stmts(Vec<Stmt>),
 
-    Var(Binding<Sort>),
+    Var {
+        span: Span,
+        decl: Binding<Sort>,
+    },
 
-    Type(Binding<Sort>),
+    Type {
+        span: Span,
+        decl: Binding<Sort>,
+    },
 }
 
 impl Decl {
     /// For declarations that bind a new name, produce that name.
     pub fn name_for_binding(&self) -> Option<&str> {
         match self {
-            Decl::Action(Binding { name, .. }) => Some(name),
-            Decl::AfterAction(_) => None,
-            Decl::Alias(Binding { name, .. }) => Some(name),
-            Decl::Attribute(_) => None,
-            Decl::Axiom(_) => None,
-            Decl::BeforeAction(_) => None,
-            Decl::Common(_) => None,
-            Decl::Export(ExportDecl::Action(Binding { name, .. })) => Some(name),
-            Decl::Export(ExportDecl::ForwardRef(name)) => Some(name),
-            Decl::Function(Binding { name, .. }) => Some(name),
+            Decl::Action {
+                decl: Binding { name, .. },
+                ..
+            } => Some(name),
+            Decl::AfterAction { .. } => None,
+            Decl::Alias {
+                decl: Binding { name, .. },
+                ..
+            } => Some(name),
+            Decl::Attribute { .. } => None,
+            Decl::Axiom { .. } => None,
+            Decl::BeforeAction { .. } => None,
+            Decl::Common { .. } => None,
+            Decl::Export {
+                decl: ExportDecl::Action(Binding { name, .. }),
+                ..
+            } => Some(name),
+            Decl::Export {
+                decl: ExportDecl::ForwardRef(name),
+                ..
+            } => Some(name),
+            Decl::Function {
+                decl: Binding { name, .. },
+                ..
+            } => Some(name),
             Decl::Globals(_) => None,
-            Decl::Implement(_) => None,
-            Decl::Import(_) => None,
-            Decl::Include(_) => None,
-            Decl::Instance(i) => Some(&i.name),
+            Decl::Implement { .. } => None,
+            Decl::Import { .. } => None,
+            Decl::Include { .. } => None,
+            Decl::Instance { decl, .. } => Some(&decl.name),
             Decl::Instantiate { .. } => None,
             Decl::Interpret { .. } => None,
-            Decl::Invariant(_) => None,
-            Decl::Module(Binding { name, .. }) => Some(name),
+            Decl::Invariant { .. } => None,
+            Decl::Module {
+                decl: Binding { name, .. },
+                ..
+            } => Some(name),
             Decl::Noop => None,
-            Decl::Object(Binding { name, .. }) => Some(name),
-            Decl::Relation(Binding { name, .. }) => Some(name),
+            Decl::Object {
+                decl: Binding { name, .. },
+                ..
+            } => Some(name),
+            Decl::Relation {
+                decl: Binding { name, .. },
+                ..
+            } => Some(name),
             Decl::Stmts(_) => None,
-            Decl::Var(Binding { name, .. }) => Some(name),
-            Decl::Type(Binding { name, .. }) => Some(name),
+            Decl::Var {
+                decl: Binding { name, .. },
+                ..
+            } => Some(name),
+            Decl::Type {
+                decl: Binding { name, .. },
+                ..
+            } => Some(name),
         }
     }
 
     pub fn as_action(self) -> Option<Binding<ActionDecl>> {
         match self {
-            Decl::Action(binding) => Some(binding),
+            Decl::Action { decl, .. } => Some(decl),
             _ => None,
         }
     }
+
+    pub fn span(&self) -> &Span {
+        match self {
+            Decl::Action { span, .. } => span,
+            Decl::AfterAction { span, .. } => span,
+            Decl::Alias { span, .. } => span,
+            Decl::Attribute { span, .. } => span,
+            Decl::Axiom { span, .. } => span,
+            Decl::BeforeAction { span, .. } => span,
+            Decl::Common { span, .. } => span,
+            Decl::Export { span, .. } => span,
+            Decl::Function { span, .. } => span,
+            Decl::Globals(_) => DEFAULT_SPAN,
+            Decl::Implement { span, .. } => span,
+            Decl::Import { span, .. } => span,
+            Decl::Include { span, .. } => span,
+            Decl::Instance { span, .. } => span,
+            Decl::Instantiate { .. } => DEFAULT_SPAN,
+            Decl::Interpret { span, .. } => span,
+            Decl::Invariant { span, .. } => span,
+            Decl::Module { span, .. } => span,
+            Decl::Noop => DEFAULT_SPAN,
+            Decl::Object { span, .. } => span,
+            Decl::Relation { span, .. } => span,
+            Decl::Stmts(_) => DEFAULT_SPAN,
+            Decl::Var { span, .. } => span,
+            Decl::Type { span, .. } => span,
+        }
+    }
 }
+
+const DEFAULT_SPAN: &'static Span = &Span::IgnoredForTesting;

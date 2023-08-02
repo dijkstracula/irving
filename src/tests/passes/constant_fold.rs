@@ -1,6 +1,7 @@
 #[cfg(test)]
 mod tests {
     use crate::ast::expressions::*;
+    use crate::ast::span::Span;
     use crate::passes::constant_fold::ConstantFold;
     use crate::tests::helpers;
     use crate::visitor::ast::Visitable;
@@ -13,7 +14,13 @@ mod tests {
         let mut cf = ConstantFold;
         ast.visit(&mut cf).unwrap();
 
-        assert_eq!(ast, Expr::Number(42));
+        assert_eq!(
+            ast,
+            Expr::Number {
+                span: Span::Optimized,
+                val: 42
+            }
+        );
     }
 
     #[test]
@@ -24,6 +31,6 @@ mod tests {
         let mut cf = ConstantFold;
         ast.visit(&mut cf).unwrap();
 
-        assert_eq!(ast, Expr::inferred_progsym("foo"));
+        assert_eq!(ast, helpers::inferred_progsym("foo"));
     }
 }

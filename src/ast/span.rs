@@ -19,10 +19,12 @@ pub enum Span {
     Source(SourceSpan),
 
     /// Optimized as part of a compiler pass,
+    /// TODO: contemplate what data we _can_ include here...
+    /// File/line number of the unoptimized node?  
     Optimized,
 
     /// Generated as part of a unit test
-    SynthesizedForTesting,
+    IgnoredForTesting,
 }
 
 impl PartialEq for Span {
@@ -30,15 +32,14 @@ impl PartialEq for Span {
         match (self, other) {
             (Self::Source(l0), Self::Source(r0)) => l0 == r0,
 
-            // Because tests::helpers emits synthesized spans, they will never
-            // actually match what the parser actually generates, and it would be
-            // tedious to compute those spans manually when writing unit tests.
-            // Simplify the majority of the tests by ensuring that a Synthesized
-            // matches anything.  Slightly unfortunate in that we won't catch
-            // incorrect spans in most tests, but the alternative is far more
-            // painful.
-            (Self::SynthesizedForTesting, _) => true,
-            (_, Self::SynthesizedForTesting) => true,
+            // Because unit tests are checked against hand-written syntax trees,
+            // it would be tedious to compute the input program texts' spans
+            // manually when writing unit tests.  Simplify the majority of the
+            // tests by ensuring that a IgnoredForTesting matches anything.  Slightly
+            // unfortunate in that we won't catch incorrect spans in most tests,
+            // but the alternative is far more painful.
+            (Self::IgnoredForTesting, _) => true,
+            (_, Self::IgnoredForTesting) => true,
             _ => core::mem::discriminant(self) == core::mem::discriminant(other),
         }
     }
@@ -75,9 +76,7 @@ impl Span {
 
             // If one of them was syntheized for testing, we can't say anything about
             // the merged span.
-            (Span::SynthesizedForTesting, _) | (_, Span::SynthesizedForTesting) => {
-                Span::SynthesizedForTesting
-            }
+            (Span::IgnoredForTesting, _) | (_, Span::IgnoredForTesting) => Span::IgnoredForTesting,
             _ => todo!(),
         }
     }
