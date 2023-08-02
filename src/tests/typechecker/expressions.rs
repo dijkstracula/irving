@@ -122,7 +122,7 @@ mod tests {
 
     #[test]
     fn test_call_resolved() {
-        let prog = "f()";
+        let prog = "f(42)";
         let mut callop = helpers::rval_from_src(prog);
 
         let mut tc = SortInferer::new();
@@ -130,8 +130,8 @@ mod tests {
             .append(
                 "f".into(),
                 IvySort::action_sort(
-                    vec![],
-                    vec![],
+                    vec!["x".into()],
+                    vec![IvySort::Number],
                     sorts::ActionRet::named("ret", IvySort::Number),
                 ),
             )

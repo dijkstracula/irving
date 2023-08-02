@@ -229,7 +229,7 @@ mod tests {
         );
 
         // Applying the action should produce a bool.
-        let mut action_app = expr_from_src("m.doit()");
+        let mut action_app = expr_from_src("m.doit");
         let res = action_app
             .visit(&mut tc)
             .unwrap()

@@ -576,7 +576,17 @@ impl IvyParser {
         match_nodes!(
         input.into_children();
         [rval(call)] => match call {
+            // Ordinary function application;
             Expr::App(call) => Ok(call),
+
+            // Implicit nullary function application
+            expr @ Expr::BinOp(BinOp { op: Verb::Dot, .. }) => Ok(
+                AppExpr {
+                    func: Box::new(expr),
+                    args: vec!(),
+                }
+            ),
+
             // TODO: This error message can be improved by restricting the grammar
             // to avoid arbitrary rvals being call_actions.  For details, see:
             // https://github.com/dijkstracula/irving/issues/49

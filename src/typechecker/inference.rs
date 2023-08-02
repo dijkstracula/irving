@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use anyhow::bail;
 
 use super::{
-    sorts::{self, ActionArgs, IvySort, Object},
+    sorts::{self, ActionArgs, ActionRet, IvySort, Object},
     unifier::BindingResolver,
 };
 use crate::{
@@ -136,9 +136,18 @@ impl Visitor<IvySort> for SortInferer {
             let s = i.get_mut(0).unwrap();
             Ok(ControlMut::Produce(s.visit(self)?.modifying(s)?))
         } else {
-            // XXX: we always set include_spec to true.  Suggests we need to also
-            // return an annotation indicating if this was a spec/common/etc. decl.
             let resolved = self.bindings.lookup_ident(i)?;
+
+            if let IvySort::Action(anames, _, aret) = &resolved {
+                println!("NBT: in");
+                if anames.len() == 0 {
+                    return Ok(ControlMut::Produce(match aret {
+                        ActionRet::Unknown => todo!(),
+                        ActionRet::Unit => IvySort::Unit,
+                        ActionRet::Named(id) => self.bindings.lookup_sym(&id.name).unwrap().clone(),
+                    }));
+                }
+            }
             Ok(ControlMut::Produce(resolved.clone()))
         }
     }

@@ -19,8 +19,7 @@ primary         = _{ THIS | LOGICTOK | PROGTOK | number | boollit | "(" ~ rval ~
 
 lval            = { relation_lval | rval }
 
-fnapp_arg  = { LOGICTOK | rval }
-fnapp_args = { "(" ~ (fnapp_arg ~ ("," ~ fnapp_arg)* )? ~ ")" }
+fnapp_args = { "(" ~ rval ~ ("," ~ rval)*  ~ ")" }
 
 //TODO: only one dimension of indexing, right?
 index      = { "[" ~ rval ~ "]" }
