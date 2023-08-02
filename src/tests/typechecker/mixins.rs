@@ -129,7 +129,7 @@ mod tests {
         let res = proc.visit(&mut tc).expect_err("Should not typecheck");
         assert_eq!(
             res,
-            TypeError::UnificationError(IvySort::Bool, IvySort::Number)
+            TypeError::unification_error(&IvySort::Bool, &IvySort::Number)
         );
     }
 }

@@ -73,7 +73,9 @@ mod tests {
         tc.bindings.append("net".into(), IvySort::Bool).unwrap();
 
         let res = decl_ast.visit(&mut tc).expect_err("visit");
-        assert_eq!(res, TypeError::NotARecord(IvySort::Bool));
+        assert_eq!(res, TypeError::NotARecord(IvySort::Bool.desc()));
+
+
         tc.bindings.pop_scope();
 
         // If it is module, field lookup needs to succeed.
@@ -107,8 +109,9 @@ mod tests {
             .unwrap();
 
         let res = decl_ast.visit(&mut tc).expect_err("visit");
-        assert_eq!(res, TypeError::NotInstanceable(IvySort::Number));
+        assert_eq!(res, TypeError::NotInstanceable(IvySort::Number.desc()));
         tc.bindings.pop_scope();
+
 
         // If field lookup succeeds, and it can be instantiated, do so!
         let sock_mod = IvySort::Module(Module {

@@ -52,7 +52,7 @@ mod tests {
         let res = ast.visit(&mut tc);
         assert_eq!(
             res.unwrap_err(),
-            TypeError::UnificationError(IvySort::Number, IvySort::Bool)
+            TypeError::unification_error(&IvySort::Number, &IvySort::Bool)
         )
     }
 
@@ -100,8 +100,8 @@ mod tests {
             tc.bindings.append("foo".into(), IvySort::Number),
             Err(TypeError::ReboundVariable {
                 sym: "foo".into(),
-                prev: IvySort::Bool,
-                new: IvySort::Number
+                prev: format!("{}", IvySort::Bool),
+                new: format!("{}", IvySort::Number)
             })
         )
     }
@@ -149,9 +149,9 @@ mod tests {
         let res = callop.visit(&mut tc).unwrap_err();
         assert_eq!(
             res,
-            TypeError::UnificationError(
-                IvySort::Number,
-                IvySort::Action(vec!(), ActionArgs::List(vec!()), sorts::ActionRet::Unknown)
+            TypeError::unification_error(
+                &IvySort::Number,
+                &IvySort::Action(vec!(), ActionArgs::List(vec!()), sorts::ActionRet::Unknown)
             )
         )
     }
@@ -180,6 +180,6 @@ mod tests {
         tc.bindings.append("a".into(), IvySort::Number).unwrap();
 
         let res = getop.visit(&mut tc).unwrap_err();
-        assert_eq!(res, TypeError::NotARecord(IvySort::Number));
+        assert_eq!(res, TypeError::NotARecord(IvySort::Number.desc()));
     }
 }

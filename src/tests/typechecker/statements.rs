@@ -30,7 +30,7 @@ mod tests {
             .expect_err("non-boolean expression in if statement test");
         assert_eq!(
             err,
-            TypeError::UnificationError(IvySort::Number, IvySort::Bool)
+            TypeError::unification_error(&IvySort::Number, &IvySort::Bool)
         );
     }
 
