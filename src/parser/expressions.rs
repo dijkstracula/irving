@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use pest::error::ErrorVariant;
 use pest::iterators::Pairs;
 use pest::pratt_parser::{Assoc, Op, PrattParser};
@@ -43,10 +45,10 @@ lazy_static::lazy_static! {
 
 }
 
-pub fn parse_rval(pairs: Pairs<Rule>) -> Result<Expr> {
+pub fn parse_rval(input: Rc<str>, pairs: Pairs<Rule>) -> Result<Expr> {
     PRATT
         .map_primary(|primary| {
-            let res: Result<Expr> = Expr::from_pair(input, primary.as_span());
+            let res: Result<Expr> = Expr::expr_from_pair(input, primary);
             res
         })
         .map_prefix(|op, rhs| {
@@ -64,12 +66,16 @@ pub fn parse_rval(pairs: Pairs<Rule>) -> Result<Expr> {
             };
             let rhs = rhs?;
 
-            let op_span = Span::from_pest(op.as_span());
+            let op_span = Span::from_pest(input, op.as_span());
             //let rhs_span = rhs.0
 
-            Ok(ExprKind::UnaryOp {
-                op: verb,
-                expr: Box::new(rhs?),
+            Ok(Expr { 
+
+                span: op_span, /* XXX: not right */
+                expr:  ExprKind::UnaryOp {
+                    op: verb,
+                    expr: Box::new(rhs)
+                },
             })
         })
         .map_infix(|lhs, op, rhs| {

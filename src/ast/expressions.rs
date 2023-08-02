@@ -113,7 +113,7 @@ pub enum ExprKind {
 
     Number(i64),
 
-    UnaryOp { op: Verb, expr: Box<ExprKind> },
+    UnaryOp { op: Verb, expr: Box<Expr> },
 
     ProgramSymbol(Symbol),
 
@@ -218,7 +218,7 @@ impl Expr {
                 let val: i64 = pair.as_str().parse().unwrap();
                 Ok(Expr::number_with_span(input, span, val))
             }
-            Rule::rval => parse_rval(pair.into_inner()),
+            Rule::rval => parse_rval(input, pair.into_inner()),
             _ => Err(Error::new_from_span(
                 ErrorVariant::CustomError {
                     message: "Expected primary expression".into(),
