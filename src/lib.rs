@@ -1,5 +1,6 @@
 mod ast;
 pub mod cli;
+pub mod error;
 pub mod extraction;
 pub mod parser;
 pub mod passes;
