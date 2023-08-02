@@ -279,7 +279,7 @@ mod tests {
         let err = action_app.visit(&mut tc).unwrap_err();
         assert_eq!(
             err.downcast::<TypeError>().unwrap(),
-            TypeError::UnificationError(IvySort::Bool, IvySort::Number)
+            TypeError::unification_error(&IvySort::Bool, &IvySort::Number)
         );
 
         let mut action_app = expr_from_src("m.doit(true)");

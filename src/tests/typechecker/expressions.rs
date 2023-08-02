@@ -72,7 +72,7 @@ mod tests {
         let res = binop.visit(&mut tc);
         assert_eq!(
             res.unwrap_err().downcast::<TypeError>().unwrap(),
-            TypeError::UnificationError(IvySort::Number, IvySort::Bool)
+            TypeError::unification_error(&IvySort::Number, &IvySort::Bool)
         )
     }
 
@@ -139,8 +139,8 @@ mod tests {
             tc.bindings.append("foo".into(), IvySort::Number),
             Err(TypeError::ReboundVariable {
                 sym: "foo".into(),
-                prev: IvySort::Bool,
-                new: IvySort::Number
+                prev: format!("{}", IvySort::Bool),
+                new: format!("{}", IvySort::Number)
             })
         )
     }
@@ -212,9 +212,9 @@ mod tests {
             .unwrap();
         assert_eq!(
             res,
-            TypeError::UnificationError(
-                IvySort::Number,
-                IvySort::Action(vec!(), ActionArgs::List(vec!()), sorts::ActionRet::Unknown)
+            TypeError::unification_error(
+                &IvySort::Number,
+                &IvySort::Action(vec!(), ActionArgs::List(vec!()), sorts::ActionRet::Unknown)
             )
         )
     }
@@ -255,6 +255,6 @@ mod tests {
             .unwrap_err()
             .downcast::<TypeError>()
             .unwrap();
-        assert_eq!(res, TypeError::NotARecord(IvySort::Number));
+        assert_eq!(res, TypeError::NotARecord(IvySort::Number.desc()));
     }
 }

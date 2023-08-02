@@ -318,15 +318,14 @@ impl Visitor<IvySort> for SortInferer {
         let expected_sort =
             IvySort::action_sort(dummy_argnames, argsorts, sorts::ActionRet::Unknown);
         let unified = self.bindings.unify(&fsort, &expected_sort);
-        match unified {
-            Ok(IvySort::Action(_argnames, _argsorts, action_ret)) => match action_ret {
+        match unified? {
+            IvySort::Action(_argnames, _argsorts, action_ret) => match action_ret {
                 sorts::ActionRet::Unknown => Ok(ControlMut::Produce(retsort)),
                 sorts::ActionRet::Unit => Ok(ControlMut::Produce(IvySort::Unit)),
                 sorts::ActionRet::Named(binding) => Ok(ControlMut::Produce(binding.decl)),
             },
-            Ok(IvySort::Relation(_)) => Ok(ControlMut::Produce(IvySort::Bool)),
-            Ok(unified) => bail!(TypeError::InvalidApplication(unified)),
-            Err(e) => bail!(e),
+            IvySort::Relation(_) => Ok(ControlMut::Produce(IvySort::Bool)),
+            _ => bail!(TypeError::InvalidApplication),
         }
     }
 
@@ -350,7 +349,7 @@ impl Visitor<IvySort> for SortInferer {
                     .and(self.bindings.unify(&IvySort::Bool, &rhs_sort))
                     .is_err()
                 {
-                    bail!(TypeError::UnificationError(lhs_sort, rhs_sort))
+                    bail!(TypeError::unification_error(&lhs_sort, &rhs_sort))
                 } else {
                     Ok(ControlMut::Produce(IvySort::Bool))
                 }
@@ -367,7 +366,7 @@ impl Visitor<IvySort> for SortInferer {
                     .and(self.bindings.unify(&IvySort::Number, &rhs_sort))
                     .is_err()
                 {
-                    bail!(TypeError::UnificationError(lhs_sort, rhs_sort))
+                    bail!(TypeError::unification_error(&lhs_sort, &rhs_sort))
                 } else {
                     Ok(ControlMut::Produce(IvySort::Bool))
                 }
@@ -375,7 +374,7 @@ impl Visitor<IvySort> for SortInferer {
 
             expressions::Verb::Equals | expressions::Verb::Notequals => {
                 if self.bindings.unify(&lhs_sort, &rhs_sort).is_err() {
-                    bail!(TypeError::UnificationError(lhs_sort, rhs_sort))
+                    bail!(TypeError::unification_error(&lhs_sort, &rhs_sort))
                 } else {
                     Ok(ControlMut::Produce(IvySort::Bool))
                 }
@@ -392,7 +391,7 @@ impl Visitor<IvySort> for SortInferer {
                     .and(self.bindings.unify(&IvySort::Number, &rhs_sort))
                     .is_err()
                 {
-                    bail!(TypeError::UnificationError(lhs_sort, rhs_sort))
+                    bail!(TypeError::unification_error(&lhs_sort, &rhs_sort))
                 } else {
                     Ok(ControlMut::Produce(IvySort::Number))
                 }
@@ -435,7 +434,7 @@ impl Visitor<IvySort> for SortInferer {
                 Ok(s.cloned())
             }
             IvySort::SortVar(_) => Ok(Some(self.bindings.new_sortvar())),
-            sort => bail!(TypeError::NotARecord(sort.clone())),
+            sort => bail!(TypeError::NotARecord(sort.desc())),
         }?
         // Next, if the RHS expression has a known type, ensure it doesn't contradict
         // what we figured out from the field access.
@@ -470,7 +469,7 @@ impl Visitor<IvySort> for SortInferer {
                 rhs.sort = Sort::Resolved(sort.clone());
                 Ok(ControlMut::SkipSiblings(sort))
             }
-            None => bail!(TypeError::MissingRecordField(lhs_sort, rhs.id.clone())),
+            None => bail!(TypeError::MissingRecordField(rhs.id.clone())),
         }
     }
 
@@ -1003,7 +1002,7 @@ impl Visitor<IvySort> for SortInferer {
                 Ok(ControlMut::Produce(unifed))
             }
         } else {
-            bail!(TypeError::NotInstanceable(module_sort.clone()))
+            bail!(TypeError::NotInstanceable(module_sort.desc()))
         }
     }
 

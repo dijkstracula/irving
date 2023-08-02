@@ -280,7 +280,7 @@ mod tests {
 
         let mut tc = typechecker_with_bindings();
         let res = iso.visit(&mut tc).expect_err("Should get a type error");
-        let Ok(TypeError::SortListMismatch(_, _)) = res.downcast::<TypeError>() else {
+        let Ok(TypeError::LenMismatch { expected: _, actual: _}) = res.downcast::<TypeError>() else {
             unreachable!()
         };
     }
@@ -302,7 +302,7 @@ mod tests {
         let res = iso.visit(&mut tc).expect_err("Should get a type error");
         assert_eq!(
             res.downcast::<TypeError>().unwrap(),
-            TypeError::UnificationError(IvySort::Bool, IvySort::Number)
+            TypeError::unification_error(&IvySort::Bool, &IvySort::Number)
         )
     }
 
@@ -327,7 +327,7 @@ mod tests {
         let res = iso.visit(&mut tc).expect_err("Should get a type error");
         assert_eq!(
             res.downcast::<TypeError>().unwrap(),
-            TypeError::UnificationError(IvySort::Bool, IvySort::Number)
+            TypeError::unification_error(&IvySort::Bool, &IvySort::Number)
         )
     }
 

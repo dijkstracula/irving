@@ -60,7 +60,7 @@ impl BindingResolver {
                     curr_sort = args.get(field).or(fields.get(field))
                 }
                 Some(sort) => {
-                    return Err(TypeError::NotARecord(sort.clone()));
+                    return Err(TypeError::NotARecord(sort.desc()));
                 }
                 None => return Err(TypeError::UnboundVariable(curr_sym.clone())),
             }
@@ -89,8 +89,8 @@ impl BindingResolver {
             } else if existing != &sort {
                 return Err(TypeError::ReboundVariable {
                     sym,
-                    prev: existing.clone(),
-                    new: sort.clone(),
+                    prev: format!("{}", existing),
+                    new: format!("{}", sort),
                 });
             }
         }
@@ -128,7 +128,11 @@ impl BindingResolver {
     ) -> Result<Vec<IvySort>, TypeError> {
         log::debug!(target: "type-inference", "unify({lhs:?},{rhs:?})");
         if lhs.len() != rhs.len() {
-            Err(TypeError::SortListMismatch(lhs.clone(), rhs.clone()))
+            // XXX: which is expected and which is actual?
+            Err(TypeError::LenMismatch {
+                expected: lhs.len(),
+                actual: rhs.len(),
+            })
         } else {
             let mut args = vec![];
             for (a1, a2) in lhs.iter().zip(rhs.iter()) {
@@ -264,7 +268,10 @@ impl BindingResolver {
                 // see https://github.com/dijkstracula/irving/issues/25 .
                 if fargs.len() != args.len() || fargs.len() > 1 {
                     let pargs = args.iter().map(|(_, v)| v.clone()).collect::<Vec<_>>();
-                    return Err(TypeError::SortListMismatch(fargs.clone(), pargs));
+                    return Err(TypeError::LenMismatch {
+                        expected: fargs.len(),
+                        actual: pargs.len(),
+                    });
                 }
                 Ok(unified)
             }
@@ -294,7 +301,7 @@ impl BindingResolver {
                 if t1 == t2 {
                     Ok(lhs)
                 } else {
-                    Err(TypeError::UnificationError(lhs.clone(), rhs.clone()))
+                    Err(TypeError::unification_error(&lhs, &rhs))
                 }
             }
         }

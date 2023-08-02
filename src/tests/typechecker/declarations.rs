@@ -78,7 +78,7 @@ mod tests {
         let res = decl_ast.visit(&mut tc).expect_err("visit");
         assert_eq!(
             res.downcast::<TypeError>().unwrap(),
-            TypeError::NotARecord(IvySort::Bool)
+            TypeError::NotARecord(IvySort::Bool.desc())
         );
         tc.bindings.pop_scope();
 
@@ -118,7 +118,7 @@ mod tests {
         let res = decl_ast.visit(&mut tc).expect_err("visit");
         assert_eq!(
             res.downcast::<TypeError>().unwrap(),
-            TypeError::NotInstanceable(IvySort::Number)
+            TypeError::NotInstanceable(IvySort::Number.desc())
         );
         tc.bindings.pop_scope();
 
