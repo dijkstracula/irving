@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use pest::error::ErrorVariant;
 use pest::iterators::{Pair, Pairs};
 use pest::pratt_parser::{Assoc, Op, PrattParser};
@@ -36,7 +38,7 @@ lazy_static::lazy_static! {
 }
 
 // TODO: this should be something other than a Symbol.
-pub fn parse_lsym(primary: Pair<'_, Rule>) -> Result<Symbol> {
+pub fn parse_lsym(_input: Rc<str>, primary: Pair<'_, Rule>) -> Result<Symbol> {
     // TODO: we need a separate AST node for logicvars.
     let mut pairs = primary.into_inner();
     let name = pairs.next().unwrap().as_str().to_owned();
@@ -47,7 +49,7 @@ pub fn parse_lsym(primary: Pair<'_, Rule>) -> Result<Symbol> {
     }
 }
 
-pub fn parse_log_term(pairs: Pairs<Rule>) -> Result<Expr> {
+pub fn parse_log_term(input: Rc<str>, pairs: Pairs<Rule>) -> Result<Expr> {
     PRATT
         .map_primary(|primary| match primary.as_rule() {
             Rule::relation_lval => {
@@ -57,7 +59,7 @@ pub fn parse_log_term(pairs: Pairs<Rule>) -> Result<Expr> {
                     .next()
                     .unwrap()
                     .into_inner()
-                    .map(|e| parse_log_term(e.into_inner()))
+                    .map(|e| parse_log_term(Rc::clone(&input), e.into_inner()))
                     .collect::<Result<Vec<_>>>()?;
 
                 Ok(Expr::App(AppExpr {
@@ -65,7 +67,7 @@ pub fn parse_log_term(pairs: Pairs<Rule>) -> Result<Expr> {
                     args,
                 }))
             }
-            Rule::logicsym => Ok(Expr::LogicSymbol(parse_lsym(primary)?)),
+            Rule::logicsym => Ok(Expr::LogicSymbol(parse_lsym(Rc::clone(&input), primary)?)),
             Rule::PROGTOK => {
                 let tok = primary.as_str().to_owned();
                 Ok(Expr::inferred_progsym(tok))
@@ -82,7 +84,7 @@ pub fn parse_log_term(pairs: Pairs<Rule>) -> Result<Expr> {
                 let val: i64 = primary.as_str().parse().unwrap();
                 Ok(Expr::Number(val))
             }
-            Rule::log_term => parse_log_term(primary.into_inner()),
+            Rule::log_term => parse_log_term(Rc::clone(&input), primary.into_inner()),
             x => Err(Error::new_from_span(
                 ErrorVariant::CustomError {
                     message: format!("Expected formula, got {x:?}"),
@@ -141,7 +143,7 @@ pub fn parse_log_term(pairs: Pairs<Rule>) -> Result<Expr> {
             Rule::log_app_args => {
                 let results = op
                     .into_inner()
-                    .map(|e| parse_log_term(e.into_inner()))
+                    .map(|e| parse_log_term(Rc::clone(&input), e.into_inner()))
                     .collect::<Vec<Result<_>>>();
                 let args = results.into_iter().collect::<Result<Vec<_>>>()?;
                 Ok(Expr::App(AppExpr {

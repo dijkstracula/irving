@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use pest::error::ErrorVariant;
 use pest::iterators::Pairs;
 use pest::pratt_parser::{Assoc, Op, PrattParser};
@@ -34,7 +36,7 @@ lazy_static::lazy_static! {
 
 }
 
-pub fn parse_rval(pairs: Pairs<Rule>) -> Result<Expr> {
+pub fn parse_rval(input: Rc<str>, pairs: Pairs<Rule>) -> Result<Expr> {
     PRATT
         .map_primary(|primary| match primary.as_rule() {
             Rule::THIS => Ok(Expr::This),
@@ -58,7 +60,7 @@ pub fn parse_rval(pairs: Pairs<Rule>) -> Result<Expr> {
                 let val: i64 = primary.as_str().parse().unwrap();
                 Ok(Expr::Number(val))
             }
-            Rule::rval => parse_rval(primary.into_inner()),
+            Rule::rval => parse_rval(Rc::clone(&input), primary.into_inner()),
             x => Err(Error::new_from_span(
                 ErrorVariant::CustomError {
                     message: format!("Expected expression, got {x:?}"),
@@ -139,7 +141,7 @@ pub fn parse_rval(pairs: Pairs<Rule>) -> Result<Expr> {
             Rule::fnapp_args => {
                 let results = op
                     .into_inner()
-                    .map(|e| parse_rval(e.into_inner()))
+                    .map(|e| parse_rval(Rc::clone(&input), e.into_inner()))
                     .collect::<Vec<Result<_>>>();
                 let args = results.into_iter().collect::<Result<Vec<_>>>()?;
                 Ok(Expr::App(AppExpr {
@@ -148,7 +150,7 @@ pub fn parse_rval(pairs: Pairs<Rule>) -> Result<Expr> {
                 }))
             }
             Rule::index => {
-                let idx = parse_rval(op.into_inner());
+                let idx = parse_rval(Rc::clone(&input), op.into_inner());
                 Ok(Expr::Index(IndexExpr {
                     lhs: Box::new(lhs?),
                     idx: Box::new(idx?),

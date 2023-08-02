@@ -99,7 +99,7 @@ impl IvyParser {
 
     pub fn log_term(input: Node) -> Result<Expr> {
         let pairs = input.as_pair().to_owned().into_inner();
-        parse_log_term(pairs)
+        parse_log_term(Rc::clone(input.user_data()), pairs)
     }
 
     pub fn forall(input: Node) -> Result<Forall> {
@@ -181,7 +181,7 @@ impl IvyParser {
 
     pub fn rval(input: Node) -> Result<Expr> {
         let pairs = input.as_pair().to_owned().into_inner();
-        parse_rval(pairs)
+        parse_rval(input.user_data().clone(), pairs)
     }
 
     pub fn builtin_type(input: Node) -> Result<expressions::Sort> {
