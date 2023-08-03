@@ -252,7 +252,6 @@ impl Visitor<IvySort> for SortInferer {
         lhs_sort: IvySort,
         rhs_sort: IvySort,
     ) -> VisitorResult<IvySort, Action> {
-        println!("NBT: {:?} := {:?}", lhs_sort, rhs_sort);
         self.bindings.unify(&lhs_sort, &rhs_sort)?;
         self.bindings.pop_scope();
         Ok(ControlMut::Produce(IvySort::Unit))
@@ -263,6 +262,17 @@ impl Visitor<IvySort> for SortInferer {
     fn action_seq(&mut self, ast: &mut Vec<Action>) -> VisitorResult<IvySort, statements::Stmt> {
         //XXX: kinda dumb, honestly.
         let _ = ast.visit(self)?.modifying(ast)?;
+        Ok(ControlMut::Produce(IvySort::Unit))
+    }
+
+    fn finish_if(
+        &mut self,
+        _ast: &mut statements::If,
+        tst_t: IvySort,
+        _then_t: Vec<IvySort>,
+        _else_t: Option<Vec<IvySort>>,
+    ) -> VisitorResult<IvySort, statements::Stmt> {
+        self.bindings.unify(&tst_t, &IvySort::Bool)?;
         Ok(ControlMut::Produce(IvySort::Unit))
     }
 

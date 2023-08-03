@@ -35,14 +35,25 @@ where
     fn begin_if(&mut self, _ast: &mut If) -> VisitorResult<T, Stmt> {
         Ok(ControlMut::Produce(T::default()))
     }
-    fn finish_if(&mut self, _ast: &mut If) -> VisitorResult<T, Stmt> {
+    fn finish_if(
+        &mut self,
+        _ast: &mut If,
+        _tst_t: T,
+        _then_t: Vec<T>,
+        _else_t: Option<Vec<T>>,
+    ) -> VisitorResult<T, Stmt> {
         Ok(ControlMut::Produce(T::default()))
     }
 
     fn begin_while(&mut self, _ast: &mut While) -> VisitorResult<T, Stmt> {
         Ok(ControlMut::Produce(T::default()))
     }
-    fn finish_while(&mut self, _ast: &mut While) -> VisitorResult<T, Stmt> {
+    fn finish_while(
+        &mut self,
+        _ast: &mut While,
+        _test_t: T,
+        _doit_t: Vec<T>,
+    ) -> VisitorResult<T, Stmt> {
         Ok(ControlMut::Produce(T::default()))
     }
 
@@ -659,18 +670,19 @@ where
         let t = match self {
             Stmt::ActionSequence(seq) => visitor.action_seq(seq),
             Stmt::If(stmt) => visitor.begin_if(stmt)?.and_then(|_| {
-                let _test = stmt.tst.visit(visitor)?.modifying(&mut stmt.tst);
-                let _then = stmt.thn.visit(visitor)?.modifying(&mut stmt.thn);
-                let _else = stmt
+                let test_t = stmt.tst.visit(visitor)?.modifying(&mut stmt.tst)?;
+                let then_t = stmt.thn.visit(visitor)?.modifying(&mut stmt.thn)?;
+                let else_t = stmt
                     .els
                     .as_mut()
-                    .map(|stmts| stmts.visit(visitor)?.modifying(stmts));
-                visitor.finish_if(stmt)
+                    .map(|stmts| stmts.visit(visitor)?.modifying(stmts))
+                    .transpose()?;
+                visitor.finish_if(stmt, test_t, then_t, else_t)
             }),
             Stmt::While(stmt) => visitor.begin_while(stmt)?.and_then(|_| {
-                let _test = stmt.test.visit(visitor)?.modifying(&mut stmt.test);
-                let _doit = stmt.doit.visit(visitor)?.modifying(&mut stmt.doit);
-                visitor.finish_while(stmt)
+                let test = stmt.test.visit(visitor)?.modifying(&mut stmt.test)?;
+                let doit = stmt.doit.visit(visitor)?.modifying(&mut stmt.doit)?;
+                visitor.finish_while(stmt, test, doit)
             }),
             Stmt::VarDecl(Binding {
                 ref mut name,
