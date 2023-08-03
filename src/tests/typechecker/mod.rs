@@ -6,4 +6,5 @@ pub mod mixins;
 pub mod modules;
 pub mod processes;
 pub mod resolver;
+pub mod statements;
 pub mod subst;
