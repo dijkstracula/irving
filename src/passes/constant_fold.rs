@@ -6,14 +6,14 @@ use crate::visitor::*;
 /// for us but demonstrates how to use the new Visitor.
 pub struct ConstantFold;
 
-impl ast::Visitor<()> for ConstantFold {
+impl ast::Visitor<(), std::io::Error> for ConstantFold {
     fn finish_binop(
         &mut self,
         expr: &mut BinOp,
         _lhs_ret: (),
         _op_ret: (),
         _rhs_ret: (),
-    ) -> VisitorResult<(), Expr> {
+    ) -> VisitorResult<(), std::io::Error, Expr> {
         match (expr.lhs.as_ref(), &expr.op, expr.rhs.as_ref()) {
             (Expr::Number(lhs), Verb::Plus, Expr::Number(rhs)) => {
                 Ok(ControlMut::Mutation(Expr::Number(lhs + rhs), ()))

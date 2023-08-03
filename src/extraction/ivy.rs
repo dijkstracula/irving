@@ -14,7 +14,7 @@ use crate::visitor::ast::Visitable;
 
 use crate::visitor::*;
 
-use super::pprint::PrettyPrinter;
+use super::{pprint::PrettyPrinter, ExtractResult};
 
 pub struct Extractor<W>
 where
@@ -35,9 +35,9 @@ impl<W> Extractor<W>
 where
     W: Write,
 {
-    pub fn write_separated<U>(&mut self, us: &mut Vec<U>, sep: &str) -> VisitorResult<(), Vec<U>>
+    pub fn write_separated<U>(&mut self, us: &mut Vec<U>, sep: &str) -> ExtractResult<Vec<U>>
     where
-        U: Visitable<()>,
+        U: Visitable<(), std::fmt::Error>,
     {
         for (i, u) in us.iter_mut().enumerate() {
             if i > 0 {
@@ -52,7 +52,7 @@ where
         &mut self,
         us: &mut expressions::ParamList,
         sep: &str,
-    ) -> VisitorResult<(), Vec<Symbol>> {
+    ) -> ExtractResult<Vec<Symbol>> {
         for (i, u) in us.iter_mut().enumerate() {
             if i > 0 {
                 self.pp.write_str(sep)?;
@@ -63,18 +63,18 @@ where
     }
 }
 
-impl<W> ast::Visitor<()> for Extractor<W>
+impl<W> ast::Visitor<(), std::fmt::Error> for Extractor<W>
 where
     W: Write,
 {
-    fn begin_prog(&mut self, p: &mut toplevels::Prog) -> VisitorResult<(), toplevels::Prog> {
+    fn begin_prog(&mut self, p: &mut toplevels::Prog) -> ExtractResult<toplevels::Prog> {
         self.pp.write_fmt(format_args!(
             "#lang ivy{}.{}\n\n",
             p.major_version, p.minor_version
         ))?;
 
         for decl in &mut p.top {
-            decl.visit(self)?.modifying(decl)?;
+            decl.visit(self)?.modifying(decl);
             self.pp.write_str("\n")?;
         }
         Ok(ControlMut::SkipSiblings(()))
@@ -82,10 +82,7 @@ where
 
     // Statements
 
-    fn action_seq(
-        &mut self,
-        ast: &mut Vec<actions::Action>,
-    ) -> VisitorResult<(), statements::Stmt> {
+    fn action_seq(&mut self, ast: &mut Vec<actions::Action>) -> ExtractResult<statements::Stmt> {
         for (i, a) in ast.iter_mut().enumerate() {
             if i > 0 {
                 self.pp.write_str(";\n")?;
@@ -95,20 +92,20 @@ where
         Ok(ControlMut::Produce(()))
     }
 
-    fn begin_if(&mut self, ast: &mut statements::If) -> VisitorResult<(), statements::Stmt> {
+    fn begin_if(&mut self, ast: &mut statements::If) -> ExtractResult<statements::Stmt> {
         self.pp.write_str("if ")?;
         ast.tst.visit(self)?;
         self.pp.write_str(" {\n")?;
 
         for stmt in &mut ast.thn {
-            stmt.visit(self)?.modifying(stmt)?;
+            stmt.visit(self)?.modifying(stmt);
             self.pp.write_str(";\n")?;
         }
 
         if let Some(stmts) = &mut ast.els {
             self.pp.write_str("} else {\n")?;
             for stmt in stmts {
-                stmt.visit(self)?.modifying(stmt)?;
+                stmt.visit(self)?.modifying(stmt);
                 self.pp.write_str(";\n")?;
             }
         }
@@ -117,7 +114,7 @@ where
         Ok(ControlMut::SkipSiblings(()))
     }
 
-    fn begin_while(&mut self, ast: &mut statements::While) -> VisitorResult<(), statements::Stmt> {
+    fn begin_while(&mut self, ast: &mut statements::While) -> ExtractResult<statements::Stmt> {
         self.pp.write_str("while ")?;
         ast.test.visit(self)?;
 
@@ -130,18 +127,12 @@ where
 
     // Actions
 
-    fn begin_assert(
-        &mut self,
-        _ast: &mut actions::AssertAction,
-    ) -> VisitorResult<(), actions::Action> {
+    fn begin_assert(&mut self, _ast: &mut actions::AssertAction) -> ExtractResult<actions::Action> {
         self.pp.write_str("assert ")?;
         Ok(ControlMut::Produce(()))
     }
 
-    fn begin_assign(
-        &mut self,
-        ast: &mut actions::AssignAction,
-    ) -> VisitorResult<(), actions::Action> {
+    fn begin_assign(&mut self, ast: &mut actions::AssignAction) -> ExtractResult<actions::Action> {
         ast.lhs.visit(self)?;
         self.pp.write_str(" := ")?;
         ast.rhs.visit(self)?;
@@ -149,18 +140,12 @@ where
         Ok(ControlMut::SkipSiblings(()))
     }
 
-    fn begin_assume(
-        &mut self,
-        _ast: &mut actions::AssumeAction,
-    ) -> VisitorResult<(), actions::Action> {
+    fn begin_assume(&mut self, _ast: &mut actions::AssumeAction) -> ExtractResult<actions::Action> {
         self.pp.write_str("assume ")?;
         Ok(ControlMut::Produce(()))
     }
 
-    fn begin_ensure(
-        &mut self,
-        _ast: &mut actions::EnsureAction,
-    ) -> VisitorResult<(), actions::Action> {
+    fn begin_ensure(&mut self, _ast: &mut actions::EnsureAction) -> ExtractResult<actions::Action> {
         self.pp.write_str("ensure ")?;
         Ok(ControlMut::Produce(()))
     }
@@ -168,7 +153,7 @@ where
     fn begin_requires(
         &mut self,
         _ast: &mut actions::RequiresAction,
-    ) -> VisitorResult<(), actions::Action> {
+    ) -> ExtractResult<actions::Action> {
         self.pp.write_str("require ")?;
         Ok(ControlMut::Produce(()))
     }
@@ -179,7 +164,7 @@ where
         &mut self,
         name: &mut Token,
         ast: &mut declarations::ActionDecl,
-    ) -> VisitorResult<(), declarations::Decl> {
+    ) -> ExtractResult<declarations::Decl> {
         self.pp.write_fmt(format_args!("action {}", name))?;
         if !ast.params.is_empty() {
             self.pp.write_str("(")?;
@@ -189,7 +174,7 @@ where
 
         if let Some(ret) = &mut ast.ret {
             self.pp.write_str(" returns(")?;
-            self.param(ret)?.modifying(ret)?;
+            self.param(ret)?.modifying(ret);
             self.pp.write_str(")")?;
         }
         if let Some(stmts) = &mut ast.body {
@@ -204,7 +189,7 @@ where
     fn begin_after_decl(
         &mut self,
         ast: &mut declarations::ActionMixinDecl,
-    ) -> VisitorResult<(), declarations::Decl> {
+    ) -> ExtractResult<declarations::Decl> {
         self.pp.write_str("after ")?;
         self.identifier(&mut ast.name)?;
 
@@ -218,7 +203,7 @@ where
 
         if let Some(ret) = &mut ast.ret {
             self.pp.write_str(" returns(")?;
-            self.param(ret)?.modifying(ret)?;
+            self.param(ret)?.modifying(ret);
             self.pp.write_str(")")?;
         }
 
@@ -233,24 +218,21 @@ where
         &mut self,
         sym: &mut expressions::Token,
         s: &mut expressions::Sort,
-    ) -> VisitorResult<(), declarations::Decl> {
+    ) -> ExtractResult<declarations::Decl> {
         self.pp.write_fmt(format_args!("alias {} = ", sym))?;
-        self.sort(s)?.modifying(s)?;
+        self.sort(s)?.modifying(s);
         Ok(ControlMut::SkipSiblings(()))
     }
 
     fn begin_attribute_decl(
         &mut self,
         _ast: &mut expressions::Expr,
-    ) -> VisitorResult<(), declarations::Decl> {
+    ) -> ExtractResult<declarations::Decl> {
         self.pp.write_str("attribute ")?;
         Ok(ControlMut::Produce(()))
     }
 
-    fn begin_axiom_decl(
-        &mut self,
-        _ast: &mut logic::Fmla,
-    ) -> VisitorResult<(), declarations::Decl> {
+    fn begin_axiom_decl(&mut self, _ast: &mut logic::Fmla) -> ExtractResult<declarations::Decl> {
         self.pp.write_str("axiom ")?;
         Ok(ControlMut::Produce(()))
     }
@@ -258,7 +240,7 @@ where
     fn begin_before_decl(
         &mut self,
         ast: &mut declarations::ActionMixinDecl,
-    ) -> VisitorResult<(), declarations::Decl> {
+    ) -> ExtractResult<declarations::Decl> {
         self.pp.write_str("before ")?;
         self.identifier(&mut ast.name)?;
 
@@ -280,7 +262,7 @@ where
     fn begin_export_decl(
         &mut self,
         _ast: &mut declarations::ExportDecl,
-    ) -> VisitorResult<(), declarations::Decl> {
+    ) -> ExtractResult<declarations::Decl> {
         self.pp.write_str("export ")?;
         Ok(ControlMut::Produce(()))
     }
@@ -288,14 +270,14 @@ where
     fn begin_common_decl(
         &mut self,
         _ast: &mut Vec<declarations::Decl>,
-    ) -> VisitorResult<(), declarations::Decl> {
+    ) -> ExtractResult<declarations::Decl> {
         self.pp.write_str("common {")?;
         Ok(ControlMut::Produce(()))
     }
     fn finish_common_decl(
         &mut self,
         _ast: &mut Vec<declarations::Decl>,
-    ) -> VisitorResult<(), declarations::Decl> {
+    ) -> ExtractResult<declarations::Decl> {
         self.pp.write_str("}")?;
         Ok(ControlMut::Produce(()))
     }
@@ -303,10 +285,10 @@ where
     fn begin_global_decl(
         &mut self,
         ast: &mut Vec<declarations::Decl>,
-    ) -> VisitorResult<(), declarations::Decl> {
+    ) -> ExtractResult<declarations::Decl> {
         self.pp.write_str("global {\n")?;
         for decl in ast {
-            decl.visit(self)?.modifying(decl)?;
+            decl.visit(self)?.modifying(decl);
             self.pp.write_str("\n")?;
         }
         self.pp.write_str("}")?;
@@ -317,14 +299,14 @@ where
         &mut self,
         name: &mut Token,
         ast: &mut declarations::InstanceDecl,
-    ) -> VisitorResult<(), declarations::Decl> {
+    ) -> ExtractResult<declarations::Decl> {
         self.pp.write_str("instance ")?;
-        name.visit(self)?.modifying(name)?;
+        name.visit(self)?.modifying(name);
         self.pp.write_str(" = ")?;
-        ast.sort.visit(self)?.modifying(&mut ast.sort)?;
+        ast.sort.visit(self)?.modifying(&mut ast.sort);
         if !ast.args.is_empty() {
             self.pp.write_str("(")?;
-            ast.args.visit(self)?.modifying(&mut ast.args)?;
+            ast.args.visit(self)?.modifying(&mut ast.args);
             self.pp.write_str(")")?;
         }
         Ok(ControlMut::SkipSiblings(()))
@@ -333,7 +315,7 @@ where
     fn begin_implement_decl(
         &mut self,
         ast: &mut declarations::ActionMixinDecl,
-    ) -> VisitorResult<(), declarations::Decl> {
+    ) -> ExtractResult<declarations::Decl> {
         self.pp.write_str("implement ")?;
         self.identifier(&mut ast.name)?;
 
@@ -345,7 +327,7 @@ where
 
         if let Some(ret) = &mut ast.ret {
             self.pp.write_str(" returns(")?;
-            self.param(ret)?.modifying(ret)?;
+            self.param(ret)?.modifying(ret);
             self.pp.write_str(")")?;
         }
 
@@ -359,7 +341,7 @@ where
     fn begin_import_decl(
         &mut self,
         ast: &mut declarations::ImportDecl,
-    ) -> VisitorResult<(), declarations::Decl> {
+    ) -> ExtractResult<declarations::Decl> {
         self.pp
             .write_fmt(format_args!("import action {}(", ast.name))?;
         Ok(ControlMut::Produce(()))
@@ -369,7 +351,7 @@ where
         _ast: &mut declarations::ImportDecl,
         _n: (),
         _p: Vec<()>,
-    ) -> VisitorResult<(), declarations::Decl> {
+    ) -> ExtractResult<declarations::Decl> {
         self.pp.write_str(")")?;
         Ok(ControlMut::Produce(()))
     }
@@ -377,7 +359,7 @@ where
     fn begin_include_decl(
         &mut self,
         _ast: &mut expressions::Token,
-    ) -> VisitorResult<(), declarations::Decl> {
+    ) -> ExtractResult<declarations::Decl> {
         self.pp.write_str("include ")?;
         Ok(ControlMut::Produce(()))
     }
@@ -386,16 +368,16 @@ where
         &mut self,
         name: &mut Token,
         sort: &mut Sort,
-    ) -> VisitorResult<(), declarations::Decl> {
+    ) -> ExtractResult<declarations::Decl> {
         self.pp.write_fmt(format_args!("interpret {name} -> "))?;
-        sort.visit(self)?.modifying(sort)?;
+        sort.visit(self)?.modifying(sort);
         Ok(ControlMut::SkipSiblings(()))
     }
 
     fn begin_invariant_decl(
         &mut self,
         _ast: &mut logic::Fmla,
-    ) -> VisitorResult<(), declarations::Decl> {
+    ) -> ExtractResult<declarations::Decl> {
         self.pp.write_str("invariant ")?;
         Ok(ControlMut::Produce(()))
     }
@@ -404,7 +386,7 @@ where
         &mut self,
         name: &mut Token,
         module: &mut declarations::ModuleDecl,
-    ) -> VisitorResult<(), declarations::Decl> {
+    ) -> ExtractResult<declarations::Decl> {
         self.pp.write_fmt(format_args!("isolate {}", name))?;
 
         if !module.sortsyms.is_empty() {
@@ -423,7 +405,7 @@ where
         &mut self,
         name: &mut Token,
         ast: &mut declarations::ObjectDecl,
-    ) -> VisitorResult<(), declarations::Decl> {
+    ) -> ExtractResult<declarations::Decl> {
         self.pp.write_fmt(format_args!("object {}", name))?;
 
         if !ast.params.is_empty() {
@@ -433,7 +415,7 @@ where
         }
         self.pp.write_str(" {\n")?;
         for decl in &mut ast.body {
-            decl.visit(self)?.modifying(decl)?;
+            decl.visit(self)?.modifying(decl);
             self.pp.write_str("\n")?;
         }
         self.pp.write_str("}\n")?;
@@ -445,7 +427,7 @@ where
         &mut self,
         name: &mut Token,
         ast: &mut declarations::Relation,
-    ) -> VisitorResult<(), declarations::Decl> {
+    ) -> ExtractResult<declarations::Decl> {
         self.pp.write_fmt(format_args!("relation {}(", name))?;
         self.write_paramlist(&mut ast.params, ", ")?;
         self.pp.write_str(")")?;
@@ -456,14 +438,14 @@ where
         &mut self,
         name: &mut Token,
         sort: &mut Sort,
-    ) -> VisitorResult<(), declarations::Decl> {
+    ) -> ExtractResult<declarations::Decl> {
         self.pp.write_fmt(format_args!("type {}", name))?;
 
         match sort {
             Sort::ToBeInferred => (),
             Sort::Annotated(_) | Sort::Resolved(_) => {
                 self.pp.write_str(" = ")?;
-                self.sort(sort)?.modifying(sort)?;
+                self.sort(sort)?.modifying(sort);
             }
         }
         Ok(ControlMut::SkipSiblings(()))
@@ -473,13 +455,13 @@ where
         &mut self,
         name: &mut Token,
         sort: &mut Sort,
-    ) -> VisitorResult<(), declarations::Decl> {
+    ) -> ExtractResult<declarations::Decl> {
         self.pp.write_fmt(format_args!("var {}", name))?;
         match sort {
             expressions::Sort::ToBeInferred => (),
             expressions::Sort::Annotated(_) | expressions::Sort::Resolved(_) => {
                 self.pp.write_str(": ")?;
-                self.sort(sort)?.modifying(sort)?;
+                self.sort(sort)?.modifying(sort);
             }
         };
         Ok(ControlMut::SkipSiblings(()))
@@ -487,7 +469,7 @@ where
 
     // Quantifieds
 
-    fn begin_forall(&mut self, fmla: &mut logic::Forall) -> VisitorResult<(), logic::Fmla> {
+    fn begin_forall(&mut self, fmla: &mut logic::Forall) -> ExtractResult<logic::Fmla> {
         self.pp.write_str("forall ")?;
         self.write_paramlist(&mut fmla.vars, ", ")?;
         self.pp.write_str(" . ")?;
@@ -495,7 +477,7 @@ where
         Ok(ControlMut::SkipSiblings(()))
     }
 
-    fn begin_exists(&mut self, fmla: &mut logic::Exists) -> VisitorResult<(), logic::Fmla> {
+    fn begin_exists(&mut self, fmla: &mut logic::Exists) -> ExtractResult<logic::Fmla> {
         self.pp.write_str("exists ")?;
         self.write_paramlist(&mut fmla.vars, ", ")?;
         self.pp.write_str(" . ")?;
@@ -505,10 +487,7 @@ where
 
     // Expressions
 
-    fn begin_app(
-        &mut self,
-        ast: &mut expressions::AppExpr,
-    ) -> VisitorResult<(), expressions::Expr> {
+    fn begin_app(&mut self, ast: &mut expressions::AppExpr) -> ExtractResult<expressions::Expr> {
         ast.func.visit(self)?;
 
         self.pp.write_str("(")?;
@@ -517,10 +496,7 @@ where
         Ok(ControlMut::SkipSiblings(()))
     }
 
-    fn begin_binop(
-        &mut self,
-        ast: &mut expressions::BinOp,
-    ) -> VisitorResult<(), expressions::Expr> {
+    fn begin_binop(&mut self, ast: &mut expressions::BinOp) -> ExtractResult<expressions::Expr> {
         ast.lhs.visit(self)?;
 
         let op_str = match ast.op {
@@ -559,7 +535,7 @@ where
         Ok(ControlMut::SkipSiblings(()))
     }
 
-    fn begin_call(&mut self, ast: &mut expressions::AppExpr) -> VisitorResult<(), actions::Action> {
+    fn begin_call(&mut self, ast: &mut expressions::AppExpr) -> ExtractResult<actions::Action> {
         self.begin_app(ast)?;
         Ok(ControlMut::SkipSiblings(()))
     }
@@ -568,14 +544,14 @@ where
         &mut self,
         lhs: &mut expressions::Expr,
         rhs: &mut expressions::Symbol,
-    ) -> VisitorResult<(), expressions::Expr> {
+    ) -> ExtractResult<expressions::Expr> {
         lhs.visit(self)?;
         self.pp.write_str(".")?;
-        self.symbol(rhs)?.modifying(rhs)?;
+        self.symbol(rhs)?.modifying(rhs);
         Ok(ControlMut::SkipSiblings(()))
     }
 
-    fn begin_index(&mut self, expr: &mut IndexExpr) -> VisitorResult<(), expressions::Expr> {
+    fn begin_index(&mut self, expr: &mut IndexExpr) -> ExtractResult<expressions::Expr> {
         expr.lhs.visit(self)?;
         self.pp.write_str("[")?;
         expr.idx.visit(self)?;
@@ -587,13 +563,13 @@ where
         &mut self,
         op: &mut Verb,
         rhs: &mut expressions::Expr,
-    ) -> VisitorResult<(), expressions::Expr> {
+    ) -> ExtractResult<expressions::Expr> {
         match op {
             Verb::Not => {
                 self.pp.write_str("~")?;
                 if let expressions::Expr::BinOp(_) = rhs {
                     self.pp.write_str("(")?;
-                    rhs.visit(self)?.modifying(rhs)?;
+                    rhs.visit(self)?.modifying(rhs);
                     self.pp.write_str(")")?;
                     Ok(ControlMut::SkipSiblings(()))
                 } else {
@@ -606,13 +582,13 @@ where
 
     // Terminals
 
-    fn symbol(&mut self, p: &mut expressions::Symbol) -> VisitorResult<(), expressions::Symbol> {
+    fn symbol(&mut self, p: &mut expressions::Symbol) -> ExtractResult<expressions::Symbol> {
         p.name.visit(self)?;
 
         Ok(ControlMut::SkipSiblings(()))
     }
 
-    fn boolean(&mut self, b: &mut bool) -> VisitorResult<(), bool> {
+    fn boolean(&mut self, b: &mut bool) -> ExtractResult<bool> {
         if *b {
             self.pp.write_str("true")?;
         } else {
@@ -621,17 +597,17 @@ where
         Ok(ControlMut::Produce(()))
     }
 
-    fn identifier(&mut self, i: &mut expressions::Ident) -> VisitorResult<(), expressions::Ident> {
+    fn identifier(&mut self, i: &mut expressions::Ident) -> ExtractResult<expressions::Ident> {
         self.write_separated(i, ".")?;
         Ok(ControlMut::Produce(()))
     }
 
-    fn number(&mut self, n: &mut i64) -> VisitorResult<(), i64> {
+    fn number(&mut self, n: &mut i64) -> ExtractResult<i64> {
         self.pp.write_str(&n.to_string())?;
         Ok(ControlMut::Produce(()))
     }
 
-    fn param(&mut self, p: &mut expressions::Symbol) -> VisitorResult<(), expressions::Symbol> {
+    fn param(&mut self, p: &mut expressions::Symbol) -> ExtractResult<expressions::Symbol> {
         p.name.visit(self)?;
 
         match &mut p.decl {
@@ -644,7 +620,7 @@ where
         Ok(ControlMut::SkipSiblings(()))
     }
 
-    fn sort(&mut self, s: &mut Sort) -> VisitorResult<(), Sort> {
+    fn sort(&mut self, s: &mut Sort) -> ExtractResult<Sort> {
         match s {
             Sort::ToBeInferred => todo!(),
             Sort::Annotated(ident) => {
@@ -696,12 +672,12 @@ where
         Ok(ControlMut::Produce(()))
     }
 
-    fn token(&mut self, s: &mut expressions::Token) -> VisitorResult<(), expressions::Token> {
+    fn token(&mut self, s: &mut expressions::Token) -> ExtractResult<expressions::Token> {
         self.pp.write_str(s)?;
         Ok(ControlMut::Produce(()))
     }
 
-    fn this(&mut self) -> VisitorResult<(), expressions::Expr> {
+    fn this(&mut self) -> ExtractResult<expressions::Expr> {
         self.pp.write_str("this")?;
         Ok(ControlMut::Produce(()))
     }

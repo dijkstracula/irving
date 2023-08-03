@@ -48,7 +48,7 @@ mod tests {
         });
 
         let mut tc = SortInferer::new();
-        let res = proc.visit(&mut tc).unwrap().modifying(&mut proc).unwrap();
+        let res = proc.visit(&mut tc).unwrap().modifying(&mut proc);
         assert_eq!(res, sort);
 
         assert_eq!(tc.bindings.lookup_sym("p"), Some(&sort));
@@ -80,7 +80,7 @@ mod tests {
         });
 
         let mut tc = SortInferer::new();
-        let res = proc.visit(&mut tc).unwrap().modifying(&mut proc).unwrap();
+        let res = proc.visit(&mut tc).unwrap().modifying(&mut proc);
         assert_eq!(res, sort);
         assert_eq!(tc.bindings.lookup_sym("p"), Some(&sort));
     }
@@ -111,7 +111,7 @@ mod tests {
         });
 
         let mut tc = SortInferer::new();
-        let res = proc.visit(&mut tc).unwrap().modifying(&mut proc).unwrap();
+        let res = proc.visit(&mut tc).unwrap().modifying(&mut proc);
         assert_eq!(res, sort);
         assert_eq!(tc.bindings.lookup_sym("p"), Some(&sort));
     }
@@ -128,7 +128,7 @@ mod tests {
         let mut tc = SortInferer::new();
         let res = proc.visit(&mut tc).expect_err("Should not typecheck");
         assert_eq!(
-            res.downcast::<TypeError>().unwrap(),
+            res,
             TypeError::UnificationError(IvySort::Bool, IvySort::Number)
         );
     }

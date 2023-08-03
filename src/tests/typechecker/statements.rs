@@ -14,7 +14,7 @@ mod tests {
         let mut si = SortInferer::new();
         si.bindings.append("a".into(), IvySort::Number).unwrap();
 
-        ast.visit(&mut si).unwrap().modifying(&mut ast).unwrap();
+        ast.visit(&mut si).unwrap().modifying(&mut ast);
     }
 
     #[test]
@@ -29,8 +29,8 @@ mod tests {
             .visit(&mut si)
             .expect_err("non-boolean expression in if statement test");
         assert_eq!(
-            err.downcast_ref::<TypeError>(),
-            Some(&TypeError::UnificationError(IvySort::Number, IvySort::Bool))
+            err,
+            TypeError::UnificationError(IvySort::Number, IvySort::Bool)
         );
     }
 
@@ -42,7 +42,7 @@ mod tests {
         let mut si = SortInferer::new();
         si.bindings.append("a".into(), IvySort::Number).unwrap();
 
-        ast.visit(&mut si).unwrap().modifying(&mut ast).unwrap();
+        ast.visit(&mut si).unwrap().modifying(&mut ast);
         println!("{:?}", ast);
     }
 }

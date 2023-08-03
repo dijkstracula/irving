@@ -100,11 +100,7 @@ mod tests {
             .unwrap();
         */
 
-        let filesort = filedecl
-            .visit(&mut tc)
-            .unwrap()
-            .modifying(&mut filedecl)
-            .unwrap();
+        let filesort = filedecl.visit(&mut tc).unwrap().modifying(&mut filedecl);
 
         tc.bindings.append("file".into(), filesort).unwrap();
         tc
@@ -120,7 +116,7 @@ mod tests {
         });
 
         let mut tc = SortInferer::new();
-        let res = iso.visit(&mut tc).unwrap().modifying(&mut iso).unwrap();
+        let res = iso.visit(&mut tc).unwrap().modifying(&mut iso);
         assert_eq!(res, sort);
 
         assert_eq!(tc.bindings.lookup_sym("p"), Some(&sort));
@@ -139,7 +135,7 @@ mod tests {
         });
 
         let mut tc = typechecker_with_bindings();
-        let res = iso.visit(&mut tc).unwrap().modifying(&mut iso).unwrap();
+        let res = iso.visit(&mut tc).unwrap().modifying(&mut iso);
         assert_eq!(res, sort);
 
         assert_eq!(tc.bindings.lookup_sym("host"), Some(&sort));
@@ -166,7 +162,7 @@ mod tests {
         });
 
         let mut tc = typechecker_with_bindings();
-        let res = iso.visit(&mut tc).unwrap().modifying(&mut iso).unwrap();
+        let res = iso.visit(&mut tc).unwrap().modifying(&mut iso);
         assert_eq!(res, sort);
 
         assert_eq!(tc.bindings.lookup_sym("host"), Some(&sort),);
@@ -185,7 +181,7 @@ mod tests {
         );
 
         let mut tc = typechecker_with_bindings();
-        let _ = iso.visit(&mut tc).unwrap().modifying(&mut iso).unwrap();
+        let _ = iso.visit(&mut tc).unwrap().modifying(&mut iso);
 
         let mut iso = process_from_src(
             "process host(self:pid) = {
@@ -214,7 +210,7 @@ mod tests {
         );
 
         let mut tc = typechecker_with_bindings();
-        let _res = iso.visit(&mut tc).unwrap().modifying(&mut iso).unwrap();
+        let _res = iso.visit(&mut tc).unwrap().modifying(&mut iso);
     }
 
     #[test]
@@ -244,7 +240,7 @@ mod tests {
         );
 
         let mut tc = typechecker_with_bindings();
-        let _res = iso.visit(&mut tc).unwrap().modifying(&mut iso).unwrap();
+        let _res = iso.visit(&mut tc).unwrap().modifying(&mut iso);
     }
 
     #[test]
@@ -263,7 +259,7 @@ mod tests {
         );
 
         let mut tc = typechecker_with_bindings();
-        let _res = iso.visit(&mut tc).unwrap().modifying(&mut iso).unwrap();
+        let _res = iso.visit(&mut tc).unwrap().modifying(&mut iso);
     }
     #[test]
     fn test_relation_inference_bad_arity() {
@@ -280,7 +276,7 @@ mod tests {
 
         let mut tc = typechecker_with_bindings();
         let res = iso.visit(&mut tc).expect_err("Should get a type error");
-        let Ok(TypeError::SortListMismatch(_, _)) = res.downcast::<TypeError>() else {
+        let TypeError::SortListMismatch(_, _) = res else {
             unreachable!()
         };
     }
@@ -301,7 +297,7 @@ mod tests {
         let mut tc = typechecker_with_bindings();
         let res = iso.visit(&mut tc).expect_err("Should get a type error");
         assert_eq!(
-            res.downcast::<TypeError>().unwrap(),
+            res,
             TypeError::UnificationError(IvySort::Bool, IvySort::Number)
         )
     }
@@ -326,7 +322,7 @@ mod tests {
         let mut tc = typechecker_with_bindings();
         let res = iso.visit(&mut tc).expect_err("Should get a type error");
         assert_eq!(
-            res.downcast::<TypeError>().unwrap(),
+            res,
             TypeError::UnificationError(IvySort::Bool, IvySort::Number)
         )
     }
@@ -344,6 +340,6 @@ mod tests {
         );
 
         let mut tc = typechecker_with_bindings();
-        let _res = iso.visit(&mut tc).unwrap().modifying(&mut iso).unwrap();
+        let _res = iso.visit(&mut tc).unwrap().modifying(&mut iso);
     }
 }

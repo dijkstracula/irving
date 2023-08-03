@@ -1,10 +1,9 @@
 use std::collections::BTreeMap;
 
-use anyhow::bail;
-
 use super::{
     sorts::{self, ActionArgs, IvySort, Object},
     unifier::BindingResolver,
+    InferenceResult,
 };
 use crate::{
     ast::{
@@ -15,7 +14,7 @@ use crate::{
     },
     passes::module_instantiation,
     typechecker::{sorts::Module, TypeError},
-    visitor::{ast::Visitable, ast::Visitor, control::ControlMut, VisitorResult},
+    visitor::{ast::Visitable, ast::Visitor, control::ControlMut},
 };
 
 pub struct SortInferer {
@@ -46,7 +45,7 @@ impl SortInferer {
         action_sort: IvySort,
         mixin_params_sort: Option<Vec<IvySort>>,
         mixin_ret_sort: Option<IvySort>,
-    ) -> anyhow::Result<(ActionMixinDecl, IvySort)> {
+    ) -> Result<(ActionMixinDecl, IvySort), TypeError> {
         let action_args = match &action_sort {
             IvySort::Action(args, _, _) => args,
             _ => unreachable!(),
@@ -63,9 +62,9 @@ impl SortInferer {
             // their sorts.)
             Some(mixin_args) => {
                 if action_args.len() != mixin_args.len() {
-                    bail!(TypeError::LenMismatch {
+                    return Err(TypeError::LenMismatch {
                         expected: action_args.len(),
-                        actual: mixin_args.len()
+                        actual: mixin_args.len(),
                     });
                 } else {
                     mixin_args
@@ -121,20 +120,17 @@ impl SortInferer {
     }
 }
 
-impl Visitor<IvySort> for SortInferer {
-    fn boolean(&mut self, _b: &mut bool) -> VisitorResult<IvySort, bool> {
+impl Visitor<IvySort, TypeError> for SortInferer {
+    fn boolean(&mut self, _b: &mut bool) -> InferenceResult<bool> {
         Ok(ControlMut::Produce(IvySort::Bool))
     }
 
-    fn identifier(
-        &mut self,
-        i: &mut expressions::Ident,
-    ) -> VisitorResult<IvySort, expressions::Ident> {
+    fn identifier(&mut self, i: &mut expressions::Ident) -> InferenceResult<expressions::Ident> {
         // XXX: This is a hack for built-ins like `bool` that we shouldn't have to
         // special-case in this way.
         if i.len() == 1 {
             let s = i.get_mut(0).unwrap();
-            Ok(ControlMut::Produce(s.visit(self)?.modifying(s)?))
+            Ok(ControlMut::Produce(s.visit(self)?.modifying(s)))
         } else {
             // XXX: we always set include_spec to true.  Suggests we need to also
             // return an annotation indicating if this was a spec/common/etc. decl.
@@ -143,14 +139,11 @@ impl Visitor<IvySort> for SortInferer {
         }
     }
 
-    fn number(&mut self, _n: &mut i64) -> VisitorResult<IvySort, i64> {
+    fn number(&mut self, _n: &mut i64) -> InferenceResult<i64> {
         Ok(ControlMut::Produce(IvySort::Number))
     }
 
-    fn param(
-        &mut self,
-        p: &mut expressions::Symbol,
-    ) -> VisitorResult<IvySort, expressions::Symbol> {
+    fn param(&mut self, p: &mut expressions::Symbol) -> InferenceResult<expressions::Symbol> {
         match &mut p.decl {
             Sort::ToBeInferred => {
                 let sortvar = self.bindings.new_sortvar();
@@ -158,7 +151,7 @@ impl Visitor<IvySort> for SortInferer {
                 Ok(ControlMut::Produce(sortvar))
             }
             Sort::Annotated(id) => {
-                let resolved = id.visit(self)?.modifying(id)?;
+                let resolved = id.visit(self)?.modifying(id);
                 // Note that because a parameter binds a new name, we add it
                 // to the bindings here.  We do not do the same for sort!()
                 self.bindings.append(p.name.clone(), resolved.clone())?;
@@ -174,14 +167,14 @@ impl Visitor<IvySort> for SortInferer {
         }
     }
 
-    fn sort(&mut self, s: &mut Sort) -> VisitorResult<IvySort, Sort> {
+    fn sort(&mut self, s: &mut Sort) -> InferenceResult<Sort> {
         let ctrl = match s {
             Sort::ToBeInferred => {
                 let s = self.bindings.new_sortvar();
                 ControlMut::Mutation(Sort::Resolved(s.clone()), s)
             }
             Sort::Annotated(ident) => {
-                let resolved = self.identifier(ident)?.modifying(ident)?;
+                let resolved = self.identifier(ident)?.modifying(ident);
                 ControlMut::Mutation(Sort::Resolved(resolved.clone()), resolved)
             }
             Sort::Resolved(ivysort) => ControlMut::Produce(ivysort.clone()),
@@ -189,25 +182,19 @@ impl Visitor<IvySort> for SortInferer {
         Ok(ctrl)
     }
 
-    fn symbol(
-        &mut self,
-        p: &mut expressions::Symbol,
-    ) -> VisitorResult<IvySort, expressions::Symbol> {
+    fn symbol(&mut self, p: &mut expressions::Symbol) -> InferenceResult<expressions::Symbol> {
         let sort = match &mut p.decl {
             Sort::ToBeInferred => match self.bindings.lookup_sym(&p.name) {
-                None => bail!(TypeError::UnboundVariable(p.name.clone())),
+                None => return Err(TypeError::UnboundVariable(p.name.clone())),
                 Some(s) => s.clone(),
             },
-            Sort::Annotated(ident) => self.identifier(ident)?.modifying(ident)?,
+            Sort::Annotated(ident) => self.identifier(ident)?.modifying(ident),
             Sort::Resolved(ivysort) => ivysort.clone(),
         };
         Ok(ControlMut::Produce(sort))
     }
 
-    fn token(
-        &mut self,
-        sym: &mut expressions::Token,
-    ) -> VisitorResult<IvySort, expressions::Token> {
+    fn token(&mut self, sym: &mut expressions::Token) -> InferenceResult<expressions::Token> {
         match sym.as_str() {
             "bool" => Ok(ControlMut::Produce(IvySort::Bool)),
             "unbounded_sequence" => Ok(ControlMut::Produce(IvySort::Number)),
@@ -215,21 +202,21 @@ impl Visitor<IvySort> for SortInferer {
             // TODO: and of course other builtins.
             _ => match self.bindings.lookup_sym(sym) {
                 Some(sort) => Ok(ControlMut::Produce(sort.clone())),
-                None => bail!(TypeError::UnboundVariable(sym.clone())),
+                None => return Err(TypeError::UnboundVariable(sym.clone())),
             },
         }
     }
 
-    fn this(&mut self) -> VisitorResult<IvySort, Expr> {
+    fn this(&mut self) -> InferenceResult<Expr> {
         match self.bindings.lookup_sym("this") {
-            None => bail!(TypeError::UnboundVariable("this".into())),
+            None => Err(TypeError::UnboundVariable("this".into())),
             Some(t) => Ok(ControlMut::Produce(t.clone())),
         }
     }
 
     // Actions
 
-    fn begin_assign(&mut self, ast: &mut actions::AssignAction) -> VisitorResult<IvySort, Action> {
+    fn begin_assign(&mut self, ast: &mut actions::AssignAction) -> InferenceResult<Action> {
         self.bindings.push_scope();
         match &ast.lhs {
             Expr::App(AppExpr { args, .. }) => {
@@ -251,7 +238,7 @@ impl Visitor<IvySort> for SortInferer {
         _ast: &mut actions::AssignAction,
         lhs_sort: IvySort,
         rhs_sort: IvySort,
-    ) -> VisitorResult<IvySort, Action> {
+    ) -> InferenceResult<Action> {
         self.bindings.unify(&lhs_sort, &rhs_sort)?;
         self.bindings.pop_scope();
         Ok(ControlMut::Produce(IvySort::Unit))
@@ -259,9 +246,9 @@ impl Visitor<IvySort> for SortInferer {
 
     // Statements
 
-    fn action_seq(&mut self, ast: &mut Vec<Action>) -> VisitorResult<IvySort, statements::Stmt> {
+    fn action_seq(&mut self, ast: &mut Vec<Action>) -> InferenceResult<statements::Stmt> {
         //XXX: kinda dumb, honestly.
-        let _ = ast.visit(self)?.modifying(ast)?;
+        let _ = ast.visit(self)?.modifying(ast);
         Ok(ControlMut::Produce(IvySort::Unit))
     }
 
@@ -271,7 +258,7 @@ impl Visitor<IvySort> for SortInferer {
         tst_t: IvySort,
         _then_t: Vec<IvySort>,
         _else_t: Option<Vec<IvySort>>,
-    ) -> VisitorResult<IvySort, statements::Stmt> {
+    ) -> InferenceResult<statements::Stmt> {
         self.bindings.unify(&tst_t, &IvySort::Bool)?;
         Ok(ControlMut::Produce(IvySort::Unit))
     }
@@ -280,7 +267,7 @@ impl Visitor<IvySort> for SortInferer {
         &mut self,
         name: &mut Token,
         _ast: &mut Sort,
-    ) -> VisitorResult<IvySort, statements::Stmt> {
+    ) -> InferenceResult<statements::Stmt> {
         // Bind the name to _something_; we'll unify this value with its resolved sort when finishing the visit.
         let v = self.bindings.new_sortvar();
         self.bindings.append(name.clone(), v)?;
@@ -292,7 +279,7 @@ impl Visitor<IvySort> for SortInferer {
         _ast: &mut Sort,
         name_sort: IvySort,
         resolved_sort: IvySort,
-    ) -> VisitorResult<IvySort, statements::Stmt> {
+    ) -> InferenceResult<statements::Stmt> {
         let resolved = self.bindings.unify(&name_sort, &resolved_sort)?;
 
         Ok(ControlMut::Mutation(
@@ -311,7 +298,7 @@ impl Visitor<IvySort> for SortInferer {
         _ast: &mut expressions::AppExpr,
         fsort: IvySort,
         argsorts: Vec<IvySort>,
-    ) -> VisitorResult<IvySort, Expr> {
+    ) -> InferenceResult<Expr> {
         let retsort = self.bindings.new_sortvar();
 
         // XXX: This is hacky.
@@ -320,16 +307,15 @@ impl Visitor<IvySort> for SortInferer {
             .collect::<Vec<_>>();
         let expected_sort =
             IvySort::action_sort(dummy_argnames, argsorts, sorts::ActionRet::Unknown);
-        let unified = self.bindings.unify(&fsort, &expected_sort);
+        let unified = self.bindings.unify(&fsort, &expected_sort)?;
         match unified {
-            Ok(IvySort::Action(_argnames, _argsorts, action_ret)) => match action_ret {
+            IvySort::Action(_argnames, _argsorts, action_ret) => match action_ret {
                 sorts::ActionRet::Unknown => Ok(ControlMut::Produce(retsort)),
                 sorts::ActionRet::Unit => Ok(ControlMut::Produce(IvySort::Unit)),
                 sorts::ActionRet::Named(binding) => Ok(ControlMut::Produce(binding.decl)),
             },
-            Ok(IvySort::Relation(_)) => Ok(ControlMut::Produce(IvySort::Bool)),
-            Ok(unified) => bail!(TypeError::InvalidApplication(unified)),
-            Err(e) => bail!(e),
+            IvySort::Relation(_) => Ok(ControlMut::Produce(IvySort::Bool)),
+            unified => Err(TypeError::InvalidApplication(unified)),
         }
     }
 
@@ -339,7 +325,7 @@ impl Visitor<IvySort> for SortInferer {
         lhs_sort: IvySort,
         _op_ret: IvySort,
         rhs_sort: IvySort,
-    ) -> VisitorResult<IvySort, Expr> {
+    ) -> InferenceResult<Expr> {
         match ast.op {
             // Boolean operators
             expressions::Verb::Iff
@@ -353,7 +339,7 @@ impl Visitor<IvySort> for SortInferer {
                     .and(self.bindings.unify(&IvySort::Bool, &rhs_sort))
                     .is_err()
                 {
-                    bail!(TypeError::UnificationError(lhs_sort, rhs_sort))
+                    Err(TypeError::UnificationError(lhs_sort, rhs_sort))
                 } else {
                     Ok(ControlMut::Produce(IvySort::Bool))
                 }
@@ -370,7 +356,7 @@ impl Visitor<IvySort> for SortInferer {
                     .and(self.bindings.unify(&IvySort::Number, &rhs_sort))
                     .is_err()
                 {
-                    bail!(TypeError::UnificationError(lhs_sort, rhs_sort))
+                    Err(TypeError::UnificationError(lhs_sort, rhs_sort))
                 } else {
                     Ok(ControlMut::Produce(IvySort::Bool))
                 }
@@ -378,7 +364,7 @@ impl Visitor<IvySort> for SortInferer {
 
             expressions::Verb::Equals | expressions::Verb::Notequals => {
                 if self.bindings.unify(&lhs_sort, &rhs_sort).is_err() {
-                    bail!(TypeError::UnificationError(lhs_sort, rhs_sort))
+                    Err(TypeError::UnificationError(lhs_sort, rhs_sort))
                 } else {
                     Ok(ControlMut::Produce(IvySort::Bool))
                 }
@@ -395,7 +381,7 @@ impl Visitor<IvySort> for SortInferer {
                     .and(self.bindings.unify(&IvySort::Number, &rhs_sort))
                     .is_err()
                 {
-                    bail!(TypeError::UnificationError(lhs_sort, rhs_sort))
+                    Err(TypeError::UnificationError(lhs_sort, rhs_sort))
                 } else {
                     Ok(ControlMut::Produce(IvySort::Number))
                 }
@@ -414,13 +400,13 @@ impl Visitor<IvySort> for SortInferer {
         &mut self,
         lhs: &mut Expr,
         rhs: &mut expressions::Symbol,
-    ) -> VisitorResult<IvySort, Expr> {
-        let lhs_sort = lhs.visit(self)?.modifying(lhs)?;
+    ) -> InferenceResult<Expr> {
+        let lhs_sort = lhs.visit(self)?.modifying(lhs);
 
         // Note that beecause the rhs's symbol is not in our context, we can't
         // visit it without getting an unbound identifier, so simply resolve its
         // sort.
-        let annotated_rhs_sort = self.sort(&mut rhs.decl)?.modifying(&mut rhs.decl)?;
+        let annotated_rhs_sort = self.sort(&mut rhs.decl)?.modifying(&mut rhs.decl);
 
         let mut is_common = false;
 
@@ -438,7 +424,7 @@ impl Visitor<IvySort> for SortInferer {
                 Ok(s.cloned())
             }
             IvySort::SortVar(_) => Ok(Some(self.bindings.new_sortvar())),
-            sort => bail!(TypeError::NotARecord(sort.clone())),
+            sort => Err(TypeError::NotARecord(sort.clone())),
         }?
         // Next, if the RHS expression has a known type, ensure it doesn't contradict
         // what we figured out from the field access.
@@ -473,7 +459,7 @@ impl Visitor<IvySort> for SortInferer {
                 rhs.decl = Sort::Resolved(sort.clone());
                 Ok(ControlMut::SkipSiblings(sort))
             }
-            None => bail!(TypeError::MissingRecordField(lhs_sort, rhs.name.clone())),
+            None => Err(TypeError::MissingRecordField(lhs_sort, rhs.name.clone())),
         }
     }
 
@@ -482,7 +468,7 @@ impl Visitor<IvySort> for SortInferer {
         op: &mut expressions::Verb,
         _rhs: &mut Expr,
         rhs_sort: IvySort,
-    ) -> VisitorResult<IvySort, Expr> {
+    ) -> InferenceResult<Expr> {
         match op {
             expressions::Verb::Not => Ok(ControlMut::Produce(
                 self.bindings.unify(&IvySort::Bool, &rhs_sort)?,
@@ -496,7 +482,7 @@ impl Visitor<IvySort> for SortInferer {
 
     // Formulas
 
-    fn begin_forall(&mut self, _ast: &mut logic::Forall) -> VisitorResult<IvySort, logic::Fmla> {
+    fn begin_forall(&mut self, _ast: &mut logic::Forall) -> InferenceResult<logic::Fmla> {
         self.bindings.push_scope();
         Ok(ControlMut::Produce(IvySort::Unit))
     }
@@ -505,7 +491,7 @@ impl Visitor<IvySort> for SortInferer {
         _ast: &mut logic::Forall,
         _vars: Vec<IvySort>,
         _fmla: IvySort,
-    ) -> VisitorResult<IvySort, logic::Fmla> {
+    ) -> InferenceResult<logic::Fmla> {
         self.bindings.pop_scope();
         Ok(ControlMut::Produce(IvySort::Unit))
     }
@@ -516,7 +502,7 @@ impl Visitor<IvySort> for SortInferer {
         &mut self,
         name: &mut Token,
         _ast: &mut declarations::ActionDecl,
-    ) -> VisitorResult<IvySort, declarations::Decl> {
+    ) -> InferenceResult<declarations::Decl> {
         // Bind the name to _something_; we'll unify this value with its resolved sort when finishing the visit.
         let v = self.bindings.new_sortvar();
         self.bindings.append(name.clone(), v)?;
@@ -532,7 +518,7 @@ impl Visitor<IvySort> for SortInferer {
         param_sorts: Vec<IvySort>,
         ret_sort: Option<Binding<IvySort>>,
         _body: Option<Vec<IvySort>>,
-    ) -> VisitorResult<IvySort, declarations::Decl> {
+    ) -> InferenceResult<declarations::Decl> {
         let mut locals = ast
             .params
             .iter()
@@ -564,7 +550,7 @@ impl Visitor<IvySort> for SortInferer {
     fn begin_after_decl(
         &mut self,
         ast: &mut declarations::ActionMixinDecl,
-    ) -> VisitorResult<IvySort, declarations::Decl> {
+    ) -> InferenceResult<declarations::Decl> {
         // XXX: this feels like a hack for something, but I've forgotten for what.
         if let Some(sym) = ast.name.first() {
             self.bindings.push_scope();
@@ -589,7 +575,7 @@ impl Visitor<IvySort> for SortInferer {
         after_params_sort: Option<Vec<IvySort>>,
         after_ret_sort: Option<IvySort>,
         _after_body_sort: Vec<IvySort>,
-    ) -> VisitorResult<IvySort, declarations::Decl> {
+    ) -> InferenceResult<declarations::Decl> {
         self.bindings.pop_scope();
         let (new_ast, sort) =
             self.resolve_mixin(ast, action_sort, after_params_sort, after_ret_sort)?;
@@ -603,7 +589,7 @@ impl Visitor<IvySort> for SortInferer {
         &mut self,
         sym: &mut Token,
         _s: &mut Sort,
-    ) -> VisitorResult<IvySort, declarations::Decl> {
+    ) -> InferenceResult<declarations::Decl> {
         let v = self.bindings.new_sortvar();
         self.bindings.append(sym.clone(), v.clone())?;
         Ok(ControlMut::Produce(v))
@@ -614,7 +600,7 @@ impl Visitor<IvySort> for SortInferer {
         _s: &mut Sort,
         sym_sort: IvySort,
         expr_sort: IvySort,
-    ) -> VisitorResult<IvySort, declarations::Decl> {
+    ) -> InferenceResult<declarations::Decl> {
         let unified = self.bindings.unify(&sym_sort, &expr_sort)?;
         Ok(ControlMut::Mutation(
             declarations::Decl::Alias(Binding::from(sym.clone(), Sort::Resolved(unified.clone()))),
@@ -625,7 +611,7 @@ impl Visitor<IvySort> for SortInferer {
     fn begin_before_decl(
         &mut self,
         ast: &mut declarations::ActionMixinDecl,
-    ) -> VisitorResult<IvySort, declarations::Decl> {
+    ) -> InferenceResult<declarations::Decl> {
         if let Some(sym) = ast.name.first() {
             self.bindings.push_scope();
 
@@ -647,7 +633,7 @@ impl Visitor<IvySort> for SortInferer {
         action_sort: IvySort,
         params_sort: Option<Vec<IvySort>>,
         _body_sorts: Vec<IvySort>,
-    ) -> VisitorResult<IvySort, declarations::Decl> {
+    ) -> InferenceResult<declarations::Decl> {
         self.bindings.pop_scope();
         let (new_ast, sort) = self.resolve_mixin(ast, action_sort, params_sort, None)?;
         Ok(ControlMut::Mutation(
@@ -660,7 +646,7 @@ impl Visitor<IvySort> for SortInferer {
         &mut self,
         _ast: &mut actions::EnsureAction,
         pred_sort: IvySort,
-    ) -> VisitorResult<IvySort, Action> {
+    ) -> InferenceResult<Action> {
         self.bindings.unify(&IvySort::Bool, &pred_sort)?;
         Ok(ControlMut::Produce(IvySort::Unit))
     }
@@ -669,7 +655,7 @@ impl Visitor<IvySort> for SortInferer {
         &mut self,
         _ast: &mut actions::RequiresAction,
         pred_sort: IvySort,
-    ) -> VisitorResult<IvySort, Action> {
+    ) -> InferenceResult<Action> {
         self.bindings.unify(&IvySort::Bool, &pred_sort)?;
         Ok(ControlMut::Produce(IvySort::Unit))
     }
@@ -678,7 +664,7 @@ impl Visitor<IvySort> for SortInferer {
         &mut self,
         name: &mut Token,
         _ast: &mut declarations::FunctionDecl,
-    ) -> VisitorResult<IvySort, declarations::Decl> {
+    ) -> InferenceResult<declarations::Decl> {
         let v = self.bindings.new_sortvar();
         self.bindings.append(name.clone(), v.clone())?;
         self.bindings.push_scope();
@@ -692,7 +678,7 @@ impl Visitor<IvySort> for SortInferer {
         name_sort: IvySort,
         param_sorts: Vec<IvySort>,
         ret_sort: IvySort,
-    ) -> VisitorResult<IvySort, declarations::Decl> {
+    ) -> InferenceResult<declarations::Decl> {
         let param_names = ast
             .params
             .iter()
@@ -712,7 +698,7 @@ impl Visitor<IvySort> for SortInferer {
     fn begin_implement_decl(
         &mut self,
         ast: &mut declarations::ActionMixinDecl,
-    ) -> VisitorResult<IvySort, declarations::Decl> {
+    ) -> InferenceResult<declarations::Decl> {
         if let Some(sym) = ast.name.first() {
             self.bindings.push_scope();
 
@@ -735,7 +721,7 @@ impl Visitor<IvySort> for SortInferer {
         params_sort: Option<Vec<IvySort>>,
         ret_sort: Option<Binding<IvySort>>,
         _body: Vec<IvySort>,
-    ) -> VisitorResult<IvySort, declarations::Decl> {
+    ) -> InferenceResult<declarations::Decl> {
         self.bindings.pop_scope();
         let (new_ast, sort) =
             self.resolve_mixin(ast, action_sort, params_sort, ret_sort.map(|b| b.decl))?;
@@ -748,7 +734,7 @@ impl Visitor<IvySort> for SortInferer {
     fn begin_import_decl(
         &mut self,
         ast: &mut declarations::ImportDecl,
-    ) -> VisitorResult<IvySort, declarations::Decl> {
+    ) -> InferenceResult<declarations::Decl> {
         let v = self.bindings.new_sortvar();
         self.bindings.append(ast.name.clone(), v.clone())?;
 
@@ -759,7 +745,7 @@ impl Visitor<IvySort> for SortInferer {
         _ast: &mut declarations::ImportDecl,
         decl_sortvar: IvySort,
         param_sorts: Vec<IvySort>,
-    ) -> VisitorResult<IvySort, declarations::Decl> {
+    ) -> InferenceResult<declarations::Decl> {
         // TODO
         let relsort = IvySort::Action(
             vec![],
@@ -776,7 +762,7 @@ impl Visitor<IvySort> for SortInferer {
         _sort: &mut Sort,
         n: IvySort,
         s: IvySort,
-    ) -> VisitorResult<IvySort, declarations::Decl> {
+    ) -> InferenceResult<declarations::Decl> {
         let unified = self.bindings.unify(&n, &s)?;
         Ok(ControlMut::Mutation(
             declarations::Decl::Interpret(declarations::InterpretDecl {
@@ -791,7 +777,7 @@ impl Visitor<IvySort> for SortInferer {
         &mut self,
         name: &mut Token,
         ast: &mut declarations::ModuleDecl,
-    ) -> VisitorResult<IvySort, declarations::Decl> {
+    ) -> InferenceResult<declarations::Decl> {
         let v = self.bindings.new_sortvar();
         self.bindings.append(name.clone(), v.clone())?;
 
@@ -821,7 +807,7 @@ impl Visitor<IvySort> for SortInferer {
         mod_sort: IvySort,
         param_sorts: Vec<IvySort>,
         field_sorts: Vec<IvySort>,
-    ) -> VisitorResult<IvySort, declarations::Decl> {
+    ) -> InferenceResult<declarations::Decl> {
         let args = ast
             .sortsyms
             .iter()
@@ -884,7 +870,7 @@ impl Visitor<IvySort> for SortInferer {
         &mut self,
         name: &mut Token,
         _ast: &mut declarations::ObjectDecl,
-    ) -> VisitorResult<IvySort, declarations::Decl> {
+    ) -> InferenceResult<declarations::Decl> {
         let v = self.bindings.new_sortvar();
         self.bindings.append(name.clone(), v.clone())?;
 
@@ -908,7 +894,7 @@ impl Visitor<IvySort> for SortInferer {
         decl_sort: IvySort,
         param_sorts: Vec<IvySort>,
         body_sorts: Vec<IvySort>,
-    ) -> VisitorResult<IvySort, declarations::Decl> {
+    ) -> InferenceResult<declarations::Decl> {
         let args = ast
             .params
             .iter()
@@ -943,7 +929,7 @@ impl Visitor<IvySort> for SortInferer {
         &mut self,
         name: &mut Token,
         _ast: &mut declarations::Relation,
-    ) -> VisitorResult<IvySort, declarations::Decl> {
+    ) -> InferenceResult<declarations::Decl> {
         // Bind the name to _something_; we'll unify this value with a function sort when finishing the visit.
         let v = self.bindings.new_sortvar();
         self.bindings.append(name.clone(), v.clone())?;
@@ -956,7 +942,7 @@ impl Visitor<IvySort> for SortInferer {
         _ast: &mut declarations::Relation,
         n: IvySort,
         paramsorts: Vec<IvySort>,
-    ) -> VisitorResult<IvySort, declarations::Decl> {
+    ) -> InferenceResult<declarations::Decl> {
         let relsort = IvySort::Relation(paramsorts);
         let unifed = self.bindings.unify(&n, &relsort)?;
         self.bindings.pop_scope();
@@ -967,7 +953,7 @@ impl Visitor<IvySort> for SortInferer {
         &mut self,
         name: &mut Token,
         _ast: &mut declarations::InstanceDecl,
-    ) -> VisitorResult<IvySort, declarations::Decl> {
+    ) -> InferenceResult<declarations::Decl> {
         let v = self.bindings.new_sortvar();
         self.bindings.append(name.clone(), v)?;
         Ok(ControlMut::Produce(IvySort::Unit))
@@ -979,7 +965,7 @@ impl Visitor<IvySort> for SortInferer {
         decl_sort: IvySort,
         module_sort: IvySort,
         mod_args_sorts: Vec<IvySort>,
-    ) -> VisitorResult<IvySort, declarations::Decl> {
+    ) -> InferenceResult<declarations::Decl> {
         if let IvySort::Module(module) = module_sort {
             if !mod_args_sorts.is_empty() {
                 // Will have to monomorphize with the module instantiation pass.
@@ -1010,7 +996,7 @@ impl Visitor<IvySort> for SortInferer {
                 Ok(ControlMut::Produce(unifed))
             }
         } else {
-            bail!(TypeError::NotInstanceable(module_sort.clone()))
+            return Err(TypeError::NotInstanceable(module_sort.clone()));
         }
     }
 
@@ -1018,7 +1004,7 @@ impl Visitor<IvySort> for SortInferer {
         &mut self,
         name: &mut Token,
         sort: &mut Sort,
-    ) -> VisitorResult<IvySort, declarations::Decl> {
+    ) -> InferenceResult<declarations::Decl> {
         let resolved = match sort {
             Sort::ToBeInferred => self.bindings.new_sortvar(),
             Sort::Annotated(_) => unreachable!(),
@@ -1037,7 +1023,7 @@ impl Visitor<IvySort> for SortInferer {
         &mut self,
         name: &mut Token,
         _ast: &mut Sort,
-    ) -> VisitorResult<IvySort, declarations::Decl> {
+    ) -> InferenceResult<declarations::Decl> {
         // Bind the name to _something_; we'll unify this value with its resolved sort when finishing the visit.
         let v = self.bindings.new_sortvar();
         self.bindings.append(name.clone(), v)?;
@@ -1049,7 +1035,7 @@ impl Visitor<IvySort> for SortInferer {
         _ast: &mut Sort,
         name_sort: IvySort,
         resolved_sort: IvySort,
-    ) -> VisitorResult<IvySort, declarations::Decl> {
+    ) -> InferenceResult<declarations::Decl> {
         let resolved = self.bindings.unify(&name_sort, &resolved_sort)?;
 
         Ok(ControlMut::Mutation(

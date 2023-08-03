@@ -28,7 +28,8 @@ const _LOGIC: &str = include_str!("grammars/logic.pest");
 #[grammar = "parser/grammars/logic.pest"]
 pub struct IvyParser;
 
-pub type Result<T> = std::result::Result<T, Error<Rule>>;
+pub type ParseError = Error<Rule>;
+pub type Result<T> = std::result::Result<T, ParseError>;
 type Node<'i> = pest_consume::Node<'i, Rule, Rc<str>>;
 
 #[pest_consume::parser]

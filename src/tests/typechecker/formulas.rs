@@ -14,7 +14,7 @@ mod tests {
         let mut ast = IvyParser::fmla(res)?;
 
         let mut tc = SortInferer::new();
-        ast.visit(&mut tc)?.modifying(&mut ast)?;
+        ast.visit(&mut tc)?.modifying(&mut ast);
         Ok(ast)
     }
 

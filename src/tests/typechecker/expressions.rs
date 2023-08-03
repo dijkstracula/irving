@@ -20,10 +20,7 @@ mod tests {
 
         // `this` has to be explicitly bound from the enclosing context.
         let res = ast.visit(&mut tc).expect_err("visit");
-        assert_eq!(
-            res.downcast::<TypeError>().unwrap(),
-            TypeError::UnboundVariable("this".into())
-        );
+        assert_eq!(res, TypeError::UnboundVariable("this".into()));
     }
 
     #[test]
@@ -32,7 +29,7 @@ mod tests {
         let mut ast = helpers::rval_from_src(prog);
 
         let mut tc = SortInferer::new();
-        let res = ast.visit(&mut tc).unwrap().modifying(&mut ast).unwrap();
+        let res = ast.visit(&mut tc).unwrap().modifying(&mut ast);
         assert_eq!(res, IvySort::Bool);
     }
 
@@ -42,7 +39,7 @@ mod tests {
         let mut ast = helpers::rval_from_src(prog);
 
         let mut tc = SortInferer::new();
-        let res = ast.visit(&mut tc).unwrap().modifying(&mut ast).unwrap();
+        let res = ast.visit(&mut tc).unwrap().modifying(&mut ast);
         assert_eq!(res, IvySort::Number);
     }
 
@@ -54,7 +51,7 @@ mod tests {
         let mut tc = SortInferer::new();
         let res = ast.visit(&mut tc);
         assert_eq!(
-            res.unwrap_err().downcast::<TypeError>().unwrap(),
+            res.unwrap_err(),
             TypeError::UnificationError(IvySort::Number, IvySort::Bool)
         )
     }
@@ -65,7 +62,7 @@ mod tests {
         let mut ast = helpers::rval_from_src(prog);
 
         let mut tc = SortInferer::new();
-        let res = ast.visit(&mut tc).unwrap().modifying(&mut ast).unwrap();
+        let res = ast.visit(&mut tc).unwrap().modifying(&mut ast);
         assert_eq!(res, IvySort::Bool);
     }
 
@@ -78,19 +75,12 @@ mod tests {
 
         let mut tc = SortInferer::new();
         let res = identop.visit(&mut tc);
-        assert_eq!(
-            res.unwrap_err().downcast::<TypeError>().unwrap(),
-            TypeError::UnboundVariable("foo".into())
-        );
+        assert_eq!(res.unwrap_err(), TypeError::UnboundVariable("foo".into()));
 
         // Bindings at the top level should be resolvable.
         tc.bindings.append("foo".into(), IvySort::Number).unwrap();
         assert_eq!(
-            identop
-                .visit(&mut tc)
-                .unwrap()
-                .modifying(&mut identop)
-                .unwrap(),
+            identop.visit(&mut tc).unwrap().modifying(&mut identop),
             IvySort::Number
         );
 
@@ -98,11 +88,7 @@ mod tests {
         tc.bindings.push_scope();
         tc.bindings.append("foo".into(), IvySort::Bool).unwrap();
         assert_eq!(
-            identop
-                .visit(&mut tc)
-                .unwrap()
-                .modifying(&mut identop)
-                .unwrap(),
+            identop.visit(&mut tc).unwrap().modifying(&mut identop),
             IvySort::Bool
         );
 
@@ -136,11 +122,7 @@ mod tests {
                 ),
             )
             .unwrap();
-        let res = callop
-            .visit(&mut tc)
-            .expect("visit")
-            .modifying(&mut callop)
-            .expect("mutation");
+        let res = callop.visit(&mut tc).expect("visit").modifying(&mut callop);
         assert_eq!(res, IvySort::Number);
     }
 
@@ -152,11 +134,7 @@ mod tests {
         let mut tc = SortInferer::new();
         let var = tc.bindings.new_sortvar();
         tc.bindings.append("f".into(), var).unwrap();
-        let res = callop
-            .visit(&mut tc)
-            .expect("visit")
-            .modifying(&mut callop)
-            .unwrap();
+        let res = callop.visit(&mut tc).expect("visit").modifying(&mut callop);
         assert_eq!(res, IvySort::SortVar(1));
     }
 
@@ -168,11 +146,7 @@ mod tests {
         let mut tc = SortInferer::new();
         tc.bindings.append("f".into(), IvySort::Number).unwrap();
 
-        let res = callop
-            .visit(&mut tc)
-            .unwrap_err()
-            .downcast::<TypeError>()
-            .unwrap();
+        let res = callop.visit(&mut tc).unwrap_err();
         assert_eq!(
             res,
             TypeError::UnificationError(
@@ -198,22 +172,14 @@ mod tests {
             .append("a".into(), IvySort::Object(procsort))
             .unwrap();
 
-        let res = getop
-            .visit(&mut tc)
-            .expect("visit")
-            .modifying(&mut getop)
-            .unwrap();
+        let res = getop.visit(&mut tc).expect("visit").modifying(&mut getop);
         assert_eq!(res, IvySort::Bool);
 
         // But it doesn't make sense to access 'b' if 'a' is a scalar type.
         tc.bindings.push_scope();
         tc.bindings.append("a".into(), IvySort::Number).unwrap();
 
-        let res = getop
-            .visit(&mut tc)
-            .unwrap_err()
-            .downcast::<TypeError>()
-            .unwrap();
+        let res = getop.visit(&mut tc).unwrap_err();
         assert_eq!(res, TypeError::NotARecord(IvySort::Number));
     }
 }

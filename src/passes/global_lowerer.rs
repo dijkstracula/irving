@@ -15,14 +15,17 @@ impl GlobalLowerer {
     }
 }
 
-impl Visitor<()> for GlobalLowerer {
-    fn finish_prog(&mut self, prog: &mut Prog) -> VisitorResult<(), Prog> {
+impl Visitor<(), std::fmt::Error> for GlobalLowerer {
+    fn finish_prog(&mut self, prog: &mut Prog) -> VisitorResult<(), std::fmt::Error, Prog> {
         self.globals.append(&mut prog.top);
         prog.top.append(&mut self.globals);
         Ok(ControlMut::Produce(()))
     }
 
-    fn finish_global_decl(&mut self, ast: &mut Vec<Decl>) -> VisitorResult<(), Decl> {
+    fn finish_global_decl(
+        &mut self,
+        ast: &mut Vec<Decl>,
+    ) -> VisitorResult<(), std::fmt::Error, Decl> {
         self.globals.append(ast);
         Ok(ControlMut::Mutation(Decl::Noop, ()))
     }

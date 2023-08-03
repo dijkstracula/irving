@@ -4,4 +4,4 @@ pub mod sort;
 
 pub(crate) use control::ControlMut;
 
-pub type VisitorResult<T, Node> = anyhow::Result<ControlMut<T, Node>>;
+pub type VisitorResult<T, E, Node> = std::result::Result<ControlMut<T, Node>, E>;

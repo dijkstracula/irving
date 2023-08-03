@@ -15,10 +15,10 @@ pub enum ControlMut<T, Node> {
 
 impl<T, Node> ControlMut<T, Node> {
     /// Runs the thunk if we received `Produce` from the Visitor.
-    pub fn and_then<F>(self, mut next: F) -> VisitorResult<T, Node>
+    pub fn and_then<E, F>(self, mut next: F) -> VisitorResult<T, E, Node>
     where
         // TODO: Thread through the T value??
-        F: FnMut(T) -> VisitorResult<T, Node>,
+        F: FnMut(T) -> VisitorResult<T, E, Node>,
     {
         match self {
             ControlMut::Produce(t) => next(t),
@@ -26,10 +26,10 @@ impl<T, Node> ControlMut<T, Node> {
         }
     }
 
-    pub fn map<F, U, N2>(self, mut f: F) -> VisitorResult<U, N2>
+    pub fn map<E, F, U, N2>(self, mut f: F) -> VisitorResult<U, E, N2>
     where
         // TODO: Thread through the T value??
-        F: FnMut(T) -> anyhow::Result<U>,
+        F: FnMut(T) -> Result<U, E>,
     {
         match self {
             ControlMut::Produce(t) => Ok(ControlMut::Produce(f(t)?)),
@@ -39,14 +39,14 @@ impl<T, Node> ControlMut<T, Node> {
     }
 
     /// XXX: "unwrap"?
-    pub fn modifying(self, target: &mut Node) -> anyhow::Result<T> {
-        Ok(match self {
+    pub fn modifying(self, target: &mut Node) -> T {
+        match self {
             ControlMut::Produce(t) => t,
             ControlMut::SkipSiblings(t) => t,
             ControlMut::Mutation(repl, t) => {
                 *target = repl;
                 t
             }
-        })
+        }
     }
 }

@@ -15,7 +15,7 @@ fn main() -> anyhow::Result<()> {
     // TODO: Might be good to wrap these all up in one meta-pass.
     let mut gl = GlobalLowerer::new();
     log::info!(target: "pass", "lowering globals");
-    prog.visit(&mut gl)?.modifying(&mut prog)?;
+    prog.visit(&mut gl)?.modifying(&mut prog);
     log::info!("[pass] typechecking");
     irving::stdlib::typecheck(&mut prog)?;
 

@@ -99,13 +99,11 @@ pub mod helpers {
 
         prog.visit(&mut gl)
             .expect("lowering globals")
-            .modifying(&mut prog)
-            .unwrap();
+            .modifying(&mut prog);
 
         prog.visit(&mut tc)
             .expect("type inference")
-            .modifying(&mut prog)
-            .unwrap();
+            .modifying(&mut prog);
 
         prog
     }

@@ -20,7 +20,7 @@ mod tests {
         });
 
         let mut tc = SortInferer::new();
-        let res = iso.visit(&mut tc).unwrap().modifying(&mut iso).unwrap();
+        let res = iso.visit(&mut tc).unwrap().modifying(&mut iso);
         assert_eq!(res, sort);
         assert_eq!(tc.bindings.lookup_sym("m"), Some(&sort));
     }
@@ -40,7 +40,7 @@ mod tests {
         });
 
         let mut tc = SortInferer::new();
-        let res = iso.visit(&mut tc).unwrap().modifying(&mut iso).unwrap();
+        let res = iso.visit(&mut tc).unwrap().modifying(&mut iso);
         assert_eq!(res, sort);
         assert_eq!(tc.bindings.lookup_sym("m"), Some(&sort));
     }
@@ -69,7 +69,7 @@ mod tests {
         });
 
         let mut tc = SortInferer::new();
-        let res = iso.visit(&mut tc).unwrap().modifying(&mut iso).unwrap();
+        let res = iso.visit(&mut tc).unwrap().modifying(&mut iso);
         assert_eq!(res, sort);
         assert_eq!(tc.bindings.lookup_sym("array"), Some(&sort));
 
@@ -118,7 +118,7 @@ mod tests {
         });
 
         let mut tc = SortInferer::new();
-        let res = iso.visit(&mut tc).unwrap().modifying(&mut iso).unwrap();
+        let res = iso.visit(&mut tc).unwrap().modifying(&mut iso);
 
         assert_eq!(res, sort);
         assert_eq!(tc.bindings.lookup_sym("array"), Some(&sort));
@@ -132,7 +132,7 @@ mod tests {
         // Our dependent module.
         let mut tcp = helpers::tcp_moduledecl();
         let mut tc = SortInferer::new();
-        tcp.visit(&mut tc).unwrap().modifying(&mut tcp).unwrap();
+        tcp.visit(&mut tc).unwrap().modifying(&mut tcp);
 
         let mut proc = helpers::process_from_decl(
             "process host = { 
@@ -140,7 +140,7 @@ mod tests {
             }",
         );
 
-        proc.visit(&mut tc).unwrap().modifying(&mut proc).unwrap();
+        proc.visit(&mut tc).unwrap().modifying(&mut proc);
         println!(
             "{:?}",
             tc.bindings.lookup_ident(&vec!["host".into(), "net".into()])
@@ -168,7 +168,7 @@ instance c : counter(foo)",
         );
 
         let mut tc = SortInferer::new();
-        proc.visit(&mut tc).unwrap().modifying(&mut proc).unwrap();
+        proc.visit(&mut tc).unwrap().modifying(&mut proc);
     }
 
     #[test]

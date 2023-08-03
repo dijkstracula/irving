@@ -20,7 +20,6 @@ mod tests {
             .visit(&mut tc)
             .expect("Typechecking")
             .modifying(&mut module)
-            .expect("Ast mutatinon")
         {
             IvySort::Module(m) => m,
             _ => unreachable!(),

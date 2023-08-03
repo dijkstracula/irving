@@ -2,9 +2,12 @@
 
 use thiserror::Error;
 
-use crate::ast::{
-    declarations::Decl,
-    expressions::{ParamList, Token},
+use crate::{
+    ast::{
+        declarations::Decl,
+        expressions::{ParamList, Token},
+    },
+    visitor::VisitorResult,
 };
 
 use self::sorts::IvySort;
@@ -14,6 +17,8 @@ pub(crate) mod programs;
 pub(crate) mod sorts;
 pub(crate) mod subst;
 pub(crate) mod unifier;
+
+pub type InferenceResult<N> = VisitorResult<IvySort, TypeError, N>;
 
 #[derive(Debug, Error, Clone, PartialEq, Eq)]
 pub enum TypeError {

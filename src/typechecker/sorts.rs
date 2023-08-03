@@ -10,6 +10,8 @@ use crate::{
     visitor::{sort::Visitor, ControlMut},
 };
 
+use super::{InferenceResult, TypeError};
+
 #[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]
 pub struct Object {
     pub args: BTreeMap<Token, IvySort>,
@@ -113,7 +115,7 @@ impl SortSubstituter {
         Self { mapping }
     }
 
-    fn subst(&self, sort: IvySort) -> crate::visitor::VisitorResult<IvySort, IvySort> {
+    fn subst(&self, sort: IvySort) -> InferenceResult<IvySort> {
         match self.mapping.get(&sort) {
             Some(replacement) => Ok(ControlMut::Produce(replacement.clone())),
             None => Ok(ControlMut::Produce(sort)),
@@ -121,32 +123,32 @@ impl SortSubstituter {
     }
 }
 
-impl Visitor<IvySort> for SortSubstituter {
-    fn uninterpreted(&mut self) -> crate::visitor::VisitorResult<IvySort, IvySort> {
+impl Visitor<IvySort, TypeError> for SortSubstituter {
+    fn uninterpreted(&mut self) -> InferenceResult<IvySort> {
         self.subst(IvySort::Uninterpreted)
     }
 
-    fn this(&mut self) -> crate::visitor::VisitorResult<IvySort, IvySort> {
+    fn this(&mut self) -> InferenceResult<IvySort> {
         self.subst(IvySort::This)
     }
 
-    fn unit(&mut self) -> crate::visitor::VisitorResult<IvySort, IvySort> {
+    fn unit(&mut self) -> InferenceResult<IvySort> {
         self.subst(IvySort::Unit)
     }
 
-    fn top(&mut self) -> crate::visitor::VisitorResult<IvySort, IvySort> {
+    fn top(&mut self) -> InferenceResult<IvySort> {
         self.subst(IvySort::Top)
     }
 
-    fn bool(&mut self) -> crate::visitor::VisitorResult<IvySort, IvySort> {
+    fn bool(&mut self) -> InferenceResult<IvySort> {
         self.subst(IvySort::Bool)
     }
 
-    fn number(&mut self) -> crate::visitor::VisitorResult<IvySort, IvySort> {
+    fn number(&mut self) -> InferenceResult<IvySort> {
         self.subst(IvySort::Number)
     }
 
-    fn bitvec(&mut self, width: &mut u8) -> crate::visitor::VisitorResult<IvySort, IvySort> {
+    fn bitvec(&mut self, width: &mut u8) -> InferenceResult<IvySort> {
         self.subst(IvySort::BitVec(*width))
     }
 
@@ -157,7 +159,7 @@ impl Visitor<IvySort> for SortSubstituter {
         ret: &mut ActionRet,
         args_t: Option<Vec<IvySort>>,
         ret_t: IvySort,
-    ) -> crate::visitor::VisitorResult<IvySort, IvySort> {
+    ) -> InferenceResult<IvySort> {
         let args = match args_t {
             None => ActionArgs::Unknown,
             Some(args) => ActionArgs::List(args),
@@ -178,22 +180,15 @@ impl Visitor<IvySort> for SortSubstituter {
         &mut self,
         _original_elem: &mut IvySort,
         substituted_elem: IvySort,
-    ) -> crate::visitor::VisitorResult<IvySort, IvySort> {
+    ) -> InferenceResult<IvySort> {
         self.subst(IvySort::Vector(Box::new(substituted_elem)))
     }
 
-    fn range(
-        &mut self,
-        lo: &mut Expr,
-        hi: &mut Expr,
-    ) -> crate::visitor::VisitorResult<IvySort, IvySort> {
+    fn range(&mut self, lo: &mut Expr, hi: &mut Expr) -> InferenceResult<IvySort> {
         self.subst(IvySort::Range(Box::new(lo.clone()), Box::new(hi.clone())))
     }
 
-    fn enumeration(
-        &mut self,
-        discriminants: &mut Vec<Token>,
-    ) -> crate::visitor::VisitorResult<IvySort, IvySort> {
+    fn enumeration(&mut self, discriminants: &mut Vec<Token>) -> InferenceResult<IvySort> {
         self.subst(IvySort::Enum(discriminants.clone()))
     }
 
@@ -201,11 +196,11 @@ impl Visitor<IvySort> for SortSubstituter {
         &mut self,
         _args: &mut Vec<IvySort>,
         substituted: Vec<IvySort>,
-    ) -> crate::visitor::VisitorResult<IvySort, IvySort> {
+    ) -> InferenceResult<IvySort> {
         self.subst(IvySort::Relation(substituted))
     }
 
-    fn subclass(&mut self, cname: &mut Token) -> crate::visitor::VisitorResult<IvySort, IvySort> {
+    fn subclass(&mut self, cname: &mut Token) -> InferenceResult<IvySort> {
         self.subst(IvySort::Subclass(cname.clone()))
     }
 
@@ -214,7 +209,7 @@ impl Visitor<IvySort> for SortSubstituter {
         m: &mut Module,
         args_t: Vec<(String, IvySort)>,
         fields_t: BTreeMap<String, IvySort>,
-    ) -> crate::visitor::VisitorResult<IvySort, IvySort> {
+    ) -> InferenceResult<IvySort> {
         self.subst(IvySort::Module(Module {
             name: m.name.clone(),
             args: args_t,
@@ -230,11 +225,11 @@ impl Visitor<IvySort> for SortSubstituter {
         _spec_fields_t: BTreeMap<Token, IvySort>,
         _common_impl_fields_t: BTreeMap<Token, IvySort>,
         _common_spec_fields_t: BTreeMap<Token, IvySort>,
-    ) -> crate::visitor::VisitorResult<IvySort, IvySort> {
+    ) -> InferenceResult<IvySort> {
         todo!()
     }
 
-    fn sortvar(&mut self, id: &mut usize) -> crate::visitor::VisitorResult<IvySort, IvySort> {
+    fn sortvar(&mut self, id: &mut usize) -> InferenceResult<IvySort> {
         self.subst(IvySort::SortVar(*id))
     }
 }

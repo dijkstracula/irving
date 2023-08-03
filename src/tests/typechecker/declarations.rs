@@ -66,20 +66,14 @@ mod tests {
         // With an empty context, `net` should produce an unbound identifier error.
         let mut tc = SortInferer::new();
         let res = decl_ast.visit(&mut tc).expect_err("visit");
-        assert_eq!(
-            res.downcast::<TypeError>().unwrap(),
-            TypeError::UnboundVariable("net".into())
-        );
+        assert_eq!(res, TypeError::UnboundVariable("net".into()));
 
         // If `net` is in the context, it needs to be a module.
         tc.bindings.push_scope();
         tc.bindings.append("net".into(), IvySort::Bool).unwrap();
 
         let res = decl_ast.visit(&mut tc).expect_err("visit");
-        assert_eq!(
-            res.downcast::<TypeError>().unwrap(),
-            TypeError::NotARecord(IvySort::Bool)
-        );
+        assert_eq!(res, TypeError::NotARecord(IvySort::Bool));
         tc.bindings.pop_scope();
 
         // If it is module, field lookup needs to succeed.
@@ -96,10 +90,7 @@ mod tests {
             .unwrap();
 
         let res = decl_ast.visit(&mut tc).expect_err("visit");
-        assert_eq!(
-            res.downcast::<TypeError>().unwrap(),
-            TypeError::UnboundVariable("sock".into())
-        );
+        assert_eq!(res, TypeError::UnboundVariable("sock".into()));
         tc.bindings.pop_scope();
 
         // If field lookup succeeds, ensure it's something that can be instantiated (ie. a module or process)
@@ -116,10 +107,7 @@ mod tests {
             .unwrap();
 
         let res = decl_ast.visit(&mut tc).expect_err("visit");
-        assert_eq!(
-            res.downcast::<TypeError>().unwrap(),
-            TypeError::NotInstanceable(IvySort::Number)
-        );
+        assert_eq!(res, TypeError::NotInstanceable(IvySort::Number));
         tc.bindings.pop_scope();
 
         // If field lookup succeeds, and it can be instantiated, do so!
@@ -144,8 +132,7 @@ mod tests {
         let res = decl_ast
             .visit(&mut tc)
             .expect("visit")
-            .modifying(&mut decl_ast)
-            .unwrap();
+            .modifying(&mut decl_ast);
 
         assert_eq!(res, sock_mod);
 
@@ -162,8 +149,7 @@ mod tests {
         let res = decl_ast
             .visit(&mut tc)
             .expect("visit")
-            .modifying(&mut decl_ast)
-            .unwrap();
+            .modifying(&mut decl_ast);
         assert_eq!(
             res,
             IvySort::Relation(vec!(IvySort::SortVar(1), IvySort::SortVar(2)))
@@ -187,8 +173,7 @@ mod tests {
         let res = decl_ast
             .visit(&mut tc)
             .expect("visit")
-            .modifying(&mut decl_ast)
-            .unwrap();
+            .modifying(&mut decl_ast);
         assert_eq!(res, IvySort::Relation(vec!(IvySort::Bool, IvySort::Bool)));
 
         assert_eq!(
@@ -206,8 +191,7 @@ mod tests {
         let res = decl_ast
             .visit(&mut tc)
             .expect("visit")
-            .modifying(&mut decl_ast)
-            .unwrap();
+            .modifying(&mut decl_ast);
         assert_eq!(res, IvySort::BitVec(32));
 
         assert_eq!(tc.bindings.lookup_sym("addr"), Some(&IvySort::BitVec(32)));
@@ -229,8 +213,7 @@ mod tests {
         let res = decl_ast
             .visit(&mut tc)
             .expect("visit")
-            .modifying(&mut decl_ast)
-            .unwrap();
+            .modifying(&mut decl_ast);
         assert_eq!(res, IvySort::This);
         assert_eq!(tc.bindings.lookup_sym("this"), Some(&IvySort::This))
     }
@@ -244,8 +227,7 @@ mod tests {
         let res = decl_ast
             .visit(&mut tc)
             .expect("visit")
-            .modifying(&mut decl_ast)
-            .unwrap();
+            .modifying(&mut decl_ast);
         assert_eq!(res, IvySort::SortVar(0));
 
         assert_eq!(tc.bindings.lookup_sym("node"), Some(&IvySort::SortVar(0)))
@@ -260,8 +242,7 @@ mod tests {
         let res = decl_ast
             .visit(&mut tc)
             .expect("visit")
-            .modifying(&mut decl_ast)
-            .unwrap();
+            .modifying(&mut decl_ast);
         assert_eq!(res, IvySort::Enum(["on".into(), "off".into()].into()));
 
         assert_eq!(
@@ -279,8 +260,7 @@ mod tests {
         let res = decl_ast
             .visit(&mut tc)
             .expect("visit")
-            .modifying(&mut decl_ast)
-            .unwrap();
+            .modifying(&mut decl_ast);
         assert_eq!(
             res,
             IvySort::Range(Box::new(Expr::Number(0)), Box::new(Expr::Number(100)))
@@ -304,8 +284,7 @@ mod tests {
         let res = decl_ast
             .visit(&mut tc)
             .expect("visit")
-            .modifying(&mut decl_ast)
-            .unwrap();
+            .modifying(&mut decl_ast);
         assert_eq!(res, IvySort::SortVar(0));
 
         assert_eq!(tc.bindings.lookup_sym("i"), Some(&IvySort::SortVar(0)))
@@ -320,8 +299,7 @@ mod tests {
         let res = decl_ast
             .visit(&mut tc)
             .expect("visit")
-            .modifying(&mut decl_ast)
-            .unwrap();
+            .modifying(&mut decl_ast);
         assert_eq!(res, IvySort::Bool);
         assert_eq!(tc.bindings.lookup_sym("b"), Some(&IvySort::Bool))
     }
@@ -345,7 +323,6 @@ mod tests {
         decl_ast
             .visit(&mut tc)
             .expect("visit")
-            .modifying(&mut decl_ast)
-            .unwrap();
+            .modifying(&mut decl_ast);
     }
 }

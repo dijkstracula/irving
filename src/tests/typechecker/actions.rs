@@ -46,7 +46,7 @@ mod tests {
         let sort = IvySort::action_sort(vec![], vec![], sorts::ActionRet::Unit);
 
         let mut tc = SortInferer::new();
-        let res = decl.visit(&mut tc).unwrap().modifying(&mut decl).unwrap();
+        let res = decl.visit(&mut tc).unwrap().modifying(&mut decl);
         assert_eq!(res, sort);
 
         assert_eq!(tc.bindings.lookup_sym("a"), Some(&sort));
@@ -57,7 +57,7 @@ mod tests {
         let mut decl = decl_from_src("action a() { var b = 42 } ");
 
         let mut tc = SortInferer::new();
-        let res = decl.visit(&mut tc).unwrap().modifying(&mut decl).unwrap();
+        let res = decl.visit(&mut tc).unwrap().modifying(&mut decl);
         assert_eq!(
             res,
             IvySort::action_sort(vec!(), vec!(), sorts::ActionRet::Unit)
@@ -72,7 +72,7 @@ mod tests {
         let mut decl = decl_from_src("action id(x: bool) returns (b: bool) = { b := x }");
 
         let mut tc = SortInferer::new();
-        let res = decl.visit(&mut tc).unwrap().modifying(&mut decl).unwrap();
+        let res = decl.visit(&mut tc).unwrap().modifying(&mut decl);
         assert_eq!(
             res,
             IvySort::action_sort(
@@ -106,13 +106,8 @@ mod tests {
         action_decl
             .visit(&mut tc)
             .unwrap()
-            .modifying(&mut action_decl)
-            .unwrap();
-        imp_decl
-            .visit(&mut tc)
-            .unwrap()
-            .modifying(&mut imp_decl)
-            .unwrap();
+            .modifying(&mut action_decl);
+        imp_decl.visit(&mut tc).unwrap().modifying(&mut imp_decl);
 
         assert_eq!(
             tc.bindings.lookup_sym("id"),
@@ -134,15 +129,10 @@ mod tests {
         action_decl
             .visit(&mut tc)
             .unwrap()
-            .modifying(&mut action_decl)
-            .unwrap();
+            .modifying(&mut action_decl);
 
         assert_eq!(
-            imp_decl
-                .visit(&mut tc)
-                .unwrap_err()
-                .downcast::<TypeError>()
-                .unwrap(),
+            imp_decl.visit(&mut tc).unwrap_err(),
             TypeError::UnboundVariable("foo".into())
         )
     }
@@ -158,18 +148,15 @@ mod tests {
         action_decl
             .visit(&mut tc)
             .unwrap()
-            .modifying(&mut action_decl)
-            .unwrap();
+            .modifying(&mut action_decl);
         before_decl
             .visit(&mut tc)
             .unwrap()
-            .modifying(&mut before_decl)
-            .unwrap();
+            .modifying(&mut before_decl);
         after_decl
             .visit(&mut tc)
             .unwrap()
-            .modifying(&mut after_decl)
-            .unwrap();
+            .modifying(&mut after_decl);
 
         assert_eq!(
             tc.bindings.lookup_sym("id"),
@@ -195,8 +182,7 @@ mod tests {
         action_decl
             .visit(&mut tc)
             .unwrap()
-            .modifying(&mut action_decl)
-            .unwrap();
+            .modifying(&mut action_decl);
 
         before_decl.visit(&mut tc).unwrap_err();
     }
@@ -215,7 +201,7 @@ mod tests {
         );
 
         let mut tc = SortInferer::new();
-        let _ = prog.visit(&mut tc).unwrap().modifying(&mut prog).unwrap();
+        let _ = prog.visit(&mut tc).unwrap().modifying(&mut prog);
 
         // The type of the action should be nullary to a bool.
         let action_sort = tc
@@ -233,8 +219,7 @@ mod tests {
         let res = action_app
             .visit(&mut tc)
             .unwrap()
-            .modifying(&mut action_app)
-            .unwrap();
+            .modifying(&mut action_app);
         assert_eq!(res, IvySort::Bool);
     }
 
@@ -249,7 +234,7 @@ mod tests {
         );
 
         let mut tc = SortInferer::new();
-        let _ = prog.visit(&mut tc).unwrap().modifying(&mut prog).unwrap();
+        let _ = prog.visit(&mut tc).unwrap().modifying(&mut prog);
 
         let action_sort = tc
             .bindings
@@ -268,7 +253,7 @@ mod tests {
         let mut action_app = expr_from_src("m.doit()");
         let err = action_app.visit(&mut tc).unwrap_err();
         assert_eq!(
-            err.downcast::<TypeError>().unwrap(),
+            err,
             TypeError::LenMismatch {
                 expected: 1,
                 actual: 0
@@ -278,7 +263,7 @@ mod tests {
         let mut action_app = expr_from_src("m.doit(42)");
         let err = action_app.visit(&mut tc).unwrap_err();
         assert_eq!(
-            err.downcast::<TypeError>().unwrap(),
+            err,
             TypeError::UnificationError(IvySort::Bool, IvySort::Number)
         );
 
@@ -286,8 +271,7 @@ mod tests {
         let res = action_app
             .visit(&mut tc)
             .unwrap()
-            .modifying(&mut action_app)
-            .unwrap();
+            .modifying(&mut action_app);
         assert_eq!(res, IvySort::Bool);
     }
 
@@ -307,7 +291,7 @@ mod tests {
         );
 
         let mut tc = SortInferer::new();
-        let _ = prog.visit(&mut tc).unwrap().modifying(&mut prog).unwrap();
+        let _ = prog.visit(&mut tc).unwrap().modifying(&mut prog);
 
         let action_sort = tc
             .bindings
@@ -327,14 +311,13 @@ mod tests {
         let res = action_app
             .visit(&mut tc)
             .unwrap()
-            .modifying(&mut action_app)
-            .unwrap();
+            .modifying(&mut action_app);
         assert_eq!(res, IvySort::Bool);
 
         let mut action_app = expr_from_src("m.doit(m)");
         let err = action_app.visit(&mut tc).unwrap_err();
         assert_eq!(
-            err.downcast::<TypeError>().unwrap(),
+            err,
             TypeError::LenMismatch {
                 expected: 0,
                 actual: 1
@@ -356,7 +339,7 @@ mod tests {
         );
 
         let mut tc = SortInferer::new();
-        let _ = prog.visit(&mut tc).unwrap().modifying(&mut prog).unwrap();
+        let _ = prog.visit(&mut tc).unwrap().modifying(&mut prog);
 
         let action_sort = tc
             .bindings
@@ -372,8 +355,7 @@ mod tests {
         let res = action_app
             .visit(&mut tc)
             .unwrap()
-            .modifying(&mut action_app)
-            .unwrap();
+            .modifying(&mut action_app);
         assert_eq!(res, IvySort::Bool);
 
         /*
@@ -382,8 +364,7 @@ mod tests {
         let res = action_app
             .visit(&mut tc)
             .unwrap()
-            .modifying(&mut action_app)
-            .unwrap();
+            .modifying(&mut action_app);
         assert_eq!(res, IvySort::Bool);
         */
     }
@@ -424,7 +405,7 @@ mod tests {
         );
 
         let mut tc = SortInferer::new();
-        let _ = prog.visit(&mut tc).unwrap().modifying(&mut prog).unwrap();
+        let _ = prog.visit(&mut tc).unwrap().modifying(&mut prog);
 
         let mut prog = decl_from_src(
             "action doit = {
@@ -450,6 +431,6 @@ mod tests {
         );
 
         let mut tc = SortInferer::new();
-        let _ = iso.visit(&mut tc).unwrap().modifying(&mut iso).unwrap();
+        let _ = iso.visit(&mut tc).unwrap().modifying(&mut iso);
     }
 }

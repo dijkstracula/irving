@@ -3,7 +3,7 @@ use crate::{
     visitor::{ast::Visitor, ControlMut, VisitorResult},
 };
 
-use super::{inference::SortInferer, unifier::BindingResolver};
+use super::{inference::SortInferer, unifier::BindingResolver, TypeError};
 
 pub struct SortSubstituter {
     pub bindings: BindingResolver,
@@ -17,8 +17,11 @@ impl SortSubstituter {
     }
 }
 
-impl Visitor<()> for SortSubstituter {
-    fn sort(&mut self, s: &mut expressions::Sort) -> VisitorResult<(), expressions::Sort> {
+impl Visitor<(), TypeError> for SortSubstituter {
+    fn sort(
+        &mut self,
+        s: &mut expressions::Sort,
+    ) -> VisitorResult<(), TypeError, expressions::Sort> {
         match s {
             expressions::Sort::ToBeInferred | expressions::Sort::Annotated(_) => {
                 println!("Uh oh! {:?}", s);
