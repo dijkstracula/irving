@@ -4,6 +4,7 @@ use crate::{parser::ivy::ParseError, typechecker::TypeError};
 
 #[derive(Debug)]
 pub enum IvyError {
+    Cli(clap::Error),
     Parse(ParseError),
     IO(std::io::Error),
     Typecheck(TypeError),
@@ -15,11 +16,18 @@ impl Error for IvyError {}
 impl Display for IvyError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            IvyError::Parse(e) => f.write_fmt(format_args!("Parse error: {}", e)),
+            IvyError::Cli(e) => f.write_fmt(format_args!("Command-line parse error: {}", e)),
+            IvyError::Parse(e) => f.write_fmt(format_args!("Program error: {}", e)),
             IvyError::IO(e) => f.write_fmt(format_args!("IO error: {:?}", e)),
             IvyError::Typecheck(e) => f.write_fmt(format_args!("Typechecking error: {:?}", e)),
             IvyError::Extraction(e) => f.write_fmt(format_args!("Extraction error: {}", e)),
         }
+    }
+}
+
+impl From<clap::Error> for IvyError {
+    fn from(value: clap::Error) -> Self {
+        Self::Cli(value)
     }
 }
 
