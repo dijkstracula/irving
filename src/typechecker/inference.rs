@@ -218,7 +218,11 @@ impl Visitor<IvySort, TypeError> for SortInferer {
 
     // Actions
 
-    fn begin_assign(&mut self, ast: &mut actions::AssignAction) -> InferenceResult<Action> {
+    fn begin_assign(
+        &mut self,
+        _span: &Span,
+        ast: &mut actions::AssignAction,
+    ) -> InferenceResult<Action> {
         self.bindings.push_scope();
         match &ast.lhs {
             Expr::App {
@@ -240,6 +244,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
 
     fn finish_assign(
         &mut self,
+        _span: &Span,
         _ast: &mut actions::AssignAction,
         lhs_sort: IvySort,
         rhs_sort: IvySort,
@@ -505,6 +510,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
 
     fn begin_action_decl(
         &mut self,
+        _span: &Span,
         name: &mut Token,
         _ast: &mut declarations::ActionDecl,
     ) -> InferenceResult<declarations::Decl> {
@@ -517,6 +523,8 @@ impl Visitor<IvySort, TypeError> for SortInferer {
     }
     fn finish_action_decl(
         &mut self,
+        _span: &Span,
+
         name: &mut Token,
         ast: &mut declarations::ActionDecl,
         name_sort: IvySort,
@@ -554,6 +562,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
 
     fn begin_after_decl(
         &mut self,
+        _span: &Span,
         ast: &mut declarations::ActionMixinDecl,
     ) -> InferenceResult<declarations::Decl> {
         // XXX: this feels like a hack for something, but I've forgotten for what.
@@ -575,6 +584,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
 
     fn finish_after_decl(
         &mut self,
+        span: &Span,
         ast: &mut declarations::ActionMixinDecl,
         action_sort: IvySort,
         after_params_sort: Option<Vec<IvySort>>,
@@ -585,9 +595,8 @@ impl Visitor<IvySort, TypeError> for SortInferer {
         let (new_ast, sort) =
             self.resolve_mixin(ast, action_sort, after_params_sort, after_ret_sort)?;
         Ok(ControlMut::Mutation(
-            // XXX: What's the right span here?  Should we stash a Span in ActionMixinDecl?
             declarations::Decl::AfterAction {
-                span: Span::Optimized,
+                span: span.clone(),
                 decl: new_ast,
             },
             sort,
@@ -1032,6 +1041,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
 
     fn begin_typedecl(
         &mut self,
+        span: &Span,
         name: &mut Token,
         sort: &mut Sort,
     ) -> InferenceResult<declarations::Decl> {
@@ -1045,7 +1055,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
         let binding = Binding::from(name.clone(), Sort::Resolved(resolved.clone()));
         Ok(ControlMut::Mutation(
             declarations::Decl::Type {
-                span: Span::IgnoredForTesting,
+                span: span.clone(),
                 decl: binding,
             },
             resolved,
@@ -1054,6 +1064,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
 
     fn begin_vardecl(
         &mut self,
+        _span: &Span,
         name: &mut Token,
         _ast: &mut Sort,
     ) -> InferenceResult<declarations::Decl> {
@@ -1064,6 +1075,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
     }
     fn finish_vardecl(
         &mut self,
+        span: &Span,
         name: &mut Token,
         _ast: &mut Sort,
         name_sort: IvySort,
@@ -1073,7 +1085,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
 
         Ok(ControlMut::Mutation(
             declarations::Decl::Var {
-                span: Span::Optimized,
+                span: span.clone(),
                 decl: Binding::from(name.clone(), Sort::Resolved(resolved.clone())),
             },
             resolved,

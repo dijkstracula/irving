@@ -187,6 +187,7 @@ where
 
     fn begin_action_decl(
         &mut self,
+        _span: &Span,
         name: &mut Token,
         ast: &mut declarations::ActionDecl,
     ) -> ExtractResult<declarations::Decl> {
@@ -222,6 +223,7 @@ where
 
     fn begin_after_decl(
         &mut self,
+        _span: &Span,
         ast: &mut declarations::ActionMixinDecl,
     ) -> ExtractResult<declarations::Decl> {
         // We have a special case for `after init`: since this is being emitted
@@ -361,6 +363,7 @@ where
 
     fn begin_typedecl(
         &mut self,
+        _span: &Span,
         name: &mut Token,
         s: &mut expressions::Sort,
     ) -> ExtractResult<declarations::Decl> {
@@ -374,6 +377,7 @@ where
 
     fn begin_vardecl(
         &mut self,
+        _span: &Span,
         name: &mut Token,
         sort: &mut expressions::Sort,
     ) -> ExtractResult<declarations::Decl> {
@@ -394,7 +398,11 @@ where
         Ok(ControlMut::SkipSiblings(()))
     }
 
-    fn begin_assign(&mut self, ast: &mut actions::AssignAction) -> ExtractResult<actions::Action> {
+    fn begin_assign(
+        &mut self,
+        _span: &Span,
+        ast: &mut actions::AssignAction,
+    ) -> ExtractResult<actions::Action> {
         ast.lhs.visit(self)?;
         self.pp.write_str(" = ")?;
         ast.rhs.visit(self)?;
