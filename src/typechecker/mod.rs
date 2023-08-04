@@ -1,6 +1,9 @@
 use thiserror::Error;
 
-use crate::{ast::expressions::Token, visitor::VisitorResult};
+use crate::{
+    ast::{expressions::Token, span::Span},
+    visitor::VisitorResult,
+};
 
 use self::sorts::IvySort;
 
@@ -46,6 +49,7 @@ pub enum TypeError {
 
     #[error("Token {sym:?} defined as {prev:?} and rebound as {new:?}")]
     ReboundVariable {
+        span: Span,
         sym: Token,
         prev: String,
         new: String,

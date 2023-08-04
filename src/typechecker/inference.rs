@@ -1165,10 +1165,14 @@ impl Visitor<IvySort, TypeError> for SortInferer {
         &mut self,
         span: &Span,
         name: &mut Token,
-        _ast: &mut Sort,
+        sort: &mut Sort,
     ) -> InferenceResult<declarations::Decl> {
-        // Bind the name to _something_; we'll unify this value with its resolved sort when finishing the visit.
-        let v = self.bindings.new_sortvar();
+        let v = match sort {
+            Sort::ToBeInferred => self.bindings.new_sortvar(),
+            Sort::Annotated(ident) => ident.visit(self)?.modifying(ident),
+            Sort::Resolved(ivysort) => ivysort.clone(),
+        };
+
         self.bindings
             .append(name.clone(), v)
             .map_err(|e| e.to_typeerror(span))?;

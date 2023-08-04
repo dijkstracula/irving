@@ -332,6 +332,7 @@ impl ResolverError {
             ResolverError::MissingField(field) => TypeError::MissingRecordField(field),
             ResolverError::NotARecord(sort) => TypeError::NotARecord(sort.desc()),
             ResolverError::ReboundVariable { sym, prev, new } => TypeError::ReboundVariable {
+                span: span.clone(),
                 sym,
                 prev: prev.desc().to_owned(),
                 new: new.desc().to_owned(),

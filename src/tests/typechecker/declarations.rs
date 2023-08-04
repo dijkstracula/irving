@@ -343,4 +343,30 @@ mod tests {
             .expect("visit")
             .modifying(&mut decl_ast);
     }
+
+    #[test]
+    fn test_var_redefinition() {
+        let prog = "{
+            var foo: unbounded_sequence
+            var foo: bool
+        }";
+        let parsed = IvyParser::parse_with_userdata(Rule::decl_block, prog, prog.into())
+            .expect("Parsing failed")
+            .single()
+            .unwrap();
+        let mut decl_ast = IvyParser::decl_block(parsed).expect("AST generation failed");
+
+        let mut tc = SortInferer::new();
+        let err = decl_ast.visit(&mut tc).expect_err("visit");
+
+        assert_eq!(
+            err,
+            TypeError::ReboundVariable {
+                span: Span::IgnoredForTesting,
+                sym: "foo".into(),
+                prev: IvySort::Number.desc().into(),
+                new: IvySort::Bool.desc().into()
+            }
+        );
+    }
 }

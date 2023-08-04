@@ -1,12 +1,13 @@
 #[cfg(test)]
 mod tests {
     use crate::ast::logic::*;
+    use crate::error::IrvingError;
     use crate::parser::ivy::{IvyParser, Rule};
     use crate::typechecker::inference::SortInferer;
     use crate::visitor::ast::Visitable;
     use pest_consume::Parser;
 
-    fn parse_fmla(fragment: &str) -> anyhow::Result<Fmla> {
+    fn parse_fmla(fragment: &str) -> Result<Fmla, IrvingError> {
         let res = IvyParser::parse_with_userdata(Rule::fmla, fragment, fragment.into())
             .expect("Parsing failed")
             .single()
