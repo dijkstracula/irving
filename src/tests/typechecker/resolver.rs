@@ -4,8 +4,7 @@ mod tests {
         ast::{expressions::Expr, span::Span},
         typechecker::{
             sorts::{IvySort, Module},
-            unifier::BindingResolver,
-            TypeError,
+            unifier::{BindingResolver, ResolverError},
         },
     };
 
@@ -48,7 +47,7 @@ mod tests {
         assert_eq!(r.lookup_sym("nonsense"), None);
         assert_eq!(
             r.lookup_ident(&vec!("nonsense".to_owned())),
-            Err(TypeError::UnboundVariable("nonsense".into()))
+            Err(ResolverError::UnboundVariable("nonsense".into()))
         );
 
         let pid_sort = IvySort::Range(
@@ -67,7 +66,7 @@ mod tests {
 
         assert_eq!(
             r.lookup_ident(&vec!("pid".to_owned(), "uhoh".to_owned())),
-            Err(TypeError::NotARecord(pid_sort.desc()))
+            Err(ResolverError::NotARecord(pid_sort))
         );
     }
 

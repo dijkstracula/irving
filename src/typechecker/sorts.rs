@@ -87,14 +87,21 @@ impl Display for IvySort {
             IvySort::Action(_, args, ret) => {
                 write!(f, "(")?;
                 match args {
-                    ActionArgs::Unknown => write!(f, "<ununified>"),
-                    ActionArgs::List(args) => write!(f, "{:#?}", args),
-                }?;
+                    ActionArgs::Unknown => write!(f, "?")?,
+                    ActionArgs::List(args) => {
+                        for (i, a) in args.iter().enumerate() {
+                            if i > 0 {
+                                write!(f, ", ")?;
+                            }
+                            write!(f, "{}", a)?;
+                        }
+                    }
+                }
                 write!(f, ")")?;
 
                 match ret {
-                    ActionRet::Unknown => write!(f, "-> <ununified>"),
-                    ActionRet::Unit => write!(f, "-> unit"),
+                    ActionRet::Unknown => write!(f, " -> ?"),
+                    ActionRet::Unit => write!(f, " -> unit"),
                     ActionRet::Named(binding) => write!(f, "-> {}", binding.decl),
                 }
             }

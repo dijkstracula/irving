@@ -7,6 +7,7 @@ mod tests {
         typechecker::{
             inference::SortInferer,
             sorts::{self, ActionArgs, IvySort, Object},
+            unifier::ResolverError,
             TypeError,
         },
         visitor::ast::Visitable,
@@ -98,10 +99,10 @@ mod tests {
 
         assert_eq!(
             tc.bindings.append("foo".into(), IvySort::Number),
-            Err(TypeError::ReboundVariable {
+            Err(ResolverError::ReboundVariable {
                 sym: "foo".into(),
-                prev: format!("{}", IvySort::Bool),
-                new: format!("{}", IvySort::Number)
+                prev: IvySort::Bool,
+                new: IvySort::Number,
             })
         )
     }

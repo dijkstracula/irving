@@ -23,6 +23,10 @@ pub enum Span {
     /// File/line number of the unoptimized node?  
     Optimized,
 
+    /// This exists only while we're still stubbing out inserting
+    /// spans.  Indicate we have a code path still to be done!
+    Todo,
+
     /// Generated as part of a unit test
     IgnoredForTesting,
 }
