@@ -1,6 +1,6 @@
 use clap::Parser;
 use irving::cli::{Cli, Commands, ExtractTarget};
-use irving::error::IvyError;
+use irving::error::IrvingError;
 use irving::extraction;
 use irving::passes::global_lowerer::GlobalLowerer;
 use irving::visitor::ast::Visitable;
@@ -16,7 +16,7 @@ fn main() {
     }
 }
 
-fn main_impl() -> std::result::Result<(), IvyError> {
+fn main_impl() -> std::result::Result<(), IrvingError> {
     env_logger::init();
 
     let cli = Cli::parse();
