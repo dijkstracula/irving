@@ -3,6 +3,7 @@ mod tests {
     use std::collections::BTreeMap;
 
     use crate::{
+        ast::span::Span,
         tests::helpers,
         typechecker::{
             inference::SortInferer,
@@ -150,10 +151,13 @@ mod tests {
         let res = callop.visit(&mut tc).unwrap_err();
         assert_eq!(
             res,
-            TypeError::unification_error(
-                &IvySort::Number,
-                &IvySort::Action(vec!(), ActionArgs::List(vec!()), sorts::ActionRet::Unknown)
-            )
+            TypeError::Spanned {
+                span: Span::IgnoredForTesting,
+                inner: Box::new(TypeError::unification_error(
+                    &IvySort::Number,
+                    &IvySort::Action(vec!(), ActionArgs::List(vec!()), sorts::ActionRet::Unknown)
+                ))
+            }
         )
     }
 

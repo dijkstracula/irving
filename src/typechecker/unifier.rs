@@ -324,21 +324,25 @@ pub enum ResolverError {
 
 impl ResolverError {
     pub fn to_typeerror(self, span: &Span) -> TypeError {
-        match self {
-            ResolverError::LenMismatch(lhs, rhs) => TypeError::LenMismatch {
-                expected: lhs,
-                actual: rhs,
-            },
-            ResolverError::MissingField(field) => TypeError::MissingRecordField(field),
-            ResolverError::NotARecord(sort) => TypeError::NotARecord(sort.desc()),
-            ResolverError::ReboundVariable { sym, prev, new } => TypeError::ReboundVariable {
-                span: span.clone(),
-                sym,
-                prev: prev.desc().to_owned(),
-                new: new.desc().to_owned(),
-            },
-            ResolverError::UnificationError(lhs, rhs) => TypeError::unification_error(&lhs, &rhs),
-            ResolverError::UnboundVariable(var) => TypeError::UnboundVariable(var),
+        TypeError::Spanned {
+            span: span.clone(),
+            inner: Box::new(match self {
+                ResolverError::LenMismatch(lhs, rhs) => TypeError::LenMismatch {
+                    expected: lhs,
+                    actual: rhs,
+                },
+                ResolverError::MissingField(field) => TypeError::MissingRecordField(field),
+                ResolverError::NotARecord(sort) => TypeError::NotARecord(sort.desc()),
+                ResolverError::ReboundVariable { sym, prev, new } => TypeError::ReboundVariable {
+                    sym,
+                    prev: prev.desc().to_owned(),
+                    new: new.desc().to_owned(),
+                },
+                ResolverError::UnificationError(lhs, rhs) => {
+                    TypeError::unification_error(&lhs, &rhs)
+                }
+                ResolverError::UnboundVariable(var) => TypeError::UnboundVariable(var),
+            }),
         }
     }
 }

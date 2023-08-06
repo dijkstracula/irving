@@ -1,8 +1,9 @@
 #[cfg(test)]
 mod tests {
     use crate::{
+        ast::span::Span,
         tests::helpers,
-        typechecker::{inference::SortInferer, sorts::IvySort, TypeError},
+        typechecker::{inference::SortInferer, sorts::IvySort, unifier::ResolverError, TypeError},
         visitor::ast::Visitable,
     };
 
@@ -30,7 +31,8 @@ mod tests {
             .expect_err("non-boolean expression in if statement test");
         assert_eq!(
             err,
-            TypeError::unification_error(&IvySort::Number, &IvySort::Bool)
+            ResolverError::UnificationError(IvySort::Number, IvySort::Bool)
+                .to_typeerror(&Span::IgnoredForTesting)
         );
     }
 

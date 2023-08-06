@@ -4,12 +4,14 @@ mod tests {
         ast::{
             declarations::{ActionDecl, Binding, Decl},
             expressions::{Expr, Sort},
+            span::Span,
             statements::Stmt,
         },
         parser::ivy::{IvyParser, Rule},
         typechecker::{
             inference::SortInferer,
             sorts::{self, IvySort},
+            unifier::ResolverError,
             TypeError,
         },
         visitor::ast::Visitable,
@@ -134,7 +136,7 @@ mod tests {
 
         assert_eq!(
             imp_decl.visit(&mut tc).unwrap_err(),
-            TypeError::UnboundVariable("foo".into())
+            ResolverError::UnboundVariable("foo".into()).to_typeerror(&Span::Todo)
         )
     }
 
@@ -255,17 +257,15 @@ mod tests {
         let err = action_app.visit(&mut tc).unwrap_err();
         assert_eq!(
             err,
-            TypeError::LenMismatch {
-                expected: 1,
-                actual: 0
-            }
+            ResolverError::LenMismatch(1, 0).to_typeerror(&Span::IgnoredForTesting)
         );
 
         let mut action_app = expr_from_src("m.doit(42)");
         let err = action_app.visit(&mut tc).unwrap_err();
         assert_eq!(
             err,
-            TypeError::unification_error(&IvySort::Bool, &IvySort::Number)
+            ResolverError::UnificationError(IvySort::Bool, IvySort::Number)
+                .to_typeerror(&Span::IgnoredForTesting)
         );
 
         let mut action_app = expr_from_src("m.doit(true)");
@@ -319,10 +319,7 @@ mod tests {
         let err = action_app.visit(&mut tc).unwrap_err();
         assert_eq!(
             err,
-            TypeError::LenMismatch {
-                expected: 0,
-                actual: 1
-            }
+            ResolverError::LenMismatch(0, 1).to_typeerror(&Span::Todo)
         );
     }
 

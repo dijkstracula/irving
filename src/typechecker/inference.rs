@@ -1132,7 +1132,10 @@ impl Visitor<IvySort, TypeError> for SortInferer {
                 Ok(ControlMut::Produce(unifed))
             }
         } else {
-            return Err(TypeError::NotInstanceable(module_sort.desc()));
+            return Err(TypeError::Spanned {
+                span: Span::Todo,
+                inner: Box::new(TypeError::NotInstanceable(module_sort.desc())),
+            });
         }
     }
 

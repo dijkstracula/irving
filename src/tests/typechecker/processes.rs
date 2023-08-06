@@ -9,6 +9,7 @@ mod tests {
         typechecker::{
             inference::SortInferer,
             sorts::{self, IvySort, Module, Object},
+            unifier::ResolverError,
             TypeError,
         },
         visitor::ast::Visitable,
@@ -298,9 +299,16 @@ mod tests {
 
         let mut tc = typechecker_with_bindings();
         let res = iso.visit(&mut tc).expect_err("Should get a type error");
-        let TypeError::LenMismatch { expected: _, actual: _} = res else {
-            unreachable!()
-        };
+        assert_eq!(
+            res,
+            TypeError::Spanned {
+                span: Span::Todo,
+                inner: Box::new(TypeError::LenMismatch {
+                    expected: 3,
+                    actual: 2
+                })
+            }
+        )
     }
 
     #[test]
@@ -320,7 +328,8 @@ mod tests {
         let res = iso.visit(&mut tc).expect_err("Should get a type error");
         assert_eq!(
             res,
-            TypeError::unification_error(&IvySort::Bool, &IvySort::Number)
+            ResolverError::UnificationError(IvySort::Bool, IvySort::Number)
+                .to_typeerror(&Span::IgnoredForTesting)
         )
     }
 
@@ -345,7 +354,8 @@ mod tests {
         let res = iso.visit(&mut tc).expect_err("Should get a type error");
         assert_eq!(
             res,
-            TypeError::unification_error(&IvySort::Bool, &IvySort::Number)
+            ResolverError::UnificationError(IvySort::Bool, IvySort::Number)
+                .to_typeerror(&Span::IgnoredForTesting)
         )
     }
 

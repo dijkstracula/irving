@@ -1,4 +1,9 @@
-use std::rc::Rc;
+use std::{fmt::Display, rc::Rc};
+
+use annotate_snippets::{
+    display_list::{DisplayList, FormatOptions},
+    snippet::{Slice, Snippet, SourceAnnotation},
+};
 
 use crate::parser::ivy::Node;
 
@@ -11,6 +16,49 @@ pub struct SourceSpan {
     start: usize,
 
     end: usize,
+}
+
+impl Display for SourceSpan {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let line_start = self.lineno();
+
+        let annot = SourceAnnotation {
+            range: (self.start, self.end - 1),
+            label: "here",
+            annotation_type: annotate_snippets::snippet::AnnotationType::Error,
+        };
+
+        let slice = Slice {
+            source: &self.input,
+            line_start,
+            origin: None,
+            annotations: vec![annot],
+            fold: true,
+        };
+
+        let s = Snippet {
+            title: None,
+            footer: vec![],
+            slices: vec![slice],
+            opt: FormatOptions {
+                color: true,
+                ..Default::default()
+            },
+        };
+
+        f.write_fmt(format_args!("{}", DisplayList::from(s)))
+    }
+}
+
+impl SourceSpan {
+    pub fn lineno(&self) -> usize {
+        self.input
+            .get(0..self.start)
+            .unwrap()
+            .chars()
+            .filter(|c| c == &'\n')
+            .count()
+    }
 }
 
 #[derive(Debug, Clone, Eq, PartialOrd, Ord)]
@@ -29,6 +77,17 @@ pub enum Span {
 
     /// Generated as part of a unit test
     IgnoredForTesting,
+}
+
+impl Display for Span {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Span::Source(s) => f.write_fmt(format_args!("{}", s)),
+            Span::Optimized => f.write_str("<optimized>"),
+            Span::Todo => todo!(),
+            Span::IgnoredForTesting => todo!(),
+        }
+    }
 }
 
 impl PartialEq for Span {

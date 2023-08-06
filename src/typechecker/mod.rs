@@ -41,7 +41,7 @@ pub enum TypeError {
     #[error("Sort {0:?} mismatches {1:?}")]
     UnificationError(String, String),
 
-    #[error("Sequence of length {expected:?} mismatches {actual:?}")]
+    #[error("Sequence length mismatches {actual:?}")]
     LenMismatch { expected: usize, actual: usize },
 
     #[error("Token {expected:?} redefined as {actual:?}")]
@@ -49,11 +49,13 @@ pub enum TypeError {
 
     #[error("Token {sym:?} defined as {prev:?} and rebound as {new:?}")]
     ReboundVariable {
-        span: Span,
         sym: Token,
         prev: String,
         new: String,
     },
+
+    #[error("{inner} at:\n{span}")]
+    Spanned { span: Span, inner: Box<TypeError> },
 }
 
 impl TypeError {

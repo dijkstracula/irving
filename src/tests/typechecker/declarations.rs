@@ -7,6 +7,7 @@ mod tests {
         typechecker::{
             inference::SortInferer,
             sorts::{IvySort, Module},
+            unifier::ResolverError,
             TypeError,
         },
         visitor::ast::Visitable,
@@ -66,14 +67,20 @@ mod tests {
         // With an empty context, `net` should produce an unbound identifier error.
         let mut tc = SortInferer::new();
         let res = decl_ast.visit(&mut tc).expect_err("visit");
-        assert_eq!(res, TypeError::UnboundVariable("net".into()));
+        assert_eq!(
+            res,
+            ResolverError::UnboundVariable("net".into()).to_typeerror(&Span::Todo)
+        );
 
         // If `net` is in the context, it needs to be a module.
         tc.bindings.push_scope();
         tc.bindings.append("net".into(), IvySort::Bool).unwrap();
 
         let res = decl_ast.visit(&mut tc).expect_err("visit");
-        assert_eq!(res, TypeError::NotARecord(IvySort::Bool.desc()));
+        assert_eq!(
+            res,
+            ResolverError::NotARecord(IvySort::Bool).to_typeerror(&Span::Todo)
+        );
 
         tc.bindings.pop_scope();
 
@@ -91,7 +98,10 @@ mod tests {
             .unwrap();
 
         let res = decl_ast.visit(&mut tc).expect_err("visit");
-        assert_eq!(res, TypeError::UnboundVariable("sock".into()));
+        assert_eq!(
+            res,
+            ResolverError::UnboundVariable("sock".into()).to_typeerror(&Span::Todo)
+        );
         tc.bindings.pop_scope();
 
         // If field lookup succeeds, ensure it's something that can be instantiated (ie. a module or process)
@@ -108,7 +118,13 @@ mod tests {
             .unwrap();
 
         let res = decl_ast.visit(&mut tc).expect_err("visit");
-        assert_eq!(res, TypeError::NotInstanceable(IvySort::Number.desc()));
+        assert_eq!(
+            res,
+            TypeError::Spanned {
+                span: Span::Todo,
+                inner: Box::new(TypeError::NotInstanceable(IvySort::Number.desc()))
+            }
+        );
         tc.bindings.pop_scope();
 
         // If field lookup succeeds, and it can be instantiated, do so!
@@ -361,12 +377,12 @@ mod tests {
 
         assert_eq!(
             err,
-            TypeError::ReboundVariable {
-                span: Span::IgnoredForTesting,
+            ResolverError::ReboundVariable {
                 sym: "foo".into(),
-                prev: IvySort::Number.desc().into(),
-                new: IvySort::Bool.desc().into()
+                prev: IvySort::Number,
+                new: IvySort::Bool
             }
+            .to_typeerror(&Span::IgnoredForTesting)
         );
     }
 }

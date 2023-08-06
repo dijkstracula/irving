@@ -3,7 +3,7 @@ mod tests {
     use std::collections::BTreeMap;
 
     use crate::{
-        ast::declarations::Decl,
+        ast::{declarations::Decl, span::Span},
         parser::ivy::{IvyParser, Rule},
         typechecker::{
             inference::SortInferer,
@@ -130,7 +130,13 @@ mod tests {
         let res = proc.visit(&mut tc).expect_err("Should not typecheck");
         assert_eq!(
             res,
-            TypeError::unification_error(&IvySort::Bool, &IvySort::Number)
+            TypeError::Spanned {
+                span: Span::IgnoredForTesting,
+                inner: Box::new(TypeError::unification_error(
+                    &IvySort::Bool,
+                    &IvySort::Number
+                ))
+            }
         );
     }
 }

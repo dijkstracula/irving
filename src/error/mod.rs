@@ -1,6 +1,6 @@
 use std::{error::Error, fmt::Display};
 
-use crate::{parser::ivy::ParseError, typechecker::TypeError};
+use crate::{ast::span::Span, parser::ivy::ParseError, typechecker::TypeError};
 
 #[derive(Debug)]
 pub enum IrvingError {
@@ -18,8 +18,8 @@ impl Display for IrvingError {
         match self {
             IrvingError::Cli(e) => f.write_fmt(format_args!("Command-line parse error: {}", e)),
             IrvingError::Parse(e) => f.write_fmt(format_args!("Program error: {}", e)),
-            IrvingError::IO(e) => f.write_fmt(format_args!("IO error: {:?}", e)),
-            IrvingError::Typecheck(e) => f.write_fmt(format_args!("Typechecking error: {:?}", e)),
+            IrvingError::IO(e) => f.write_fmt(format_args!("IO error: {}", e)),
+            IrvingError::Typecheck(e) => f.write_fmt(format_args!("Typechecking error: {}", e)),
             IrvingError::Extraction(e) => f.write_fmt(format_args!("Extraction error: {}", e)),
         }
     }
