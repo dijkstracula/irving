@@ -74,7 +74,9 @@ impl From<IvySort> for JavaType {
                 Self::ArrayList(Box::new(Into::<JavaType>::into(*elem_type)))
             }
             IvySort::Range(lo, hi) => match (*lo, *hi) {
-                (Expr::Number(lo), Expr::Number(hi)) => Self::BoundedLong(lo, hi),
+                (Expr::Number { val: lo, .. }, Expr::Number { val: hi, .. }) => {
+                    Self::BoundedLong(lo, hi)
+                }
                 _ => todo!(),
             },
             IvySort::Enum(_) => todo!(),
@@ -115,7 +117,9 @@ impl From<&IvySort> for JavaType {
                 Self::ArrayList(Box::new(jelem))
             }
             IvySort::Range(lo, hi) => match (lo.as_ref(), hi.as_ref()) {
-                (Expr::Number(lo), Expr::Number(hi)) => Self::BoundedLong(*lo, *hi),
+                (Expr::Number { val: lo, .. }, Expr::Number { val: hi, .. }) => {
+                    Self::BoundedLong(*lo, *hi)
+                }
                 _ => todo!(),
             },
             IvySort::Enum(_) => todo!(),

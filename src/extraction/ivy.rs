@@ -4,7 +4,9 @@ use crate::{
     ast::{
         actions, declarations,
         expressions::{self, IndexExpr, Sort, Symbol, Token, Verb},
-        logic, statements, toplevels,
+        logic,
+        span::Span,
+        statements, toplevels,
     },
     typechecker::sorts::IvySort,
     visitor::ast::Visitor,
@@ -132,7 +134,11 @@ where
         Ok(ControlMut::Produce(()))
     }
 
-    fn begin_assign(&mut self, ast: &mut actions::AssignAction) -> ExtractResult<actions::Action> {
+    fn begin_assign(
+        &mut self,
+        _span: &Span,
+        ast: &mut actions::AssignAction,
+    ) -> ExtractResult<actions::Action> {
         ast.lhs.visit(self)?;
         self.pp.write_str(" := ")?;
         ast.rhs.visit(self)?;
@@ -162,6 +168,7 @@ where
 
     fn begin_action_decl(
         &mut self,
+        _span: &Span,
         name: &mut Token,
         ast: &mut declarations::ActionDecl,
     ) -> ExtractResult<declarations::Decl> {
@@ -188,6 +195,7 @@ where
 
     fn begin_after_decl(
         &mut self,
+        _span: &Span,
         ast: &mut declarations::ActionMixinDecl,
     ) -> ExtractResult<declarations::Decl> {
         self.pp.write_str("after ")?;
@@ -436,6 +444,7 @@ where
 
     fn begin_typedecl(
         &mut self,
+        _span: &Span,
         name: &mut Token,
         sort: &mut Sort,
     ) -> ExtractResult<declarations::Decl> {
@@ -453,6 +462,7 @@ where
 
     fn begin_vardecl(
         &mut self,
+        _span: &Span,
         name: &mut Token,
         sort: &mut Sort,
     ) -> ExtractResult<declarations::Decl> {
@@ -567,7 +577,7 @@ where
         match op {
             Verb::Not => {
                 self.pp.write_str("~")?;
-                if let expressions::Expr::BinOp(_) = rhs {
+                if let expressions::Expr::BinOp { .. } = rhs {
                     self.pp.write_str("(")?;
                     rhs.visit(self)?.modifying(rhs);
                     self.pp.write_str(")")?;

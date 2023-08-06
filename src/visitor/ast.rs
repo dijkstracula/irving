@@ -9,6 +9,7 @@ use crate::ast::declarations::*;
 use crate::ast::expressions;
 use crate::ast::expressions::*;
 use crate::ast::logic::*;
+use crate::ast::span::Span;
 use crate::ast::statements::*;
 use crate::ast::toplevels::*;
 use crate::typechecker::sorts::IvySort;
@@ -85,11 +86,16 @@ where
         Ok(ControlMut::Produce(T::default()))
     }
 
-    fn begin_assign(&mut self, _ast: &mut AssignAction) -> VisitorResult<T, E, Action> {
+    fn begin_assign(
+        &mut self,
+        _span: &Span,
+        _ast: &mut AssignAction,
+    ) -> VisitorResult<T, E, Action> {
         Ok(ControlMut::Produce(T::default()))
     }
     fn finish_assign(
         &mut self,
+        _span: &Span,
         _ast: &mut AssignAction,
         _lhs_t: T,
         _rhs_t: T,
@@ -147,6 +153,7 @@ where
 
     fn begin_action_decl(
         &mut self,
+        _span: &Span,
         _name: &mut Token,
         _ast: &mut ActionDecl,
     ) -> VisitorResult<T, E, Decl> {
@@ -154,6 +161,7 @@ where
     }
     fn finish_action_decl(
         &mut self,
+        _span: &Span,
         _name: &mut Token,
         _ast: &mut ActionDecl,
         _name_ret: T,
@@ -164,11 +172,16 @@ where
         Ok(ControlMut::Produce(T::default()))
     }
 
-    fn begin_after_decl(&mut self, _ast: &mut ActionMixinDecl) -> VisitorResult<T, E, Decl> {
+    fn begin_after_decl(
+        &mut self,
+        _span: &Span,
+        _ast: &mut ActionMixinDecl,
+    ) -> VisitorResult<T, E, Decl> {
         Ok(ControlMut::Produce(T::default()))
     }
     fn finish_after_decl(
         &mut self,
+        _span: &Span,
         _ast: &mut ActionMixinDecl,
         _n: T,
         _p: Option<Vec<T>>,
@@ -386,11 +399,17 @@ where
         Ok(ControlMut::Produce(T::default()))
     }
 
-    fn begin_typedecl(&mut self, _name: &mut Token, _ast: &mut Sort) -> VisitorResult<T, E, Decl> {
+    fn begin_typedecl(
+        &mut self,
+        _span: &Span,
+        _name: &mut Token,
+        _ast: &mut Sort,
+    ) -> VisitorResult<T, E, Decl> {
         Ok(ControlMut::Produce(T::default()))
     }
     fn finish_typedecl(
         &mut self,
+        _span: &Span,
         _name: &mut Token,
         _ast: &mut Sort,
         _n: T,
@@ -399,11 +418,17 @@ where
         Ok(ControlMut::Produce(T::default()))
     }
 
-    fn begin_vardecl(&mut self, _name: &mut Token, _ast: &mut Sort) -> VisitorResult<T, E, Decl> {
+    fn begin_vardecl(
+        &mut self,
+        _span: &Span,
+        _name: &mut Token,
+        _ast: &mut Sort,
+    ) -> VisitorResult<T, E, Decl> {
         Ok(ControlMut::Produce(T::default()))
     }
     fn finish_vardecl(
         &mut self,
+        _span: &Span,
         _name: &mut Token,
         _ast: &mut Sort,
         _id_t: T,
@@ -567,29 +592,29 @@ where
 {
     fn visit(&mut self, visitor: &mut dyn Visitor<T, E>) -> VisitorResult<T, E, Self> {
         match self {
-            Action::Assert(action) => visitor
+            Action::Assert { action, .. } => visitor
                 .begin_assert(action)?
                 .map(|_| Ok(action.pred.visit(visitor)?.modifying(&mut action.pred)))?
                 .and_then(|_| visitor.finish_assert(action)),
-            Action::Assign(action) => visitor.begin_assign(action)?.and_then(|_| {
+            Action::Assign { span, action } => visitor.begin_assign(span, action)?.and_then(|_| {
                 let lhs_t = action.lhs.visit(visitor)?.modifying(&mut action.lhs);
                 let rhs_t = action.rhs.visit(visitor)?.modifying(&mut action.rhs);
-                visitor.finish_assign(action, lhs_t, rhs_t)
+                visitor.finish_assign(span, action, lhs_t, rhs_t)
             }),
-            Action::Assume(action) => visitor
+            Action::Assume { action, .. } => visitor
                 .begin_assume(action)?
                 .map(|_| Ok(action.pred.visit(visitor)?.modifying(&mut action.pred)))?
                 .and_then(|_| visitor.finish_assume(action)),
-            Action::Call(expr) => visitor.begin_call(expr)?.and_then(|_| {
-                let func = expr.func.visit(visitor)?.modifying(&mut expr.func);
-                let args = expr.args.visit(visitor)?.modifying(&mut expr.args);
-                visitor.finish_call(expr, func, args)
+            Action::Call { action, .. } => visitor.begin_call(action)?.and_then(|_| {
+                let func = action.func.visit(visitor)?.modifying(&mut action.func);
+                let args = action.args.visit(visitor)?.modifying(&mut action.args);
+                visitor.finish_call(action, func, args)
             }),
-            Action::Ensure(action) => visitor.begin_ensure(action)?.and_then(|_| {
+            Action::Ensure { action, .. } => visitor.begin_ensure(action)?.and_then(|_| {
                 let p = action.pred.visit(visitor)?.modifying(&mut action.pred);
                 visitor.finish_ensure(action, p)
             }),
-            Action::Requires(action) => visitor.begin_requires(action)?.and_then(|_| {
+            Action::Requires { action, .. } => visitor.begin_requires(action)?.and_then(|_| {
                 let p = action.pred.visit(visitor)?.modifying(&mut action.pred);
                 visitor.finish_requires(action, p)
             }),
@@ -604,37 +629,46 @@ where
 {
     fn visit(&mut self, visitor: &mut dyn Visitor<T, E>) -> VisitorResult<T, E, Self> {
         let t = match self {
-            Expr::App(expr) => visitor.begin_app(expr)?.and_then(|_| {
+            Expr::App { expr, .. } => visitor.begin_app(expr)?.and_then(|_| {
                 let func = expr.func.visit(visitor)?.modifying(&mut expr.func);
                 let args = expr.args.visit(visitor)?.modifying(&mut expr.args);
                 visitor.finish_app(expr, func, args)
             }),
-            Expr::BinOp(expr) => visitor.begin_binop(expr)?.and_then(|foo| {
+            Expr::BinOp { expr, .. } => visitor.begin_binop(expr)?.and_then(|foo| {
                 let l = expr.lhs.visit(visitor)?.modifying(&mut expr.lhs);
                 let o = visitor.verb(&mut expr.op)?.modifying(&mut expr.op);
                 let r = expr.rhs.visit(visitor)?.modifying(&mut expr.rhs);
                 visitor.finish_binop(expr, l, o, r)
             }),
-            Expr::Boolean(b) => Ok(ControlMut::Produce(visitor.boolean(b)?.modifying(b))),
-            Expr::FieldAccess(FieldAccess {
-                ref mut record,
-                ref mut field,
-            }) => visitor.begin_field_access(record, field)?.and_then(|_| {
+            Expr::Boolean { val, .. } => {
+                Ok(ControlMut::Produce(visitor.boolean(val)?.modifying(val)))
+            }
+            Expr::FieldAccess {
+                expr:
+                    FieldAccess {
+                        ref mut record,
+                        ref mut field,
+                    },
+                ..
+            } => visitor.begin_field_access(record, field)?.and_then(|_| {
                 let r = record.visit(visitor)?.modifying(record);
                 let f = visitor.symbol(field)?.modifying(field);
                 visitor.finish_field_access(record, field, r, f)
             }),
-            Expr::Index(expr) => visitor
+            Expr::Index { expr, .. } => visitor
                 .begin_index(expr)?
                 .and_then(|_| expr.lhs.visit(visitor))?
                 .and_then(|_| expr.idx.visit(visitor))?
                 .and_then(|_| visitor.finish_index(expr)),
-            Expr::LogicSymbol(s) => Ok(ControlMut::Produce(visitor.symbol(s)?.modifying(s))),
-            Expr::Number(n) => {
-                let t = visitor.number(n)?.modifying(n);
+            Expr::LogicSymbol { sym, .. } => {
+                Ok(ControlMut::Produce(visitor.symbol(sym)?.modifying(sym)))
+            }
+            Expr::Number { val, .. } => {
+                let t = visitor.number(val)?.modifying(val);
                 Ok(ControlMut::Produce(t))
             }
             Expr::UnaryOp {
+                span: _,
                 ref mut op,
                 ref mut expr,
             } => visitor.begin_unary_op(op, expr)?.and_then(|_| {
@@ -642,8 +676,10 @@ where
                 let expr_t = expr.visit(visitor)?.modifying(expr);
                 visitor.finish_unary_op(op, expr, expr_t)
             }),
-            Expr::ProgramSymbol(p) => Ok(ControlMut::Produce(visitor.symbol(p)?.modifying(p))),
-            Expr::This => visitor.this(),
+            Expr::ProgramSymbol { sym, .. } => {
+                Ok(ControlMut::Produce(visitor.symbol(sym)?.modifying(sym)))
+            }
+            Expr::This(_) => visitor.this(),
         }?
         .modifying(self);
         Ok(ControlMut::Produce(t))
@@ -718,10 +754,15 @@ where
 {
     fn visit(&mut self, visitor: &mut dyn Visitor<T, E>) -> VisitorResult<T, E, Self> {
         let t = match self {
-            Decl::Action(Binding {
-                ref mut name,
-                ref mut decl,
-            }) => visitor.begin_action_decl(name, decl)?.and_then(|_| {
+            Decl::Action {
+                span,
+                decl:
+                    Binding {
+                        ref mut name,
+                        ref mut decl,
+                    },
+                ..
+            } => visitor.begin_action_decl(span, name, decl)?.and_then(|_| {
                 let n = visitor.token(name)?.modifying(name);
                 let params = decl.params.visit(visitor)?.modifying(&mut decl.params);
                 let ret = match &mut decl.ret {
@@ -736,40 +777,46 @@ where
                     .as_mut()
                     .map(|b| Ok(b.visit(visitor)?.modifying(b)))
                     .transpose()?;
-                visitor.finish_action_decl(name, decl, n, params, ret, body)
+                visitor.finish_action_decl(span, name, decl, n, params, ret, body)
             }),
-            Decl::AfterAction(decl) => visitor.begin_after_decl(decl)?.and_then(|_| {
-                let n = decl.name.visit(visitor)?.modifying(&mut decl.name);
-                let p = decl
-                    .params
-                    .as_mut()
-                    .map(|ps| Ok(ps.visit(visitor)?.modifying(ps)))
-                    .transpose()?;
-                let r = decl
-                    .ret
-                    .as_mut()
-                    .map(|r| Ok(visitor.param(r)?.modifying(r)))
-                    .transpose()?;
-                let b = decl.body.visit(visitor)?.modifying(&mut decl.body);
-                visitor.finish_after_decl(decl, n, p, r, b)
-            }),
-            Decl::Alias(Binding {
-                ref mut name,
-                ref mut decl,
-            }) => visitor.begin_alias_decl(name, decl)?.and_then(|_| {
+            Decl::AfterAction { span, decl } => {
+                visitor.begin_after_decl(span, decl)?.and_then(|_| {
+                    let n = decl.name.visit(visitor)?.modifying(&mut decl.name);
+                    let p = decl
+                        .params
+                        .as_mut()
+                        .map(|ps| Ok(ps.visit(visitor)?.modifying(ps)))
+                        .transpose()?;
+                    let r = decl
+                        .ret
+                        .as_mut()
+                        .map(|r| Ok(visitor.param(r)?.modifying(r)))
+                        .transpose()?;
+                    let b = decl.body.visit(visitor)?.modifying(&mut decl.body);
+                    visitor.finish_after_decl(span, decl, n, p, r, b)
+                })
+            }
+            Decl::Alias {
+                decl:
+                    Binding {
+                        ref mut name,
+                        ref mut decl,
+                    },
+                ..
+            } => visitor.begin_alias_decl(name, decl)?.and_then(|_| {
                 let n = name.visit(visitor)?.modifying(name);
                 let s = visitor.sort(decl)?.modifying(decl);
                 visitor.finish_alias_decl(name, decl, n, s)
             }),
-            Decl::Attribute(decl) => visitor.begin_attribute_decl(decl)?.and_then(|_| {
+            Decl::Attribute { decl, .. } => visitor.begin_attribute_decl(decl)?.and_then(|_| {
                 let _d = decl.visit(visitor)?.modifying(decl);
                 visitor.finish_attribute_decl(decl)
             }),
-            Decl::Axiom(fmla) => visitor.begin_axiom_decl(fmla)?.and_then(|_| {
-                let _f = fmla.visit(visitor)?.modifying(fmla);
-                visitor.finish_axiom_decl(fmla)
+            Decl::Axiom { decl, .. } => visitor.begin_axiom_decl(decl)?.and_then(|_| {
+                let _f = decl.visit(visitor)?.modifying(decl);
+                visitor.finish_axiom_decl(decl)
             }),
-            Decl::BeforeAction(decl) => visitor.begin_before_decl(decl)?.and_then(|_| {
+            Decl::BeforeAction { decl, .. } => visitor.begin_before_decl(decl)?.and_then(|_| {
                 let n = decl.name.visit(visitor)?.modifying(&mut decl.name);
                 let p = decl
                     .params
@@ -779,48 +826,51 @@ where
                 let b = decl.body.visit(visitor)?.modifying(&mut decl.body);
                 visitor.finish_before_decl(decl, n, p, b)
             }),
-            Decl::Common(decl) => visitor.begin_common_decl(decl)?.and_then(|_| {
+            Decl::Common { decl, .. } => visitor.begin_common_decl(decl)?.and_then(|_| {
                 let _d = decl.visit(visitor)?.modifying(decl);
                 visitor.finish_common_decl(decl)
             }),
-            Decl::Export(decl) => visitor.begin_export_decl(decl)?.and_then(|_| match decl {
-                ExportDecl::Action(Binding {
-                    ref mut name,
-                    ref mut decl,
-                }) => visitor.begin_action_decl(name, decl)?.and_then(|_| {
-                    let n = visitor.token(name)?.modifying(name);
-                    let params = decl.params.visit(visitor)?.modifying(&mut decl.params);
-                    let ret = match &mut decl.ret {
-                        None => None,
-                        Some(sym) => Some(Binding::from(
-                            sym.name.clone(),
-                            visitor.param(sym)?.modifying(sym),
-                        )),
-                    };
-                    let body = decl
-                        .body
-                        .as_mut()
-                        .map(|b| Ok(b.visit(visitor)?.modifying(b)))
-                        .transpose()?;
-                    visitor.finish_action_decl(name, decl, n, params, ret, body)
-                }),
-                ExportDecl::ForwardRef(sym) => {
-                    Ok(ControlMut::Produce(sym.visit(visitor)?.modifying(sym)))
-                }
-            }),
-            Decl::Function(Binding { name, decl }) => {
-                visitor.begin_function_decl(name, decl)?.and_then(|_| {
-                    let n = visitor.token(name)?.modifying(name);
-                    let p = decl.params.visit(visitor)?.modifying(&mut decl.params);
-                    let r = decl.ret.visit(visitor)?.modifying(&mut decl.ret);
-                    visitor.finish_function_decl(name, decl, n, p, r)
+            Decl::Export { span, decl } => {
+                visitor.begin_export_decl(decl)?.and_then(|_| match decl {
+                    ExportDecl::Action(Binding {
+                        ref mut name,
+                        ref mut decl,
+                    }) => visitor.begin_action_decl(span, name, decl)?.and_then(|_| {
+                        let n = visitor.token(name)?.modifying(name);
+                        let params = decl.params.visit(visitor)?.modifying(&mut decl.params);
+                        let ret = match &mut decl.ret {
+                            None => None,
+                            Some(sym) => Some(Binding::from(
+                                sym.name.clone(),
+                                visitor.param(sym)?.modifying(sym),
+                            )),
+                        };
+                        let body = decl
+                            .body
+                            .as_mut()
+                            .map(|b| Ok(b.visit(visitor)?.modifying(b)))
+                            .transpose()?;
+                        visitor.finish_action_decl(span, name, decl, n, params, ret, body)
+                    }),
+                    ExportDecl::ForwardRef(sym) => {
+                        Ok(ControlMut::Produce(sym.visit(visitor)?.modifying(sym)))
+                    }
                 })
             }
+            Decl::Function {
+                decl: Binding { name, decl },
+                ..
+            } => visitor.begin_function_decl(name, decl)?.and_then(|_| {
+                let n = visitor.token(name)?.modifying(name);
+                let p = decl.params.visit(visitor)?.modifying(&mut decl.params);
+                let r = decl.ret.visit(visitor)?.modifying(&mut decl.ret);
+                visitor.finish_function_decl(name, decl, n, p, r)
+            }),
             Decl::Globals(decl) => visitor.begin_global_decl(decl)?.and_then(|_| {
                 let _d = decl.visit(visitor)?.modifying(decl);
                 visitor.finish_global_decl(decl)
             }),
-            Decl::Implement(decl) => visitor.begin_implement_decl(decl)?.and_then(|_| {
+            Decl::Implement { decl, .. } => visitor.begin_implement_decl(decl)?.and_then(|_| {
                 let n = decl.name.visit(visitor)?.modifying(&mut decl.name);
                 let params = decl
                     .params
@@ -837,19 +887,23 @@ where
                 let body = decl.body.visit(visitor)?.modifying(&mut decl.body);
                 visitor.finish_implement_decl(decl, n, params, ret, body)
             }),
-            Decl::Import(decl) => visitor.begin_import_decl(decl)?.and_then(|_| {
+            Decl::Import { decl, .. } => visitor.begin_import_decl(decl)?.and_then(|_| {
                 let n = decl.name.visit(visitor)?.modifying(&mut decl.name);
                 let p = decl.params.visit(visitor)?.modifying(&mut decl.params);
                 visitor.finish_import_decl(decl, n, p)
             }),
-            Decl::Include(decl) => visitor.begin_include_decl(decl)?.and_then(|_| {
+            Decl::Include { decl, .. } => visitor.begin_include_decl(decl)?.and_then(|_| {
                 let _ = decl.visit(visitor)?.modifying(decl);
                 visitor.finish_include_decl(decl)
             }),
-            Decl::Instance(Binding {
-                ref mut name,
-                ref mut decl,
-            }) => visitor.begin_instance_decl(name, decl)?.and_then(|_| {
+            Decl::Instance {
+                decl:
+                    Binding {
+                        ref mut name,
+                        ref mut decl,
+                    },
+                ..
+            } => visitor.begin_instance_decl(name, decl)?.and_then(|_| {
                 let n = name.visit(visitor)?.modifying(name);
                 let s = decl.sort.visit(visitor)?.modifying(&mut decl.sort);
                 let a = decl
@@ -860,22 +914,30 @@ where
                 visitor.finish_instance_decl(name, decl, n, s, a)
             }),
             Decl::Instantiate { name, prms } => todo!(),
-            Decl::Interpret(InterpretDecl {
-                ref mut name,
-                ref mut sort,
-            }) => visitor.begin_interpret_decl(name, sort)?.and_then(|_| {
+            Decl::Interpret {
+                decl:
+                    InterpretDecl {
+                        ref mut name,
+                        ref mut sort,
+                    },
+                ..
+            } => visitor.begin_interpret_decl(name, sort)?.and_then(|_| {
                 let n = name.visit(visitor)?.modifying(name);
                 let s = sort.visit(visitor)?.modifying(sort);
                 visitor.finish_interpret_decl(name, sort, n, s)
             }),
-            Decl::Invariant(decl) => visitor.begin_invariant_decl(decl)?.and_then(|_| {
+            Decl::Invariant { decl, .. } => visitor.begin_invariant_decl(decl)?.and_then(|_| {
                 let _f = decl.visit(visitor)?.modifying(decl);
                 visitor.finish_invariant_decl(decl)
             }),
-            Decl::Module(Binding {
-                ref mut name,
-                ref mut decl,
-            }) => visitor.begin_module_decl(name, decl)?.and_then(|_| {
+            Decl::Module {
+                decl:
+                    Binding {
+                        ref mut name,
+                        ref mut decl,
+                    },
+                ..
+            } => visitor.begin_module_decl(name, decl)?.and_then(|_| {
                 let n = name.visit(visitor)?.modifying(name);
                 let p = decl
                     .sortsyms
@@ -886,41 +948,55 @@ where
                 visitor.finish_module_decl(name, decl, n, p, b)
             }),
             Decl::Noop => return Ok(ControlMut::Produce(T::default())),
-            Decl::Object(Binding {
-                ref mut name,
-                ref mut decl,
-            }) => visitor.begin_object_decl(name, decl)?.and_then(|_| {
+            Decl::Object {
+                decl:
+                    Binding {
+                        ref mut name,
+                        ref mut decl,
+                    },
+                ..
+            } => visitor.begin_object_decl(name, decl)?.and_then(|_| {
                 let n = name.visit(visitor)?.modifying(name);
                 let p = decl.params.visit(visitor)?.modifying(&mut decl.params);
                 let b = decl.body.visit(visitor)?.modifying(&mut decl.body);
                 visitor.finish_object_decl(name, decl, n, p, b)
             }),
-            Decl::Relation(Binding { name, decl }) => {
-                visitor.begin_relation(name, decl)?.and_then(|_| {
-                    let n = name.visit(visitor)?.modifying(name);
-                    let p = decl.params.visit(visitor)?.modifying(&mut decl.params);
-                    visitor.finish_relation(name, decl, n, p)
-                })
-            }
+            Decl::Relation {
+                decl: Binding { name, decl },
+                ..
+            } => visitor.begin_relation(name, decl)?.and_then(|_| {
+                let n = name.visit(visitor)?.modifying(name);
+                let p = decl.params.visit(visitor)?.modifying(&mut decl.params);
+                visitor.finish_relation(name, decl, n, p)
+            }),
             Decl::Stmts(stmts) => {
                 let mut _t = stmts.visit(visitor)?.modifying(stmts);
                 Ok(ControlMut::Produce(T::default()))
             }
-            Decl::Var(Binding {
-                ref mut name,
-                ref mut decl,
-            }) => visitor.begin_vardecl(name, decl)?.and_then(|_| {
+            Decl::Var {
+                span,
+                decl:
+                    Binding {
+                        ref mut name,
+                        ref mut decl,
+                    },
+            } => visitor.begin_vardecl(span, name, decl)?.and_then(|_| {
                 let n = name.visit(visitor)?.modifying(name);
                 let s = visitor.sort(decl)?.modifying(decl);
-                visitor.finish_vardecl(name, decl, n, s)
+                visitor.finish_vardecl(span, name, decl, n, s)
             }),
-            Decl::Type(Binding {
-                ref mut name,
-                ref mut decl,
-            }) => visitor.begin_typedecl(name, decl)?.and_then(|_| {
+            Decl::Type {
+                span,
+                decl:
+                    Binding {
+                        ref mut name,
+                        ref mut decl,
+                    },
+                ..
+            } => visitor.begin_typedecl(span, name, decl)?.and_then(|_| {
                 let n = name.visit(visitor)?.modifying(name);
                 let s = visitor.sort(decl)?.modifying(decl);
-                visitor.finish_typedecl(name, decl, n, s)
+                visitor.finish_typedecl(span, name, decl, n, s)
             }),
         }?
         .modifying(self);
@@ -1042,9 +1118,9 @@ where
                     break;
                 }
 
-                ControlMut::Mutation(Decl::Common(decls), t)
-                | ControlMut::Mutation(Decl::Globals(decls), t)
-                    if decls.is_empty() =>
+                ControlMut::Mutation(Decl::Common { decl, .. }, t)
+                | ControlMut::Mutation(Decl::Globals(decl), t)
+                    if decl.is_empty() =>
                 {
                     continue
                 }

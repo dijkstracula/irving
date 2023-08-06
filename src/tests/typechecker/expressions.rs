@@ -3,10 +3,12 @@ mod tests {
     use std::collections::BTreeMap;
 
     use crate::{
+        ast::span::Span,
         tests::helpers,
         typechecker::{
             inference::SortInferer,
             sorts::{self, ActionArgs, IvySort, Object},
+            unifier::ResolverError,
             TypeError,
         },
         visitor::ast::Visitable,
@@ -52,7 +54,7 @@ mod tests {
         let res = ast.visit(&mut tc);
         assert_eq!(
             res.unwrap_err(),
-            TypeError::UnificationError(IvySort::Number, IvySort::Bool)
+            TypeError::unification_error(&IvySort::Number, &IvySort::Bool)
         )
     }
 
@@ -98,10 +100,10 @@ mod tests {
 
         assert_eq!(
             tc.bindings.append("foo".into(), IvySort::Number),
-            Err(TypeError::ReboundVariable {
+            Err(ResolverError::ReboundVariable {
                 sym: "foo".into(),
                 prev: IvySort::Bool,
-                new: IvySort::Number
+                new: IvySort::Number,
             })
         )
     }
@@ -149,10 +151,13 @@ mod tests {
         let res = callop.visit(&mut tc).unwrap_err();
         assert_eq!(
             res,
-            TypeError::UnificationError(
-                IvySort::Number,
-                IvySort::Action(vec!(), ActionArgs::List(vec!()), sorts::ActionRet::Unknown)
-            )
+            TypeError::Spanned {
+                span: Span::IgnoredForTesting,
+                inner: Box::new(TypeError::unification_error(
+                    &IvySort::Number,
+                    &IvySort::Action(vec!(), ActionArgs::List(vec!()), sorts::ActionRet::Unknown)
+                ))
+            }
         )
     }
 
@@ -180,6 +185,6 @@ mod tests {
         tc.bindings.append("a".into(), IvySort::Number).unwrap();
 
         let res = getop.visit(&mut tc).unwrap_err();
-        assert_eq!(res, TypeError::NotARecord(IvySort::Number));
+        assert_eq!(res, TypeError::NotARecord(IvySort::Number.desc()));
     }
 }

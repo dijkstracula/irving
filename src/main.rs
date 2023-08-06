@@ -1,10 +1,22 @@
 use clap::Parser;
 use irving::cli::{Cli, Commands, ExtractTarget};
+use irving::error::IrvingError;
 use irving::extraction;
 use irving::passes::global_lowerer::GlobalLowerer;
 use irving::visitor::ast::Visitable;
 
-fn main() -> anyhow::Result<()> {
+fn main() {
+    // This is dreadful!  But, I want to explicitly emit the IvyError's Display,
+    // not Debug.  I also can't use anyhow::Result<T> because the Rc that backs
+    // the program text is of course not Sync.  Maybe I'll come up with a better
+    // solution someday, or maybe not.
+    match main_impl() {
+        Ok(()) => (),
+        Err(e) => eprintln!("{}", e),
+    }
+}
+
+fn main_impl() -> std::result::Result<(), IrvingError> {
     env_logger::init();
 
     let cli = Cli::parse();

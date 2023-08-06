@@ -1,12 +1,7 @@
-#![allow(dead_code)]
-
 use thiserror::Error;
 
 use crate::{
-    ast::{
-        declarations::Decl,
-        expressions::{ParamList, Token},
-    },
+    ast::{expressions::Token, span::Span},
     visitor::VisitorResult,
 };
 
@@ -22,41 +17,32 @@ pub type InferenceResult<N> = VisitorResult<IvySort, TypeError, N>;
 
 #[derive(Debug, Error, Clone, PartialEq, Eq)]
 pub enum TypeError {
-    #[error("Sort {0:?} can't be called")]
-    InvalidApplication(IvySort),
+    #[error("Value can't be called")]
+    InvalidApplication,
 
     #[error("Expected {expected:?}, got {actual:?}")]
-    SortMismatch { expected: IvySort, actual: IvySort },
+    SortMismatch { expected: String, actual: String },
 
-    #[error("Declaration {0:?} doesn't bind a name")]
-    NonBindingDecl(Decl),
-
-    #[error("{0:?} is not an action or function")]
-    NotAFunction(IvySort),
+    #[error("Declaration doesn't bind a name")]
+    NonBindingDecl,
 
     #[error("{0:?} cannot be instantiated (did you mean to use `var`?)")]
-    NotInstanceable(IvySort),
+    NotInstanceable(&'static str),
 
     #[error("{0:?} cannot be indexed into with `.`")]
-    NotARecord(IvySort),
+    NotARecord(&'static str),
 
-    #[error("{0:?} has no field {1} ")]
-    MissingRecordField(IvySort, Token),
+    #[error("Undefined field {0} ")]
+    MissingRecordField(Token),
 
     #[error("Unbound variable {0}")]
     UnboundVariable(Token),
 
     #[error("Sort {0:?} mismatches {1:?}")]
-    UnificationError(IvySort, IvySort),
+    UnificationError(String, String),
 
-    #[error("Sequence of length {expected:?} mismatches {actual:?}")]
+    #[error("Sequence length mismatches {actual:?}")]
     LenMismatch { expected: usize, actual: usize },
-
-    #[error("Parameter list {0:?} mismatches {1:?}")]
-    ParamListMismatch(ParamList, ParamList),
-
-    #[error("Sort sequence {0:?} mismatches {1:?}")]
-    SortListMismatch(Vec<IvySort>, Vec<IvySort>),
 
     #[error("Token {expected:?} redefined as {actual:?}")]
     TokenMismatch { expected: Token, actual: Token },
@@ -64,7 +50,16 @@ pub enum TypeError {
     #[error("Token {sym:?} defined as {prev:?} and rebound as {new:?}")]
     ReboundVariable {
         sym: Token,
-        prev: IvySort,
-        new: IvySort,
+        prev: String,
+        new: String,
     },
+
+    #[error("{inner} at:\n{span}")]
+    Spanned { span: Span, inner: Box<TypeError> },
+}
+
+impl TypeError {
+    pub fn unification_error(lhs: &IvySort, rhs: &IvySort) -> Self {
+        Self::UnificationError(format!("{}", lhs), format!("{}", rhs))
+    }
 }

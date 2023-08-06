@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, fmt::Display};
 
 use crate::{
     ast::{
@@ -77,6 +77,43 @@ pub enum IvySort {
     SortVar(usize),
 }
 
+impl Display for IvySort {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            IvySort::BitVec(width) => write!(f, "BitVec({width})"),
+            IvySort::Vector(elm) => write!(f, "vector({elm})"),
+            IvySort::Range(min, max) => write!(f, "{{{:?}..{:?}}}", min, max),
+            IvySort::Enum(discs) => write!(f, "{{ ... {} discriminants ... }}", discs.len()),
+            IvySort::Action(_, args, ret) => {
+                write!(f, "(")?;
+                match args {
+                    ActionArgs::Unknown => write!(f, "?")?,
+                    ActionArgs::List(args) => {
+                        for (i, a) in args.iter().enumerate() {
+                            if i > 0 {
+                                write!(f, ", ")?;
+                            }
+                            write!(f, "{}", a)?;
+                        }
+                    }
+                }
+                write!(f, ")")?;
+
+                match ret {
+                    ActionRet::Unknown => write!(f, " -> ?"),
+                    ActionRet::Unit => write!(f, " -> unit"),
+                    ActionRet::Named(binding) => write!(f, "-> {}", binding.decl),
+                }
+            }
+            IvySort::Relation(args) => {
+                write!(f, "relation({:#?})", args)
+            }
+            IvySort::Module(module) => write!(f, "{}", module.name),
+            _ => write!(f, "{}", self.desc()),
+        }
+    }
+}
+
 impl IvySort {
     pub fn action_sort(arg_names: Vec<Token>, arg_sorts: Vec<IvySort>, ret: ActionRet) -> IvySort {
         // TODO: Do we want this?  Seems like a panic is strictly worse than constructing
@@ -96,6 +133,27 @@ impl IvySort {
         match self {
             IvySort::SortVar(_) => true,
             _ => false,
+        }
+    }
+
+    pub fn desc(&self) -> &'static str {
+        match self {
+            IvySort::Uninterpreted => "uninterpreted",
+            IvySort::This => "this",
+            IvySort::Unit => "unit",
+            IvySort::Top => "top",
+            IvySort::Bool => "boolean",
+            IvySort::Number => "unbounded_sequence",
+            IvySort::BitVec(_) => "bitvec",
+            IvySort::Vector(_) => "vector",
+            IvySort::Range(_, _) => "range",
+            IvySort::Enum(_) => "enum",
+            IvySort::Action(_, _, _) => "action",
+            IvySort::Relation(_) => "relation",
+            IvySort::Subclass(_) => "object",
+            IvySort::Module(_) => "module",
+            IvySort::Object(_) => "object",
+            IvySort::SortVar(_) => "sortvar",
         }
     }
 }

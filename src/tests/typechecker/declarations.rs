@@ -1,12 +1,13 @@
 #[cfg(test)]
 mod tests {
     use crate::{
-        ast::expressions::Expr,
+        ast::{expressions::Expr, span::Span},
         parser::ivy::{IvyParser, Rule},
         tests::helpers,
         typechecker::{
             inference::SortInferer,
             sorts::{IvySort, Module},
+            unifier::ResolverError,
             TypeError,
         },
         visitor::ast::Visitable,
@@ -66,14 +67,21 @@ mod tests {
         // With an empty context, `net` should produce an unbound identifier error.
         let mut tc = SortInferer::new();
         let res = decl_ast.visit(&mut tc).expect_err("visit");
-        assert_eq!(res, TypeError::UnboundVariable("net".into()));
+        assert_eq!(
+            res,
+            ResolverError::UnboundVariable("net".into()).to_typeerror(&Span::Todo)
+        );
 
         // If `net` is in the context, it needs to be a module.
         tc.bindings.push_scope();
         tc.bindings.append("net".into(), IvySort::Bool).unwrap();
 
         let res = decl_ast.visit(&mut tc).expect_err("visit");
-        assert_eq!(res, TypeError::NotARecord(IvySort::Bool));
+        assert_eq!(
+            res,
+            ResolverError::NotARecord(IvySort::Bool).to_typeerror(&Span::Todo)
+        );
+
         tc.bindings.pop_scope();
 
         // If it is module, field lookup needs to succeed.
@@ -90,7 +98,10 @@ mod tests {
             .unwrap();
 
         let res = decl_ast.visit(&mut tc).expect_err("visit");
-        assert_eq!(res, TypeError::UnboundVariable("sock".into()));
+        assert_eq!(
+            res,
+            ResolverError::UnboundVariable("sock".into()).to_typeerror(&Span::Todo)
+        );
         tc.bindings.pop_scope();
 
         // If field lookup succeeds, ensure it's something that can be instantiated (ie. a module or process)
@@ -107,7 +118,13 @@ mod tests {
             .unwrap();
 
         let res = decl_ast.visit(&mut tc).expect_err("visit");
-        assert_eq!(res, TypeError::NotInstanceable(IvySort::Number));
+        assert_eq!(
+            res,
+            TypeError::Spanned {
+                span: Span::Todo,
+                inner: Box::new(TypeError::NotInstanceable(IvySort::Number.desc()))
+            }
+        );
         tc.bindings.pop_scope();
 
         // If field lookup succeeds, and it can be instantiated, do so!
@@ -261,16 +278,33 @@ mod tests {
             .visit(&mut tc)
             .expect("visit")
             .modifying(&mut decl_ast);
+
+        let span = Span::IgnoredForTesting;
         assert_eq!(
             res,
-            IvySort::Range(Box::new(Expr::Number(0)), Box::new(Expr::Number(100)))
+            IvySort::Range(
+                Box::new(Expr::Number {
+                    span: span.clone(),
+                    val: 0
+                }),
+                Box::new(Expr::Number {
+                    span: span.clone(),
+                    val: 100
+                })
+            )
         );
 
         assert_eq!(
             tc.bindings.lookup_sym("numbers"),
             Some(&IvySort::Range(
-                Box::new(Expr::Number(0)),
-                Box::new(Expr::Number(100))
+                Box::new(Expr::Number {
+                    span: span.clone(),
+                    val: 0
+                }),
+                Box::new(Expr::Number {
+                    span: span.clone(),
+                    val: 100
+                })
             ))
         )
     }
@@ -324,5 +358,31 @@ mod tests {
             .visit(&mut tc)
             .expect("visit")
             .modifying(&mut decl_ast);
+    }
+
+    #[test]
+    fn test_var_redefinition() {
+        let prog = "{
+            var foo: unbounded_sequence
+            var foo: bool
+        }";
+        let parsed = IvyParser::parse_with_userdata(Rule::decl_block, prog, prog.into())
+            .expect("Parsing failed")
+            .single()
+            .unwrap();
+        let mut decl_ast = IvyParser::decl_block(parsed).expect("AST generation failed");
+
+        let mut tc = SortInferer::new();
+        let err = decl_ast.visit(&mut tc).expect_err("visit");
+
+        assert_eq!(
+            err,
+            ResolverError::ReboundVariable {
+                sym: "foo".into(),
+                prev: IvySort::Number,
+                new: IvySort::Bool
+            }
+            .to_typeerror(&Span::IgnoredForTesting)
+        );
     }
 }

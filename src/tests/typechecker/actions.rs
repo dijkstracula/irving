@@ -4,13 +4,14 @@ mod tests {
         ast::{
             declarations::{ActionDecl, Binding, Decl},
             expressions::{Expr, Sort},
+            span::Span,
             statements::Stmt,
         },
         parser::ivy::{IvyParser, Rule},
         typechecker::{
             inference::SortInferer,
             sorts::{self, IvySort},
-            TypeError,
+            unifier::ResolverError,
         },
         visitor::ast::Visitable,
     };
@@ -21,7 +22,8 @@ mod tests {
             .expect("Parsing failed")
             .single()
             .unwrap();
-        Decl::Object(IvyParser::process_decl(res).expect("AST generation failed"))
+        let (span, decl) = IvyParser::process_decl(res).expect("AST generation failed");
+        Decl::Object { span, decl }
     }
 
     fn decl_from_src(src: &str) -> Decl {
@@ -133,7 +135,7 @@ mod tests {
 
         assert_eq!(
             imp_decl.visit(&mut tc).unwrap_err(),
-            TypeError::UnboundVariable("foo".into())
+            ResolverError::UnboundVariable("foo".into()).to_typeerror(&Span::Todo)
         )
     }
 
@@ -254,17 +256,15 @@ mod tests {
         let err = action_app.visit(&mut tc).unwrap_err();
         assert_eq!(
             err,
-            TypeError::LenMismatch {
-                expected: 1,
-                actual: 0
-            }
+            ResolverError::LenMismatch(1, 0).to_typeerror(&Span::IgnoredForTesting)
         );
 
         let mut action_app = expr_from_src("m.doit(42)");
         let err = action_app.visit(&mut tc).unwrap_err();
         assert_eq!(
             err,
-            TypeError::UnificationError(IvySort::Bool, IvySort::Number)
+            ResolverError::UnificationError(IvySort::Bool, IvySort::Number)
+                .to_typeerror(&Span::IgnoredForTesting)
         );
 
         let mut action_app = expr_from_src("m.doit(true)");
@@ -318,10 +318,7 @@ mod tests {
         let err = action_app.visit(&mut tc).unwrap_err();
         assert_eq!(
             err,
-            TypeError::LenMismatch {
-                expected: 0,
-                actual: 1
-            }
+            ResolverError::LenMismatch(0, 1).to_typeerror(&Span::Todo)
         );
     }
 
@@ -377,12 +374,17 @@ mod tests {
             }
         }",
         ) {
-            Decl::Action(Binding {
-                decl: ActionDecl {
-                    body: Some(stmts), ..
-                },
-                ..
-            }) => stmts,
+            Decl::Action {
+                span: _,
+                decl:
+                    Binding {
+                        decl:
+                            ActionDecl {
+                                body: Some(stmts), ..
+                            },
+                        ..
+                    },
+            } => stmts,
             decl => panic!("Got back a {:?} rater than a Decl::Action", decl),
         };
         assert_eq!(

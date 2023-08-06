@@ -3,7 +3,7 @@ mod tests {
     use std::collections::BTreeMap;
 
     use crate::{
-        ast::declarations::Decl,
+        ast::{declarations::Decl, span::Span},
         parser::ivy::{IvyParser, Rule},
         typechecker::{
             inference::SortInferer,
@@ -19,7 +19,8 @@ mod tests {
             .expect("Parsing failed")
             .single()
             .unwrap();
-        Decl::Object(IvyParser::process_decl(res).expect("AST generation failed"))
+        let (span, decl) = IvyParser::process_decl(res).expect("AST generation failed");
+        Decl::Object { span, decl }
     }
 
     #[test]
@@ -129,7 +130,13 @@ mod tests {
         let res = proc.visit(&mut tc).expect_err("Should not typecheck");
         assert_eq!(
             res,
-            TypeError::UnificationError(IvySort::Bool, IvySort::Number)
+            TypeError::Spanned {
+                span: Span::IgnoredForTesting,
+                inner: Box::new(TypeError::unification_error(
+                    &IvySort::Bool,
+                    &IvySort::Number
+                ))
+            }
         );
     }
 }

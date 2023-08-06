@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
     use crate::{
-        ast::{declarations::*, expressions::*},
+        ast::{declarations::*, expressions::*, span::Span},
         parser::ivy::{IvyParser, Rule},
         tests::helpers,
     };
@@ -44,13 +44,16 @@ mod tests {
 
         assert_eq!(
             IvyParser::action_decl(res),
-            Ok(Binding::from(
-                "foo",
-                ActionDecl {
-                    params: vec![Symbol::from("a", Sort::Annotated(vec!["int".into()]))],
-                    ret: None,
-                    body: None,
-                }
+            Ok((
+                Span::IgnoredForTesting,
+                Binding::from(
+                    "foo",
+                    ActionDecl {
+                        params: vec![Symbol::from("a", Sort::Annotated(vec!["int".into()]))],
+                        ret: None,
+                        body: None,
+                    }
+                )
             ))
         );
     }
@@ -65,13 +68,16 @@ mod tests {
                 .unwrap();
         assert_eq!(
             IvyParser::action_decl(res),
-            Ok(Binding::from(
-                "foo",
-                ActionDecl {
-                    params: vec![Symbol::from("a", Sort::Annotated(vec!["int".into()]))],
-                    ret: None,
-                    body: Some(vec![])
-                }
+            Ok((
+                Span::IgnoredForTesting,
+                Binding::from(
+                    "foo",
+                    ActionDecl {
+                        params: vec![Symbol::from("a", Sort::Annotated(vec!["int".into()]))],
+                        ret: None,
+                        body: Some(vec![])
+                    }
+                )
             ))
         );
     }
@@ -87,7 +93,7 @@ mod tests {
                 .single()
                 .unwrap();
         // This assert indicates that parsing the action stopped when we hit the second action (i.e. what follows is invalid).
-        assert!(IvyParser::action_decl(res).unwrap().decl.body.is_none());
+        assert!(IvyParser::action_decl(res).unwrap().1.decl.body.is_none());
     }
 
     #[test]
@@ -101,13 +107,16 @@ mod tests {
 
         assert_eq!(
             IvyParser::action_decl(res),
-            Ok(Binding::from(
-                "foo",
-                ActionDecl {
-                    params: vec![Symbol::from("a", Sort::Annotated(vec!["int".into()]))],
-                    ret: Some(Symbol::from("b", Sort::Annotated(vec!["int".into()]))),
-                    body: None
-                }
+            Ok((
+                Span::IgnoredForTesting,
+                Binding::from(
+                    "foo",
+                    ActionDecl {
+                        params: vec![Symbol::from("a", Sort::Annotated(vec!["int".into()]))],
+                        ret: Some(Symbol::from("b", Sort::Annotated(vec!["int".into()]))),
+                        body: None
+                    }
+                )
             ))
         );
     }

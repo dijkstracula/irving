@@ -1,7 +1,7 @@
 use std::{collections::HashMap, vec};
 
 use crate::{
-    ast::expressions::*,
+    ast::{expressions::*, span::Span},
     typechecker::sorts::{ActionArgs, Module, Object},
 };
 
@@ -45,7 +45,7 @@ impl BindingResolver {
             .map(|s| self.resolve(s))
     }
 
-    pub fn lookup_ident(&self, id: &Ident) -> Result<&IvySort, TypeError> {
+    pub fn lookup_ident(&self, id: &Ident) -> Result<&IvySort, ResolverError> {
         let mut idents = id.iter();
 
         let mut curr_sym = idents.next().unwrap();
@@ -60,20 +60,20 @@ impl BindingResolver {
                     curr_sort = args.get(field).or(fields.get(field))
                 }
                 Some(sort) => {
-                    return Err(TypeError::NotARecord(sort.clone()));
+                    return Err(ResolverError::NotARecord(sort.clone()));
                 }
-                None => return Err(TypeError::UnboundVariable(curr_sym.clone())),
+                None => return Err(ResolverError::UnboundVariable(curr_sym.clone())),
             }
             curr_sym = field;
         }
 
         match curr_sort {
-            None => Err(TypeError::UnboundVariable(curr_sym.clone())),
+            None => Err(ResolverError::UnboundVariable(curr_sym.clone())),
             Some(s) => Ok(s),
         }
     }
 
-    pub fn append(&mut self, sym: Token, sort: IvySort) -> Result<(), TypeError> {
+    pub fn append(&mut self, sym: Token, sort: IvySort) -> Result<(), ResolverError> {
         if self.sorts.last().is_none() {
             panic!("Appending into an empty scope");
         }
@@ -87,10 +87,10 @@ impl BindingResolver {
                 self.sorts.last_mut().unwrap().insert(sym, unified);
                 return Ok(());
             } else if existing != &sort {
-                return Err(TypeError::ReboundVariable {
+                return Err(ResolverError::ReboundVariable {
                     sym,
                     prev: existing.clone(),
-                    new: sort.clone(),
+                    new: sort,
                 });
             }
         }
@@ -125,10 +125,11 @@ impl BindingResolver {
         &mut self,
         lhs: &Vec<IvySort>,
         rhs: &Vec<IvySort>,
-    ) -> Result<Vec<IvySort>, TypeError> {
+    ) -> Result<Vec<IvySort>, ResolverError> {
         log::debug!(target: "type-inference", "unify({lhs:?},{rhs:?})");
         if lhs.len() != rhs.len() {
-            Err(TypeError::SortListMismatch(lhs.clone(), rhs.clone()))
+            // XXX: which is expected and which is actual?
+            Err(ResolverError::LenMismatch(lhs.len(), rhs.len()))
         } else {
             let mut args = vec![];
             for (a1, a2) in lhs.iter().zip(rhs.iter()) {
@@ -142,7 +143,7 @@ impl BindingResolver {
         &mut self,
         lhs: &ActionArgs,
         rhs: &ActionArgs,
-    ) -> Result<ActionArgs, TypeError> {
+    ) -> Result<ActionArgs, ResolverError> {
         log::debug!(target: "type-inference", "unify({lhs:?},{rhs:?})");
         match (lhs, rhs) {
             (ActionArgs::Unknown, ActionArgs::Unknown) => Ok(ActionArgs::Unknown),
@@ -158,7 +159,7 @@ impl BindingResolver {
         &mut self,
         lhs: &ActionRet,
         rhs: &ActionRet,
-    ) -> Result<ActionRet, TypeError> {
+    ) -> Result<ActionRet, ResolverError> {
         log::debug!(target: "type-inference", "unify({lhs:?},{rhs:?})");
         match (lhs, rhs) {
             (ActionRet::Unknown, ActionRet::Unknown) => Ok(ActionRet::Unknown),
@@ -186,7 +187,7 @@ impl BindingResolver {
         }
     }
 
-    pub fn unify(&mut self, lhs: &IvySort, rhs: &IvySort) -> Result<IvySort, TypeError> {
+    pub fn unify(&mut self, lhs: &IvySort, rhs: &IvySort) -> Result<IvySort, ResolverError> {
         let lhs = self.resolve(lhs).clone();
         let rhs = self.resolve(rhs).clone();
         log::debug!(target: "type-inference", "unify({lhs:?},{rhs:?})");
@@ -215,10 +216,10 @@ impl BindingResolver {
                 IvySort::Action(rhsargnames, rhsargsorts, rhsret),
             ) => {
                 if lhsargnames.len() != rhsargnames.len() {
-                    return Err(TypeError::LenMismatch {
-                        expected: lhsargnames.len(),
-                        actual: rhsargnames.len(),
-                    });
+                    return Err(ResolverError::LenMismatch(
+                        lhsargnames.len(),
+                        rhsargnames.len(),
+                    ));
                 }
                 let args = self.unify_action_args(lhsargsorts, rhsargsorts)?;
                 let ret = self.unify_action_rets(lhsret, rhsret)?;
@@ -264,7 +265,7 @@ impl BindingResolver {
                 // see https://github.com/dijkstracula/irving/issues/25 .
                 if fargs.len() != args.len() || fargs.len() > 1 {
                     let pargs = args.iter().map(|(_, v)| v.clone()).collect::<Vec<_>>();
-                    return Err(TypeError::SortListMismatch(fargs.clone(), pargs));
+                    return Err(ResolverError::LenMismatch(fargs.len(), pargs.len()));
                 }
                 Ok(unified)
             }
@@ -294,7 +295,7 @@ impl BindingResolver {
                 if t1 == t2 {
                     Ok(lhs)
                 } else {
-                    Err(TypeError::UnificationError(lhs.clone(), rhs.clone()))
+                    Err(ResolverError::UnificationError(t1.clone(), t2.clone()))
                 }
             }
         }
@@ -304,5 +305,44 @@ impl BindingResolver {
         let s = IvySort::SortVar(self.ctx.len());
         self.ctx.push(s.clone());
         s
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ResolverError {
+    LenMismatch(usize, usize),
+    MissingField(String),
+    NotARecord(IvySort),
+    ReboundVariable {
+        sym: Token,
+        prev: IvySort,
+        new: IvySort,
+    },
+    UnificationError(IvySort, IvySort),
+    UnboundVariable(String),
+}
+
+impl ResolverError {
+    pub fn to_typeerror(self, span: &Span) -> TypeError {
+        TypeError::Spanned {
+            span: span.clone(),
+            inner: Box::new(match self {
+                ResolverError::LenMismatch(lhs, rhs) => TypeError::LenMismatch {
+                    expected: lhs,
+                    actual: rhs,
+                },
+                ResolverError::MissingField(field) => TypeError::MissingRecordField(field),
+                ResolverError::NotARecord(sort) => TypeError::NotARecord(sort.desc()),
+                ResolverError::ReboundVariable { sym, prev, new } => TypeError::ReboundVariable {
+                    sym,
+                    prev: prev.desc().to_owned(),
+                    new: new.desc().to_owned(),
+                },
+                ResolverError::UnificationError(lhs, rhs) => {
+                    TypeError::unification_error(&lhs, &rhs)
+                }
+                ResolverError::UnboundVariable(var) => TypeError::UnboundVariable(var),
+            }),
+        }
     }
 }

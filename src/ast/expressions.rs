@@ -2,7 +2,7 @@
 
 use crate::typechecker::sorts::IvySort;
 
-use super::declarations::Binding;
+use super::{declarations::Binding, span::Span};
 
 /// Corresponds to a file/line pairing, and possibly additionally docstrings to
 /// be reconstructed in the extracted code.
@@ -84,66 +84,71 @@ pub enum TypeName {
     This,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]
+#[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd)]
 #[allow(clippy::large_enum_variant)]
 pub enum Expr {
-    App(AppExpr),
+    App {
+        span: Span,
+        expr: AppExpr,
+    },
 
-    BinOp(BinOp),
+    BinOp {
+        span: Span,
+        expr: BinOp,
+    },
 
-    Boolean(bool),
+    Boolean {
+        span: Span,
+        val: bool,
+    },
 
-    FieldAccess(FieldAccess),
+    FieldAccess {
+        span: Span,
+        expr: FieldAccess,
+    },
 
-    Index(IndexExpr),
+    Index {
+        span: Span,
+        expr: IndexExpr,
+    },
 
-    LogicSymbol(Symbol),
+    LogicSymbol {
+        span: Span,
+        sym: Symbol,
+    },
 
-    Number(i64),
+    Number {
+        span: Span,
+        val: i64,
+    },
 
-    UnaryOp { op: Verb, expr: Box<Expr> },
+    UnaryOp {
+        span: Span,
+        op: Verb,
+        expr: Box<Expr>,
+    },
 
-    ProgramSymbol(Symbol),
+    ProgramSymbol {
+        span: Span,
+        sym: Symbol,
+    },
 
-    This,
+    This(Span),
 }
 
 impl Expr {
-    pub fn inferred_progsym<S>(s: S) -> Self
-    where
-        S: Into<String>,
-    {
-        Self::ProgramSymbol(Symbol {
-            name: s.into(),
-            decl: Sort::ToBeInferred,
-        })
-    }
-    pub fn annotated_progsym<S>(s: S, id: Ident) -> Self
-    where
-        S: Into<String>,
-    {
-        Self::ProgramSymbol(Symbol {
-            name: s.into(),
-            decl: Sort::Annotated(id),
-        })
-    }
-
-    pub fn inferred_logicsym<S>(s: S) -> Self
-    where
-        S: Into<String>,
-    {
-        Self::LogicSymbol(Symbol {
-            name: s.into(),
-            decl: Sort::ToBeInferred,
-        })
-    }
-    pub fn annotated_logicsym<S>(s: S, id: Ident) -> Self
-    where
-        S: Into<String>,
-    {
-        Self::LogicSymbol(Symbol {
-            name: s.into(),
-            decl: Sort::Annotated(id),
-        })
+    pub fn span(&self) -> &Span {
+        match self {
+            Expr::App { span, .. } => span,
+            Expr::BinOp { span, .. } => span,
+            Expr::Boolean { span, .. } => span,
+            Expr::FieldAccess { span, .. } => span,
+            Expr::Index { span, .. } => span,
+            Expr::LogicSymbol { span, .. } => span,
+            Expr::Number { span, .. } => span,
+            Expr::UnaryOp { span, .. } => span,
+            Expr::ProgramSymbol { span, .. } => span,
+            Expr::This(span) => span,
+        }
     }
 }

@@ -1,6 +1,6 @@
 use crate::{
     ast::toplevels::{self, Prog},
-    error::IvyError,
+    error::IrvingError,
     passes::global_lowerer::GlobalLowerer,
     typechecker::{inference::SortInferer, subst::SortSubstituter, TypeError},
     visitor::ast::Visitable,
@@ -14,7 +14,7 @@ use crate::{
 // typechecker whilst visiting needs to just treat the top isolate as special.
 //
 // See https://github.com/dijkstracula/irving/issues/5 .
-fn prog_from_filename(path: &str) -> std::result::Result<Prog, IvyError> {
+fn prog_from_filename(path: &str) -> std::result::Result<Prog, IrvingError> {
     log::info!(target: "stdlib", "loading {path}");
 
     let text = std::fs::read_to_string(path).unwrap();
@@ -25,7 +25,7 @@ fn prog_from_filename(path: &str) -> std::result::Result<Prog, IvyError> {
     Ok(prog)
 }
 
-pub fn load_stdlib() -> Result<SortInferer, IvyError> {
+pub fn load_stdlib() -> Result<SortInferer, IrvingError> {
     let mut tc = SortInferer::new();
 
     let mut decl = prog_from_filename("src/stdlib/ivy/network.ivy")?;
