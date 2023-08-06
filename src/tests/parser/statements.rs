@@ -10,6 +10,25 @@ mod tests {
     // Statements
 
     #[test]
+    fn parse_not_an_assign() {
+        // My number one biggest ivy typo: this should be `foo := 42`.
+        let fragment = "foo = 42";
+
+        let res = IvyParser::parse_with_userdata(Rule::stmt, fragment, fragment.into())
+            .expect("Parsing")
+            .single()
+            .unwrap();
+        let err = IvyParser::stmt(res).expect_err("AST generation should fail");
+
+        match err.variant {
+            pest::error::ErrorVariant::CustomError { message } => {
+                assert!(message.contains("Did you mean to assign"));
+            }
+            _ => unreachable!()
+        };
+    }
+
+    #[test]
     fn parse_assign() {
         let fragment = "a := b";
         helpers::stmt_from_src(fragment);

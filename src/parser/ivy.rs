@@ -624,6 +624,11 @@ impl IvyParser {
         input.into_children();
         [rval(call)] => match call {
             Expr::App { span, expr} => Ok((span, expr)),
+
+            Expr::BinOp { expr: BinOp { op: Verb::Equals, ..}, ..} => Err(
+                Error::new_from_span(ErrorVariant::<Rule>::CustomError { message:
+                    "Boolean expression with no effect (Did you mean to assign with `:=` instead)?)".into() }, span)),
+
             // TODO: This error message can be improved by restricting the grammar
             // to avoid arbitrary rvals being call_actions.  For details, see:
             // https://github.com/dijkstracula/irving/issues/49

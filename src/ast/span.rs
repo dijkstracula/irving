@@ -20,7 +20,6 @@ pub struct SourceSpan {
 
 impl Display for SourceSpan {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let line_start = self.lineno();
         let annot = SourceAnnotation {
             range: (self.start, self.end - 1),
             label: "here",
