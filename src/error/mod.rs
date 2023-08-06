@@ -1,6 +1,6 @@
 use std::{error::Error, fmt::Display};
 
-use crate::{ast::span::Span, parser::ivy::ParseError, typechecker::TypeError};
+use crate::{parser::ivy::ParseError, typechecker::TypeError};
 
 #[derive(Debug)]
 pub enum IrvingError {

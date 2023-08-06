@@ -12,7 +12,6 @@ mod tests {
             inference::SortInferer,
             sorts::{self, IvySort},
             unifier::ResolverError,
-            TypeError,
         },
         visitor::ast::Visitable,
     };

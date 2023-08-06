@@ -3,7 +3,7 @@ mod tests {
     use crate::{
         ast::span::Span,
         tests::helpers,
-        typechecker::{inference::SortInferer, sorts::IvySort, unifier::ResolverError, TypeError},
+        typechecker::{inference::SortInferer, sorts::IvySort, unifier::ResolverError},
         visitor::ast::Visitable,
     };
 
