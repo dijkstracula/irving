@@ -553,7 +553,7 @@ where
         Ok(ControlMut::Produce(T::default()))
     }
 
-    fn symbol(&mut self, p: &mut Symbol) -> VisitorResult<T, E, Symbol> {
+    fn symbol(&mut self, span: &Span, p: &mut Symbol) -> VisitorResult<T, E, Symbol> {
         self.token(&mut p.name)?.modifying(&mut p.name);
         self.sort(&mut p.decl)?.modifying(&mut p.decl);
         Ok(ControlMut::Produce(T::default()))
@@ -628,6 +628,8 @@ where
     E: Error,
 {
     fn visit(&mut self, visitor: &mut dyn Visitor<T, E>) -> VisitorResult<T, E, Self> {
+        let span = self.span();
+
         let t = match self {
             Expr::App { expr, .. } => visitor.begin_app(expr)?.and_then(|_| {
                 let func = expr.func.visit(visitor)?.modifying(&mut expr.func);
@@ -644,6 +646,7 @@ where
                 Ok(ControlMut::Produce(visitor.boolean(val)?.modifying(val)))
             }
             Expr::FieldAccess {
+                span,
                 expr:
                     FieldAccess {
                         ref mut record,
@@ -652,7 +655,7 @@ where
                 ..
             } => visitor.begin_field_access(record, field)?.and_then(|_| {
                 let r = record.visit(visitor)?.modifying(record);
-                let f = visitor.symbol(field)?.modifying(field);
+                let f = visitor.symbol(span, field)?.modifying(field);
                 visitor.finish_field_access(record, field, r, f)
             }),
             Expr::Index { expr, .. } => visitor
@@ -660,8 +663,8 @@ where
                 .and_then(|_| expr.lhs.visit(visitor))?
                 .and_then(|_| expr.idx.visit(visitor))?
                 .and_then(|_| visitor.finish_index(expr)),
-            Expr::LogicSymbol { sym, .. } => {
-                Ok(ControlMut::Produce(visitor.symbol(sym)?.modifying(sym)))
+            Expr::LogicSymbol { span, sym } => {
+                Ok(ControlMut::Produce(visitor.symbol(span, sym)?.modifying(sym)))
             }
             Expr::Number { val, .. } => {
                 let t = visitor.number(val)?.modifying(val);
@@ -676,8 +679,8 @@ where
                 let expr_t = expr.visit(visitor)?.modifying(expr);
                 visitor.finish_unary_op(op, expr, expr_t)
             }),
-            Expr::ProgramSymbol { sym, .. } => {
-                Ok(ControlMut::Produce(visitor.symbol(sym)?.modifying(sym)))
+            Expr::ProgramSymbol { span, sym } => {
+                Ok(ControlMut::Produce(visitor.symbol(span, sym)?.modifying(sym)))
             }
             Expr::This(_) => visitor.this(),
         }?

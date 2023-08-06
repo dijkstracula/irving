@@ -557,7 +557,7 @@ where
     ) -> ExtractResult<expressions::Expr> {
         lhs.visit(self)?;
         self.pp.write_str(".")?;
-        self.symbol(rhs)?.modifying(rhs);
+        self.symbol(&Span::Todo, rhs)?.modifying(rhs);
         Ok(ControlMut::SkipSiblings(()))
     }
 
@@ -592,7 +592,7 @@ where
 
     // Terminals
 
-    fn symbol(&mut self, p: &mut expressions::Symbol) -> ExtractResult<expressions::Symbol> {
+    fn symbol(&mut self, _span: &Span, p: &mut expressions::Symbol) -> ExtractResult<expressions::Symbol> {
         p.name.visit(self)?;
 
         Ok(ControlMut::SkipSiblings(()))

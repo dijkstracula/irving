@@ -77,7 +77,10 @@ mod tests {
 
         let mut tc = SortInferer::new();
         let res = identop.visit(&mut tc);
-        assert_eq!(res.unwrap_err(), TypeError::UnboundVariable("foo".into()));
+        assert_eq!(res.unwrap_err(), TypeError::Spanned {
+            span: Span::IgnoredForTesting,
+            inner: Box::new(TypeError::UnboundVariable("foo".into()))
+        });
 
         // Bindings at the top level should be resolvable.
         tc.bindings.append("foo".into(), IvySort::Number).unwrap();
