@@ -592,7 +592,11 @@ where
 
     // Terminals
 
-    fn symbol(&mut self, _span: &Span, p: &mut expressions::Symbol) -> ExtractResult<expressions::Symbol> {
+    fn symbol(
+        &mut self,
+        _span: &Span,
+        p: &mut expressions::Symbol,
+    ) -> ExtractResult<expressions::Symbol> {
         p.name.visit(self)?;
 
         Ok(ControlMut::SkipSiblings(()))

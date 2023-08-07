@@ -663,9 +663,9 @@ where
                 .and_then(|_| expr.lhs.visit(visitor))?
                 .and_then(|_| expr.idx.visit(visitor))?
                 .and_then(|_| visitor.finish_index(expr)),
-            Expr::LogicSymbol { span, sym } => {
-                Ok(ControlMut::Produce(visitor.symbol(span, sym)?.modifying(sym)))
-            }
+            Expr::LogicSymbol { span, sym } => Ok(ControlMut::Produce(
+                visitor.symbol(span, sym)?.modifying(sym),
+            )),
             Expr::Number { val, .. } => {
                 let t = visitor.number(val)?.modifying(val);
                 Ok(ControlMut::Produce(t))
@@ -679,9 +679,9 @@ where
                 let expr_t = expr.visit(visitor)?.modifying(expr);
                 visitor.finish_unary_op(op, expr, expr_t)
             }),
-            Expr::ProgramSymbol { span, sym } => {
-                Ok(ControlMut::Produce(visitor.symbol(span, sym)?.modifying(sym)))
-            }
+            Expr::ProgramSymbol { span, sym } => Ok(ControlMut::Produce(
+                visitor.symbol(span, sym)?.modifying(sym),
+            )),
             Expr::This(_) => visitor.this(),
         }?
         .modifying(self);

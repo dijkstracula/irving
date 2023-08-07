@@ -7,4 +7,6 @@ module vector(range) = {
     action set(a:this,x:unbounded_sequence,y:range) returns (a:this)
     action empty returns (a: this)
     action append(a: this, x: range) returns (y: this)
+
+    action end(a: this) returns (len: unbounded_sequence)
 } 

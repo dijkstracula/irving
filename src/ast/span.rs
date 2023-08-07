@@ -9,13 +9,27 @@ use crate::parser::ivy::Node;
 
 /// A span derived from a location in a source file, which we can
 /// use to generate an annotated snippet from.
-#[derive(Debug, Clone, Eq, PartialEq, PartialOrd, Ord)]
+#[derive(Clone, Eq, PartialEq, PartialOrd, Ord)]
 pub struct SourceSpan {
     input: Rc<str>,
 
     start: usize,
 
     end: usize,
+}
+
+impl std::fmt::Debug for SourceSpan {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self.input.get(self.start..self.end) {
+            None => f
+                .debug_struct("SourceSpan")
+                .field("input", &self.input)
+                .field("start", &self.start)
+                .field("end", &self.end)
+                .finish(),
+            Some(slice) => f.write_fmt(format_args!("\"{}\"", slice)),
+        }
+    }
 }
 
 impl Display for SourceSpan {

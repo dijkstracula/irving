@@ -194,11 +194,19 @@ impl Visitor<IvySort, TypeError> for SortInferer {
         Ok(ctrl)
     }
 
-    fn symbol(&mut self, span: &Span, p: &mut expressions::Symbol) -> InferenceResult<expressions::Symbol> {
+    fn symbol(
+        &mut self,
+        span: &Span,
+        p: &mut expressions::Symbol,
+    ) -> InferenceResult<expressions::Symbol> {
         let sort = match &mut p.decl {
             Sort::ToBeInferred => match self.bindings.lookup_sym(&p.name) {
-                None => return Err(
-                    TypeError::Spanned { span: span.clone(), inner: Box::new(TypeError::UnboundVariable(p.name.clone()))}),
+                None => {
+                    return Err(TypeError::Spanned {
+                        span: span.clone(),
+                        inner: Box::new(TypeError::UnboundVariable(p.name.clone())),
+                    })
+                }
                 Some(s) => s.clone(),
             },
             Sort::Annotated(ident) => self.identifier(ident)?.modifying(ident),

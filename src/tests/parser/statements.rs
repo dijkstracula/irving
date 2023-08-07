@@ -24,7 +24,7 @@ mod tests {
             pest::error::ErrorVariant::CustomError { message } => {
                 assert!(message.contains("Did you mean to assign"));
             }
-            _ => unreachable!()
+            _ => unreachable!(),
         };
     }
 

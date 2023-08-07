@@ -99,6 +99,21 @@ mod tests {
     }
 
     #[test]
+    fn parse_nested_implications() {
+        let _ast = parse_fmla("forall X, Y. X = 0 -> Y = 0 -> X = Y").unwrap();
+    }
+
+    #[test]
+    fn parse_nested_implications_2() {
+        let fragment = "msg_count = 0 -> 
+            host(X).contents.end() = host(Y).contents.end() & 
+            (IDX < host(X).contents.end() -> host(X).contents.get(I) = host(Y).contents.get(I))";
+        let ast = parse_fmla(fragment).unwrap();
+
+        println!("{:?}", ast);
+    }
+
+    #[test]
     fn parse_universal_quant() {
         let _ast = parse_fmla("forall X . X").expect("Parse");
         println!("{:?}", _ast);

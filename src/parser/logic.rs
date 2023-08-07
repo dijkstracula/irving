@@ -13,7 +13,7 @@ use crate::parser::ivy::*;
 lazy_static::lazy_static! {
     static ref PRATT: PrattParser<Rule> =
     PrattParser::new()
-        .op(Op::infix(Rule::ARROW, Assoc::Left))
+        .op(Op::infix(Rule::ARROW, Assoc::Right))
         .op(Op::infix(Rule::COLON, Assoc::Left))
 
         .op(Op::infix(Rule::PLUS, Assoc::Left) | Op::infix(Rule::MINUS, Assoc::Left))
@@ -35,6 +35,7 @@ lazy_static::lazy_static! {
         // XXX: it is unfortunate how close the program expression's
         // Pratt parser is to this one.
         .op(Op::postfix(Rule::log_app_args))
+        .op(Op::postfix(Rule::fnapp_args))
 
         .op(Op::infix(Rule::DOT, Assoc::Left));
 }
@@ -157,22 +158,48 @@ pub fn parse_log_term(input: Rc<str>, pairs: Pairs<Rule>) -> Result<Expr> {
                 }
             };
 
-            let lhs = lhs?;
-            let rhs = rhs?;
-            let span = Span::merge(lhs.span(), rhs.span());
-            Ok(Expr::BinOp {
-                span,
-                expr: BinOp {
-                    lhs: Box::new(lhs),
-                    op: verb,
-                    rhs: Box::new(rhs),
-                },
-            })
+            // Lift a Dot binary operation into a field access.
+            if verb == Verb::Dot {
+                let (rhs_span, field) = match rhs? {
+                    Expr::ProgramSymbol { span, sym } => (span, sym),
+                    x => {
+                        return Err(Error::new_from_span(
+                            ErrorVariant::CustomError {
+                                message: format!("invalid field {x:?}"),
+                            },
+                            op.as_span(),
+                        ));
+                    }
+                };
+                let span = Span::merge(
+                    &Span::from_pest(Rc::clone(&input), &op.as_span()),
+                    &rhs_span,
+                );
+                Ok(Expr::FieldAccess {
+                    span,
+                    expr: FieldAccess {
+                        record: Box::new(lhs?),
+                        field,
+                    },
+                })
+            } else {
+                let lhs = lhs?;
+                let rhs = rhs?;
+                let span = Span::merge(lhs.span(), rhs.span());
+                Ok(Expr::BinOp {
+                    span,
+                    expr: BinOp {
+                        lhs: Box::new(lhs),
+                        op: verb,
+                        rhs: Box::new(rhs),
+                    },
+                })
+            }
         })
         .map_postfix(|lhs, op| {
             let op_span = Span::from_pest(Rc::clone(&input), &op.as_span());
             match op.as_rule() {
-                Rule::log_app_args => {
+                Rule::log_app_args | Rule::fnapp_args => {
                     let results = op
                         .into_inner()
                         .map(|e| parse_log_term(Rc::clone(&input), e.into_inner()))
