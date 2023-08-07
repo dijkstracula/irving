@@ -50,6 +50,14 @@ impl JavaType {
             _ => self.as_jref(),
         }
     }
+
+    pub fn inhabitant_stream(&self) -> String {
+        match self {
+            JavaType::Boolean => "Arrays.stream( new Boolean[]{ false, true })".into(),
+            JavaType::BoundedLong(lo, hi) => format!("LongStream.range({lo}, {hi} + 1)"),
+            x => panic!("{x:?}: Not a finite sort"),
+        }
+    }
 }
 
 impl From<IvySort> for JavaType {

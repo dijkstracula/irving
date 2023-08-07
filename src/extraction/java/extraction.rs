@@ -1,11 +1,15 @@
 use crate::{
     ast::{
         declarations::{self, Binding},
+        logic,
         span::Span,
     },
     extraction::{java::extraction::expressions::Token, ExtractResult},
 };
-use std::{collections::BTreeMap, fmt::Write};
+use std::{
+    collections::BTreeMap,
+    fmt::{self, Write},
+};
 
 use thiserror::Error;
 
@@ -46,7 +50,7 @@ where
 {
     pub fn write_separated<U>(&mut self, us: &mut Vec<U>, sep: &str) -> ExtractResult<Vec<U>>
     where
-        U: Visitable<(), std::fmt::Error>,
+        U: Visitable<(), fmt::Error>,
     {
         for (i, u) in us.iter_mut().enumerate() {
             if i > 0 {
@@ -124,7 +128,7 @@ where
     }
 }
 
-impl<W> ast::Visitor<(), std::fmt::Error> for Extractor<W>
+impl<W> ast::Visitor<(), fmt::Error> for Extractor<W>
 where
     W: Write,
 {
@@ -343,16 +347,13 @@ where
         Ok(ControlMut::SkipSiblings(()))
     }
 
-    fn begin_invariant_decl(
-        &mut self,
-        ast: &mut crate::ast::logic::Fmla,
-    ) -> ExtractResult<declarations::Decl> {
+    fn begin_invariant_decl(&mut self, ast: &mut logic::Fmla) -> ExtractResult<declarations::Decl> {
         self.pp.write_str("addConjecture(")?;
 
         match ast {
-            crate::ast::logic::Fmla::Forall(_) => todo!(),
-            crate::ast::logic::Fmla::Exists(_) => todo!(),
-            crate::ast::logic::Fmla::Pred(expr) => {
+            logic::Fmla::Forall(_) => todo!(),
+            logic::Fmla::Exists(_) => todo!(),
+            logic::Fmla::Pred(expr) => {
                 self.pp.write_str("() -> ")?;
                 expr.visit(self)?.modifying(expr);
             }
@@ -473,6 +474,10 @@ where
         lhs.visit(self)?;
         self.pp.write_fmt(format_args!(".{}", rhs.name))?;
         Ok(ControlMut::SkipSiblings(()))
+    }
+
+    fn begin_forall(&mut self, ast: &mut logic::Forall) -> ExtractResult<logic::Fmla> {
+        todo!()
     }
 
     fn begin_index(&mut self, expr: &mut IndexExpr) -> ExtractResult<expressions::Expr> {
