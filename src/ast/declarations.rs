@@ -96,6 +96,7 @@ impl ObjectDecl {
                     decl: ExportDecl::Action { .. },
                     ..
                 }
+                | Decl::Import { .. }
                 | Decl::Action { .. } => Some(d),
                 _ => None,
             })
@@ -107,6 +108,16 @@ impl ObjectDecl {
             .iter_mut()
             .filter_map(|d| match d {
                 Decl::Var { .. } => Some(d),
+                _ => None,
+            })
+            .collect()
+    }
+
+    pub fn subobjects(&mut self) -> Vec<&mut Decl> {
+        self.body
+            .iter_mut()
+            .filter_map(|d| match d {
+                Decl::Module { .. } | Decl::Object { .. } => Some(d),
                 _ => None,
             })
             .collect()
@@ -284,7 +295,7 @@ impl Decl {
             } => Some(name),
             Decl::Globals(_) => None,
             Decl::Implement { .. } => None,
-            Decl::Import { .. } => None,
+            Decl::Import { decl, .. } => Some(&decl.name),
             Decl::Include { .. } => None,
             Decl::Instance { decl, .. } => Some(&decl.name),
             Decl::Instantiate { .. } => None,
