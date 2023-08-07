@@ -26,12 +26,24 @@ mod tests {
     }
 
     #[test]
-    fn test_bool_binop() {
+    fn test_lt_binop() {
         let prog = "1 < 2";
         let mut ast = helpers::rval_from_src(prog);
 
-        let mut tc = SortInferer::new();
-        let res = ast.visit(&mut tc).unwrap().modifying(&mut ast);
+        let mut si = SortInferer::new();
+        let res = ast.visit(&mut si).unwrap().modifying(&mut ast);
+        assert_eq!(res, IvySort::Bool);
+    }
+
+    #[test]
+    fn test_eq_binop() {
+        let prog = "foo = 2";
+        let mut ast = helpers::rval_from_src(prog);
+
+        let mut si = SortInferer::new();
+        si.bindings.append("foo".into(), IvySort::Number).unwrap();
+
+        let res = ast.visit(&mut si).unwrap().modifying(&mut ast);
         assert_eq!(res, IvySort::Bool);
     }
 

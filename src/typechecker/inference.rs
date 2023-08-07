@@ -145,7 +145,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
         }
     }
 
-    fn number(&mut self, _n: &mut i64) -> InferenceResult<i64> {
+    fn number(&mut self, _span: &Span, _n: &mut i64) -> InferenceResult<i64> {
         Ok(ControlMut::Produce(IvySort::Number))
     }
 
@@ -376,16 +376,13 @@ impl Visitor<IvySort, TypeError> for SortInferer {
             | expressions::Verb::And
             | expressions::Verb::Not
             | expressions::Verb::Arrow => {
-                if self
-                    .bindings
+                self.bindings
                     .unify(&lhs_sort, &IvySort::Bool)
-                    .and(self.bindings.unify(&IvySort::Bool, &rhs_sort))
-                    .is_err()
-                {
-                    Err(TypeError::unification_error(&lhs_sort, &rhs_sort))
-                } else {
-                    Ok(ControlMut::Produce(IvySort::Bool))
-                }
+                    .map_err(|e| e.to_typeerror(ast.lhs.span()))?;
+                self.bindings
+                    .unify(&IvySort::Bool, &rhs_sort)
+                    .map_err(|e| e.to_typeerror(ast.rhs.span()))?;
+                Ok(ControlMut::Produce(IvySort::Bool))
             }
 
             // Equality and comparison
@@ -393,24 +390,21 @@ impl Visitor<IvySort, TypeError> for SortInferer {
             | expressions::Verb::Le
             | expressions::Verb::Gt
             | expressions::Verb::Ge => {
-                if self
-                    .bindings
+                self.bindings
                     .unify(&lhs_sort, &IvySort::Number)
-                    .and(self.bindings.unify(&IvySort::Number, &rhs_sort))
-                    .is_err()
-                {
-                    Err(TypeError::unification_error(&lhs_sort, &rhs_sort))
-                } else {
-                    Ok(ControlMut::Produce(IvySort::Bool))
-                }
+                    .map_err(|e| e.to_typeerror(ast.lhs.span()))?;
+                self.bindings
+                    .unify(&IvySort::Number, &rhs_sort)
+                    .map_err(|e| e.to_typeerror(ast.rhs.span()))?;
+                Ok(ControlMut::Produce(IvySort::Bool))
             }
 
             expressions::Verb::Equals | expressions::Verb::Notequals => {
-                if self.bindings.unify(&lhs_sort, &rhs_sort).is_err() {
-                    Err(TypeError::unification_error(&lhs_sort, &rhs_sort))
-                } else {
-                    Ok(ControlMut::Produce(IvySort::Bool))
-                }
+                self.bindings.unify(&lhs_sort, &rhs_sort).map_err(|e| {
+                    let span = Span::merge(ast.lhs.span(), ast.rhs.span());
+                    e.to_typeerror(&span)
+                })?;
+                Ok(ControlMut::Produce(IvySort::Bool))
             }
 
             // Numeric operators
@@ -434,6 +428,8 @@ impl Visitor<IvySort, TypeError> for SortInferer {
             expressions::Verb::Dot => {
                 // Man, I am not sure.  This SHOULD have been typechecked when we visit the field
                 // access, but I should confirm that this is actually the case.
+                // Actually, this should already be handled - all Dots should be transformed into
+                // an Expr::FieldAccess.
                 Ok(ControlMut::Produce(rhs_sort))
             }
         }
@@ -510,19 +506,19 @@ impl Visitor<IvySort, TypeError> for SortInferer {
     fn finish_unary_op(
         &mut self,
         op: &mut expressions::Verb,
-        _rhs: &mut Expr,
+        rhs: &mut Expr,
         rhs_sort: IvySort,
     ) -> InferenceResult<Expr> {
         match op {
             expressions::Verb::Not => Ok(ControlMut::Produce(
                 self.bindings
                     .unify(&IvySort::Bool, &rhs_sort)
-                    .map_err(|e| e.to_typeerror(&Span::Todo))?,
+                    .map_err(|e| e.to_typeerror(rhs.span()))?,
             )),
             expressions::Verb::Minus => Ok(ControlMut::Produce(
                 self.bindings
                     .unify(&IvySort::Number, &rhs_sort)
-                    .map_err(|e| e.to_typeerror(&Span::Todo))?,
+                    .map_err(|e| e.to_typeerror(rhs.span()))?,
             )),
             _ => unimplemented!(),
         }
@@ -530,9 +526,23 @@ impl Visitor<IvySort, TypeError> for SortInferer {
 
     // Formulas
 
+    fn begin_exists(&mut self, _ast: &mut logic::Exists) -> InferenceResult<logic::Fmla> {
+        self.bindings.push_scope();
+        Ok(ControlMut::Produce(IvySort::Bool))
+    }
+    fn finish_exists(
+        &mut self,
+        _ast: &mut logic::Exists,
+        _vars: Vec<IvySort>,
+        _fmla: IvySort,
+    ) -> InferenceResult<logic::Fmla> {
+        self.bindings.pop_scope();
+        Ok(ControlMut::Produce(IvySort::Bool))
+    }
+
     fn begin_forall(&mut self, _ast: &mut logic::Forall) -> InferenceResult<logic::Fmla> {
         self.bindings.push_scope();
-        Ok(ControlMut::Produce(IvySort::Unit))
+        Ok(ControlMut::Produce(IvySort::Bool))
     }
     fn finish_forall(
         &mut self,
@@ -541,7 +551,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
         _fmla: IvySort,
     ) -> InferenceResult<logic::Fmla> {
         self.bindings.pop_scope();
-        Ok(ControlMut::Produce(IvySort::Unit))
+        Ok(ControlMut::Produce(IvySort::Bool))
     }
 
     // actions and decls
@@ -563,7 +573,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
     }
     fn finish_action_decl(
         &mut self,
-        _span: &Span,
+        span: &Span,
 
         name: &mut Token,
         ast: &mut declarations::ActionDecl,
@@ -596,7 +606,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
         let unified = self
             .bindings
             .unify(&name_sort, &actsort)
-            .map_err(|e| e.to_typeerror(&Span::Todo))?;
+            .map_err(|e| e.to_typeerror(span))?;
 
         self.bindings.pop_scope();
 
@@ -722,23 +732,23 @@ impl Visitor<IvySort, TypeError> for SortInferer {
 
     fn finish_ensure(
         &mut self,
-        _ast: &mut actions::EnsureAction,
+        ast: &mut actions::EnsureAction,
         pred_sort: IvySort,
     ) -> InferenceResult<Action> {
         self.bindings
             .unify(&IvySort::Bool, &pred_sort)
-            .map_err(|e| e.to_typeerror(&Span::Todo))?;
+            .map_err(|e| e.to_typeerror(ast.pred.span()))?;
         Ok(ControlMut::Produce(IvySort::Unit))
     }
 
     fn finish_requires(
         &mut self,
-        _ast: &mut actions::RequiresAction,
+        ast: &mut actions::RequiresAction,
         pred_sort: IvySort,
     ) -> InferenceResult<Action> {
         self.bindings
             .unify(&IvySort::Bool, &pred_sort)
-            .map_err(|e| e.to_typeerror(&Span::Todo))?;
+            .map_err(|e| e.to_typeerror(ast.pred.span()))?;
         Ok(ControlMut::Produce(IvySort::Unit))
     }
 

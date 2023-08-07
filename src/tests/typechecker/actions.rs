@@ -135,7 +135,7 @@ mod tests {
 
         assert_eq!(
             imp_decl.visit(&mut tc).unwrap_err(),
-            ResolverError::UnboundVariable("foo".into()).to_typeerror(&Span::Todo)
+            ResolverError::UnboundVariable("foo".into()).to_typeerror(&Span::IgnoredForTesting)
         )
     }
 

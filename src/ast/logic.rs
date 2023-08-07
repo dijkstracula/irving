@@ -1,4 +1,7 @@
-use super::expressions::{Expr, ParamList};
+use super::{
+    expressions::{Expr, ParamList},
+    span::Span,
+};
 
 /*
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -13,6 +16,16 @@ pub enum Fmla {
     Forall(Forall),
     Exists(Exists),
     Pred(Expr),
+}
+
+impl Fmla {
+    pub fn span(&self) -> &Span {
+        match self {
+            Fmla::Forall(forall) => forall.fmla.span(),
+            Fmla::Exists(exists) => exists.fmla.span(),
+            Fmla::Pred(expr) => expr.span(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

@@ -553,7 +553,7 @@ where
         Ok(ControlMut::Produce(()))
     }
 
-    fn number(&mut self, n: &mut i64) -> ExtractResult<i64> {
+    fn number(&mut self, _span: &Span, n: &mut i64) -> ExtractResult<i64> {
         self.pp.write_str(&n.to_string())?;
         Ok(ControlMut::Produce(()))
     }

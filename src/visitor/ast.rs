@@ -536,7 +536,7 @@ where
         Ok(ControlMut::Produce(T::default()))
     }
 
-    fn number(&mut self, _n: &mut i64) -> VisitorResult<T, E, i64> {
+    fn number(&mut self, _span: &Span, _n: &mut i64) -> VisitorResult<T, E, i64> {
         Ok(ControlMut::Produce(T::default()))
     }
 
@@ -666,8 +666,8 @@ where
             Expr::LogicSymbol { span, sym } => Ok(ControlMut::Produce(
                 visitor.symbol(span, sym)?.modifying(sym),
             )),
-            Expr::Number { val, .. } => {
-                let t = visitor.number(val)?.modifying(val);
+            Expr::Number { span, val } => {
+                let t = visitor.number(span, val)?.modifying(val);
                 Ok(ControlMut::Produce(t))
             }
             Expr::UnaryOp {
