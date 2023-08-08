@@ -1,7 +1,4 @@
-use std::{
-    fmt::{Debug, Display},
-    rc::Rc,
-};
+use std::{cmp::Ordering, fmt::Display, fmt::Debug,rc::Rc};
 
 use annotate_snippets::{
     display_list::{DisplayList, FormatOptions},
@@ -74,7 +71,7 @@ impl SourceSpan {
     }
 }
 
-#[derive(Clone, Eq, PartialOrd, Ord)]
+#[derive(Clone, Eq, PartialOrd)]
 pub enum Span {
     /// From an actual program text
     Source(SourceSpan),
@@ -136,6 +133,23 @@ impl PartialEq for Span {
             (Self::IgnoredForTesting, _) => true,
             (_, Self::IgnoredForTesting) => true,
             _ => core::mem::discriminant(self) == core::mem::discriminant(other),
+        }
+    }
+}
+
+impl Ord for Span {
+    // Source > Optimized > Todo ?
+    fn cmp(&self, other: &Self) -> Ordering {
+        match (self, other) {
+            (Span::Source(l), Span::Source(r)) => l.cmp(r),
+            (Span::Optimized, Span::Optimized) => Ordering::Equal,
+            (Span::Todo, Span::Todo) => Ordering::Equal,
+
+            (Span::IgnoredForTesting, _) => Ordering::Equal,
+            (_, Span::IgnoredForTesting) => Ordering::Equal,
+            (Span::Source(_), _) => Ordering::Greater,
+            (Span::Optimized, _) => Ordering::Greater,
+            (Span::Todo, _) => Ordering::Greater,
         }
     }
 }

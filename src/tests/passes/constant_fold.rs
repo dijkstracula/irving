@@ -33,4 +33,23 @@ mod tests {
 
         assert_eq!(ast, helpers::inferred_progsym("foo"));
     }
+
+    #[test]
+    fn fold_left_assoc() {
+        let expr = "(foo + 19) + 4";
+        let mut ast = helpers::rval_from_src(expr);
+
+        let mut cf = ConstantFold;
+        ast.visit(&mut cf).unwrap();
+
+        let expected = Expr::BinOp {
+            span: Span::IgnoredForTesting,
+            expr: BinOp {
+                lhs: helpers::inferred_progsym("foo").into(),
+                op: Verb::Plus,
+                rhs: helpers::number(23).into(),
+            },
+        };
+        assert_eq!(ast, expected);
+    }
 }

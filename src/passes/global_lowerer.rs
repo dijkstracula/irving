@@ -5,6 +5,8 @@ use crate::ast::{declarations::*, toplevels::Prog};
 use crate::visitor::ast::Visitor;
 use crate::visitor::*;
 
+/// A compiler pass that finds global declarations at any scope level and moves them
+/// to the top level of the program.
 pub struct GlobalLowerer {
     pub globals: Vec<Decl>,
 }
