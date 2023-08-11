@@ -51,7 +51,7 @@ impl Polarity {
 ///      forall X, !F(X) <-> exists X . F(X)
 pub struct QuantBounds {
     /// What subexpressions have we found that bound a quantified variable?
-    pub bounds: BTreeMap<String, Vec<(BinOp, bool)>>,
+    pub bounds: BTreeMap<String, Vec<(Option<Expr>, Option<Expr>)>>,
 
     /// Are we negating the current subexpression that we're visiting?
     /// (in the ivy_to_cpp implementation, this is `exists`)
@@ -86,30 +86,58 @@ impl QuantBounds {
     }
 
     // Produces the exclusive half-open interval described by the binop, if it's comparing two numerics.
-    pub fn bounds_from_ast(lhs: &Expr, op: expressions::Verb, rhs: &Expr) -> Option<(Expr, Expr)> {
-        match (lhs, &op, rhs) {
-            (lhs, expressions::Verb::Le, rhs) => Some((lhs.clone(), QuantBounds::succ(rhs))),
-            (lhs, expressions::Verb::Lt, rhs) => Some((lhs.clone(), rhs.clone())),
-            (lhs, expressions::Verb::Gt, rhs) => Some((rhs.clone(), lhs.clone())),
-            (lhs, expressions::Verb::Ge, rhs) => Some((rhs.clone(), QuantBounds::succ(lhs))),
+    pub fn bounds_from_ast(
+        lvar: expressions::Symbol,
+        lhs: &Expr,
+        op: expressions::Verb,
+        rhs: &Expr,
+    ) -> Option<(Option<Expr>, Option<Expr>)> {
+        let (lo, hi) = match (lhs, &op, rhs) {
+            (lhs, expressions::Verb::Le, rhs) => (lhs.clone(), QuantBounds::succ(rhs)),
+            (lhs, expressions::Verb::Lt, rhs) => (lhs.clone(), rhs.clone()),
+            (lhs, expressions::Verb::Gt, rhs) => (rhs.clone(), lhs.clone()),
+            (lhs, expressions::Verb::Ge, rhs) => (rhs.clone(), QuantBounds::succ(lhs)),
+            _ => return None,
+        };
 
-            (lhs @ Expr::Number { .. }, expressions::Verb::Equals, _) => {
-                Some((lhs.clone(), QuantBounds::succ(lhs)))
-            }
-            (_, expressions::Verb::Equals, rhs @ Expr::Number { .. }) => {
-                Some((rhs.clone(), QuantBounds::succ(rhs)))
-            }
-            _ => None,
-        }
+        let lo = match lo {
+            Expr::LogicSymbol { sym, .. } if lvar == sym => None,
+            _ => Some(lo),
+        };
+        let hi = match hi {
+            Expr::LogicSymbol { sym, .. } if lvar == sym => None,
+            _ => Some(hi),
+        };
+
+        Some((lo, hi))
     }
 
     // Produces whether or not this is a binop that we're interested in (namely
     // one that uses a logical symbol)
     pub fn op_on_logicsym(ast: &expressions::BinOp) -> Option<&expressions::Symbol> {
+        // XXX: this precludes spanning operations like `X = X` but Ivy doesn't do this
+        // either it seems.
         match (ast.lhs.as_ref(), &ast.rhs.as_ref()) {
-            (Expr::LogicSymbol { sym, .. }, _) | (_, Expr::LogicSymbol { sym, .. }) => Some(sym),
-            _ => None,
+            (
+                Expr::LogicSymbol {
+                    sym: expressions::Symbol { name: lname, .. },
+                    ..
+                },
+                Expr::LogicSymbol {
+                    sym: expressions::Symbol { name: rname, .. },
+                    ..
+                },
+            ) if lname == rname => return None,
+            _ => (),
+        };
+
+        if let Expr::LogicSymbol { sym, .. } = ast.lhs.as_ref() {
+            return Some(sym);
         }
+        if let Expr::LogicSymbol { sym, .. } = ast.rhs.as_ref() {
+            return Some(sym);
+        }
+        None
     }
 }
 
@@ -182,24 +210,25 @@ impl Visitor<(), std::fmt::Error> for QuantBounds {
             }
             op if op.is_numeric_cmp() => {
                 // ivy_to_cpp:3840: "if body.rep.name in ['<', '<=', '>', '>=']:"
-                println!("NBT: {:?}", ast);
                 if let Some(sym) = QuantBounds::op_on_logicsym(ast) {
                     // TODO: don't we need to also visit the other side of the expression (eg. the side
                     // that doesn't have the logic var)?
-                    log::debug!(target: "quantifier-bounds", "{:?} {:?} {:?}", ast.lhs, ast.op, ast.rhs);
-                    self.bounds
-                        .get_mut(&sym.name)
-                        .unwrap()
-                        .push((ast.clone(), self.polarity == Polarity::Forall));
 
-                    /*
+                    let ast = match self.polarity {
+                        Polarity::Forall => ast.clone(),
+                        Polarity::Exists => BinOp {
+                            lhs: Box::new(*ast.lhs.clone()),
+                            op: ast.op.negate(),
+                            rhs: Box::new(*ast.rhs.clone()),
+                        },
+                    };
+
                     let (lhs, op, rhs) = (ast.lhs.as_ref(), op, ast.rhs.as_ref());
-
                     if let Some(bound) = QuantBounds::bounds_from_ast(lhs, op, rhs) {
                         log::debug!(target: "quantifier-bounds", "{} ∈ ({:?}, {:?}], {:?}", sym.name, bound.0, bound.1, self.polarity);
+
                         self.bounds.get_mut(&sym.name).unwrap().push(bound);
                     }
-                    */
                 }
             }
             _ => (),

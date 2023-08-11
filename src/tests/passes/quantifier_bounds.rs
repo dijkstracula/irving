@@ -131,10 +131,11 @@ mod tests {
         let n = helpers::inferred_logicsym("N");
         let one = helpers::number(1);
 
+        println!("NBT: {:?}", qb.bounds.get("N"));
         assert!(qb.bounds.get("N").unwrap().contains(&(
             BinOp {
                 lhs: Box::new(n),
-                op: Verb::Lt,
+                op: Verb::Ge,
                 rhs: Box::new(one)
             },
             false
@@ -151,7 +152,6 @@ mod tests {
         // TODO: why doesn't ivy_to_cpp generate the range given below???
         let n = helpers::inferred_logicsym("N");
         let zero = helpers::number(0);
-        println!("NBT: {:?}", qb.bounds.get("N"));
 
         assert!(qb.bounds.get("N").unwrap().contains(&(
             BinOp {
@@ -161,7 +161,6 @@ mod tests {
             },
             true
         )));
-        //assert!(qb.bounds.get("N").unwrap().contains(&(zero, n)));
     }
 
     #[test]
@@ -176,7 +175,7 @@ mod tests {
 
     #[test]
     fn bounds_from_forall_nats_monotonic_lt() {
-        let mut fmla = typecheck_fmla("forall N. N < 10 -> N < 5").expect("parse and typecheck");
+        let mut fmla = typecheck_fmla("forall N. N > 10 -> N > 5").expect("parse and typecheck");
 
         let mut qb = QuantBounds::new_forall();
         fmla.visit(&mut qb).unwrap().modifying(&mut fmla);
@@ -188,7 +187,7 @@ mod tests {
         assert!(qb.bounds.get("N").unwrap().contains(&(
             BinOp {
                 lhs: Box::new(n.clone()),
-                op: Verb::Lt,
+                op: Verb::Le,
                 rhs: Box::new(ten)
             },
             false
@@ -196,7 +195,7 @@ mod tests {
         assert!(qb.bounds.get("N").unwrap().contains(&(
             BinOp {
                 lhs: Box::new(n),
-                op: Verb::Lt,
+                op: Verb::Gt,
                 rhs: Box::new(five)
             },
             true
