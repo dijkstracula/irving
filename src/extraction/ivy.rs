@@ -625,7 +625,9 @@ where
         p.name.visit(self)?;
 
         match &mut p.decl {
-            expressions::Sort::ToBeInferred => (),
+            expressions::Sort::ToBeInferred => {
+                self.pp.write_str(":???")?;
+            }
             expressions::Sort::Annotated(_) | expressions::Sort::Resolved(_) => {
                 self.pp.write_str(":")?;
                 self.sort(&mut p.decl)?;
