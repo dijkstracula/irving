@@ -38,7 +38,7 @@ impl Visitor<(), TypeError> for SortSubstituter {
         log::debug!(target: "sort-substituter", "{s:?}");
         match s {
             expressions::Sort::ToBeInferred | expressions::Sort::Annotated(_) => {
-                println!("Uh oh! {:?}", s);
+                log::warn!(target: "sort-substituter", "Sort annotation missing for {:?}", s);
                 Ok(ControlMut::Produce(()))
             }
             expressions::Sort::Resolved(is) => {

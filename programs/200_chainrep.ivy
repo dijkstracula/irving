@@ -87,7 +87,7 @@ process host(self:pid) = {
         after sock.recv(dst:tcp.endpoint, val:byte) {
             msg_count := msg_count - 1;
 
-            ensure forall P1:pid,P2:pid, I. msg_count = 0 -> 
+            ensure forall P1:pid, P2:pid, I:unbounded_sequence. msg_count = 0 -> 
                 host(P1).contents.end() = host(P2).contents.end() & 
                 (I < host(P1).contents.end() -> (host(P1).contents.get(I) = host(P2).contents.get(I)));
         }
