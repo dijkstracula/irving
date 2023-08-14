@@ -44,3 +44,10 @@ If you want to manually run the pre-commit (on committed files), run:
 ```
 $ pre-commit run
 ```
+
+## Running
+
+```
+$  RUST_LOG=info,sort-substituter=debug,visitor=trace \ 
+  cargo run programs/200_chainrep.ivy extract ivy
+```

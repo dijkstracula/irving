@@ -1,4 +1,7 @@
-use std::{fmt::Display, rc::Rc};
+use std::{
+    fmt::{Debug, Display},
+    rc::Rc,
+};
 
 use annotate_snippets::{
     display_list::{DisplayList, FormatOptions},
@@ -71,7 +74,7 @@ impl SourceSpan {
     }
 }
 
-#[derive(Debug, Clone, Eq, PartialOrd, Ord)]
+#[derive(Clone, Eq, PartialOrd, Ord)]
 pub enum Span {
     /// From an actual program text
     Source(SourceSpan),
@@ -96,6 +99,25 @@ impl Display for Span {
             Span::Optimized => f.write_str("<optimized>"),
             Span::Todo => todo!(),
             Span::IgnoredForTesting => todo!(),
+        }
+    }
+}
+
+impl Debug for Span {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Source(s) => {
+                let fld = &format!("{:?}", s);
+                let abbreved = &fld.lines().next().unwrap();
+                if fld.len() != abbreved.len() {
+                    write!(f, "Source:{} ({abbreved}...)", s.lineno())
+                } else {
+                    write!(f, "Source:{} ({abbreved})", s.lineno())
+                }
+            }
+            Self::Optimized => write!(f, "Optimized"),
+            Self::Todo => write!(f, "Todo"),
+            Self::IgnoredForTesting => write!(f, "IgnoredForTesting"),
         }
     }
 }

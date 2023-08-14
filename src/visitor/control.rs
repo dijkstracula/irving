@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 use super::VisitorResult;
 
 /// Action performed after visiting a node of type Node.
@@ -13,7 +15,10 @@ pub enum ControlMut<T, Node> {
     Mutation(Node, T),
 }
 
-impl<T, Node> ControlMut<T, Node> {
+impl<T, Node> ControlMut<T, Node>
+where
+    Node: Debug,
+{
     /// Runs the thunk if we received `Produce` from the Visitor.
     pub fn and_then<E, F>(self, mut next: F) -> VisitorResult<T, E, Node>
     where
@@ -44,6 +49,7 @@ impl<T, Node> ControlMut<T, Node> {
             ControlMut::Produce(t) => t,
             ControlMut::SkipSiblings(t) => t,
             ControlMut::Mutation(repl, t) => {
+                log::trace!(target: "visitor", "Mutation: {:?} -> {:?}", target, repl);
                 *target = repl;
                 t
             }

@@ -1,4 +1,5 @@
 use clap::Parser;
+use env_logger::Env;
 use irving::cli::{Cli, Commands, ExtractTarget};
 use irving::error::IrvingError;
 use irving::extraction;
@@ -17,7 +18,7 @@ fn main() {
 }
 
 fn main_impl() -> std::result::Result<(), IrvingError> {
-    env_logger::init();
+    env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
 
     let cli = Cli::parse();
     let ivy_file = cli.read_ivy_file()?;
@@ -28,17 +29,19 @@ fn main_impl() -> std::result::Result<(), IrvingError> {
     let mut gl = GlobalLowerer::new();
     log::info!(target: "pass", "lowering globals");
     prog.visit(&mut gl)?.modifying(&mut prog);
-    log::info!("[pass] typechecking");
+    log::info!(target: "pass", "typechecking");
     irving::stdlib::typecheck(&mut prog)?;
 
     match cli.cmd {
         Commands::Extract(ExtractTarget::Ivy) => {
             let mut e = extraction::ivy::Extractor::<String>::new();
+            log::info!(target: "cli", "Extracting Ivy");
             prog.visit(&mut e)?;
             println!("{}", e.pp.out);
         }
         Commands::Extract(ExtractTarget::Java) => {
             let mut e = extraction::java::extraction::Extractor::<String>::new();
+            log::info!(target: "cli", "Extracting Java");
             prog.visit(&mut e)?;
             println!("{}", e.pp.out);
         }

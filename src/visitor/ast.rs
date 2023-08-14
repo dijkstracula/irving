@@ -591,6 +591,7 @@ where
     E: Error,
 {
     fn visit(&mut self, visitor: &mut dyn Visitor<T, E>) -> VisitorResult<T, E, Self> {
+        log::trace!(target: "visitor", "Action {:?}", self.span());
         match self {
             Action::Assert { action, .. } => visitor
                 .begin_assert(action)?
@@ -629,7 +630,7 @@ where
 {
     fn visit(&mut self, visitor: &mut dyn Visitor<T, E>) -> VisitorResult<T, E, Self> {
         let span = self.span();
-
+        log::trace!(target: "visitor", "Expr {:?}", self);
         let t = match self {
             Expr::App { expr, .. } => visitor.begin_app(expr)?.and_then(|_| {
                 let func = expr.func.visit(visitor)?.modifying(&mut expr.func);
@@ -663,9 +664,12 @@ where
                 .and_then(|_| expr.lhs.visit(visitor))?
                 .and_then(|_| expr.idx.visit(visitor))?
                 .and_then(|_| visitor.finish_index(expr)),
-            Expr::LogicSymbol { span, sym } => Ok(ControlMut::Produce(
-                visitor.symbol(span, sym)?.modifying(sym),
-            )),
+            Expr::LogicSymbol { span, sym } => {
+                println!("LDSKFJDSKLF");
+                Ok(ControlMut::Produce(
+                    visitor.symbol(span, sym)?.modifying(sym),
+                ))
+            }
             Expr::Number { span, val } => {
                 let t = visitor.number(span, val)?.modifying(val);
                 Ok(ControlMut::Produce(t))
@@ -695,8 +699,10 @@ where
     E: Error,
 {
     fn visit(&mut self, visitor: &mut dyn Visitor<T, E>) -> VisitorResult<T, E, Self> {
+        log::trace!(target: "visitor", "Fmla {:?}", self.span());
         let t = match self {
             Fmla::Forall(fmla) => visitor.begin_forall(fmla)?.and_then(|_| {
+                println!("NBT");
                 let vars_t = fmla.vars.visit(visitor)?.modifying(&mut fmla.vars);
                 let fmla_t = fmla.fmla.visit(visitor)?.modifying(&mut fmla.fmla);
                 visitor.finish_forall(fmla, vars_t, fmla_t)
@@ -719,6 +725,7 @@ where
     E: Error,
 {
     fn visit(&mut self, visitor: &mut dyn Visitor<T, E>) -> VisitorResult<T, E, Self> {
+        //log::trace!(target: "visitor", "Stmt");
         let t = match self {
             Stmt::ActionSequence(seq) => visitor.action_seq(seq),
             Stmt::If(stmt) => visitor.begin_if(stmt)?.and_then(|_| {
@@ -756,6 +763,7 @@ where
     E: Error,
 {
     fn visit(&mut self, visitor: &mut dyn Visitor<T, E>) -> VisitorResult<T, E, Self> {
+        log::trace!(target: "visitor", "Decl {:?}", self.span());
         let t = match self {
             Decl::Action {
                 span,
@@ -1013,6 +1021,7 @@ where
     E: Error,
 {
     fn visit(&mut self, visitor: &mut dyn Visitor<T, E>) -> VisitorResult<T, E, Self> {
+        log::trace!(target: "visitor", "sort {:?}", self);
         visitor.sort(self)
     }
 }
@@ -1033,6 +1042,7 @@ where
     E: Error,
 {
     fn visit(&mut self, visitor: &mut dyn Visitor<T, E>) -> VisitorResult<T, E, Self> {
+        log::trace!(target: "visitor", "Ident {:?}", self);
         visitor.identifier(self)
     }
 }
@@ -1173,6 +1183,7 @@ where
     fn visit(&mut self, visitor: &mut dyn Visitor<T, E>) -> VisitorResult<Vec<T>, E, Self> {
         let mut res = vec![];
         for node in self {
+            log::trace!(target: "visitor", "Param {:?}", node);
             match visitor.param(node)? {
                 ControlMut::Produce(t) => res.push(t),
                 ControlMut::SkipSiblings(t) => {

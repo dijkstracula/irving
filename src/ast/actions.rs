@@ -42,3 +42,16 @@ pub enum Action {
 
     Requires { span: Span, action: RequiresAction },
 }
+
+impl Action {
+    pub fn span(&self) -> &Span {
+        match self {
+            Action::Assert { span, action } => span,
+            Action::Assign { span, action } => span,
+            Action::Assume { span, action } => span,
+            Action::Call { span, action } => span,
+            Action::Ensure { span, action } => span,
+            Action::Requires { span, action } => span,
+        }
+    }
+}
