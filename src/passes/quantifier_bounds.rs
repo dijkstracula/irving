@@ -7,6 +7,7 @@ use crate::{
         span::Span,
         toplevels,
     },
+    typechecker::sorts::IvySort,
     visitor::{
         ast::{Visitable, Visitor},
         ControlMut, VisitorResult,
@@ -85,6 +86,37 @@ impl QuantBounds {
         ret
     }
 
+    // Produces the interval covered by the given sort, if defined on the sort.
+    // TODO: If IvySort::Range held two numbers rather than two expressions, we
+    // could probably have this return (Option<i64>, Option<i64>) or whatever,
+    // which might simplify things.
+    pub fn bounds_for_sort(sort: &IvySort) -> (Option<Expr>, Option<Expr>) {
+        match sort {
+            IvySort::Number => (
+                Some(Expr::Number {
+                    span: Span::Optimized,
+                    val: 0,
+                }),
+                None,
+            ),
+            IvySort::Range(lo, hi) => (
+                Some(lo.as_ref().clone()),
+                Some(QuantBounds::succ(hi.as_ref())),
+            ),
+            IvySort::Enum(discs) => (
+                Some(Expr::Number {
+                    span: Span::Optimized,
+                    val: 0,
+                }),
+                Some(Expr::Number {
+                    span: Span::Optimized,
+                    val: discs.len() as i64,
+                }),
+            ),
+            _ => (None, None),
+        }
+    }
+
     // Produces the exclusive half-open interval described by the binop, if it's comparing two numerics.
     pub fn bounds_from_ast(
         lvar: &expressions::Symbol,
@@ -156,7 +188,13 @@ impl Visitor<(), std::fmt::Error> for QuantBounds {
         ast: &mut logic::Forall,
     ) -> VisitorResult<(), std::fmt::Error, logic::Fmla> {
         for var in &ast.vars {
-            self.bounds.insert(var.name.clone(), vec![]);
+            let is = match &var.decl {
+                expressions::Sort::Resolved(is) => is,
+                _ => &IvySort::Number, //XXX: this needs to be unreachable!("Did the typechecker run?")
+            };
+
+            let sort_range = QuantBounds::bounds_for_sort(is);
+            self.bounds.insert(var.name.clone(), vec![sort_range]);
         }
         Ok(ControlMut::Produce(()))
     }
@@ -189,6 +227,7 @@ impl Visitor<(), std::fmt::Error> for QuantBounds {
         &mut self,
         ast: &mut expressions::BinOp,
     ) -> VisitorResult<(), std::fmt::Error, Expr> {
+        log::debug!(target: "quantifier-bounds", "{:?} {:?} {:?}, {:?}", ast.lhs.span(), ast.op, ast.rhs.span(), self.polarity);
         match ast.op {
             Verb::Arrow if self.polarity == Polarity::Forall => {
                 // ivy_to_cpp:3842: "if isinstance(body, il.Implies) and not exists:"
@@ -198,7 +237,8 @@ impl Visitor<(), std::fmt::Error> for QuantBounds {
 
                 ast.rhs.visit(self)?.modifying(&mut ast.rhs);
             }
-            Verb::And if self.polarity == Polarity::Exists => {
+            // XXX: something is wrong
+            Verb::And /* if self.polarity  == Polarity::Exists */ => {
                 // ivy_to_cpp:3850: "if isinstance(body, il.And) and exists:"
                 ast.lhs.visit(self)?.modifying(&mut ast.lhs);
                 ast.rhs.visit(self)?.modifying(&mut ast.rhs);

@@ -4,13 +4,14 @@ mod tests {
 
     use crate::{
         ast::{
-            expressions::{self, BinOp, Verb, Sort},
-            logic::Fmla, declarations::Binding,
+            declarations::Binding,
+            expressions::{self, BinOp, Sort, Verb},
+            logic::Fmla,
         },
         error::IrvingError,
         parser::ivy::{IvyParser, Rule},
         passes::quantifier_bounds::QuantBounds,
-        tests::helpers,
+        tests::helpers::{self, number},
         typechecker::{inference::SortInferer, sorts::IvySort},
         visitor::ast::Visitable,
     };
@@ -101,20 +102,57 @@ mod tests {
 
         // N < 5 means we have to check [0, 5)
         assert_eq!(
-            QuantBounds::bounds_from_ast(&var, &helpers::inferred_logicsym("N"), Verb::Lt, &helpers::number(5)),
+            QuantBounds::bounds_from_ast(
+                &var,
+                &helpers::inferred_logicsym("N"),
+                Verb::Lt,
+                &helpers::number(5)
+            ),
             Some((None, Some(helpers::number(5))))
         );
 
         // N <= 5 means we have to check [0, 5]
         assert_eq!(
-            QuantBounds::bounds_from_ast(&var, &helpers::inferred_logicsym("N"), Verb::Le, &helpers::number(5)),
+            QuantBounds::bounds_from_ast(
+                &var,
+                &helpers::inferred_logicsym("N"),
+                Verb::Le,
+                &helpers::number(5)
+            ),
             Some((None, Some(helpers::number(6))))
         );
 
         // N <= 5 means we have to check [6, ..]
         assert_eq!(
-            QuantBounds::bounds_from_ast(&var, &helpers::inferred_logicsym("N"), Verb::Gt, &helpers::number(5)),
+            QuantBounds::bounds_from_ast(
+                &var,
+                &helpers::inferred_logicsym("N"),
+                Verb::Gt,
+                &helpers::number(5)
+            ),
             Some((Some(helpers::number(6)), None))
+        );
+    }
+
+    #[test]
+    fn bounds_for_sort() {
+        assert_eq!(
+            //While this is a finite sort, we can't enumerate boolean values as
+            //sequences (though maybe we should; iterate through [0, 1] and cast
+            //to the appropriate bool?)
+            QuantBounds::bounds_for_sort(&IvySort::Bool),
+            (None, None)
+        );
+        assert_eq!(
+            QuantBounds::bounds_for_sort(&IvySort::Number),
+            (Some(number(0)), None)
+        );
+        assert_eq!(
+            // Irritating: Ivy ranges are _inclusive_ so the interval is closed!
+            // This sort has four inhabitants: 0, 1, 2, and 3.
+            QuantBounds::bounds_for_sort(&IvySort::Range(Box::new(number(0)), Box::new(number(3)))),
+            // Meanwhile, the rest of the world uses half-open intervals.
+            (Some(number(0)), Some(number(4)))
         );
     }
 

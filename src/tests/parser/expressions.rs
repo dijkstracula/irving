@@ -90,10 +90,7 @@ mod tests {
                         val: 42
                     }),
                     op: Verb::Minus,
-                    rhs: Box::new(Expr::Number {
-                        span: span,
-                        val: 1
-                    })
+                    rhs: Box::new(Expr::Number { span: span, val: 1 })
                 }
             }
         );
