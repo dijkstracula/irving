@@ -84,7 +84,7 @@ impl IvyParser {
 
     fn THIS(input: Node) -> Result<Expr> {
         Ok(Expr::This(Span::from_pest(
-            Rc::clone(&input.user_data()),
+            Rc::clone(input.user_data()),
             &input.as_span(),
         )))
     }
@@ -526,7 +526,7 @@ impl IvyParser {
     }
 
     pub fn var_decl(input: Node) -> Result<(Span, Binding<Sort>)> {
-        let src = Rc::clone(&input.user_data());
+        let src = Rc::clone(input.user_data());
         let span = input.as_span();
 
         match_nodes!(

@@ -91,7 +91,7 @@ mod tests {
                     }),
                     op: Verb::Minus,
                     rhs: Box::new(Expr::Number {
-                        span: span.clone(),
+                        span: span,
                         val: 1
                     })
                 }

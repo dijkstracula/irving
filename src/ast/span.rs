@@ -164,7 +164,7 @@ impl Span {
     }
 
     pub fn from_node(input: &Node) -> Self {
-        Self::from_pest(Rc::clone(&input.user_data()), &input.as_span())
+        Self::from_pest(Rc::clone(input.user_data()), &input.as_span())
     }
 
     pub fn merge(s1: &Span, s2: &Span) -> Self {

@@ -101,19 +101,19 @@ mod tests {
 
         // N < 5 means we have to check [0, 5)
         assert_eq!(
-            QuantBounds::bounds_from_ast(&var.clone(), &helpers::inferred_logicsym("N"), Verb::Lt, &helpers::number(5)),
+            QuantBounds::bounds_from_ast(&var, &helpers::inferred_logicsym("N"), Verb::Lt, &helpers::number(5)),
             Some((None, Some(helpers::number(5))))
         );
 
         // N <= 5 means we have to check [0, 5]
         assert_eq!(
-            QuantBounds::bounds_from_ast(&var.clone(), &helpers::inferred_logicsym("N"), Verb::Le, &helpers::number(5)),
+            QuantBounds::bounds_from_ast(&var, &helpers::inferred_logicsym("N"), Verb::Le, &helpers::number(5)),
             Some((None, Some(helpers::number(6))))
         );
 
         // N <= 5 means we have to check [6, ..]
         assert_eq!(
-            QuantBounds::bounds_from_ast(&var.clone(), &helpers::inferred_logicsym("N"), Verb::Gt, &helpers::number(5)),
+            QuantBounds::bounds_from_ast(&var, &helpers::inferred_logicsym("N"), Verb::Gt, &helpers::number(5)),
             Some((Some(helpers::number(6)), None))
         );
     }
@@ -125,7 +125,7 @@ mod tests {
         let mut qb = QuantBounds::new_forall();
         fmla.visit(&mut qb).unwrap().modifying(&mut fmla);
 
-        let n = helpers::inferred_logicsym("N");
+        let _n = helpers::inferred_logicsym("N");
         let one = helpers::number(1);
         println!("NBT: {:?}", qb.bounds.get("N"));
 
@@ -141,7 +141,7 @@ mod tests {
         let mut qb = QuantBounds::new_forall();
         fmla.visit(&mut qb).unwrap().modifying(&mut fmla);
 
-        let n = helpers::inferred_logicsym("N");
+        let _n = helpers::inferred_logicsym("N");
         let one = helpers::number(1);
 
         // The counterproof, if found, will be lying on [0, 1)
@@ -169,7 +169,7 @@ mod tests {
         let mut qb = QuantBounds::new_forall();
         fmla.visit(&mut qb).unwrap().modifying(&mut fmla);
 
-        assert!(qb.bounds.get("N").unwrap().len() == 0);
+        assert!(qb.bounds.get("N").unwrap().is_empty());
     }
 
     #[test]
@@ -179,7 +179,7 @@ mod tests {
         let mut qb = QuantBounds::new_forall();
         fmla.visit(&mut qb).unwrap().modifying(&mut fmla);
 
-        let n = helpers::inferred_logicsym("N");
+        let _n = helpers::inferred_logicsym("N");
         let five = helpers::number(5);
         let ten = helpers::number(10);
 

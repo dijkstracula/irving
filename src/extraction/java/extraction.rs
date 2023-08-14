@@ -485,7 +485,7 @@ where
         ast.fmla.visit(&mut qb)?.modifying(&mut ast.fmla);
 
         for var in &ast.vars {
-            let bounds = qb.bounds.get(&var.name).unwrap();
+            let _bounds = qb.bounds.get(&var.name).unwrap();
         }
 
         Ok(ControlMut::SkipSiblings(()))
