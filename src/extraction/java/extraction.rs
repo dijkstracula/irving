@@ -1,9 +1,9 @@
 use crate::{
     ast::{
         declarations::{self, Binding},
-        span::Span,
+        span::Span, logic,
     },
-    extraction::{java::extraction::expressions::Token, ExtractResult},
+    extraction::{java::extraction::expressions::Token, ExtractResult}, passes::quantifier_bounds::QuantBounds,
 };
 use std::{collections::BTreeMap, fmt::Write};
 
@@ -472,6 +472,22 @@ where
     ) -> ExtractResult<expressions::Expr> {
         lhs.visit(self)?;
         self.pp.write_fmt(format_args!(".{}", rhs.name))?;
+        Ok(ControlMut::SkipSiblings(()))
+    }
+
+    fn begin_forall(&mut self, ast: &mut logic::Forall) -> VisitorResult<(), std::fmt::Error, logic::Fmla> {
+        let mut qb = QuantBounds::new_forall();
+
+        // XXX: unfortunate that we duplicate QuantBounds::begin_forall() here.
+        for var in &ast.vars {
+            qb.bounds.insert(var.name.clone(), vec![]);
+        }
+        ast.fmla.visit(&mut qb)?.modifying(&mut ast.fmla);
+
+        for var in &ast.vars {
+            let bounds = qb.bounds.get(&var.name).unwrap();
+        }
+
         Ok(ControlMut::SkipSiblings(()))
     }
 

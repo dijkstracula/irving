@@ -87,7 +87,7 @@ impl QuantBounds {
 
     // Produces the exclusive half-open interval described by the binop, if it's comparing two numerics.
     pub fn bounds_from_ast(
-        lvar: expressions::Symbol,
+        lvar: &expressions::Symbol,
         lhs: &Expr,
         op: expressions::Verb,
         rhs: &Expr,
@@ -95,16 +95,16 @@ impl QuantBounds {
         let (lo, hi) = match (lhs, &op, rhs) {
             (lhs, expressions::Verb::Le, rhs) => (lhs.clone(), QuantBounds::succ(rhs)),
             (lhs, expressions::Verb::Lt, rhs) => (lhs.clone(), rhs.clone()),
-            (lhs, expressions::Verb::Gt, rhs) => (rhs.clone(), lhs.clone()),
-            (lhs, expressions::Verb::Ge, rhs) => (rhs.clone(), QuantBounds::succ(lhs)),
+            (lhs, expressions::Verb::Gt, rhs) => (QuantBounds::succ(rhs), lhs.clone()),
+            (lhs, expressions::Verb::Ge, rhs) => (rhs.clone(), lhs.clone()),
             _ => return None,
         };
 
-        let lo = match lo {
+        let lo = match &lo {
             Expr::LogicSymbol { sym, .. } if lvar == sym => None,
             _ => Some(lo),
         };
-        let hi = match hi {
+        let hi = match &hi {
             Expr::LogicSymbol { sym, .. } if lvar == sym => None,
             _ => Some(hi),
         };
@@ -211,20 +211,26 @@ impl Visitor<(), std::fmt::Error> for QuantBounds {
             op if op.is_numeric_cmp() => {
                 // ivy_to_cpp:3840: "if body.rep.name in ['<', '<=', '>', '>=']:"
                 if let Some(sym) = QuantBounds::op_on_logicsym(ast) {
-                    // TODO: don't we need to also visit the other side of the expression (eg. the side
-                    // that doesn't have the logic var)?
+                    // XXX: unnecessary clone; match out lhs, op, rhs
 
                     let ast = match self.polarity {
-                        Polarity::Forall => ast.clone(),
-                        Polarity::Exists => BinOp {
+                        // Searching for a counterproof of an existential means
+                        // we have to walk all inhabitants in that range, which
+                        // we already have from the operation.
+                        Polarity::Exists => ast.clone(),
+
+                        // Searching for a counterproof of a universal means we
+                        // want to 
+                        Polarity::Forall => BinOp {
                             lhs: Box::new(*ast.lhs.clone()),
                             op: ast.op.negate(),
                             rhs: Box::new(*ast.rhs.clone()),
                         },
                     };
+                    log::debug!(target: "quantifier-bounds", "{:?}", ast);
 
-                    let (lhs, op, rhs) = (ast.lhs.as_ref(), op, ast.rhs.as_ref());
-                    if let Some(bound) = QuantBounds::bounds_from_ast(lhs, op, rhs) {
+                    let (lhs, op, rhs) = (ast.lhs.as_ref(), ast.op, ast.rhs.as_ref());
+                    if let Some(bound) = QuantBounds::bounds_from_ast(sym, lhs, op, rhs) {
                         log::debug!(target: "quantifier-bounds", "{} ∈ ({:?}, {:?}], {:?}", sym.name, bound.0, bound.1, self.polarity);
 
                         self.bounds.get_mut(&sym.name).unwrap().push(bound);
