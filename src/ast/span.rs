@@ -1,4 +1,4 @@
-use std::{cmp::Ordering, fmt::Display, fmt::Debug,rc::Rc};
+use std::{cmp::Ordering, fmt::Debug, fmt::Display, rc::Rc};
 
 use annotate_snippets::{
     display_list::{DisplayList, FormatOptions},
