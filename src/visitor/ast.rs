@@ -665,10 +665,8 @@ where
                 .and_then(|_| expr.idx.visit(visitor))?
                 .and_then(|_| visitor.finish_index(expr)),
             Expr::LogicSymbol { span, sym } => {
-                println!("LDSKFJDSKLF");
-                Ok(ControlMut::Produce(
-                    visitor.symbol(span, sym)?.modifying(sym),
-                ))
+                let t = visitor.symbol(span, sym)?.modifying(sym);
+                Ok(ControlMut::Produce(t))
             }
             Expr::Number { span, val } => {
                 let t = visitor.number(span, val)?.modifying(val);
@@ -702,7 +700,6 @@ where
         log::trace!(target: "visitor", "Fmla {:?}", self.span());
         let t = match self {
             Fmla::Forall(fmla) => visitor.begin_forall(fmla)?.and_then(|_| {
-                println!("NBT");
                 let vars_t = fmla.vars.visit(visitor)?.modifying(&mut fmla.vars);
                 let fmla_t = fmla.fmla.visit(visitor)?.modifying(&mut fmla.fmla);
                 visitor.finish_forall(fmla, vars_t, fmla_t)
@@ -724,7 +721,10 @@ where
     T: Default,
     E: Error,
 {
-    fn visit(&mut self, visitor: &mut dyn Visitor<T, E>) -> VisitorResult<T, E, Self> {
+    fn visit(&mut self, visitor: &mut dyn Visitor<T, E>) -> VisitorResult<T, E, Self>
+    where
+        Self: Sized,
+    {
         //log::trace!(target: "visitor", "Stmt");
         let t = match self {
             Stmt::ActionSequence(seq) => visitor.action_seq(seq),
@@ -1021,7 +1021,7 @@ where
     E: Error,
 {
     fn visit(&mut self, visitor: &mut dyn Visitor<T, E>) -> VisitorResult<T, E, Self> {
-        log::trace!(target: "visitor", "sort {:?}", self);
+        log::trace!(target: "visitor", "Sort {:?}", self);
         visitor.sort(self)
     }
 }
@@ -1032,6 +1032,7 @@ where
     E: Error,
 {
     fn visit(&mut self, visitor: &mut dyn Visitor<T, E>) -> VisitorResult<T, E, Self> {
+        log::trace!(target: "visitor", "Token {:?}", self);
         visitor.token(self)
     }
 }
@@ -1046,18 +1047,6 @@ where
         visitor.identifier(self)
     }
 }
-
-/*
-impl<T> Visitable<T> for AnnotatedSymbol
-where
-    T: Default,
-    E: Error
-{
-    fn visit(&mut self, visitor: &mut dyn Visitor<T>) -> VisitorResult<T, E, Self> {
-        visitor.annotated_symbol(self)
-    }
-}
-*/
 
 // Implementations for compound nodes
 
@@ -1093,6 +1082,7 @@ where
     fn visit(&mut self, visitor: &mut dyn Visitor<T, E>) -> VisitorResult<Vec<T>, E, Self> {
         let mut res = vec![];
         for node in self {
+            println!("NBT: Stmt node = {:?}", node);
             match node.visit(visitor)? {
                 ControlMut::Produce(t) => res.push(t),
                 ControlMut::SkipSiblings(t) => {

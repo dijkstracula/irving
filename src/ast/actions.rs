@@ -46,12 +46,12 @@ pub enum Action {
 impl Action {
     pub fn span(&self) -> &Span {
         match self {
-            Action::Assert { span, action } => span,
-            Action::Assign { span, action } => span,
-            Action::Assume { span, action } => span,
-            Action::Call { span, action } => span,
-            Action::Ensure { span, action } => span,
-            Action::Requires { span, action } => span,
+            Action::Assert { span, .. } => span,
+            Action::Assign { span, .. } => span,
+            Action::Assume { span, .. } => span,
+            Action::Call { span, .. } => span,
+            Action::Ensure { span, .. } => span,
+            Action::Requires { span, .. } => span,
         }
     }
 }
