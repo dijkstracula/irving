@@ -363,4 +363,4 @@ impl Decl {
     }
 }
 
-const DEFAULT_SPAN: &'static Span = &Span::IgnoredForTesting;
+const DEFAULT_SPAN: &Span = &Span::IgnoredForTesting;

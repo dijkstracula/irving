@@ -19,7 +19,7 @@ pub mod helpers {
     use crate::{
         ast::{
             declarations::Decl,
-            expressions::{self, Expr},
+            expressions::{self, BinOp, Expr, Verb},
             span::Span,
             statements::Stmt,
             toplevels::Prog,
@@ -140,6 +140,32 @@ pub mod helpers {
             .unwrap();
         IvyParser::rval(res).expect("AST generation failed")
     }
+
+    //
+
+    pub fn number(n: i64) -> Expr {
+        expressions::Expr::Number {
+            span: Span::IgnoredForTesting,
+            val: n,
+        }
+    }
+
+    pub fn mk_binop(lhs: Expr, op: Verb, rhs: Expr) -> Expr {
+        expressions::Expr::BinOp {
+            span: Span::IgnoredForTesting,
+            expr: BinOp {
+                lhs: Box::new(lhs),
+                op,
+                rhs: Box::new(rhs),
+            },
+        }
+    }
+
+    pub fn plus(lhs: Expr, rhs: Expr) -> Expr {
+        mk_binop(lhs, Verb::Plus, rhs)
+    }
+
+    //
 
     pub fn inferred_progsym<S>(s: S) -> Expr
     where

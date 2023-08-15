@@ -1,7 +1,4 @@
-use std::{
-    fmt::{Debug, Display},
-    rc::Rc,
-};
+use std::{cmp::Ordering, fmt::Display, fmt::Debug,rc::Rc};
 
 use annotate_snippets::{
     display_list::{DisplayList, FormatOptions},
@@ -74,7 +71,7 @@ impl SourceSpan {
     }
 }
 
-#[derive(Clone, Eq, PartialOrd, Ord)]
+#[derive(Clone, Eq, PartialOrd)]
 pub enum Span {
     /// From an actual program text
     Source(SourceSpan),
@@ -140,6 +137,23 @@ impl PartialEq for Span {
     }
 }
 
+impl Ord for Span {
+    // Source > Optimized > Todo ?
+    fn cmp(&self, other: &Self) -> Ordering {
+        match (self, other) {
+            (Span::Source(l), Span::Source(r)) => l.cmp(r),
+            (Span::Optimized, Span::Optimized) => Ordering::Equal,
+            (Span::Todo, Span::Todo) => Ordering::Equal,
+
+            (Span::IgnoredForTesting, _) => Ordering::Equal,
+            (_, Span::IgnoredForTesting) => Ordering::Equal,
+            (Span::Source(_), _) => Ordering::Greater,
+            (Span::Optimized, _) => Ordering::Greater,
+            (Span::Todo, _) => Ordering::Greater,
+        }
+    }
+}
+
 impl Span {
     pub fn from_pest(input: Rc<str>, span: &pest::Span) -> Self {
         Self::Source(SourceSpan {
@@ -150,7 +164,7 @@ impl Span {
     }
 
     pub fn from_node(input: &Node) -> Self {
-        Self::from_pest(Rc::clone(&input.user_data()), &input.as_span())
+        Self::from_pest(Rc::clone(input.user_data()), &input.as_span())
     }
 
     pub fn merge(s1: &Span, s2: &Span) -> Self {

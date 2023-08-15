@@ -302,7 +302,7 @@ mod tests {
                     val: 0
                 }),
                 Box::new(Expr::Number {
-                    span: span.clone(),
+                    span: span,
                     val: 100
                 })
             ))

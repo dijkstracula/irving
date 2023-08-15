@@ -223,7 +223,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
             // TODO: and of course other builtins.
             _ => match self.bindings.lookup_sym(sym) {
                 Some(sort) => Ok(ControlMut::Produce(sort.clone())),
-                None => return Err(TypeError::UnboundVariable(sym.clone())),
+                None => Err(TypeError::UnboundVariable(sym.clone())),
             },
         }
     }

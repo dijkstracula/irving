@@ -72,7 +72,7 @@ pub fn parse_log_term(input: Rc<str>, pairs: Pairs<Rule>) -> Result<Expr> {
                         span: span.clone(),
                         expr: AppExpr {
                             func: Box::new(Expr::ProgramSymbol {
-                                span: span.clone(), //XXX: not really right
+                                span, //XXX: not really right
                                 sym: Binding::from(name, Sort::ToBeInferred),
                             }),
                             args,
@@ -80,7 +80,7 @@ pub fn parse_log_term(input: Rc<str>, pairs: Pairs<Rule>) -> Result<Expr> {
                     })
                 }
                 Rule::logicsym => Ok(Expr::LogicSymbol {
-                    span: span,
+                    span,
                     sym: parse_lsym(Rc::clone(&input), primary)?,
                 }),
                 Rule::PROGTOK => {
