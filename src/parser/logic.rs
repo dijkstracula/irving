@@ -7,6 +7,7 @@ use pest_consume::Error;
 
 use crate::ast::declarations::Binding;
 use crate::ast::expressions::*;
+use crate::ast::logic::Fmla;
 use crate::ast::span::Span;
 use crate::parser::ivy::*;
 
@@ -50,6 +51,10 @@ pub fn parse_lsym(_input: Rc<str>, primary: Pair<'_, Rule>) -> Result<Symbol> {
         None => Ok(Symbol::from(name, Sort::ToBeInferred)),
         Some(sort) => Ok(Symbol::from(name, Sort::Annotated(sort))),
     }
+}
+
+pub fn parse_fmla(input: Rc<str>, pairs: Pairs<Rule>) -> Result<Fmla> {
+    todo!()
 }
 
 pub fn parse_log_term(input: Rc<str>, pairs: Pairs<Rule>) -> Result<Expr> {
@@ -102,7 +107,9 @@ pub fn parse_log_term(input: Rc<str>, pairs: Pairs<Rule>) -> Result<Expr> {
                     let val: i64 = primary.as_str().parse().unwrap();
                     Ok(Expr::Number { span, val })
                 }
+                // TODO
                 Rule::log_term => parse_log_term(Rc::clone(&input), primary.into_inner()),
+                Rule::fmla => parse_log_term(Rc::clone(&input), primary.into_inner()),
                 x => Err(Error::new_from_span(
                     ErrorVariant::CustomError {
                         message: format!("Expected formula, got {x:?}"),

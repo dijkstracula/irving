@@ -123,10 +123,12 @@ impl IvyParser {
     }
 
     pub fn fmla(input: Node) -> Result<Fmla> {
+        let span = Span::from_node(&input);
+
         match_nodes!(
         input.into_children();
-        [exists(e)]     => Ok(Fmla::Exists(e)),
-        [forall(e)]     => Ok(Fmla::Forall(e)),
+        [exists(fmla)]     => Ok(Fmla::Exists{ span, fmla }),
+        [forall(fmla)]     => Ok(Fmla::Forall{ span, fmla }),
         [log_term(e)]   => Ok(Fmla::Pred(e)),
         )
     }

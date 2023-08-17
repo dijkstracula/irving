@@ -699,17 +699,20 @@ where
     fn visit(&mut self, visitor: &mut dyn Visitor<T, E>) -> VisitorResult<T, E, Self> {
         log::trace!(target: "visitor", "Fmla {:?}", self.span());
         let t = match self {
-            Fmla::Forall(fmla) => visitor.begin_forall(fmla)?.and_then(|_| {
+            Fmla::Forall { fmla, .. } => visitor.begin_forall(fmla)?.and_then(|_| {
                 let vars_t = fmla.vars.visit(visitor)?.modifying(&mut fmla.vars);
                 let fmla_t = fmla.fmla.visit(visitor)?.modifying(&mut fmla.fmla);
                 visitor.finish_forall(fmla, vars_t, fmla_t)
             }),
-            Fmla::Exists(fmla) => visitor.begin_exists(fmla)?.and_then(|_| {
+            Fmla::Exists { fmla, .. } => visitor.begin_exists(fmla)?.and_then(|_| {
                 let vars_t = fmla.vars.visit(visitor)?.modifying(&mut fmla.vars);
                 let fmla_t = fmla.fmla.visit(visitor)?.modifying(&mut fmla.fmla);
                 visitor.finish_exists(fmla, vars_t, fmla_t)
             }),
             Fmla::Pred(expr) => Ok(ControlMut::Produce(expr.visit(visitor)?.modifying(expr))),
+            Fmla::LogicSymbol { span, sym } => Ok(ControlMut::Produce(
+                visitor.symbol(span, sym)?.modifying(sym),
+            )),
         }?
         .modifying(self);
         Ok(ControlMut::Produce(t))

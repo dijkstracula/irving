@@ -23,7 +23,7 @@ log_atom        = _{ log_prefix_op? ~ log_primary ~ log_postfix_op? }
                      LE | LT | GE | GT | EQ | NEQ |
                      AND | OR | DOT }
     log_postfix_op  = _{ log_app_args | fnapp_args | index }
-log_primary    = _{ relation_lval | logicsym | PROGTOK | boollit | number | "(" ~ log_term ~ ")" }
+log_primary    = _{ relation_lval | logicsym | PROGTOK | boollit | number | "(" ~ fmla ~ ")" }
 
 // relations are assignable either all with expressions as arguments (e.g. r(x,
 // 0) for some bound variable `x`) or with a logical variable which acts as a

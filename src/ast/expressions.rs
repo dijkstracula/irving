@@ -4,15 +4,6 @@ use crate::typechecker::sorts::IvySort;
 
 use super::{declarations::Binding, span::Span};
 
-/// Corresponds to a file/line pairing, and possibly additionally docstrings to
-/// be reconstructed in the extracted code.
-#[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]
-pub struct Annotation {
-    docstring: Vec<String>,
-    file: String,
-    line: u32,
-}
-
 #[derive(Copy, Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]
 pub enum Verb {
     Iff,

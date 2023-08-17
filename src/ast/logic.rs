@@ -1,5 +1,5 @@
 use super::{
-    expressions::{Expr, ParamList},
+    expressions::{Expr, ParamList, Symbol},
     span::Span,
 };
 
@@ -13,17 +13,20 @@ pub struct LogicVar {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Fmla {
-    Forall(Forall),
-    Exists(Exists),
+    Forall { span: Span, fmla: Forall },
+    Exists { span: Span, fmla: Exists },
     Pred(Expr),
+
+    LogicSymbol { span: Span, sym: Symbol },
 }
 
 impl Fmla {
     pub fn span(&self) -> &Span {
         match self {
-            Fmla::Forall(forall) => forall.fmla.span(),
-            Fmla::Exists(exists) => exists.fmla.span(),
+            Fmla::Forall { span, .. } => span,
+            Fmla::Exists { span, .. } => span,
             Fmla::Pred(expr) => expr.span(),
+            Fmla::LogicSymbol { span, .. } => span,
         }
     }
 }

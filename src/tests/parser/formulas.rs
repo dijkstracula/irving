@@ -176,14 +176,17 @@ mod tests {
 
         assert_eq!(
             ast,
-            Fmla::Forall(Forall {
-                vars: vec![
-                    Symbol::from("X", Sort::Annotated(vec!["node".into()])),
-                    Symbol::from("Y", Sort::ToBeInferred),
-                    Symbol::from("Z", Sort::ToBeInferred),
-                ],
-                fmla: Box::new(implication)
-            })
+            Fmla::Forall {
+                span: Span::IgnoredForTesting,
+                fmla: Forall {
+                    vars: vec![
+                        Symbol::from("X", Sort::Annotated(vec!["node".into()])),
+                        Symbol::from("Y", Sort::ToBeInferred),
+                        Symbol::from("Z", Sort::ToBeInferred),
+                    ],
+                    fmla: Box::new(implication)
+                }
+            }
         );
     }
 
@@ -194,15 +197,16 @@ mod tests {
 
     #[test]
     fn parse_nested_quants() {
-        let _ast = parse_fmla(
-            "end(X) = end(Y) & (forall I. 0 <= I & I < end(X) -> value(X,I) = value(Y,I))",
-        )
-        .unwrap();
+        let _ast = parse_fmla("end(X) & forall I. 0 <= I & value(X,I)").unwrap();
+        println!("{:?}", _ast);
     }
 
     #[test]
     fn parse_nested_quants2() {
-        parse_fmla("end(X) = end(Y) & forall I. 0 <= I & I < end(X) -> value(X,I) = value(Y,I)")
-            .expect("Parsing failed");
+        let _ast = parse_fmla(
+            "end(X) = end(Y) & forall I. 0 <= I & I < end(X) -> value(X,I) = value(Y,I)",
+        )
+        .expect("Parsing failed");
+        println!("{:?}", _ast);
     }
 }
