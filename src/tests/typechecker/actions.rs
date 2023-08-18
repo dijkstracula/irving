@@ -43,7 +43,7 @@ mod tests {
     }
 
     #[test]
-    fn test_noop_action_decl() {
+    fn noop_action_decl() {
         let mut decl = decl_from_src("action a() {}");
         let sort = IvySort::action_sort(vec![], vec![], sorts::ActionRet::Unit);
 
@@ -55,7 +55,7 @@ mod tests {
     }
 
     #[test]
-    fn test_noop_action_decl_with_local() {
+    fn noop_action_decl_with_local() {
         let mut decl = decl_from_src("action a() { var b = 42 } ");
 
         let mut tc = SortInferer::new();
@@ -70,7 +70,7 @@ mod tests {
     }
 
     #[test]
-    fn test_ident_action_decl() {
+    fn ident_action_decl() {
         let mut decl = decl_from_src("action id(x: bool) returns (b: bool) = { b := x }");
 
         let mut tc = SortInferer::new();
@@ -99,7 +99,7 @@ mod tests {
     }
 
     #[test]
-    fn test_action_forward_ref() {
+    fn action_forward_ref() {
         let mut action_decl = decl_from_src("action id(a: bool) returns (b: bool)");
         let mut imp_decl = decl_from_src("implement id { b := a }");
 
@@ -122,7 +122,7 @@ mod tests {
     }
 
     #[test]
-    fn test_unknown_ident_in_action_impl() {
+    fn unknown_ident_in_action_impl() {
         let mut action_decl = decl_from_src("action id(a: bool) returns (b: bool)");
         let mut imp_decl = decl_from_src("implement id { foo := a }");
 
@@ -140,7 +140,7 @@ mod tests {
     }
 
     #[test]
-    fn test_action_before_after() {
+    fn action_before_after() {
         let mut action_decl = decl_from_src("action id(a: bool) returns (b: bool) { b := a }");
         let mut before_decl = decl_from_src("before id { require a = false | a = true }");
         let mut after_decl = decl_from_src("after id { ensure a = b }");
@@ -175,7 +175,7 @@ mod tests {
     }
 
     #[test]
-    fn test_inconsistent_mixin() {
+    fn inconsistent_mixin() {
         let mut action_decl = decl_from_src("action const_true returns (b: bool) { b := true }");
         let mut before_decl = decl_from_src("after const_true(uhoh: bool) { }");
 
@@ -190,7 +190,7 @@ mod tests {
     }
 
     #[test]
-    fn test_action_call_nullary_action() {
+    fn action_call_nullary_action() {
         let mut prog = isolate_from_src(
             "process m = {
             type this
@@ -226,7 +226,7 @@ mod tests {
     }
 
     #[test]
-    fn test_action_call_unary() {
+    fn action_call_unary() {
         let mut prog = isolate_from_src(
             "process m = {
             type this
@@ -276,7 +276,7 @@ mod tests {
     }
 
     #[test]
-    fn test_action_call_curry_this() {
+    fn action_call_curry_this() {
         let mut prog = isolate_from_src(
             "process m = {
             type this
@@ -323,7 +323,7 @@ mod tests {
     }
 
     #[test]
-    fn test_implicit_nullary_action_call() {
+    fn implicit_nullary_action_call() {
         let mut prog = isolate_from_src(
             "process m = {
             type this
@@ -367,7 +367,7 @@ mod tests {
     }
 
     #[test]
-    fn test_local_vardecl() {
+    fn local_vardecl() {
         let stmts = match decl_from_src(
             "action doit = {
                 var foo: bool;
@@ -397,7 +397,7 @@ mod tests {
     }
 
     #[test]
-    fn test_local_vardecl_and_init() {
+    fn local_vardecl_and_init() {
         let mut prog = decl_from_src(
             "action doit = {
                 var foo: bool;
@@ -420,7 +420,7 @@ mod tests {
     }
 
     #[test]
-    fn test_action_read_relation() {
+    fn action_read_relation() {
         let mut iso = isolate_from_src(
             "process foo = {
             type node
@@ -428,6 +428,40 @@ mod tests {
 
             action connect(x: node, y: node) = {
                 require ~failed(y);
+            }
+        } ",
+        );
+
+        let mut tc = SortInferer::new();
+        let _ = iso.visit(&mut tc).unwrap().modifying(&mut iso);
+    }
+
+    #[test]
+    fn action_read_relation_logical() {
+        let mut iso = isolate_from_src(
+            "process foo = {
+            type node
+            relation failed(X: node)
+
+            after init {
+                require ~failed(N);
+            }
+        } ",
+        );
+
+        let mut tc = SortInferer::new();
+        let _ = iso.visit(&mut tc).unwrap().modifying(&mut iso);
+    }
+
+    #[test]
+    fn logical_call_to_action() {
+        let mut iso = isolate_from_src(
+            "process foo = {
+            type node
+            action doit(x: node)
+
+            action uhoh = {
+                doit(X)
             }
         } ",
         );

@@ -25,12 +25,12 @@ pub enum Fmla {
 
     App {
         span: Span,
-        fmla: LogicApp,
+        app: LogicApp,
     },
 
     BinOp {
         span: Span,
-        op: LogicBinOp,
+        binop: LogicBinOp,
     },
 
     LogicSymbol {

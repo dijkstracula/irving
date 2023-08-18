@@ -175,7 +175,7 @@ mod tests {
 
         let lhs = Fmla::BinOp {
             span: Span::IgnoredForTesting,
-            op: LogicBinOp {
+            binop: LogicBinOp {
                 lhs: helpers::inferred_logicsym("X").into(),
                 op: Verb::Equals,
                 rhs: helpers::inferred_logicsym("Y").into(),
@@ -183,7 +183,7 @@ mod tests {
         };
         let rhs = Fmla::BinOp {
             span: Span::IgnoredForTesting,
-            op: LogicBinOp {
+            binop: LogicBinOp {
                 lhs: helpers::inferred_logicsym("Y").into(),
                 op: Verb::Equals,
                 rhs: helpers::inferred_logicsym("Z").into(),
@@ -192,7 +192,7 @@ mod tests {
 
         let expected = Fmla::BinOp {
             span: Span::IgnoredForTesting,
-            op: LogicBinOp {
+            binop: LogicBinOp {
                 lhs: Box::new(lhs),
                 op: Verb::And,
                 rhs: Box::new(rhs),

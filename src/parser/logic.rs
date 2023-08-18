@@ -73,7 +73,7 @@ pub fn parse_log_term(input: Rc<str>, pairs: Pairs<Rule>) -> Result<Fmla> {
 
                     Ok(Fmla::App {
                         span: span.clone(),
-                        fmla: logic::LogicApp {
+                        app: logic::LogicApp {
                             func: Box::new(Expr::ProgramSymbol {
                                 span, //XXX: not really right
                                 sym: Binding::from(name, Sort::ToBeInferred),
@@ -192,7 +192,7 @@ pub fn parse_log_term(input: Rc<str>, pairs: Pairs<Rule>) -> Result<Fmla> {
                 let span = Span::merge(lhs.span(), rhs.span());
                 Ok(Fmla::BinOp {
                     span,
-                    op: logic::LogicBinOp {
+                    binop: logic::LogicBinOp {
                         lhs: Box::new(lhs),
                         op: verb,
                         rhs: Box::new(rhs),
@@ -225,7 +225,7 @@ pub fn parse_log_term(input: Rc<str>, pairs: Pairs<Rule>) -> Result<Fmla> {
                     let span = Span::merge(lhs.span(), &op_span);
                     Ok(Fmla::App {
                         span,
-                        fmla: logic::LogicApp {
+                        app: logic::LogicApp {
                             func: Box::new(lhs),
                             args,
                         },

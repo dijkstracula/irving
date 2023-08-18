@@ -163,7 +163,7 @@ impl IvyParser {
         [rval(func), log_app_args(args)] => {
             Ok(Fmla::App{
                 span,
-                fmla: LogicApp {
+                app: LogicApp {
                     func: Box::new(func),
                     args
                 }

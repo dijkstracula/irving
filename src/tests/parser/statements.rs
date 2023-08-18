@@ -156,7 +156,7 @@ mod tests {
             RequiresAction {
                 pred: Fmla::BinOp {
                     span: Span::IgnoredForTesting,
-                    op: LogicBinOp {
+                    binop: LogicBinOp {
                         lhs: Box::new(Fmla::Pred(helpers::inferred_progsym("x"))),
                         op: Verb::Ge,
                         rhs: Box::new(Fmla::Pred(helpers::number(0)))

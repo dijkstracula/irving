@@ -563,6 +563,52 @@ impl Visitor<IvySort, TypeError> for SortInferer {
         Ok(ControlMut::Produce(IvySort::Bool))
     }
 
+    fn begin_logical_app(
+        &mut self,
+        ast: &mut logic::LogicApp,
+    ) -> crate::visitor::VisitorResult<IvySort, TypeError, logic::Fmla> {
+        self.bindings.push_scope();
+        for arg in &mut ast.args {
+            // A difference between a logical application and one with a program
+            // term is that a wildcard logical symbol may not be in the context.
+            if let logic::Fmla::LogicSymbol { sym, span } = arg {
+                // XXX: I think it's fine to discard the Sort from the
+                // logicsymbol here.
+                let v = self.bindings.new_sortvar();
+                self.bindings
+                    .append(sym.name.clone(), v)
+                    .map_err(|e| e.to_typeerror(span))?;
+            }
+        }
+
+        Ok(ControlMut::Produce(IvySort::Unit))
+    }
+
+    fn finish_logical_app(
+        &mut self,
+        _ast: &mut logic::LogicApp,
+        func_sort: IvySort,
+        arg_sorts: Vec<IvySort>,
+    ) -> crate::visitor::VisitorResult<IvySort, TypeError, logic::Fmla> {
+        self.bindings.pop_scope();
+
+        // XXX: This is hacky.
+        let dummy_argnames = (0..arg_sorts.len())
+            .map(|i| format!("arg{i}"))
+            .collect::<Vec<_>>();
+        let expected_sort =
+            IvySort::action_sort(dummy_argnames, arg_sorts, sorts::ActionRet::Unknown);
+        let unified = self
+            .bindings
+            .unify(&func_sort, &expected_sort)
+            .map_err(|e| e.to_typeerror(&Span::Todo))?;
+
+        match unified {
+            IvySort::Relation(_) => Ok(ControlMut::Produce(IvySort::Bool)),
+            _ => Err(TypeError::InvalidLogicApp),
+        }
+    }
+
     // actions and decls
 
     fn begin_action_decl(

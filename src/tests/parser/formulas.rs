@@ -47,7 +47,7 @@ mod tests {
             ast,
             Fmla::BinOp {
                 span: Span::IgnoredForTesting,
-                op: LogicBinOp {
+                binop: LogicBinOp {
                     lhs: Box::new(helpers::inferred_logicsym("X")),
                     op: Verb::Plus,
                     rhs: Box::new(Fmla::Pred(helpers::number(1)))
@@ -93,7 +93,7 @@ mod tests {
         let ast = parse_fmla("X & Y").unwrap();
         let expected = Fmla::BinOp {
             span: Span::IgnoredForTesting,
-            op: LogicBinOp {
+            binop: LogicBinOp {
                 lhs: helpers::inferred_logicsym("X").into(),
                 op: Verb::And,
                 rhs: helpers::inferred_logicsym("Y").into(),
@@ -150,16 +150,16 @@ mod tests {
 
         let antecedent = Fmla::BinOp {
             span: Span::IgnoredForTesting,
-            op: logic::LogicBinOp {
+            binop: logic::LogicBinOp {
                 lhs: Fmla::BinOp {
                     span: Span::IgnoredForTesting,
-                    op: x_equals_y,
+                    binop: x_equals_y,
                 }
                 .into(),
                 op: Verb::And,
                 rhs: Fmla::BinOp {
                     span: Span::IgnoredForTesting,
-                    op: y_equals_z,
+                    binop: y_equals_z,
                 }
                 .into(),
             },
@@ -167,7 +167,7 @@ mod tests {
 
         let consequence = Fmla::BinOp {
             span: Span::IgnoredForTesting,
-            op: LogicBinOp {
+            binop: LogicBinOp {
                 lhs: helpers::inferred_logicsym("X").into(),
                 op: Verb::Equals,
                 rhs: helpers::inferred_logicsym("Z").into(),
@@ -176,7 +176,7 @@ mod tests {
 
         let implication = Fmla::BinOp {
             span: Span::IgnoredForTesting,
-            op: LogicBinOp {
+            binop: LogicBinOp {
                 lhs: Box::new(antecedent),
                 op: Verb::Arrow,
                 rhs: Box::new(consequence),

@@ -20,6 +20,9 @@ pub enum TypeError {
     #[error("Value can't be called")]
     InvalidApplication,
 
+    #[error("Value can't be called in a logical context")]
+    InvalidLogicApp,
+
     #[error("Expected {expected:?}, got {actual:?}")]
     SortMismatch { expected: String, actual: String },
 
