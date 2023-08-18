@@ -3,6 +3,7 @@ mod tests {
     use std::rc::Rc;
 
     use crate::ast::expressions::*;
+    use crate::ast::logic::{Fmla, LogicBinOp};
     use crate::ast::span::Span;
     use crate::parser::ivy::{IvyParser, Result, Rule};
     use crate::tests::helpers;
@@ -22,6 +23,18 @@ mod tests {
         IvyParser::rval(res)
     }
 
+    fn parse_fmla<S>(fragment: S) -> Result<Fmla>
+    where
+        S: Into<Rc<str>>,
+    {
+        let rc = fragment.into();
+        let res = IvyParser::parse_with_userdata(Rule::fmla, &rc, rc.clone())
+            .expect("Parsing failed")
+            .single()
+            .unwrap();
+        IvyParser::fmla(res)
+    }
+
     #[test]
     fn parse_progsym() {
         let ast = parse_rval("a").unwrap();
@@ -30,12 +43,10 @@ mod tests {
 
     #[test]
     fn parse_logicvar() {
-        parse_rval("X").unwrap();
-    }
-
-    #[test]
-    fn parse_logicvar_in_subexpr() {
-        parse_rval("X + 1").unwrap();
+        let fragment = "X";
+        IvyParser::parse_with_userdata(Rule::rval, fragment, fragment)
+            .expect_err("A logic var is not an expression");
+        parse_fmla(fragment).unwrap();
     }
 
     #[test]
@@ -160,31 +171,31 @@ mod tests {
 
     #[test]
     fn parse_conjunction() {
-        let ast = parse_rval("X = Y & Y = Z").unwrap();
-        let lhs = BinOp {
-            lhs: helpers::inferred_logicsym("X").into(),
-            op: Verb::Equals,
-            rhs: helpers::inferred_logicsym("Y").into(),
-        };
-        let rhs = BinOp {
-            lhs: helpers::inferred_logicsym("Y").into(),
-            op: Verb::Equals,
-            rhs: helpers::inferred_logicsym("Z").into(),
-        };
-        let expected = Expr::BinOp {
+        let ast = parse_fmla("X = Y & Y = Z").unwrap();
+
+        let lhs = Fmla::BinOp {
             span: Span::IgnoredForTesting,
-            expr: BinOp {
-                lhs: Expr::BinOp {
-                    span: Span::IgnoredForTesting,
-                    expr: lhs,
-                }
-                .into(),
+            op: LogicBinOp {
+                lhs: helpers::inferred_logicsym("X").into(),
+                op: Verb::Equals,
+                rhs: helpers::inferred_logicsym("Y").into(),
+            },
+        };
+        let rhs = Fmla::BinOp {
+            span: Span::IgnoredForTesting,
+            op: LogicBinOp {
+                lhs: helpers::inferred_logicsym("Y").into(),
+                op: Verb::Equals,
+                rhs: helpers::inferred_logicsym("Z").into(),
+            },
+        };
+
+        let expected = Fmla::BinOp {
+            span: Span::IgnoredForTesting,
+            op: LogicBinOp {
+                lhs: Box::new(lhs),
                 op: Verb::And,
-                rhs: Expr::BinOp {
-                    span: Span::IgnoredForTesting,
-                    expr: rhs,
-                }
-                .into(),
+                rhs: Box::new(rhs),
             },
         };
         assert_eq!(ast, expected);

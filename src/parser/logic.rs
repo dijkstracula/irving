@@ -6,10 +6,12 @@ use pest::pratt_parser::{Assoc, Op, PrattParser};
 use pest_consume::Error;
 
 use crate::ast::declarations::Binding;
-use crate::ast::expressions::*;
 use crate::ast::logic::Fmla;
 use crate::ast::span::Span;
+use crate::ast::{expressions::*, logic};
 use crate::parser::ivy::*;
+
+use super::expressions;
 
 lazy_static::lazy_static! {
     static ref PRATT: PrattParser<Rule> =
@@ -53,11 +55,7 @@ pub fn parse_lsym(_input: Rc<str>, primary: Pair<'_, Rule>) -> Result<Symbol> {
     }
 }
 
-pub fn parse_fmla(input: Rc<str>, pairs: Pairs<Rule>) -> Result<Fmla> {
-    todo!()
-}
-
-pub fn parse_log_term(input: Rc<str>, pairs: Pairs<Rule>) -> Result<Expr> {
+pub fn parse_log_term(input: Rc<str>, pairs: Pairs<Rule>) -> Result<Fmla> {
     PRATT
         .map_primary(|primary| {
             let span = Span::from_pest(Rc::clone(&input), &primary.as_span());
@@ -73,9 +71,9 @@ pub fn parse_log_term(input: Rc<str>, pairs: Pairs<Rule>) -> Result<Expr> {
                         .map(|e| parse_log_term(Rc::clone(&input), e.into_inner()))
                         .collect::<Result<Vec<_>>>()?;
 
-                    Ok(Expr::App {
+                    Ok(Fmla::App {
                         span: span.clone(),
-                        expr: AppExpr {
+                        fmla: logic::LogicApp {
                             func: Box::new(Expr::ProgramSymbol {
                                 span, //XXX: not really right
                                 sym: Binding::from(name, Sort::ToBeInferred),
@@ -84,29 +82,11 @@ pub fn parse_log_term(input: Rc<str>, pairs: Pairs<Rule>) -> Result<Expr> {
                         },
                     })
                 }
-                Rule::logicsym => Ok(Expr::LogicSymbol {
+                Rule::logicsym => Ok(Fmla::LogicSymbol {
                     span,
                     sym: parse_lsym(Rc::clone(&input), primary)?,
                 }),
-                Rule::PROGTOK => {
-                    let name = primary.as_str().to_owned();
-                    Ok(Expr::ProgramSymbol {
-                        span,
-                        sym: Binding::from(name, Sort::ToBeInferred),
-                    })
-                }
-                Rule::boollit => {
-                    let val = match primary.as_str() {
-                        "true" => true,
-                        "false" => false,
-                        _ => unreachable!(),
-                    };
-                    Ok(Expr::Boolean { span, val })
-                }
-                Rule::number => {
-                    let val: i64 = primary.as_str().parse().unwrap();
-                    Ok(Expr::Number { span, val })
-                }
+                Rule::rval => expressions::parse_rval(Rc::clone(&input), primary.into_inner()).map(|expr| Fmla::Pred(expr)),
                 // TODO
                 Rule::log_term => parse_log_term(Rc::clone(&input), primary.into_inner()),
                 Rule::fmla => parse_log_term(Rc::clone(&input), primary.into_inner()),
@@ -125,7 +105,7 @@ pub fn parse_log_term(input: Rc<str>, pairs: Pairs<Rule>) -> Result<Expr> {
                 x => {
                     return Err(Error::new_from_span(
                         ErrorVariant::CustomError {
-                            message: format!("Expected logical operator, got {x:?}"),
+                            message: format!("Expected unary operator, got {x:?}"),
                         },
                         op.as_span(),
                     ))
@@ -136,10 +116,10 @@ pub fn parse_log_term(input: Rc<str>, pairs: Pairs<Rule>) -> Result<Expr> {
                 &Span::from_pest(Rc::clone(&input), &op.as_span()),
                 rhs.span(),
             );
-            Ok(Expr::UnaryOp {
+            Ok(Fmla::UnaryOp {
                 span,
                 op: verb,
-                expr: Box::new(rhs),
+                fmla: Box::new(rhs),
             })
         })
         .map_infix(|lhs, op, rhs| {
@@ -155,6 +135,11 @@ pub fn parse_log_term(input: Rc<str>, pairs: Pairs<Rule>) -> Result<Expr> {
                 Rule::EQ => Verb::Equals,
                 Rule::NEQ => Verb::Notequals,
                 Rule::DOT => Verb::Dot,
+
+                Rule::PLUS => Verb::Plus,
+                Rule::MINUS => Verb::Minus,
+                Rule::TIMES => Verb::Times,
+                Rule::DIV => Verb::Div,
                 x => {
                     return Err(Error::new_from_span(
                         ErrorVariant::CustomError {
@@ -168,7 +153,7 @@ pub fn parse_log_term(input: Rc<str>, pairs: Pairs<Rule>) -> Result<Expr> {
             // Lift a Dot binary operation into a field access.
             if verb == Verb::Dot {
                 let (rhs_span, field) = match rhs? {
-                    Expr::ProgramSymbol { span, sym } => (span, sym),
+                    Fmla::Pred(Expr::ProgramSymbol { span, sym }) => (span, sym),
                     x => {
                         return Err(Error::new_from_span(
                             ErrorVariant::CustomError {
@@ -182,20 +167,32 @@ pub fn parse_log_term(input: Rc<str>, pairs: Pairs<Rule>) -> Result<Expr> {
                     &Span::from_pest(Rc::clone(&input), &op.as_span()),
                     &rhs_span,
                 );
-                Ok(Expr::FieldAccess {
+
+                let lhs = match lhs? {
+                    Fmla::Pred(expr) => expr,
+                    fmla => return Err(Error::new_from_span(
+                            ErrorVariant::CustomError {
+                                message: format!("Can't index into arbitrary formula {fmla:?}"),
+                            },
+                            op.as_span().clone()
+                        )
+                    )
+                };
+
+                Ok(Fmla::Pred(Expr::FieldAccess {
                     span,
                     expr: FieldAccess {
-                        record: Box::new(lhs?),
+                        record: Box::new(lhs),
                         field,
                     },
-                })
+                }))
             } else {
                 let lhs = lhs?;
                 let rhs = rhs?;
                 let span = Span::merge(lhs.span(), rhs.span());
-                Ok(Expr::BinOp {
+                Ok(Fmla::BinOp {
                     span,
-                    expr: BinOp {
+                    op: logic::LogicBinOp {
                         lhs: Box::new(lhs),
                         op: verb,
                         rhs: Box::new(rhs),
@@ -204,6 +201,7 @@ pub fn parse_log_term(input: Rc<str>, pairs: Pairs<Rule>) -> Result<Expr> {
             }
         })
         .map_postfix(|lhs, op| {
+            let pest_span = op.as_span();
             let op_span = Span::from_pest(Rc::clone(&input), &op.as_span());
             match op.as_rule() {
                 Rule::log_app_args | Rule::fnapp_args => {
@@ -213,11 +211,21 @@ pub fn parse_log_term(input: Rc<str>, pairs: Pairs<Rule>) -> Result<Expr> {
                         .collect::<Vec<Result<_>>>();
                     let args = results.into_iter().collect::<Result<Vec<_>>>()?;
 
-                    let lhs = lhs?;
+                    let lhs = match lhs? {
+                        Fmla::Pred(expr) => expr,
+                        fmla => return Err(Error::new_from_span(
+                                ErrorVariant::CustomError {
+                                    message: format!("Can't perform function application on arbitrary formula {fmla:?}"),
+                                },
+                                pest_span,
+                            )
+                        )
+                    };
+
                     let span = Span::merge(lhs.span(), &op_span);
-                    Ok(Expr::App {
+                    Ok(Fmla::App {
                         span,
-                        expr: AppExpr {
+                        fmla: logic::LogicApp {
                             func: Box::new(lhs),
                             args,
                         },

@@ -18,12 +18,13 @@ log_subscr      =  { PROGTOK ~ ("." ~ PROGTOK)* }
 
 log_term        =  { log_atom ~ (log_infix_op ~ log_atom)* }
 log_atom        = _{ log_prefix_op? ~ log_primary ~ log_postfix_op? }
-    log_prefix_op   = _{ NOT }
+    log_prefix_op   = _{ UMINUS | NOT }
     log_infix_op    = _{ IFF | ARROW |
+                     PLUS | MINUS | TIMES | DIV |
                      LE | LT | GE | GT | EQ | NEQ |
                      AND | OR | DOT }
-    log_postfix_op  = _{ log_app_args | fnapp_args | index }
-log_primary    = _{ relation_lval | logicsym | PROGTOK | boollit | number | "(" ~ fmla ~ ")" }
+    log_postfix_op  = _{ index }
+log_primary    = _{ relation_lval | logicsym | rval | "(" ~ fmla ~ ")" }
 
 // relations are assignable either all with expressions as arguments (e.g. r(x,
 // 0) for some bound variable `x`) or with a logical variable which acts as a

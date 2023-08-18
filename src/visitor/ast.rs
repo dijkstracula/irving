@@ -709,10 +709,14 @@ where
                 let fmla_t = fmla.fmla.visit(visitor)?.modifying(&mut fmla.fmla);
                 visitor.finish_exists(fmla, vars_t, fmla_t)
             }),
+
+            Fmla::App { fmla, .. } => todo!(),
+            Fmla::BinOp { op, .. } => todo!(),
             Fmla::Pred(expr) => Ok(ControlMut::Produce(expr.visit(visitor)?.modifying(expr))),
             Fmla::LogicSymbol { span, sym } => Ok(ControlMut::Produce(
                 visitor.symbol(span, sym)?.modifying(sym),
             )),
+            Fmla::UnaryOp { span, op, fmla } => todo!(),
         }?
         .modifying(self);
         Ok(ControlMut::Produce(t))

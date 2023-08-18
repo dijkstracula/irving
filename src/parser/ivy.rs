@@ -101,7 +101,7 @@ impl IvyParser {
         )
     }
 
-    pub fn log_term(input: Node) -> Result<Expr> {
+    pub fn log_term(input: Node) -> Result<Fmla> {
         let pairs = input.as_pair().to_owned().into_inner();
         parse_log_term(Rc::clone(input.user_data()), pairs)
     }
@@ -129,7 +129,7 @@ impl IvyParser {
         input.into_children();
         [exists(fmla)]     => Ok(Fmla::Exists{ span, fmla }),
         [forall(fmla)]     => Ok(Fmla::Forall{ span, fmla }),
-        [log_term(e)]   => Ok(Fmla::Pred(e)),
+        [log_term(fmla)]   => Ok(fmla),
         )
     }
 
@@ -142,7 +142,7 @@ impl IvyParser {
 
         match_nodes!(
         input.into_children();
-        [relation_lval(lval)] => Ok(lval),
+        //[relation_lval(lval)] => Ok(lval),
         [rval(lval)] => match lval {
             Expr::App{..} |
             Expr::FieldAccess{..} |
@@ -156,17 +156,18 @@ impl IvyParser {
         )
     }
 
-    pub fn relation_lval(input: Node) -> Result<Expr> {
+    pub fn relation_lval(input: Node) -> Result<Fmla> {
         let span = Span::from_node(&input);
         match_nodes!(
         input.into_children();
         [rval(func), log_app_args(args)] => {
-            Ok(Expr::App{
+            Ok(Fmla::App{
                 span,
-                expr: AppExpr {
-                func: Box::new(func),
-                args
-            }})
+                fmla: LogicApp {
+                    func: Box::new(func),
+                    args
+                }
+            })
         })
     }
 
@@ -178,7 +179,7 @@ impl IvyParser {
         })
     }
 
-    pub fn log_app_args(input: Node) -> Result<Vec<Expr>> {
+    pub fn log_app_args(input: Node) -> Result<Vec<Fmla>> {
         match_nodes!(
         input.into_children();
         [log_term(args)..] => {

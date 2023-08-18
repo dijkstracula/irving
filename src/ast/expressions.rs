@@ -152,6 +152,7 @@ pub enum Expr {
         expr: IndexExpr,
     },
 
+    // TODO: Deprecate - the logic parser should handle these.
     LogicSymbol {
         span: Span,
         sym: Symbol,

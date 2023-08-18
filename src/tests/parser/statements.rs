@@ -128,17 +128,17 @@ mod tests {
         assert_eq!(
             stmt,
             RequiresAction {
-                pred: Fmla::Pred(Expr::UnaryOp {
+                pred: Fmla::UnaryOp {
                     span: Span::IgnoredForTesting,
                     op: Verb::Not,
-                    expr: Box::new(Expr::App {
+                    fmla: Box::new(Fmla::Pred(Expr::App {
                         span: Span::IgnoredForTesting,
                         expr: AppExpr {
                             func: Box::new(helpers::inferred_progsym("failed".to_owned())),
                             args: [helpers::inferred_progsym("y")].into()
                         }
-                    })
-                })
+                    }))
+                }
             }
         );
     }
@@ -154,17 +154,14 @@ mod tests {
         assert_eq!(
             stmt,
             RequiresAction {
-                pred: Fmla::Pred(Expr::BinOp {
+                pred: Fmla::BinOp {
                     span: Span::IgnoredForTesting,
-                    expr: BinOp {
-                        lhs: Box::new(helpers::inferred_progsym("x")),
+                    op: LogicBinOp {
+                        lhs: Box::new(Fmla::Pred(helpers::inferred_progsym("x"))),
                         op: Verb::Ge,
-                        rhs: Box::new(Expr::Number {
-                            span: Span::IgnoredForTesting,
-                            val: 0
-                        })
+                        rhs: Box::new(Fmla::Pred(helpers::number(0)))
                     }
-                })
+                }
             }
         );
     }

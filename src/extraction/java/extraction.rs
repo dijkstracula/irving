@@ -362,6 +362,7 @@ where
                 self.pp.write_str("() -> ")?;
                 self.symbol(span, sym)?.modifying(sym);
             }
+            _ => todo!(),
         }
         self.pp.write_str(")")?;
         Ok(ControlMut::SkipSiblings(()))

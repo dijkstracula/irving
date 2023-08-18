@@ -27,6 +27,7 @@ impl Visitor<(), TypeError> for SortSubstituter {
         ast: &mut Vec<actions::Action>,
     ) -> VisitorResult<(), TypeError, statements::Stmt> {
         //XXX: kinda dumb, honestly.
+        // https://github.com/dijkstracula/irving/issues/17
         let _ = ast.visit(self)?.modifying(ast);
         Ok(ControlMut::Produce(()))
     }
@@ -38,7 +39,7 @@ impl Visitor<(), TypeError> for SortSubstituter {
         log::debug!(target: "sort-substituter", "{s:?}");
         match s {
             expressions::Sort::ToBeInferred | expressions::Sort::Annotated(_) => {
-                log::warn!(target: "sort-substituter", "Sort annotation missing for {:?}", s);
+                println!("Uh oh! {:?}", s);
                 Ok(ControlMut::Produce(()))
             }
             expressions::Sort::Resolved(is) => {

@@ -4,6 +4,7 @@ mod tests {
 
     use crate::ast::expressions;
     use crate::ast::expressions::*;
+    use crate::ast::logic;
     use crate::ast::logic::*;
     use crate::ast::span::Span;
     use crate::parser::ivy::{IvyParser, Result, Rule};
@@ -25,29 +26,55 @@ mod tests {
     #[test]
     fn parse_term() {
         let ast = parse_fmla("X").unwrap();
-        let expected = Fmla::Pred(helpers::inferred_logicsym("X"));
+        let expected = helpers::inferred_logicsym("X");
         assert_eq!(ast, expected);
+    }
+
+    #[test]
+    fn parse_number() {
+        let ast = parse_fmla("123").unwrap();
+        let expected = Fmla::Pred(Expr::Number {
+            span: Span::IgnoredForTesting,
+            val: 123,
+        });
+        assert_eq!(ast, expected);
+    }
+
+    #[test]
+    fn parse_logicvar_in_subexpr() {
+        let ast = parse_fmla("X + 1").unwrap();
+        assert_eq!(
+            ast,
+            Fmla::BinOp {
+                span: Span::IgnoredForTesting,
+                op: LogicBinOp {
+                    lhs: Box::new(helpers::inferred_logicsym("X")),
+                    op: Verb::Plus,
+                    rhs: Box::new(Fmla::Pred(helpers::number(1)))
+                }
+            }
+        )
     }
 
     #[test]
     fn parse_negation() {
         let ast = parse_fmla("~X").unwrap();
-        let expected = Fmla::Pred(Expr::UnaryOp {
+        let expected = Fmla::UnaryOp {
             span: Span::IgnoredForTesting,
             op: Verb::Not,
-            expr: Box::new(helpers::inferred_logicsym("X")),
-        });
+            fmla: Box::new(helpers::inferred_logicsym("X")),
+        };
         assert_eq!(ast, expected);
     }
 
     #[test]
     fn parse_parens_negation() {
         let ast = parse_fmla("~(X)").expect("Parsing failed");
-        let expected = Fmla::Pred(Expr::UnaryOp {
+        let expected = Fmla::UnaryOp {
             span: Span::IgnoredForTesting,
             op: Verb::Not,
-            expr: Box::new(helpers::inferred_logicsym("X")),
-        });
+            fmla: Box::new(helpers::inferred_logicsym("X")),
+        };
         assert_eq!(ast, expected);
     }
 
@@ -63,33 +90,15 @@ mod tests {
 
     #[test]
     fn parse_conjunction() {
-        let ast = parse_fmla("X = Y & Y = Z").unwrap();
-        let lhs = expressions::BinOp {
-            lhs: helpers::inferred_logicsym("X").into(),
-            op: Verb::Equals,
-            rhs: helpers::inferred_logicsym("Y").into(),
-        };
-        let rhs = expressions::BinOp {
-            lhs: helpers::inferred_logicsym("Y").into(),
-            op: Verb::Equals,
-            rhs: helpers::inferred_logicsym("Z").into(),
-        };
-        let expected = Fmla::Pred(Expr::BinOp {
+        let ast = parse_fmla("X & Y").unwrap();
+        let expected = Fmla::BinOp {
             span: Span::IgnoredForTesting,
-            expr: BinOp {
-                lhs: Expr::BinOp {
-                    span: Span::IgnoredForTesting,
-                    expr: lhs,
-                }
-                .into(),
+            op: LogicBinOp {
+                lhs: helpers::inferred_logicsym("X").into(),
                 op: Verb::And,
-                rhs: Expr::BinOp {
-                    span: Span::IgnoredForTesting,
-                    expr: rhs,
-                }
-                .into(),
+                rhs: helpers::inferred_logicsym("Y").into(),
             },
-        });
+        };
         assert_eq!(ast, expected);
     }
 
@@ -128,51 +137,51 @@ mod tests {
     fn parse_universal_quant3() {
         let ast = parse_fmla("forall X:node,Y,Z. X=Y & Y=Z -> X=Z").expect("parse");
 
-        let x_equals_y = expressions::BinOp {
+        let x_equals_y = logic::LogicBinOp {
             lhs: helpers::inferred_logicsym("X").into(),
             op: Verb::Equals,
             rhs: helpers::inferred_logicsym("Y").into(),
         };
-        let y_equals_z = expressions::BinOp {
+        let y_equals_z = logic::LogicBinOp {
             lhs: helpers::inferred_logicsym("Y").into(),
             op: Verb::Equals,
             rhs: helpers::inferred_logicsym("Z").into(),
         };
 
-        let antecedent = Expr::BinOp {
+        let antecedent = Fmla::BinOp {
             span: Span::IgnoredForTesting,
-            expr: expressions::BinOp {
-                lhs: Expr::BinOp {
+            op: logic::LogicBinOp {
+                lhs: Fmla::BinOp {
                     span: Span::IgnoredForTesting,
-                    expr: x_equals_y,
+                    op: x_equals_y,
                 }
                 .into(),
                 op: Verb::And,
-                rhs: Expr::BinOp {
+                rhs: Fmla::BinOp {
                     span: Span::IgnoredForTesting,
-                    expr: y_equals_z,
+                    op: y_equals_z,
                 }
                 .into(),
             },
         };
 
-        let consequence = Expr::BinOp {
+        let consequence = Fmla::BinOp {
             span: Span::IgnoredForTesting,
-            expr: expressions::BinOp {
+            op: LogicBinOp {
                 lhs: helpers::inferred_logicsym("X").into(),
                 op: Verb::Equals,
                 rhs: helpers::inferred_logicsym("Z").into(),
             },
         };
 
-        let implication = Fmla::Pred(Expr::BinOp {
+        let implication = Fmla::BinOp {
             span: Span::IgnoredForTesting,
-            expr: expressions::BinOp {
+            op: LogicBinOp {
                 lhs: Box::new(antecedent),
                 op: Verb::Arrow,
                 rhs: Box::new(consequence),
             },
-        });
+        };
 
         assert_eq!(
             ast,
