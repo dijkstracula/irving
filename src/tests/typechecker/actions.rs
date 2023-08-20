@@ -453,20 +453,4 @@ mod tests {
         let _ = iso.visit(&mut tc).unwrap().modifying(&mut iso);
     }
 
-    #[test]
-    fn logical_call_to_action() {
-        let mut iso = isolate_from_src(
-            "process foo = {
-            type node
-            action doit(x: node)
-
-            action uhoh = {
-                doit(X)
-            }
-        } ",
-        );
-
-        let mut tc = SortInferer::new();
-        let _ = iso.visit(&mut tc).unwrap().modifying(&mut iso);
-    }
 }

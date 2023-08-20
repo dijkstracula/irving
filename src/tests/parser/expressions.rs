@@ -49,27 +49,6 @@ mod tests {
         parse_fmla(fragment).unwrap();
     }
 
-    #[test]
-    fn parse_logicvar_in_fnapp() {
-        let ast = parse_rval("f(X)").unwrap();
-
-        let arg = Expr::LogicSymbol {
-            span: Span::IgnoredForTesting,
-            sym: Symbol::from("X", Sort::ToBeInferred),
-        };
-        let app = AppExpr {
-            func: Box::new(Expr::ProgramSymbol {
-                span: Span::IgnoredForTesting,
-                sym: Symbol::from("f", Sort::ToBeInferred),
-            }),
-            args: vec![arg],
-        };
-        let expected = Expr::App {
-            span: Span::IgnoredForTesting,
-            expr: app,
-        };
-        assert_eq!(ast, expected);
-    }
 
     #[test]
     fn parse_negation_expr() {
@@ -170,32 +149,15 @@ mod tests {
     }
 
     #[test]
-    fn parse_conjunction() {
-        let ast = parse_fmla("X = Y & Y = Z").unwrap();
-
-        let lhs = Fmla::BinOp {
-            span: Span::IgnoredForTesting,
-            binop: LogicBinOp {
-                lhs: helpers::inferred_logicsym("X").into(),
-                op: Verb::Equals,
-                rhs: helpers::inferred_logicsym("Y").into(),
-            },
-        };
-        let rhs = Fmla::BinOp {
-            span: Span::IgnoredForTesting,
-            binop: LogicBinOp {
-                lhs: helpers::inferred_logicsym("Y").into(),
-                op: Verb::Equals,
-                rhs: helpers::inferred_logicsym("Z").into(),
-            },
-        };
+    fn parse_conjunction_fmla() {
+        let ast = parse_fmla("X & Y").unwrap();
 
         let expected = Fmla::BinOp {
             span: Span::IgnoredForTesting,
             binop: LogicBinOp {
-                lhs: Box::new(lhs),
+                lhs: helpers::inferred_logicsym("X").into(),
                 op: Verb::And,
-                rhs: Box::new(rhs),
+                rhs: helpers::inferred_logicsym("Y").into(),
             },
         };
         assert_eq!(ast, expected);

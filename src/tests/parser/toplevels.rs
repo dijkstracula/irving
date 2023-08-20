@@ -64,4 +64,19 @@ isolate net(pid: node) = {
         assert!(prog.major_version == 2);
         assert!(prog.minor_version == 0);
     }
+
+    #[test]
+    fn logical_call_to_action() {
+        let iso = 
+            "process foo = {
+            type node
+            action doit(x: node)
+
+            action uhoh = {
+                doit(X) # We should expect this line to be invalid.
+            }
+        } ";
+        IvyParser::parse_with_userdata(Rule::process_decl, iso, iso)
+            .expect_err("Can't call an action with a logical variable");
+    }
 }

@@ -103,6 +103,24 @@ where
         Ok(ControlMut::Produce(T::default()))
     }
 
+    fn begin_assign_logical(
+        &mut self,
+        _span: &Span,
+        _ast: &mut AssignLogicalAction,
+    ) -> VisitorResult<T, E, Action> {
+        Ok(ControlMut::Produce(T::default()))
+    }
+
+    fn finish_assign_logical(
+        &mut self,
+        _span: &Span,
+        _ast: &mut AssignLogicalAction,
+        _lhs_t: T,
+        _rhs_t: T,
+    ) -> VisitorResult<T, E, Action> {
+        Ok(ControlMut::Produce(T::default()))
+    }
+
     fn begin_assume(&mut self, _ast: &mut AssumeAction) -> VisitorResult<T, E, Action> {
         Ok(ControlMut::Produce(T::default()))
     }
@@ -658,6 +676,11 @@ where
                 let p = action.pred.visit(visitor)?.modifying(&mut action.pred);
                 visitor.finish_ensure(action, p)
             }),
+            Action::AssignLogical { span, action } => visitor.begin_assign_logical(span, action)?.and_then(|_| {
+                let lhs_t = action.lhs.visit(visitor)?.modifying(&mut action.lhs);
+                let rhs_t = action.rhs.visit(visitor)?.modifying(&mut action.rhs);
+                visitor.finish_assign_logical(span, action, lhs_t, rhs_t)
+            }),
             Action::Requires { action, .. } => visitor.begin_requires(action)?.and_then(|_| {
                 let p = action.pred.visit(visitor)?.modifying(&mut action.pred);
                 visitor.finish_requires(action, p)
@@ -692,7 +715,7 @@ where
             Expr::FieldAccess {
                 span,
                 expr:
-                    FieldAccess {
+                    expressions::FieldAccess {
                         ref mut record,
                         ref mut field,
                     },
@@ -763,8 +786,18 @@ where
                 let r = binop.rhs.visit(visitor)?.modifying(&mut binop.rhs);
                 visitor.finish_logical_binop(binop, l, o, r)
             }),
+            Fmla::Boolean { val, .. } => {
+                Ok(ControlMut::Produce(visitor.boolean(val)?.modifying(val)))
+            }
+            Fmla::FieldAccess { span, fmla } => todo!(),
             Fmla::Pred(expr) => Ok(ControlMut::Produce(expr.visit(visitor)?.modifying(expr))),
+            Fmla::Number { span, val } => Ok(ControlMut::Produce(
+                visitor.number(span, val)?.modifying(val),
+            )),
             Fmla::LogicSymbol { span, sym } => Ok(ControlMut::Produce(
+                visitor.symbol(span, sym)?.modifying(sym),
+            )),
+            Fmla::ProgramSymbol { span, sym } => Ok(ControlMut::Produce(
                 visitor.symbol(span, sym)?.modifying(sym),
             )),
             Fmla::UnaryOp { span, op, fmla } => {

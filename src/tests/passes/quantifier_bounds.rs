@@ -5,7 +5,7 @@ mod tests {
     use crate::{
         ast::{
             declarations::Binding,
-            expressions::{self, BinOp, Sort, Verb},
+            expressions::{BinOp, Sort, Verb},
             logic::Fmla,
         },
         error::IrvingError,
@@ -100,7 +100,7 @@ mod tests {
 
     #[test]
     fn bounds_from_binop_logicvar() {
-        let var = Binding::from("N".to_owned(), Sort::ToBeInferred);
+        let _var = Binding::from("N".to_owned(), Sort::ToBeInferred);
 
         /*
         // N < 5 means we have to check [0, 5)

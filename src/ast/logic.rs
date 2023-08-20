@@ -33,7 +33,27 @@ pub enum Fmla {
         binop: LogicBinOp,
     },
 
+    Boolean {
+        span: Span,
+        val: bool,
+    },
+
+    FieldAccess {
+        span: Span,
+        fmla: FieldAccess,
+    },
+
+    Number {
+        span: Span,
+        val: i64,
+    },
+
     LogicSymbol {
+        span: Span,
+        sym: Symbol,
+    },
+
+    ProgramSymbol {
         span: Span,
         sym: Symbol,
     },
@@ -53,10 +73,39 @@ impl Fmla {
             Fmla::Pred(expr) => expr.span(),
             Fmla::App { span, .. } => span,
             Fmla::BinOp { span, .. } => span,
+            Fmla::Boolean { span, .. } => span,
+            Fmla::FieldAccess { span, .. } => span,
             Fmla::LogicSymbol { span, .. } => span,
+            Fmla::Number { span, .. } => span,
+            Fmla::ProgramSymbol { span, .. } => span,
             Fmla::UnaryOp { span, .. } => span,
         }
     }
+
+    pub fn contains_logicvar(&self) -> bool {
+        match self {
+            Fmla::Forall { .. } => true,
+            Fmla::Exists { .. } => true,
+            Fmla::Pred(_) => false,
+            Fmla::App { app, .. } => app.args.iter().any(|arg| arg.is_quantified()),
+            Fmla::BinOp { binop, .. } => binop.lhs.is_quantified() || binop.rhs.is_quantified(),
+            Fmla::Boolean { .. } => false,
+            Fmla::FieldAccess { fmla, .. } => fmla.record.is_quantified(),
+            Fmla::Number { .. } => false,
+            Fmla::LogicSymbol { .. } => true,
+            Fmla::ProgramSymbol { .. } => false,
+            Fmla::UnaryOp { fmla, .. } => fmla.is_quantified()
+        }
+    }
+
+    pub fn is_quantified(&self) -> bool {
+        match self {
+            Fmla::Forall { .. } => true,
+            Fmla::Exists { .. } => true,
+            _ => false,
+        }
+    }
+
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -80,6 +129,12 @@ pub struct LogicBinOp {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LogicApp {
-    pub func: Box<Expr>,
+    pub func: Box<Fmla>,
     pub args: Vec<Fmla>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FieldAccess {
+    pub record: Box<Fmla>,
+    pub field: Symbol,
 }

@@ -151,6 +151,13 @@ pub mod helpers {
         }
     }
 
+    pub fn logical_number(n: i64) -> Fmla {
+        logic::Fmla::Number {
+            span: Span::IgnoredForTesting,
+            val: n,
+        }
+    }
+
     pub fn mk_binop(lhs: Expr, op: Verb, rhs: Expr) -> Expr {
         expressions::Expr::BinOp {
             span: Span::IgnoredForTesting,

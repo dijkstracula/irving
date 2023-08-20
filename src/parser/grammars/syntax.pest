@@ -17,9 +17,9 @@ atom            = _{ prefix_op? ~ primary ~ postfix_op? }
     postfix_op  = _{ fnapp_args | index }
 primary         = _{ THIS | PROGTOK | number | boollit | "(" ~ rval ~ ")" }
 
-lval            = { relation_lval | rval }
+lval            = { rval }
 
-fnapp_arg  = { LOGICTOK | rval }
+fnapp_arg  = { rval }
 fnapp_args = { "(" ~ (fnapp_arg ~ ("," ~ fnapp_arg)* )? ~ ")" }
 
 //TODO: only one dimension of indexing, right?
@@ -125,6 +125,7 @@ implement_action_decl    = { IMPLEMENT ~ mixin_sig ~ decl_ret? ~ stmt_block }
 mixin_sig =  { ident ~ ("(" ~ paramlist ~ ")")? }
 
 assign_action = { (var_decl | lval) ~ ":=" ~ rval} //TODO
+assign_logical_action = { fmla  ~ ":=" ~ log_term}
 assert_action = { ASSERT ~ rval}
 assume_action = { ASSUME ~ rval}
 call_action =   { rval } // XXX: This is not restrictive enough: see  https://github.com/dijkstracula/irving/issues/49 .
@@ -133,6 +134,7 @@ requires_action = { REQUIRE ~ fmla }
 
 action = {
       assign_action
+    | assign_logical_action
     | assert_action
     | assume_action
     | call_action

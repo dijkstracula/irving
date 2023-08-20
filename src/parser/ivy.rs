@@ -156,20 +156,6 @@ impl IvyParser {
         )
     }
 
-    pub fn relation_lval(input: Node) -> Result<Fmla> {
-        let span = Span::from_node(&input);
-        match_nodes!(
-        input.into_children();
-        [rval(func), log_app_args(args)] => {
-            Ok(Fmla::App{
-                span,
-                app: LogicApp {
-                    func: Box::new(func),
-                    args
-                }
-            })
-        })
-    }
 
     pub fn lparamlist(input: Node) -> Result<Vec<Symbol>> {
         match_nodes!(
@@ -575,6 +561,7 @@ impl IvyParser {
         input.into_children();
         [assert_action((span, action))]   => Ok(Action::Assert{ span, action }),
         [assign_action((span, action))]   => Ok(Action::Assign{ span, action }),
+        [assign_logical_action((span, action))]   => Ok(Action::AssignLogical { span, action }),
         [assume_action((span, action))]   => Ok(Action::Assume{ span, action }),
         [call_action((span, action))]     => Ok(Action::Call { span, action }),
         [ensure_action((span, action))]   => Ok(Action::Ensure { span, action}),
@@ -636,7 +623,7 @@ impl IvyParser {
             // to avoid arbitrary rvals being call_actions.  For details, see:
             // https://github.com/dijkstracula/irving/issues/49
             _ => Err(Error::new_from_span(ErrorVariant::<Rule>::CustomError {
-                message: format!("Unexpected expression {:?}", call) },
+                message: format!("Unexpected expression for call {:?}", call) },
                 span))
         })
     }
@@ -647,6 +634,16 @@ impl IvyParser {
         match_nodes!(
         input.into_children();
         [fmla(pred)] => Ok((span, EnsureAction{pred})),
+        )
+    }
+
+    pub fn assign_logical_action(input: Node) -> Result<(Span, AssignLogicalAction)> {
+        let span = Span::from_node(&input);
+        match_nodes!(
+        input.into_children();
+        [fmla(lhs), log_term(rhs)] => {
+            Ok((span, AssignLogicalAction{lhs, rhs}))
+        },
         )
     }
 

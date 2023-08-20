@@ -2,7 +2,6 @@
 mod tests {
     use std::rc::Rc;
 
-    use crate::ast::expressions;
     use crate::ast::expressions::*;
     use crate::ast::logic;
     use crate::ast::logic::*;
@@ -24,6 +23,13 @@ mod tests {
     }
 
     #[test]
+    fn parse_bool() {
+        let ast = parse_fmla("true").unwrap();
+        let expected = Fmla::Boolean { span: Span::IgnoredForTesting, val: true };
+        assert_eq!(ast, expected);
+    }
+
+    #[test]
     fn parse_term() {
         let ast = parse_fmla("X").unwrap();
         let expected = helpers::inferred_logicsym("X");
@@ -33,10 +39,10 @@ mod tests {
     #[test]
     fn parse_number() {
         let ast = parse_fmla("123").unwrap();
-        let expected = Fmla::Pred(Expr::Number {
+        let expected = Fmla::Number {
             span: Span::IgnoredForTesting,
             val: 123,
-        });
+        };
         assert_eq!(ast, expected);
     }
 
@@ -50,7 +56,7 @@ mod tests {
                 binop: LogicBinOp {
                     lhs: Box::new(helpers::inferred_logicsym("X")),
                     op: Verb::Plus,
-                    rhs: Box::new(Fmla::Pred(helpers::number(1)))
+                    rhs: Box::new(helpers::logical_number(1))
                 }
             }
         )
@@ -79,12 +85,61 @@ mod tests {
     }
 
     #[test]
+    fn parse_logicvar_in_fnapp() {
+        let ast = parse_fmla("f(X)").unwrap();
+
+        let arg = Fmla::LogicSymbol {
+            span: Span::IgnoredForTesting,
+            sym: Symbol::from("X", Sort::ToBeInferred),
+        };
+        let app = LogicApp {
+            func: Box::new(Fmla::ProgramSymbol {
+                span: Span::IgnoredForTesting,
+                sym: Symbol::from("f", Sort::ToBeInferred),
+            }),
+            args: vec![arg],
+        };
+        let expected = Fmla::App {
+            span: Span::IgnoredForTesting,
+            app
+        };
+        assert_eq!(ast, expected);
+    }
+
+    #[test]
+    fn parse_progvar_in_fnapp() {
+        let ast = parse_fmla("f(x)").unwrap();
+
+        let arg = Fmla::ProgramSymbol {
+            span: Span::IgnoredForTesting,
+            sym: Symbol::from("x", Sort::ToBeInferred),
+        };
+        let app = LogicApp {
+            func: Box::new(Fmla::ProgramSymbol {
+                span: Span::IgnoredForTesting,
+                sym: Symbol::from("f", Sort::ToBeInferred),
+            }),
+            args: vec![arg],
+        };
+        let expected = Fmla::App {
+            span: Span::IgnoredForTesting,
+            app
+        };
+        assert_eq!(ast, expected);
+    }
+
+    #[test]
     fn parse_term_with_annotation() {
         parse_fmla("X:int").expect("Parsing failed");
     }
 
     #[test]
-    fn parse_pred() {
+    fn parse_pred_progsym() {
+        parse_fmla("end(x)").expect("Parsing failed");
+    }
+
+    #[test]
+    fn parse_pred_logicsym() {
         parse_fmla("end(X)").expect("Parsing failed");
     }
 
