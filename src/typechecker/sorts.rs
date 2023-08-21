@@ -3,10 +3,7 @@
 use std::{collections::BTreeMap, fmt::Display};
 
 use crate::{
-    ast::{
-        declarations::Binding,
-        expressions::{Expr, Token},
-    },
+    ast::{declarations::Binding, expressions::Token},
     visitor::{sort::Visitor, ControlMut},
 };
 

@@ -1,7 +1,7 @@
 use std::{collections::BTreeMap, error::Error};
 
 use crate::{
-    ast::expressions::{self, Expr, Token},
+    ast::expressions::{self, Token},
     typechecker::sorts::{ActionArgs, ActionRet, IvySort, Module, Object},
 };
 

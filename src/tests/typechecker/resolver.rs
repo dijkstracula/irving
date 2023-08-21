@@ -1,11 +1,8 @@
 #[cfg(test)]
 mod tests {
-    use crate::{
-        ast::{expressions::Expr, span::Span},
-        typechecker::{
-            sorts::{IvySort, Module},
-            unifier::{BindingResolver, ResolverError},
-        },
+    use crate::typechecker::{
+        sorts::{IvySort, Module},
+        unifier::{BindingResolver, ResolverError},
     };
 
     fn resolver_with_bindings() -> BindingResolver {

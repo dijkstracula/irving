@@ -106,7 +106,7 @@ impl QuantBounds {
                 }),
                 Some(Fmla::Number {
                     span: Span::Optimized,
-                    val: *hi,
+                    val: *hi + 1,
                 }),
             ),
             IvySort::Enum(discs) => (
@@ -206,23 +206,23 @@ impl Visitor<(), std::fmt::Error> for QuantBounds {
     }
 
     // ivy_to_cpp.py:3838: "if isinstance(body, il.Not): ..."
-    fn begin_unary_op(
+    fn begin_logical_unary_op(
         &mut self,
-        op: &mut expressions::Verb,
-        _rhs: &mut Expr,
-    ) -> VisitorResult<(), std::fmt::Error, Expr> {
+        op: &mut Verb,
+        _rhs: &mut Fmla,
+    ) -> VisitorResult<(), std::fmt::Error, Fmla> {
         if op == &expressions::Verb::Not {
             self.polarity = self.polarity.negate();
         }
         Ok(ControlMut::Produce(()))
     }
 
-    fn finish_unary_op(
+    fn finish_logical_unary_op(
         &mut self,
-        op: &mut expressions::Verb,
-        _rhs: &mut Expr,
+        op: &mut Verb,
+        _rhs: &mut Fmla,
         _rhs_t: (),
-    ) -> VisitorResult<(), std::fmt::Error, Expr> {
+    ) -> VisitorResult<(), std::fmt::Error, Fmla> {
         if op == &expressions::Verb::Not {
             self.polarity = self.polarity.negate();
         }
