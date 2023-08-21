@@ -25,7 +25,10 @@ mod tests {
     #[test]
     fn parse_bool() {
         let ast = parse_fmla("true").unwrap();
-        let expected = Fmla::Boolean { span: Span::IgnoredForTesting, val: true };
+        let expected = Fmla::Boolean {
+            span: Span::IgnoredForTesting,
+            val: true,
+        };
         assert_eq!(ast, expected);
     }
 
@@ -101,7 +104,7 @@ mod tests {
         };
         let expected = Fmla::App {
             span: Span::IgnoredForTesting,
-            app
+            app,
         };
         assert_eq!(ast, expected);
     }
@@ -123,7 +126,7 @@ mod tests {
         };
         let expected = Fmla::App {
             span: Span::IgnoredForTesting,
-            app
+            app,
         };
         assert_eq!(ast, expected);
     }
@@ -275,10 +278,7 @@ mod tests {
 
     #[test]
     fn dot_on_quant() {
-        parse_fmla("(forall X . X).bar")
-            .expect_err("Can't compose formulae like this");
-        parse_fmla("foo.(forall X. X)")
-            .expect_err("Can't compose formulae like this");
+        parse_fmla("(forall X . X).bar").expect_err("Can't compose formulae like this");
+        parse_fmla("foo.(forall X. X)").expect_err("Can't compose formulae like this");
     }
-
 }

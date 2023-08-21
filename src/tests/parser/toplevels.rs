@@ -67,8 +67,7 @@ isolate net(pid: node) = {
 
     #[test]
     fn logical_call_to_action() {
-        let iso = 
-            "process foo = {
+        let iso = "process foo = {
             type node
             action doit(x: node)
 

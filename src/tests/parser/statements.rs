@@ -1,7 +1,10 @@
 #[cfg(test)]
 mod tests {
     use crate::{
-        ast::{actions::*, expressions::*, logic::*, span::Span, statements::Stmt, declarations::Binding},
+        ast::{
+            actions::*, declarations::Binding, expressions::*, logic::*, span::Span,
+            statements::Stmt,
+        },
         parser::ivy::{IvyParser, Rule},
         tests::helpers,
     };
@@ -134,8 +137,15 @@ mod tests {
                     fmla: Box::new(Fmla::App {
                         span: Span::IgnoredForTesting,
                         app: LogicApp {
-                            func: Box::new(Fmla::ProgramSymbol { span: Span::IgnoredForTesting, sym: Binding::from("failed", Sort::ToBeInferred) }),
-                            args: [Fmla::ProgramSymbol { span: Span::IgnoredForTesting, sym: Binding::from("y", Sort::ToBeInferred) }].into()
+                            func: Box::new(Fmla::ProgramSymbol {
+                                span: Span::IgnoredForTesting,
+                                sym: Binding::from("failed", Sort::ToBeInferred)
+                            }),
+                            args: [Fmla::ProgramSymbol {
+                                span: Span::IgnoredForTesting,
+                                sym: Binding::from("y", Sort::ToBeInferred)
+                            }]
+                            .into()
                         }
                     })
                 }
@@ -157,9 +167,15 @@ mod tests {
                 pred: Fmla::BinOp {
                     span: Span::IgnoredForTesting,
                     binop: LogicBinOp {
-                        lhs: Box::new(Fmla::ProgramSymbol { span: Span::IgnoredForTesting, sym: Binding::from("x", Sort::ToBeInferred) }),
+                        lhs: Box::new(Fmla::ProgramSymbol {
+                            span: Span::IgnoredForTesting,
+                            sym: Binding::from("x", Sort::ToBeInferred)
+                        }),
                         op: Verb::Ge,
-                        rhs: Box::new(Fmla::Number { span: Span::IgnoredForTesting, val: 0 })
+                        rhs: Box::new(Fmla::Number {
+                            span: Span::IgnoredForTesting,
+                            val: 0
+                        })
                     }
                 }
             }

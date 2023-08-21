@@ -452,5 +452,4 @@ mod tests {
         let mut tc = SortInferer::new();
         let _ = iso.visit(&mut tc).unwrap().modifying(&mut iso);
     }
-
 }

@@ -49,7 +49,6 @@ mod tests {
         parse_fmla(fragment).unwrap();
     }
 
-
     #[test]
     fn parse_negation_expr() {
         let _ast = parse_rval("~a").unwrap();

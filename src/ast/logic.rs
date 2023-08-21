@@ -94,7 +94,7 @@ impl Fmla {
             Fmla::Number { .. } => false,
             Fmla::LogicSymbol { .. } => true,
             Fmla::ProgramSymbol { .. } => false,
-            Fmla::UnaryOp { fmla, .. } => fmla.is_quantified()
+            Fmla::UnaryOp { fmla, .. } => fmla.is_quantified(),
         }
     }
 
@@ -105,7 +105,6 @@ impl Fmla {
             _ => false,
         }
     }
-
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

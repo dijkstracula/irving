@@ -237,7 +237,6 @@ impl Visitor<IvySort, TypeError> for SortInferer {
 
     // Actions
 
-
     fn finish_assign(
         &mut self,
         span: &Span,
@@ -314,7 +313,6 @@ impl Visitor<IvySort, TypeError> for SortInferer {
         fsort: IvySort,
         argsorts: Vec<IvySort>,
     ) -> InferenceResult<Expr> {
-
         // XXX: This is hacky.
         let dummy_argnames = (0..argsorts.len())
             .map(|i| format!("arg{i}"))
@@ -330,7 +328,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
                 sorts::ActionRet::Unknown => {
                     let retsort = self.bindings.new_sortvar();
                     Ok(ControlMut::Produce(retsort))
-                },
+                }
                 sorts::ActionRet::Unit => Ok(ControlMut::Produce(IvySort::Unit)),
                 sorts::ActionRet::Named(binding) => Ok(ControlMut::Produce(binding.decl)),
             },
@@ -405,7 +403,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
             expressions::Verb::Dot => unreachable!(),
 
             // Implication: The grammar should restrict Arrows to formulae.
-            expressions::Verb::Arrow => unreachable!()
+            expressions::Verb::Arrow => unreachable!(),
         }
     }
 
@@ -558,10 +556,10 @@ impl Visitor<IvySort, TypeError> for SortInferer {
     }
 
     fn begin_assign_logical(
-            &mut self,
-            span: &Span,
-            ast: &mut actions::AssignLogicalAction,
-        ) -> crate::visitor::VisitorResult<IvySort, TypeError, Action> {
+        &mut self,
+        span: &Span,
+        ast: &mut actions::AssignLogicalAction,
+    ) -> crate::visitor::VisitorResult<IvySort, TypeError, Action> {
         self.bindings.push_scope();
         match &ast.lhs {
             logic::Fmla::App {
@@ -584,12 +582,12 @@ impl Visitor<IvySort, TypeError> for SortInferer {
     }
 
     fn finish_assign_logical(
-            &mut self,
-            span: &Span,
-            _ast: &mut actions::AssignLogicalAction,
-            lhs_sort: IvySort,
-            rhs_sort: IvySort,
-        ) -> crate::visitor::VisitorResult<IvySort, TypeError, Action> {
+        &mut self,
+        span: &Span,
+        _ast: &mut actions::AssignLogicalAction,
+        lhs_sort: IvySort,
+        rhs_sort: IvySort,
+    ) -> crate::visitor::VisitorResult<IvySort, TypeError, Action> {
         self.bindings.pop_scope();
         self.bindings
             .unify(&lhs_sort, &rhs_sort)
@@ -621,7 +619,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
                 sorts::ActionRet::Unknown => {
                     let retsort = self.bindings.new_sortvar();
                     Ok(ControlMut::Produce(retsort))
-                },
+                }
                 sorts::ActionRet::Unit => Ok(ControlMut::Produce(IvySort::Unit)),
                 sorts::ActionRet::Named(binding) => Ok(ControlMut::Produce(binding.decl)),
             },
@@ -634,12 +632,12 @@ impl Visitor<IvySort, TypeError> for SortInferer {
     }
 
     fn finish_logical_binop(
-            &mut self,
-            ast: &mut logic::LogicBinOp,
-            lhs_sort: IvySort,
-            _op_ret: IvySort,
-            rhs_sort: IvySort,
-        ) -> crate::visitor::VisitorResult<IvySort, TypeError, logic::Fmla> {
+        &mut self,
+        ast: &mut logic::LogicBinOp,
+        lhs_sort: IvySort,
+        _op_ret: IvySort,
+        rhs_sort: IvySort,
+    ) -> crate::visitor::VisitorResult<IvySort, TypeError, logic::Fmla> {
         match ast.op {
             // Boolean operators
             expressions::Verb::Iff
@@ -705,11 +703,10 @@ impl Visitor<IvySort, TypeError> for SortInferer {
     }
 
     fn begin_logical_field_access(
-            &mut self,
-            lhs: &mut logic::Fmla,
-            rhs: &mut Symbol,
-        ) -> InferenceResult<logic::Fmla> {
-        
+        &mut self,
+        lhs: &mut logic::Fmla,
+        rhs: &mut Symbol,
+    ) -> InferenceResult<logic::Fmla> {
         let lhs_sort = lhs.visit(self)?.modifying(lhs);
 
         // Note that beecause the rhs's symbol is not in our context, we can't
@@ -774,11 +771,11 @@ impl Visitor<IvySort, TypeError> for SortInferer {
     }
 
     fn finish_logical_unary_op(
-            &mut self,
-            op: &mut expressions::Verb,
-            rhs: &mut logic::Fmla,
-            rhs_sort: IvySort,
-        ) -> crate::visitor::VisitorResult<IvySort, TypeError, logic::Fmla> {
+        &mut self,
+        op: &mut expressions::Verb,
+        rhs: &mut logic::Fmla,
+        rhs_sort: IvySort,
+    ) -> crate::visitor::VisitorResult<IvySort, TypeError, logic::Fmla> {
         match op {
             expressions::Verb::Not => Ok(ControlMut::Produce(
                 self.bindings

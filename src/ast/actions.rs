@@ -37,20 +37,40 @@ pub struct RequiresAction {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Action {
-    Assert { span: Span, action: AssertAction },
+    Assert {
+        span: Span,
+        action: AssertAction,
+    },
 
-    Assign { span: Span, action: AssignAction },
+    Assign {
+        span: Span,
+        action: AssignAction,
+    },
 
-    AssignLogical { span: Span, action: AssignLogicalAction },
+    AssignLogical {
+        span: Span,
+        action: AssignLogicalAction,
+    },
 
-    Assume { span: Span, action: AssumeAction },
+    Assume {
+        span: Span,
+        action: AssumeAction,
+    },
 
-    Call { span: Span, action: AppExpr },
+    Call {
+        span: Span,
+        action: AppExpr,
+    },
 
-    Ensure { span: Span, action: EnsureAction },
+    Ensure {
+        span: Span,
+        action: EnsureAction,
+    },
 
-
-    Requires { span: Span, action: RequiresAction },
+    Requires {
+        span: Span,
+        action: RequiresAction,
+    },
 }
 
 impl Action {
