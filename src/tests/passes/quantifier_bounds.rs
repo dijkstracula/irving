@@ -5,13 +5,14 @@ mod tests {
     use crate::{
         ast::{
             declarations::Binding,
-            expressions::{BinOp, Sort, Verb},
-            logic::Fmla,
+            expressions::{Sort, Verb},
+            logic::{self, Fmla},
+            span::Span,
         },
         error::IrvingError,
         parser::ivy::{IvyParser, Rule},
         passes::quantifier_bounds::QuantBounds,
-        tests::helpers::{self, number},
+        tests::helpers::{self, logical_number},
         typechecker::{inference::SortInferer, sorts::IvySort},
         visitor::ast::Visitable,
     };
@@ -33,55 +34,66 @@ mod tests {
 
     #[test]
     fn succ_literal() {
-        let one = helpers::number(1);
+        let one = helpers::logical_number(1);
         let two = QuantBounds::succ(&one);
 
-        assert_eq!(two, helpers::number(2));
+        assert_eq!(two, helpers::logical_number(2));
     }
 
     #[test]
     fn succ_binop_of_literals() {
-        let two = helpers::plus(helpers::number(1), helpers::number(1));
+        let two = Fmla::BinOp {
+            span: Span::IgnoredForTesting,
+            binop: logic::LogicBinOp {
+                lhs: Box::new(helpers::logical_number(1)),
+                op: Verb::Plus,
+                rhs: Box::new(helpers::logical_number(1)),
+            },
+        };
         let three = QuantBounds::succ(&two);
 
-        assert_eq!(three, helpers::number(3));
+        assert_eq!(three, helpers::logical_number(3));
     }
 
     #[test]
     fn succ_compound() {
-        let foo_plus_one = helpers::plus(helpers::inferred_progsym("foo"), helpers::number(1));
-        let foo_plus_two = QuantBounds::succ(&foo_plus_one);
+        let foo_plus_one = Fmla::BinOp {
+            span: Span::IgnoredForTesting,
+            binop: logic::LogicBinOp {
+                lhs: Box::new(Fmla::ProgramSymbol {
+                    span: Span::IgnoredForTesting,
+                    sym: Binding::from("foo", Sort::ToBeInferred),
+                }),
+                op: Verb::Plus,
+                rhs: Box::new(helpers::logical_number(1)),
+            },
+        };
+        let foo_plus_two = Fmla::BinOp {
+            span: Span::IgnoredForTesting,
+            binop: logic::LogicBinOp {
+                lhs: Box::new(Fmla::ProgramSymbol {
+                    span: Span::IgnoredForTesting,
+                    sym: Binding::from("foo", Sort::ToBeInferred),
+                }),
+                op: Verb::Plus,
+                rhs: Box::new(helpers::logical_number(2)),
+            },
+        };
 
-        assert_eq!(
-            foo_plus_two,
-            helpers::plus(helpers::inferred_progsym("foo"), helpers::number(2))
-        );
+        let foo_plus_one_plus_one = QuantBounds::succ(&foo_plus_one);
+        assert_eq!(foo_plus_one_plus_one, foo_plus_two);
     }
 
     #[test]
     fn op_on_logicsym() {
         assert_eq!(
-            QuantBounds::op_on_logicsym(&BinOp {
-                lhs: Box::new(helpers::number(0)),
+            QuantBounds::op_on_logicsym(&logic::LogicBinOp {
+                lhs: Box::new(helpers::logical_number(0)),
                 op: Verb::Equals,
-                rhs: Box::new(helpers::number(1))
+                rhs: Box::new(helpers::logical_number(1))
             }),
             None
         );
-
-        /*
-        assert_eq!(
-            QuantBounds::op_on_logicsym(&BinOp {
-                lhs: Box::new(helpers::inferred_logicsym("N")),
-                op: Verb::Equals,
-                rhs: Box::new(helpers::number(1))
-            }),
-            Some(&expressions::Symbol {
-                name: "N".into(),
-                decl: expressions::Sort::ToBeInferred
-            })
-        );
-        */
     }
 
     #[test]
@@ -89,12 +101,28 @@ mod tests {
         let var = Binding::from("N".to_owned(), Sort::ToBeInferred);
 
         assert_eq!(
-            QuantBounds::bounds_from_ast(&var, &helpers::number(1), Verb::Lt, &helpers::number(5)),
-            Some((Some(helpers::number(1)), Some(helpers::number(5))))
+            QuantBounds::bounds_from_ast(
+                &var,
+                &helpers::logical_number(1),
+                Verb::Lt,
+                &helpers::logical_number(5)
+            ),
+            Some((
+                Some(helpers::logical_number(1)),
+                Some(helpers::logical_number(5))
+            ))
         );
         assert_eq!(
-            QuantBounds::bounds_from_ast(&var, &helpers::number(1), Verb::Le, &helpers::number(7)),
-            Some((Some(helpers::number(1)), Some(helpers::number(8))))
+            QuantBounds::bounds_from_ast(
+                &var,
+                &helpers::logical_number(1),
+                Verb::Le,
+                &helpers::logical_number(7)
+            ),
+            Some((
+                Some(helpers::logical_number(1)),
+                Some(helpers::logical_number(8))
+            ))
         );
     }
 
@@ -149,14 +177,14 @@ mod tests {
         );
         assert_eq!(
             QuantBounds::bounds_for_sort(&IvySort::Number),
-            (Some(number(0)), None)
+            (Some(logical_number(0)), None)
         );
         assert_eq!(
             // Irritating: Ivy ranges are _inclusive_ so the interval is closed!
             // This sort has four inhabitants: 0, 1, 2, and 3.
-            QuantBounds::bounds_for_sort(&IvySort::Range(Box::new(number(0)), Box::new(number(3)))),
+            QuantBounds::bounds_for_sort(&IvySort::Range(0, 3)),
             // Meanwhile, the rest of the world uses half-open intervals.
-            (Some(number(0)), Some(number(4)))
+            (Some(logical_number(0)), Some(logical_number(4)))
         );
     }
 
@@ -168,7 +196,7 @@ mod tests {
         fmla.visit(&mut qb).unwrap().modifying(&mut fmla);
 
         let _n = helpers::inferred_logicsym("N");
-        let one = helpers::number(1);
+        let one = helpers::logical_number(1);
         println!("NBT: {:?}", qb.bounds.get("N"));
 
         // The counterproof, if found, will be lying on [0, 1)
@@ -184,7 +212,7 @@ mod tests {
         fmla.visit(&mut qb).unwrap().modifying(&mut fmla);
 
         let _n = helpers::inferred_logicsym("N");
-        let one = helpers::number(1);
+        let one = helpers::logical_number(1);
 
         // The counterproof, if found, will be lying on [0, 1)
         assert!(qb.bounds.get("N").unwrap().contains(&(None, Some(one))));
@@ -198,7 +226,7 @@ mod tests {
         fmla.visit(&mut qb).unwrap().modifying(&mut fmla);
 
         // TODO: why doesn't ivy_to_cpp generate the range given below???
-        let one = helpers::number(1);
+        let one = helpers::logical_number(1);
 
         println!("NBT: {:?}", qb.bounds.get("N"));
         assert!(qb.bounds.get("N").unwrap().contains(&(None, Some(one))));
@@ -224,8 +252,8 @@ mod tests {
         fmla.visit(&mut qb).unwrap().modifying(&mut fmla);
 
         let _n = helpers::inferred_logicsym("N");
-        let five = helpers::number(5);
-        let ten = helpers::number(10);
+        let five = helpers::logical_number(5);
+        let ten = helpers::logical_number(10);
 
         assert!(qb.bounds.get("N").unwrap().contains(&(None, Some(ten))));
         assert!(qb.bounds.get("N").unwrap().contains(&(Some(five), None)));

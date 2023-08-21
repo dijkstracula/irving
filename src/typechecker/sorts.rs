@@ -65,7 +65,7 @@ pub enum IvySort {
     Number,
     BitVec(u8),
     Vector(Box<IvySort>),
-    Range(Box<Expr>, Box<Expr>),
+    Range(i64, i64),
     Enum(Vec<Token>),
     Action(Vec<Token>, ActionArgs, ActionRet),
     Relation(Vec<IvySort>),
@@ -123,10 +123,6 @@ impl IvySort {
         //}
 
         IvySort::Action(arg_names, ActionArgs::List(arg_sorts), ret)
-    }
-
-    pub fn range_sort(lo: Expr, hi: Expr) -> IvySort {
-        IvySort::Range(Box::new(lo), Box::new(hi))
     }
 
     pub fn is_sortvar(&self) -> bool {
@@ -242,8 +238,8 @@ impl Visitor<IvySort, TypeError> for SortSubstituter {
         self.subst(IvySort::Vector(Box::new(substituted_elem)))
     }
 
-    fn range(&mut self, lo: &mut Expr, hi: &mut Expr) -> InferenceResult<IvySort> {
-        self.subst(IvySort::Range(Box::new(lo.clone()), Box::new(hi.clone())))
+    fn range(&mut self, lo: i64, hi: i64) -> InferenceResult<IvySort> {
+        self.subst(IvySort::Range(lo, hi))
     }
 
     fn enumeration(&mut self, discriminants: &mut Vec<Token>) -> InferenceResult<IvySort> {

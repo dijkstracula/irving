@@ -3,7 +3,7 @@ mod tests {
     use std::{collections::BTreeMap, vec};
 
     use crate::{
-        ast::{declarations::Decl, expressions::Expr, span::Span},
+        ast::{declarations::Decl, span::Span},
         parser::ivy::{IvyParser, Rule},
         tests::helpers,
         typechecker::{
@@ -21,19 +21,7 @@ mod tests {
 
         // type pid: 0..3
         tc.bindings
-            .append(
-                "pid".into(),
-                IvySort::Range(
-                    Box::new(Expr::Number {
-                        span: Span::IgnoredForTesting,
-                        val: 0,
-                    }),
-                    Box::new(Expr::Number {
-                        span: Span::IgnoredForTesting,
-                        val: 3,
-                    }),
-                ),
-            )
+            .append("pid".into(), IvySort::Range(0, 3))
             .unwrap();
         // interpret byte -> bv[8]
         tc.bindings
@@ -131,20 +119,7 @@ mod tests {
     fn test_proc_with_params() {
         let mut iso = helpers::process_from_decl("process host(self:pid) = {}");
         let sort = IvySort::Object(Object {
-            args: [(
-                "self".into(),
-                IvySort::Range(
-                    Box::new(Expr::Number {
-                        span: Span::IgnoredForTesting,
-                        val: 0,
-                    }),
-                    Box::new(Expr::Number {
-                        span: Span::IgnoredForTesting,
-                        val: 3,
-                    }),
-                ),
-            )]
-            .into(),
+            args: [("self".into(), IvySort::Range(0, 3))].into(),
             fields: [("init".to_owned(), Module::init_action_sort())].into(),
         });
 
@@ -163,20 +138,7 @@ mod tests {
         }",
         );
         let sort = IvySort::Object(Object {
-            args: [(
-                "self".into(),
-                IvySort::Range(
-                    Box::new(Expr::Number {
-                        span: Span::IgnoredForTesting,
-                        val: 0,
-                    }),
-                    Box::new(Expr::Number {
-                        span: Span::IgnoredForTesting,
-                        val: 3,
-                    }),
-                ),
-            )]
-            .into(),
+            args: [("self".into(), IvySort::Range(0, 3))].into(),
             fields: [
                 ("is_up".into(), IvySort::Bool),
                 ("init".to_owned(), Module::init_action_sort()),

@@ -105,6 +105,42 @@ impl Fmla {
             _ => false,
         }
     }
+
+    pub fn depth(&self) -> usize {
+        match self {
+            Fmla::Forall {
+                fmla: Forall { fmla, .. },
+                ..
+            } => fmla.depth() + 1,
+            Fmla::Exists {
+                fmla: Exists { fmla, .. },
+                ..
+            } => fmla.depth() + 1,
+            Fmla::Pred(expr) => expr.depth(),
+
+            Fmla::App {
+                app: LogicApp { func, args },
+                ..
+            } => {
+                let func_depth = func.depth();
+                let args_depth = args.iter().map(|arg| arg.depth()).max().unwrap_or(0);
+                usize::max(func_depth, args_depth) + 1
+            }
+            Fmla::BinOp {
+                binop: LogicBinOp { lhs, rhs, .. },
+                ..
+            } => usize::max(lhs.depth(), rhs.depth()) + 1,
+            Fmla::Boolean { .. } => 1,
+            Fmla::FieldAccess {
+                fmla: FieldAccess { record, .. },
+                ..
+            } => record.depth() + 1,
+            Fmla::Number { .. } => 1,
+            Fmla::LogicSymbol { .. } => 1,
+            Fmla::ProgramSymbol { .. } => 1,
+            Fmla::UnaryOp { fmla, .. } => fmla.depth() + 1,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

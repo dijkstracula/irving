@@ -2,8 +2,8 @@ use std::collections::BTreeMap;
 
 use crate::{
     ast::{
-        expressions::{self, BinOp, Expr, Verb},
-        logic,
+        expressions::{self, Expr, Verb},
+        logic::{self, Fmla, LogicBinOp},
         span::Span,
         toplevels,
     },
@@ -52,7 +52,7 @@ impl Polarity {
 ///      forall X, !F(X) <-> exists X . F(X)
 pub struct QuantBounds {
     /// What subexpressions have we found that bound a quantified variable?
-    pub bounds: BTreeMap<String, Vec<(Option<Expr>, Option<Expr>)>>,
+    pub bounds: BTreeMap<String, Vec<(Option<Fmla>, Option<Fmla>)>>,
 
     /// Are we negating the current subexpression that we're visiting?
     /// (in the ivy_to_cpp implementation, this is `exists`)
@@ -68,13 +68,13 @@ impl QuantBounds {
     }
 
     // Adds one to an expression and performs some simple simplifications on it.
-    pub fn succ(expr: &Expr) -> Expr {
-        let mut ret = Expr::BinOp {
+    pub fn succ(fmla: &Fmla) -> Fmla {
+        let mut ret = Fmla::BinOp {
             span: Span::Optimized,
-            expr: BinOp {
-                lhs: Box::new(expr.clone()),
+            binop: LogicBinOp {
+                lhs: Box::new(fmla.clone()),
                 op: expressions::Verb::Plus,
-                rhs: Box::new(Expr::Number {
+                rhs: Box::new(Fmla::Number {
                     span: Span::Optimized,
                     val: 1,
                 }),
@@ -90,25 +90,31 @@ impl QuantBounds {
     // TODO: If IvySort::Range held two numbers rather than two expressions, we
     // could probably have this return (Option<i64>, Option<i64>) or whatever,
     // which might simplify things.
-    pub fn bounds_for_sort(sort: &IvySort) -> (Option<Expr>, Option<Expr>) {
+    pub fn bounds_for_sort(sort: &IvySort) -> (Option<Fmla>, Option<Fmla>) {
         match sort {
             IvySort::Number => (
-                Some(Expr::Number {
+                Some(Fmla::Number {
                     span: Span::Optimized,
                     val: 0,
                 }),
                 None,
             ),
             IvySort::Range(lo, hi) => (
-                Some(lo.as_ref().clone()),
-                Some(QuantBounds::succ(hi.as_ref())),
+                Some(Fmla::Number {
+                    span: Span::Optimized,
+                    val: *lo,
+                }),
+                Some(Fmla::Number {
+                    span: Span::Optimized,
+                    val: *hi,
+                }),
             ),
             IvySort::Enum(discs) => (
-                Some(Expr::Number {
+                Some(Fmla::Number {
                     span: Span::Optimized,
                     val: 0,
                 }),
-                Some(Expr::Number {
+                Some(Fmla::Number {
                     span: Span::Optimized,
                     val: discs.len() as i64,
                 }),
@@ -120,10 +126,10 @@ impl QuantBounds {
     // Produces the exclusive half-open interval described by the binop, if it's comparing two numerics.
     pub fn bounds_from_ast(
         lvar: &expressions::Symbol,
-        lhs: &Expr,
+        lhs: &Fmla,
         op: expressions::Verb,
-        rhs: &Expr,
-    ) -> Option<(Option<Expr>, Option<Expr>)> {
+        rhs: &Fmla,
+    ) -> Option<(Option<Fmla>, Option<Fmla>)> {
         let (lo, hi) = match (lhs, &op, rhs) {
             (lhs, expressions::Verb::Le, rhs) => (lhs.clone(), QuantBounds::succ(rhs)),
             (lhs, expressions::Verb::Lt, rhs) => (lhs.clone(), rhs.clone()),
@@ -133,11 +139,11 @@ impl QuantBounds {
         };
 
         let lo = match &lo {
-            Expr::LogicSymbol { sym, .. } if lvar == sym => None,
+            Fmla::LogicSymbol { sym, .. } if lvar == sym => None,
             _ => Some(lo),
         };
         let hi = match &hi {
-            Expr::LogicSymbol { sym, .. } if lvar == sym => None,
+            Fmla::LogicSymbol { sym, .. } if lvar == sym => None,
             _ => Some(hi),
         };
 
@@ -146,16 +152,16 @@ impl QuantBounds {
 
     // Produces whether or not this is a binop that we're interested in (namely
     // one that uses a logical symbol)
-    pub fn op_on_logicsym(ast: &expressions::BinOp) -> Option<&expressions::Symbol> {
+    pub fn op_on_logicsym(ast: &LogicBinOp) -> Option<&expressions::Symbol> {
         // XXX: this precludes spanning operations like `X = X` but Ivy doesn't do this
         // either it seems.
         match (ast.lhs.as_ref(), &ast.rhs.as_ref()) {
             (
-                Expr::LogicSymbol {
+                Fmla::LogicSymbol {
                     sym: expressions::Symbol { name: lname, .. },
                     ..
                 },
-                Expr::LogicSymbol {
+                Fmla::LogicSymbol {
                     sym: expressions::Symbol { name: rname, .. },
                     ..
                 },
@@ -163,10 +169,10 @@ impl QuantBounds {
             _ => (),
         };
 
-        if let Expr::LogicSymbol { sym, .. } = ast.lhs.as_ref() {
+        if let Fmla::LogicSymbol { sym, .. } = ast.lhs.as_ref() {
             return Some(sym);
         }
-        if let Expr::LogicSymbol { sym, .. } = ast.rhs.as_ref() {
+        if let Fmla::LogicSymbol { sym, .. } = ast.rhs.as_ref() {
             return Some(sym);
         }
         None
@@ -223,10 +229,10 @@ impl Visitor<(), std::fmt::Error> for QuantBounds {
         Ok(ControlMut::Produce(()))
     }
 
-    fn begin_binop(
+    fn begin_logical_binop(
         &mut self,
-        ast: &mut expressions::BinOp,
-    ) -> VisitorResult<(), std::fmt::Error, Expr> {
+        ast: &mut LogicBinOp,
+    ) -> VisitorResult<(), std::fmt::Error, Fmla> {
         log::debug!(target: "quantifier-bounds", "{:?} {:?} {:?}, {:?}", ast.lhs.span(), ast.op, ast.rhs.span(), self.polarity);
         match ast.op {
             Verb::Arrow if self.polarity == Polarity::Forall => {
@@ -261,7 +267,7 @@ impl Visitor<(), std::fmt::Error> for QuantBounds {
 
                         // Searching for a counterproof of a universal means we
                         // want to 
-                        Polarity::Forall => BinOp {
+                        Polarity::Forall => LogicBinOp {
                             lhs: Box::new(*ast.lhs.clone()),
                             op: ast.op.negate(),
                             rhs: Box::new(*ast.rhs.clone()),

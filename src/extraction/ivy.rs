@@ -711,9 +711,9 @@ where
                 }
                 IvySort::Range(min, max) => {
                     self.pp.write_str("{")?;
-                    min.visit(self)?;
+                    self.number(&Span::Todo, min)?;
                     self.pp.write_str("..")?;
-                    max.visit(self)?;
+                    self.number(&Span::Todo, max)?;
                     self.pp.write_str("}")?;
                 }
                 IvySort::Enum(_) => {

@@ -19,7 +19,7 @@ pub mod helpers {
     use crate::{
         ast::{
             declarations::Decl,
-            expressions::{self, BinOp, Expr, Verb},
+            expressions::{self, Expr},
             logic::{self, Fmla},
             span::Span,
             statements::Stmt,
@@ -156,21 +156,6 @@ pub mod helpers {
             span: Span::IgnoredForTesting,
             val: n,
         }
-    }
-
-    pub fn mk_binop(lhs: Expr, op: Verb, rhs: Expr) -> Expr {
-        expressions::Expr::BinOp {
-            span: Span::IgnoredForTesting,
-            expr: BinOp {
-                lhs: Box::new(lhs),
-                op,
-                rhs: Box::new(rhs),
-            },
-        }
-    }
-
-    pub fn plus(lhs: Expr, rhs: Expr) -> Expr {
-        mk_binop(lhs, Verb::Plus, rhs)
     }
 
     //

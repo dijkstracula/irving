@@ -184,7 +184,7 @@ impl IvyParser {
         input.into_children();
         [bv_decl(width)] => Ok(Sort::Resolved(IvySort::BitVec(width))),
         [enum_decl(cstrs)] => Ok(Sort::Resolved(IvySort::Enum(cstrs))),
-        [range_decl((lo, hi))] => Ok(Sort::Resolved(IvySort::Range(Box::new(lo), Box::new(hi)))),
+        [range_decl((lo, hi))] => Ok(Sort::Resolved(IvySort::Range(lo, hi))),
         [PROGTOK(supr)] => Ok(Sort::Resolved(IvySort::Subclass(supr))),
         [_THIS] => Ok(Sort::Resolved(IvySort::This)),
         )
@@ -470,10 +470,10 @@ impl IvyParser {
             (span, Binding::from(name, ObjectDecl{params: vec!(), body}))))
     }
 
-    pub fn range_decl(input: Node) -> Result<(Expr, Expr)> {
+    pub fn range_decl(input: Node) -> Result<(i64, i64)> {
         match_nodes!(
         input.into_children();
-            [rval(lo), rval(hi)] => Ok((lo, hi)),
+            [number(lo), number(hi)] => Ok((lo, hi)),
         )
     }
 

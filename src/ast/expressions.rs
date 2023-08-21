@@ -201,12 +201,12 @@ impl Expr {
             } => {
                 let func_depth = func.depth();
                 let args_depth = args.iter().map(|a| a.depth()).max().unwrap_or(0);
-                usize::max(func_depth, args_depth)
+                usize::max(func_depth, args_depth) + 1
             }
             Expr::BinOp {
                 expr: BinOp { lhs, rhs, .. },
                 ..
-            } => usize::max(lhs.depth(), rhs.depth()),
+            } => usize::max(lhs.depth(), rhs.depth()) + 1,
             Expr::Boolean { .. } => 1,
             Expr::FieldAccess {
                 expr: FieldAccess { record, .. },

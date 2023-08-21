@@ -29,7 +29,7 @@ index      = { "[" ~ rval ~ "]" }
 
 bv_decl = { BV ~ "[" ~ number ~ "]" }
 enum_decl  = { "{" ~ PROGTOK ~ ("," ~ PROGTOK)* ~ "}" }
-range_decl = { "{" ~ rval ~ ".." ~ rval ~ "}" }
+range_decl = { "{" ~ number ~ ".." ~ number ~ "}" }
 
 builtin_type = { bv_decl | enum_decl | range_decl | THIS }
 

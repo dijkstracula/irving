@@ -1,5 +1,6 @@
 use crate::ast::expressions::*;
 
+use crate::ast::logic::{Fmla, LogicBinOp};
 use crate::ast::span::Span;
 use crate::visitor::ast::Visitable;
 use crate::visitor::*;
@@ -85,6 +86,106 @@ impl ast::Visitor<(), std::io::Error> for ConstantFold {
                             rhs: Box::new(Expr::BinOp {
                                 span: Span::Optimized,
                                 expr: BinOp {
+                                    lhs: l_rhs.clone(),
+                                    op: *rhs_op,
+                                    rhs: Box::new(rhs.clone()),
+                                },
+                            }),
+                        },
+                    };
+                    new_binop.visit(self)?.modifying(&mut new_binop);
+
+                    // + 1 because we compare against the lhs subtree
+                    if new_binop.depth() < lhs.depth() + 1 {
+                        Ok(ControlMut::Mutation(new_binop, ()))
+                    } else {
+                        Ok(ControlMut::Produce(()))
+                    }
+                } else {
+                    Ok(ControlMut::Produce(()))
+                }
+            }
+
+            _ => Ok(ControlMut::Produce(())),
+        }
+    }
+
+    fn finish_logical_binop(
+        &mut self,
+        fmla: &mut crate::ast::logic::LogicBinOp,
+        _lhs_ret: (),
+        _op_ret: (),
+        _rhs_ret: (),
+    ) -> VisitorResult<(), std::io::Error, crate::ast::logic::Fmla> {
+        let span = Span::Optimized;
+
+        // Literals
+        match (fmla.lhs.as_ref(), &fmla.op, fmla.rhs.as_ref()) {
+            (Fmla::Number { val: lhs, .. }, Verb::Plus, Fmla::Number { val: rhs, .. }) => {
+                Ok(ControlMut::Mutation(
+                    Fmla::Number {
+                        span,
+                        val: lhs + rhs,
+                    },
+                    (),
+                ))
+            }
+            (Fmla::Number { val: lhs, .. }, Verb::Minus, Fmla::Number { val: rhs, .. }) => {
+                Ok(ControlMut::Mutation(
+                    Fmla::Number {
+                        span,
+                        val: lhs - rhs,
+                    },
+                    (),
+                ))
+            }
+            (Fmla::Number { val: lhs, .. }, Verb::Times, Fmla::Number { val: rhs, .. }) => {
+                Ok(ControlMut::Mutation(
+                    Fmla::Number {
+                        span,
+                        val: lhs * rhs,
+                    },
+                    (),
+                ))
+            }
+            (Fmla::Number { val: lhs, .. }, Verb::Div, Fmla::Number { val: rhs, .. }) => {
+                Ok(ControlMut::Mutation(
+                    Fmla::Number {
+                        span,
+                        val: lhs / rhs,
+                    },
+                    (),
+                ))
+            }
+
+            (lhs, Verb::Plus, Fmla::Number { val: 0, .. }) => {
+                Ok(ControlMut::Mutation(lhs.clone(), ()))
+            }
+
+            // left-associativity: (a * b) * c) == (a * (b * c))
+            (
+                lhs @ Fmla::BinOp {
+                    binop:
+                        LogicBinOp {
+                            lhs: l_lhs,
+                            op: lhs_op,
+                            rhs: l_rhs,
+                        },
+                    ..
+                },
+                rhs_op,
+                rhs @ Fmla::Number { .. },
+                ..,
+            ) => {
+                if lhs_op == rhs_op && lhs_op.is_arith() {
+                    let mut new_binop = Fmla::BinOp {
+                        span: Span::Optimized,
+                        binop: LogicBinOp {
+                            lhs: l_lhs.clone(),
+                            op: *lhs_op,
+                            rhs: Box::new(Fmla::BinOp {
+                                span: Span::Optimized,
+                                binop: LogicBinOp {
                                     lhs: l_rhs.clone(),
                                     op: *rhs_op,
                                     rhs: Box::new(rhs.clone()),

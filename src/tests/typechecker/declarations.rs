@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
     use crate::{
-        ast::{expressions::Expr, span::Span},
+        ast::span::Span,
         parser::ivy::{IvyParser, Rule},
         tests::helpers,
         typechecker::{
@@ -279,33 +279,11 @@ mod tests {
             .expect("visit")
             .modifying(&mut decl_ast);
 
-        let span = Span::IgnoredForTesting;
-        assert_eq!(
-            res,
-            IvySort::Range(
-                Box::new(Expr::Number {
-                    span: span.clone(),
-                    val: 0
-                }),
-                Box::new(Expr::Number {
-                    span: span.clone(),
-                    val: 100
-                })
-            )
-        );
+        assert_eq!(res, IvySort::Range(0, 100));
 
         assert_eq!(
             tc.bindings.lookup_sym("numbers"),
-            Some(&IvySort::Range(
-                Box::new(Expr::Number {
-                    span: span.clone(),
-                    val: 0
-                }),
-                Box::new(Expr::Number {
-                    span: span,
-                    val: 100
-                })
-            ))
+            Some(&IvySort::Range(0, 100))
         )
     }
 
