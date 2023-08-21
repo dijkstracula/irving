@@ -271,6 +271,14 @@ mod tests {
             "end(X) = end(Y) & forall I. 0 <= I & I < end(X) -> value(X,I) = value(Y,I)",
         )
         .expect("Parsing failed");
-        println!("{:?}", _ast);
     }
+
+    #[test]
+    fn dot_on_quant() {
+        parse_fmla("(forall X . X).bar")
+            .expect_err("Can't compose formulae like this");
+        parse_fmla("foo.(forall X. X)")
+            .expect_err("Can't compose formulae like this");
+    }
+
 }

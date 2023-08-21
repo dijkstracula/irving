@@ -8,6 +8,7 @@ use crate::ast::actions::*;
 use crate::ast::declarations::*;
 use crate::ast::expressions;
 use crate::ast::expressions::*;
+use crate::ast::logic;
 use crate::ast::logic::*;
 use crate::ast::span::Span;
 use crate::ast::statements::*;
@@ -508,6 +509,24 @@ where
         Ok(ControlMut::Produce(T::default()))
     }
 
+    fn begin_logical_field_access(
+        &mut self,
+        _lhs: &mut Fmla,
+        rhs: &mut Symbol,
+    ) -> VisitorResult<T, E, Fmla> {
+        Ok(ControlMut::Produce(T::default()))
+    }
+
+    fn finish_logical_field_access(
+        &mut self,
+        _lhs: &mut Fmla,
+        rhs: &mut Symbol,
+        _lhs_res: T,
+        _rhs_res: T,
+    ) -> VisitorResult<T, E, Fmla> {
+        Ok(ControlMut::Produce(T::default()))
+    }
+
     fn begin_logical_unary_op(
         &mut self,
         _op: &mut Verb,
@@ -789,8 +808,12 @@ where
             Fmla::Boolean { val, .. } => {
                 Ok(ControlMut::Produce(visitor.boolean(val)?.modifying(val)))
             }
-            Fmla::FieldAccess { span, fmla } => todo!(),
-            Fmla::Pred(expr) => Ok(ControlMut::Produce(expr.visit(visitor)?.modifying(expr))),
+            Fmla::FieldAccess { span, fmla: logic::FieldAccess { ref mut record, ref mut field } } => visitor.begin_logical_field_access(record, field)?.and_then(|_| {
+                let r = record.visit(visitor)?.modifying(record);
+                let f = visitor.symbol(span, field)?.modifying(field);
+                visitor.finish_logical_field_access(record, field, r, f)
+            }),
+            Fmla::Pred(expr) => unreachable!("deprecated"),
             Fmla::Number { span, val } => Ok(ControlMut::Produce(
                 visitor.number(span, val)?.modifying(val),
             )),

@@ -39,7 +39,7 @@ log_primary    = _{ boollit | logicsym | number | PROGTOK | "(" ~ fmla ~ ")" }
 relation_rval  = { logicsym ~ ( DOT ~ logicsym)* }
 
 relation_lval   = { relation_rval ~ log_app_args }
-log_app_args    = { "(" ~ log_term ~ ("," ~ log_term)* ~ ")" }
+log_app_args    = { "(" ~ (log_term ~ ("," ~ log_term)*)? ~ ")" }
 
 // An lparam is a logicsym with an optional type annotation.  These are for
 // things like relation declaration lists.

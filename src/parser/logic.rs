@@ -97,12 +97,15 @@ pub fn parse_log_term(input: Rc<str>, pairs: Pairs<Rule>) -> Result<Fmla> {
                     span,
                     sym: Symbol::from(primary.as_str(), Sort::ToBeInferred),
                 }),
-                // TODO
                 Rule::log_term => parse_log_term(Rc::clone(&input), primary.into_inner()),
+                // TODO: this isn't quite right because a fmla might not be a
+                // log term; if not, when we recurse we'll hit the error case,
+                // which is accidentally correct, but there might be
+                // second-order effects that I've not considered.
                 Rule::fmla => parse_log_term(Rc::clone(&input), primary.into_inner()),
                 x => Err(Error::new_from_span(
                     ErrorVariant::CustomError {
-                        message: format!("Expected formula, got {x:?}"),
+                        message: format!("Expected formula expression, got {x:?}"),
                     },
                     primary.as_span(),
                 )),
