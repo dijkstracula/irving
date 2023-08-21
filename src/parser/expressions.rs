@@ -43,10 +43,6 @@ pub fn parse_rval(input: Rc<str>, pairs: Pairs<Rule>) -> Result<Expr> {
             let span = Span::from_pest(Rc::clone(&input), &primary.as_span());
             match primary.as_rule() {
                 Rule::THIS => Ok(Expr::This(span)),
-                Rule::LOGICTOK => Ok(Expr::LogicSymbol {
-                    span,
-                    sym: Symbol::from(primary.as_str(), Sort::ToBeInferred),
-                }),
                 Rule::PROGTOK => Ok(Expr::ProgramSymbol {
                     span,
                     sym: Symbol::from(primary.as_str(), Sort::ToBeInferred),

@@ -9,6 +9,13 @@ pub struct AssignAction {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(clippy::large_enum_variant)]
+pub struct AssignLogicalAction {
+    pub lhs: Fmla,
+    pub rhs: Fmla,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[allow(clippy::large_enum_variant)]
 pub struct AssertAction {
     pub pred: Expr,
 }
@@ -30,17 +37,40 @@ pub struct RequiresAction {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Action {
-    Assert { span: Span, action: AssertAction },
+    Assert {
+        span: Span,
+        action: AssertAction,
+    },
 
-    Assign { span: Span, action: AssignAction },
+    Assign {
+        span: Span,
+        action: AssignAction,
+    },
 
-    Assume { span: Span, action: AssumeAction },
+    AssignLogical {
+        span: Span,
+        action: AssignLogicalAction,
+    },
 
-    Call { span: Span, action: AppExpr },
+    Assume {
+        span: Span,
+        action: AssumeAction,
+    },
 
-    Ensure { span: Span, action: EnsureAction },
+    Call {
+        span: Span,
+        action: AppExpr,
+    },
 
-    Requires { span: Span, action: RequiresAction },
+    Ensure {
+        span: Span,
+        action: EnsureAction,
+    },
+
+    Requires {
+        span: Span,
+        action: RequiresAction,
+    },
 }
 
 impl Action {
@@ -51,6 +81,7 @@ impl Action {
             Action::Assume { span, .. } => span,
             Action::Call { span, .. } => span,
             Action::Ensure { span, .. } => span,
+            Action::AssignLogical { span, .. } => span,
             Action::Requires { span, .. } => span,
         }
     }

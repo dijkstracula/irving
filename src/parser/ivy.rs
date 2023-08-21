@@ -101,7 +101,7 @@ impl IvyParser {
         )
     }
 
-    pub fn log_term(input: Node) -> Result<Expr> {
+    pub fn log_term(input: Node) -> Result<Fmla> {
         let pairs = input.as_pair().to_owned().into_inner();
         parse_log_term(Rc::clone(input.user_data()), pairs)
     }
@@ -123,11 +123,13 @@ impl IvyParser {
     }
 
     pub fn fmla(input: Node) -> Result<Fmla> {
+        let span = Span::from_node(&input);
+
         match_nodes!(
         input.into_children();
-        [exists(e)]     => Ok(Fmla::Exists(e)),
-        [forall(e)]     => Ok(Fmla::Forall(e)),
-        [log_term(e)]   => Ok(Fmla::Pred(e)),
+        [exists(fmla)]     => Ok(Fmla::Exists{ span, fmla }),
+        [forall(fmla)]     => Ok(Fmla::Forall{ span, fmla }),
+        [log_term(fmla)]   => Ok(fmla),
         )
     }
 
@@ -140,7 +142,7 @@ impl IvyParser {
 
         match_nodes!(
         input.into_children();
-        [relation_lval(lval)] => Ok(lval),
+        //[relation_lval(lval)] => Ok(lval),
         [rval(lval)] => match lval {
             Expr::App{..} |
             Expr::FieldAccess{..} |
@@ -154,20 +156,6 @@ impl IvyParser {
         )
     }
 
-    pub fn relation_lval(input: Node) -> Result<Expr> {
-        let span = Span::from_node(&input);
-        match_nodes!(
-        input.into_children();
-        [rval(func), log_app_args(args)] => {
-            Ok(Expr::App{
-                span,
-                expr: AppExpr {
-                func: Box::new(func),
-                args
-            }})
-        })
-    }
-
     pub fn lparamlist(input: Node) -> Result<Vec<Symbol>> {
         match_nodes!(
         input.into_children();
@@ -176,7 +164,7 @@ impl IvyParser {
         })
     }
 
-    pub fn log_app_args(input: Node) -> Result<Vec<Expr>> {
+    pub fn log_app_args(input: Node) -> Result<Vec<Fmla>> {
         match_nodes!(
         input.into_children();
         [log_term(args)..] => {
@@ -196,7 +184,7 @@ impl IvyParser {
         input.into_children();
         [bv_decl(width)] => Ok(Sort::Resolved(IvySort::BitVec(width))),
         [enum_decl(cstrs)] => Ok(Sort::Resolved(IvySort::Enum(cstrs))),
-        [range_decl((lo, hi))] => Ok(Sort::Resolved(IvySort::Range(Box::new(lo), Box::new(hi)))),
+        [range_decl((lo, hi))] => Ok(Sort::Resolved(IvySort::Range(lo, hi))),
         [PROGTOK(supr)] => Ok(Sort::Resolved(IvySort::Subclass(supr))),
         [_THIS] => Ok(Sort::Resolved(IvySort::This)),
         )
@@ -482,10 +470,10 @@ impl IvyParser {
             (span, Binding::from(name, ObjectDecl{params: vec!(), body}))))
     }
 
-    pub fn range_decl(input: Node) -> Result<(Expr, Expr)> {
+    pub fn range_decl(input: Node) -> Result<(i64, i64)> {
         match_nodes!(
         input.into_children();
-            [rval(lo), rval(hi)] => Ok((lo, hi)),
+            [number(lo), number(hi)] => Ok((lo, hi)),
         )
     }
 
@@ -572,6 +560,7 @@ impl IvyParser {
         input.into_children();
         [assert_action((span, action))]   => Ok(Action::Assert{ span, action }),
         [assign_action((span, action))]   => Ok(Action::Assign{ span, action }),
+        [assign_logical_action((span, action))]   => Ok(Action::AssignLogical { span, action }),
         [assume_action((span, action))]   => Ok(Action::Assume{ span, action }),
         [call_action((span, action))]     => Ok(Action::Call { span, action }),
         [ensure_action((span, action))]   => Ok(Action::Ensure { span, action}),
@@ -633,7 +622,7 @@ impl IvyParser {
             // to avoid arbitrary rvals being call_actions.  For details, see:
             // https://github.com/dijkstracula/irving/issues/49
             _ => Err(Error::new_from_span(ErrorVariant::<Rule>::CustomError {
-                message: format!("Unexpected expression {:?}", call) },
+                message: format!("Unexpected expression for call {:?}", call) },
                 span))
         })
     }
@@ -644,6 +633,16 @@ impl IvyParser {
         match_nodes!(
         input.into_children();
         [fmla(pred)] => Ok((span, EnsureAction{pred})),
+        )
+    }
+
+    pub fn assign_logical_action(input: Node) -> Result<(Span, AssignLogicalAction)> {
+        let span = Span::from_node(&input);
+        match_nodes!(
+        input.into_children();
+        [fmla(lhs), log_term(rhs)] => {
+            Ok((span, AssignLogicalAction{lhs, rhs}))
+        },
         )
     }
 

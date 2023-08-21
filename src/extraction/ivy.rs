@@ -495,6 +495,70 @@ where
         Ok(ControlMut::SkipSiblings(()))
     }
 
+    fn begin_logical_app(
+        &mut self,
+        ast: &mut logic::LogicApp,
+    ) -> VisitorResult<(), std::fmt::Error, logic::Fmla> {
+        ast.func.visit(self)?;
+
+        self.pp.write_str("(")?;
+        self.write_separated(&mut ast.args, ", ")?;
+        self.pp.write_str(")")?;
+        Ok(ControlMut::SkipSiblings(()))
+    }
+
+    fn begin_logical_binop(
+        &mut self,
+        ast: &mut logic::LogicBinOp,
+    ) -> VisitorResult<(), std::fmt::Error, logic::Fmla> {
+        ast.lhs.visit(self)?;
+
+        let op_str = match ast.op {
+            Verb::Plus => "+",
+            Verb::Minus => "-",
+            Verb::Times => "*",
+            Verb::Div => "/",
+            Verb::Dot => ".",
+
+            Verb::Equals => "=",
+            Verb::Notequals => "~=",
+            Verb::Lt => "<",
+            Verb::Le => "<=",
+            Verb::Gt => ">",
+            Verb::Ge => ">=",
+
+            Verb::And => "&",
+            Verb::Or => "|",
+            Verb::Arrow => "->",
+            _ => {
+                eprintln!("Uh oh!: {:?}", ast.op);
+                unimplemented!()
+            }
+        };
+        match ast.op {
+            Verb::Dot => {
+                self.pp.write_str(op_str)?;
+            }
+            _ => {
+                self.pp.write_fmt(format_args!(" {} ", op_str))?;
+            }
+        }
+        ast.rhs.visit(self)?;
+
+        Ok(ControlMut::SkipSiblings(()))
+    }
+
+    fn begin_logical_field_access(
+        &mut self,
+        lhs: &mut logic::Fmla,
+        rhs: &mut Symbol,
+    ) -> VisitorResult<(), std::fmt::Error, logic::Fmla> {
+        lhs.visit(self)?;
+        self.pp.write_str(".")?;
+        self.symbol(lhs.span(), rhs)?.modifying(rhs);
+        Ok(ControlMut::SkipSiblings(()))
+    }
+
     // Expressions
 
     fn begin_app(&mut self, ast: &mut expressions::AppExpr) -> ExtractResult<expressions::Expr> {
@@ -522,8 +586,6 @@ where
             Verb::Le => "<=",
             Verb::Gt => ">",
             Verb::Ge => ">=",
-
-            Verb::Arrow => "->",
 
             Verb::And => "&",
             Verb::Or => "|",
@@ -649,9 +711,9 @@ where
                 }
                 IvySort::Range(min, max) => {
                     self.pp.write_str("{")?;
-                    min.visit(self)?;
+                    self.number(&Span::Todo, min)?;
                     self.pp.write_str("..")?;
-                    max.visit(self)?;
+                    self.number(&Span::Todo, max)?;
                     self.pp.write_str("}")?;
                 }
                 IvySort::Enum(_) => {

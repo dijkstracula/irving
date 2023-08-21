@@ -352,12 +352,17 @@ where
         self.pp.write_str("addConjecture(")?;
 
         match ast {
-            crate::ast::logic::Fmla::Forall(_) => todo!(),
-            crate::ast::logic::Fmla::Exists(_) => todo!(),
+            crate::ast::logic::Fmla::Forall { .. } => todo!(),
+            crate::ast::logic::Fmla::Exists { .. } => todo!(),
             crate::ast::logic::Fmla::Pred(expr) => {
                 self.pp.write_str("() -> ")?;
                 expr.visit(self)?.modifying(expr);
             }
+            logic::Fmla::LogicSymbol { span, sym } => {
+                self.pp.write_str("() -> ")?;
+                self.symbol(span, sym)?.modifying(sym);
+            }
+            _ => todo!(),
         }
         self.pp.write_str(")")?;
         Ok(ControlMut::SkipSiblings(()))

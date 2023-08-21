@@ -19,7 +19,8 @@ pub mod helpers {
     use crate::{
         ast::{
             declarations::Decl,
-            expressions::{self, BinOp, Expr, Verb},
+            expressions::{self, Expr},
+            logic::{self, Fmla},
             span::Span,
             statements::Stmt,
             toplevels::Prog,
@@ -150,19 +151,11 @@ pub mod helpers {
         }
     }
 
-    pub fn mk_binop(lhs: Expr, op: Verb, rhs: Expr) -> Expr {
-        expressions::Expr::BinOp {
+    pub fn logical_number(n: i64) -> Fmla {
+        logic::Fmla::Number {
             span: Span::IgnoredForTesting,
-            expr: BinOp {
-                lhs: Box::new(lhs),
-                op,
-                rhs: Box::new(rhs),
-            },
+            val: n,
         }
-    }
-
-    pub fn plus(lhs: Expr, rhs: Expr) -> Expr {
-        mk_binop(lhs, Verb::Plus, rhs)
     }
 
     //
@@ -181,11 +174,11 @@ pub mod helpers {
         }
     }
 
-    pub fn inferred_logicsym<S>(s: S) -> Expr
+    pub fn inferred_logicsym<S>(s: S) -> Fmla
     where
         S: Into<String>,
     {
-        expressions::Expr::LogicSymbol {
+        logic::Fmla::LogicSymbol {
             span: Span::IgnoredForTesting,
 
             sym: expressions::Symbol {

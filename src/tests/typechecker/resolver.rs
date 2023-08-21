@@ -1,31 +1,15 @@
 #[cfg(test)]
 mod tests {
-    use crate::{
-        ast::{expressions::Expr, span::Span},
-        typechecker::{
-            sorts::{IvySort, Module},
-            unifier::{BindingResolver, ResolverError},
-        },
+    use crate::typechecker::{
+        sorts::{IvySort, Module},
+        unifier::{BindingResolver, ResolverError},
     };
 
     fn resolver_with_bindings() -> BindingResolver {
         let mut r = BindingResolver::new();
 
         // type pid: 0..3
-        r.append(
-            "pid".into(),
-            IvySort::Range(
-                Box::new(Expr::Number {
-                    span: Span::IgnoredForTesting,
-                    val: 0,
-                }),
-                Box::new(Expr::Number {
-                    span: Span::IgnoredForTesting,
-                    val: 3,
-                }),
-            ),
-        )
-        .unwrap();
+        r.append("pid".into(), IvySort::Range(0, 3)).unwrap();
 
         r.append(
             "net".into(),
@@ -50,16 +34,7 @@ mod tests {
             Err(ResolverError::UnboundVariable("nonsense".into()))
         );
 
-        let pid_sort = IvySort::Range(
-            Box::new(Expr::Number {
-                span: Span::IgnoredForTesting,
-                val: 0,
-            }),
-            Box::new(Expr::Number {
-                span: Span::IgnoredForTesting,
-                val: 3,
-            }),
-        );
+        let pid_sort = IvySort::Range(0, 3);
         assert_eq!(r.lookup_sym("pid"), Some(&pid_sort));
         assert_eq!(r.lookup_ident(&vec!("pid".to_owned())), Ok(&pid_sort));
         assert_eq!(r.lookup_ident(&vec!("pid".to_owned())), Ok(&pid_sort));

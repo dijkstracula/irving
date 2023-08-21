@@ -45,7 +45,8 @@ mod tests {
     #[test]
     fn parse_axiom_2() {
         let fragment = "axiom host(0).sock.id ~= host(1).sock.id";
-        helpers::decl_from_src(fragment);
+        let _ast = helpers::decl_from_src(fragment);
+        println!("{:?}", _ast);
     }
 
     #[test]

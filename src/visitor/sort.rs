@@ -1,7 +1,7 @@
 use std::{collections::BTreeMap, error::Error};
 
 use crate::{
-    ast::expressions::{self, Expr, Token},
+    ast::expressions::{self, Token},
     typechecker::sorts::{ActionArgs, ActionRet, IvySort, Module, Object},
 };
 
@@ -50,7 +50,7 @@ where
         Ok(ControlMut::Produce(T::default()))
     }
 
-    fn range(&mut self, _lo: &mut Expr, _hi: &mut Expr) -> VisitorResult<T, E, IvySort> {
+    fn range(&mut self, _lo: i64, _hi: i64) -> VisitorResult<T, E, IvySort> {
         Ok(ControlMut::Produce(T::default()))
     }
 
@@ -125,7 +125,7 @@ where
                 let t_ret = t.visit(visitor)?.modifying(t);
                 visitor.vector(t, t_ret)
             }
-            IvySort::Range(lo, hi) => visitor.range(lo.as_mut(), hi.as_mut()),
+            IvySort::Range(lo, hi) => visitor.range(*lo, *hi),
             IvySort::Enum(discs) => visitor.enumeration(discs),
             IvySort::Action(fargnames, ref mut fargsorts, ref mut ret) => {
                 let farg_t = match fargsorts {

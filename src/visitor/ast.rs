@@ -8,6 +8,7 @@ use crate::ast::actions::*;
 use crate::ast::declarations::*;
 use crate::ast::expressions;
 use crate::ast::expressions::*;
+use crate::ast::logic;
 use crate::ast::logic::*;
 use crate::ast::span::Span;
 use crate::ast::statements::*;
@@ -97,6 +98,24 @@ where
         &mut self,
         _span: &Span,
         _ast: &mut AssignAction,
+        _lhs_t: T,
+        _rhs_t: T,
+    ) -> VisitorResult<T, E, Action> {
+        Ok(ControlMut::Produce(T::default()))
+    }
+
+    fn begin_assign_logical(
+        &mut self,
+        _span: &Span,
+        _ast: &mut AssignLogicalAction,
+    ) -> VisitorResult<T, E, Action> {
+        Ok(ControlMut::Produce(T::default()))
+    }
+
+    fn finish_assign_logical(
+        &mut self,
+        _span: &Span,
+        _ast: &mut AssignLogicalAction,
         _lhs_t: T,
         _rhs_t: T,
     ) -> VisitorResult<T, E, Action> {
@@ -437,7 +456,7 @@ where
         Ok(ControlMut::Produce(T::default()))
     }
 
-    // Quantified formulas
+    // Quantified formulas and first-order logic
 
     fn begin_exists(&mut self, _ast: &mut Exists) -> VisitorResult<T, E, Fmla> {
         Ok(ControlMut::Produce(T::default()))
@@ -459,6 +478,67 @@ where
         _ast: &mut Forall,
         _vars: Vec<T>,
         _fmla: T,
+    ) -> VisitorResult<T, E, Fmla> {
+        Ok(ControlMut::Produce(T::default()))
+    }
+
+    fn begin_logical_app(&mut self, _ast: &mut LogicApp) -> VisitorResult<T, E, Fmla> {
+        Ok(ControlMut::Produce(T::default()))
+    }
+
+    fn finish_logical_app(
+        &mut self,
+        _ast: &mut LogicApp,
+        _func_t: T,
+        _args: Vec<T>,
+    ) -> VisitorResult<T, E, Fmla> {
+        Ok(ControlMut::Produce(T::default()))
+    }
+
+    fn begin_logical_binop(&mut self, _ast: &mut LogicBinOp) -> VisitorResult<T, E, Fmla> {
+        Ok(ControlMut::Produce(T::default()))
+    }
+
+    fn finish_logical_binop(
+        &mut self,
+        _ast: &mut LogicBinOp,
+        _lhs_ret: T,
+        _op_ret: T,
+        _rhs_ret: T,
+    ) -> VisitorResult<T, E, Fmla> {
+        Ok(ControlMut::Produce(T::default()))
+    }
+
+    fn begin_logical_field_access(
+        &mut self,
+        _lhs: &mut Fmla,
+        rhs: &mut Symbol,
+    ) -> VisitorResult<T, E, Fmla> {
+        Ok(ControlMut::Produce(T::default()))
+    }
+
+    fn finish_logical_field_access(
+        &mut self,
+        _lhs: &mut Fmla,
+        rhs: &mut Symbol,
+        _lhs_res: T,
+        _rhs_res: T,
+    ) -> VisitorResult<T, E, Fmla> {
+        Ok(ControlMut::Produce(T::default()))
+    }
+
+    fn begin_logical_unary_op(
+        &mut self,
+        _op: &mut Verb,
+        _rhs: &mut Fmla,
+    ) -> VisitorResult<T, E, Fmla> {
+        Ok(ControlMut::Produce(T::default()))
+    }
+    fn finish_logical_unary_op(
+        &mut self,
+        _op: &mut Verb,
+        _rhs: &mut Fmla,
+        _rhs_t: T,
     ) -> VisitorResult<T, E, Fmla> {
         Ok(ControlMut::Produce(T::default()))
     }
@@ -615,6 +695,13 @@ where
                 let p = action.pred.visit(visitor)?.modifying(&mut action.pred);
                 visitor.finish_ensure(action, p)
             }),
+            Action::AssignLogical { span, action } => {
+                visitor.begin_assign_logical(span, action)?.and_then(|_| {
+                    let lhs_t = action.lhs.visit(visitor)?.modifying(&mut action.lhs);
+                    let rhs_t = action.rhs.visit(visitor)?.modifying(&mut action.rhs);
+                    visitor.finish_assign_logical(span, action, lhs_t, rhs_t)
+                })
+            }
             Action::Requires { action, .. } => visitor.begin_requires(action)?.and_then(|_| {
                 let p = action.pred.visit(visitor)?.modifying(&mut action.pred);
                 visitor.finish_requires(action, p)
@@ -649,7 +736,7 @@ where
             Expr::FieldAccess {
                 span,
                 expr:
-                    FieldAccess {
+                    expressions::FieldAccess {
                         ref mut record,
                         ref mut field,
                     },
@@ -699,17 +786,61 @@ where
     fn visit(&mut self, visitor: &mut dyn Visitor<T, E>) -> VisitorResult<T, E, Self> {
         log::trace!(target: "visitor", "Fmla {:?}", self.span());
         let t = match self {
-            Fmla::Forall(fmla) => visitor.begin_forall(fmla)?.and_then(|_| {
+            Fmla::Forall { fmla, .. } => visitor.begin_forall(fmla)?.and_then(|_| {
                 let vars_t = fmla.vars.visit(visitor)?.modifying(&mut fmla.vars);
                 let fmla_t = fmla.fmla.visit(visitor)?.modifying(&mut fmla.fmla);
                 visitor.finish_forall(fmla, vars_t, fmla_t)
             }),
-            Fmla::Exists(fmla) => visitor.begin_exists(fmla)?.and_then(|_| {
+            Fmla::Exists { fmla, .. } => visitor.begin_exists(fmla)?.and_then(|_| {
                 let vars_t = fmla.vars.visit(visitor)?.modifying(&mut fmla.vars);
                 let fmla_t = fmla.fmla.visit(visitor)?.modifying(&mut fmla.fmla);
                 visitor.finish_exists(fmla, vars_t, fmla_t)
             }),
-            Fmla::Pred(expr) => Ok(ControlMut::Produce(expr.visit(visitor)?.modifying(expr))),
+            Fmla::App { app, .. } => visitor.begin_logical_app(app)?.and_then(|_| {
+                let func_t = app.func.visit(visitor)?.modifying(&mut app.func);
+                let args_t = app.args.visit(visitor)?.modifying(&mut app.args);
+                visitor.finish_logical_app(app, func_t, args_t)
+            }),
+            Fmla::BinOp { binop, .. } => visitor.begin_logical_binop(binop)?.and_then(|_| {
+                let l = binop.lhs.visit(visitor)?.modifying(&mut binop.lhs);
+                let o = visitor.verb(&mut binop.op)?.modifying(&mut binop.op);
+                let r = binop.rhs.visit(visitor)?.modifying(&mut binop.rhs);
+                visitor.finish_logical_binop(binop, l, o, r)
+            }),
+            Fmla::Boolean { val, .. } => {
+                Ok(ControlMut::Produce(visitor.boolean(val)?.modifying(val)))
+            }
+            Fmla::FieldAccess {
+                span,
+                fmla:
+                    logic::FieldAccess {
+                        ref mut record,
+                        ref mut field,
+                    },
+            } => visitor
+                .begin_logical_field_access(record, field)?
+                .and_then(|_| {
+                    let r = record.visit(visitor)?.modifying(record);
+                    let f = visitor.symbol(span, field)?.modifying(field);
+                    visitor.finish_logical_field_access(record, field, r, f)
+                }),
+            Fmla::Pred(expr) => unreachable!("deprecated"),
+            Fmla::Number { span, val } => Ok(ControlMut::Produce(
+                visitor.number(span, val)?.modifying(val),
+            )),
+            Fmla::LogicSymbol { span, sym } => Ok(ControlMut::Produce(
+                visitor.symbol(span, sym)?.modifying(sym),
+            )),
+            Fmla::ProgramSymbol { span, sym } => Ok(ControlMut::Produce(
+                visitor.symbol(span, sym)?.modifying(sym),
+            )),
+            Fmla::UnaryOp { span, op, fmla } => {
+                visitor.begin_logical_unary_op(op, fmla)?.and_then(|_| {
+                    visitor.verb(op)?.modifying(op);
+                    let fmla_t = fmla.visit(visitor)?.modifying(fmla);
+                    visitor.finish_logical_unary_op(op, fmla, fmla_t)
+                })
+            }
         }?
         .modifying(self);
         Ok(ControlMut::Produce(t))
@@ -1074,6 +1205,30 @@ where
     }
 }
 
+impl<T, E> Visitable<T, E, Vec<T>> for Vec<Fmla>
+where
+    T: Default,
+    E: Error,
+{
+    fn visit(&mut self, visitor: &mut dyn Visitor<T, E>) -> VisitorResult<Vec<T>, E, Self> {
+        let mut res = vec![];
+        for node in self {
+            match node.visit(visitor)? {
+                ControlMut::Produce(t) => res.push(t),
+                ControlMut::SkipSiblings(t) => {
+                    res.push(t);
+                    break;
+                }
+                ControlMut::Mutation(repl, t) => {
+                    *node = repl;
+                    res.push(t);
+                }
+            };
+        }
+        Ok(ControlMut::Produce(res))
+    }
+}
+
 impl<T, E> Visitable<T, E, Vec<T>> for Vec<Stmt>
 where
     T: Default,
@@ -1082,7 +1237,6 @@ where
     fn visit(&mut self, visitor: &mut dyn Visitor<T, E>) -> VisitorResult<Vec<T>, E, Self> {
         let mut res = vec![];
         for node in self {
-            println!("NBT: Stmt node = {:?}", node);
             match node.visit(visitor)? {
                 ControlMut::Produce(t) => res.push(t),
                 ControlMut::SkipSiblings(t) => {

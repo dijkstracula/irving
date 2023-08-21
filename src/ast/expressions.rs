@@ -4,15 +4,6 @@ use crate::typechecker::sorts::IvySort;
 
 use super::{declarations::Binding, span::Span};
 
-/// Corresponds to a file/line pairing, and possibly additionally docstrings to
-/// be reconstructed in the extracted code.
-#[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]
-pub struct Annotation {
-    docstring: Vec<String>,
-    file: String,
-    line: u32,
-}
-
 #[derive(Copy, Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]
 pub enum Verb {
     Iff,
@@ -161,6 +152,7 @@ pub enum Expr {
         expr: IndexExpr,
     },
 
+    // TODO: Deprecate - the logic parser should handle these.
     LogicSymbol {
         span: Span,
         sym: Symbol,
@@ -209,12 +201,12 @@ impl Expr {
             } => {
                 let func_depth = func.depth();
                 let args_depth = args.iter().map(|a| a.depth()).max().unwrap_or(0);
-                usize::max(func_depth, args_depth)
+                usize::max(func_depth, args_depth) + 1
             }
             Expr::BinOp {
                 expr: BinOp { lhs, rhs, .. },
                 ..
-            } => usize::max(lhs.depth(), rhs.depth()),
+            } => usize::max(lhs.depth(), rhs.depth()) + 1,
             Expr::Boolean { .. } => 1,
             Expr::FieldAccess {
                 expr: FieldAccess { record, .. },

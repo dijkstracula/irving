@@ -1,7 +1,10 @@
 #[cfg(test)]
 mod tests {
     use crate::{
-        ast::{actions::*, expressions::*, logic::*, span::Span, statements::Stmt},
+        ast::{
+            actions::*, declarations::Binding, expressions::*, logic::*, span::Span,
+            statements::Stmt,
+        },
         parser::ivy::{IvyParser, Rule},
         tests::helpers,
     };
@@ -70,7 +73,7 @@ mod tests {
                     action: AssignAction {
                         lhs: Expr::FieldAccess {
                             span: Span::IgnoredForTesting,
-                            expr: FieldAccess {
+                            expr: crate::ast::expressions::FieldAccess {
                                 record: Box::new(helpers::inferred_progsym("foo")),
                                 field: Symbol::from("bar", Sort::ToBeInferred),
                             }
@@ -128,17 +131,24 @@ mod tests {
         assert_eq!(
             stmt,
             RequiresAction {
-                pred: Fmla::Pred(Expr::UnaryOp {
+                pred: Fmla::UnaryOp {
                     span: Span::IgnoredForTesting,
                     op: Verb::Not,
-                    expr: Box::new(Expr::App {
+                    fmla: Box::new(Fmla::App {
                         span: Span::IgnoredForTesting,
-                        expr: AppExpr {
-                            func: Box::new(helpers::inferred_progsym("failed".to_owned())),
-                            args: [helpers::inferred_progsym("y")].into()
+                        app: LogicApp {
+                            func: Box::new(Fmla::ProgramSymbol {
+                                span: Span::IgnoredForTesting,
+                                sym: Binding::from("failed", Sort::ToBeInferred)
+                            }),
+                            args: [Fmla::ProgramSymbol {
+                                span: Span::IgnoredForTesting,
+                                sym: Binding::from("y", Sort::ToBeInferred)
+                            }]
+                            .into()
                         }
                     })
-                })
+                }
             }
         );
     }
@@ -154,17 +164,20 @@ mod tests {
         assert_eq!(
             stmt,
             RequiresAction {
-                pred: Fmla::Pred(Expr::BinOp {
+                pred: Fmla::BinOp {
                     span: Span::IgnoredForTesting,
-                    expr: BinOp {
-                        lhs: Box::new(helpers::inferred_progsym("x")),
+                    binop: LogicBinOp {
+                        lhs: Box::new(Fmla::ProgramSymbol {
+                            span: Span::IgnoredForTesting,
+                            sym: Binding::from("x", Sort::ToBeInferred)
+                        }),
                         op: Verb::Ge,
-                        rhs: Box::new(Expr::Number {
+                        rhs: Box::new(Fmla::Number {
                             span: Span::IgnoredForTesting,
                             val: 0
                         })
                     }
-                })
+                }
             }
         );
     }

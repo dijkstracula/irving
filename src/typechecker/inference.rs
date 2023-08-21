@@ -9,7 +9,7 @@ use crate::{
     ast::{
         actions::{self, Action},
         declarations::{self, ActionMixinDecl, Binding},
-        expressions::{self, AppExpr, Expr, Sort, Symbol, Token},
+        expressions::{self, Expr, Sort, Symbol, Token},
         logic,
         span::Span,
         statements,
@@ -237,32 +237,6 @@ impl Visitor<IvySort, TypeError> for SortInferer {
 
     // Actions
 
-    fn begin_assign(
-        &mut self,
-        span: &Span,
-        ast: &mut actions::AssignAction,
-    ) -> InferenceResult<Action> {
-        self.bindings.push_scope();
-        match &ast.lhs {
-            Expr::App {
-                expr: AppExpr { args, .. },
-                ..
-            } => {
-                for arg in args {
-                    if let Expr::LogicSymbol { sym, .. } = arg {
-                        let s = self.bindings.new_sortvar();
-                        self.bindings
-                            .append(sym.name.clone(), s)
-                            .map_err(|e| e.to_typeerror(span))?;
-                    }
-                }
-            }
-            _ => (),
-        }
-
-        Ok(ControlMut::Produce(IvySort::Unit))
-    }
-
     fn finish_assign(
         &mut self,
         span: &Span,
@@ -273,7 +247,6 @@ impl Visitor<IvySort, TypeError> for SortInferer {
         self.bindings
             .unify(&lhs_sort, &rhs_sort)
             .map_err(|e| e.to_typeerror(span))?;
-        self.bindings.pop_scope();
         Ok(ControlMut::Produce(IvySort::Unit))
     }
 
@@ -340,8 +313,6 @@ impl Visitor<IvySort, TypeError> for SortInferer {
         fsort: IvySort,
         argsorts: Vec<IvySort>,
     ) -> InferenceResult<Expr> {
-        let retsort = self.bindings.new_sortvar();
-
         // XXX: This is hacky.
         let dummy_argnames = (0..argsorts.len())
             .map(|i| format!("arg{i}"))
@@ -354,7 +325,10 @@ impl Visitor<IvySort, TypeError> for SortInferer {
             .map_err(|e| e.to_typeerror(&Span::Todo))?;
         match unified {
             IvySort::Action(_argnames, _argsorts, action_ret) => match action_ret {
-                sorts::ActionRet::Unknown => Ok(ControlMut::Produce(retsort)),
+                sorts::ActionRet::Unknown => {
+                    let retsort = self.bindings.new_sortvar();
+                    Ok(ControlMut::Produce(retsort))
+                }
                 sorts::ActionRet::Unit => Ok(ControlMut::Produce(IvySort::Unit)),
                 sorts::ActionRet::Named(binding) => Ok(ControlMut::Produce(binding.decl)),
             },
@@ -375,8 +349,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
             expressions::Verb::Iff
             | expressions::Verb::Or
             | expressions::Verb::And
-            | expressions::Verb::Not
-            | expressions::Verb::Arrow => {
+            | expressions::Verb::Not => {
                 self.bindings
                     .unify(&lhs_sort, &IvySort::Bool)
                     .map_err(|e| e.to_typeerror(ast.lhs.span()))?;
@@ -425,14 +398,12 @@ impl Visitor<IvySort, TypeError> for SortInferer {
                 }
             }
 
-            // Field access
-            expressions::Verb::Dot => {
-                // Man, I am not sure.  This SHOULD have been typechecked when we visit the field
-                // access, but I should confirm that this is actually the case.
-                // Actually, this should already be handled - all Dots should be transformed into
-                // an Expr::FieldAccess.
-                Ok(ControlMut::Produce(rhs_sort))
-            }
+            // Field access: This should already be handled - all Dots should be
+            // transformed into an Fmla::FieldAccess.
+            expressions::Verb::Dot => unreachable!(),
+
+            // Implication: The grammar should restrict Arrows to formulae.
+            expressions::Verb::Arrow => unreachable!(),
         }
     }
 
@@ -470,7 +441,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
         // what we figured out from the field access.
         .map(|s| self.bindings.unify(&annotated_rhs_sort, &s))
         .transpose()
-        .map_err(|e| e.to_typeerror(&Span::Todo))?
+        .map_err(|e| e.to_typeerror(lhs.span()))?
         // A slightly hacky thing that should probably live elsewhere: if the
         // rhs is a non-common action, and the first argument is `this`, we need
         // to curry it.  (TODO: might be that the common aspect is not a requirement
@@ -561,6 +532,263 @@ impl Visitor<IvySort, TypeError> for SortInferer {
         }
         self.bindings.pop_scope();
         Ok(ControlMut::Produce(IvySort::Bool))
+    }
+
+    fn begin_logical_app(
+        &mut self,
+        ast: &mut logic::LogicApp,
+    ) -> crate::visitor::VisitorResult<IvySort, TypeError, logic::Fmla> {
+        self.bindings.push_scope();
+        for arg in &mut ast.args {
+            // A difference between a logical application and one with a program
+            // term is that a wildcard logical symbol may not be in the context.
+            if let logic::Fmla::LogicSymbol { sym, span } = arg {
+                // XXX: I think it's fine to discard the Sort from the
+                // logicsymbol here.
+                let v = self.bindings.new_sortvar();
+                self.bindings
+                    .append(sym.name.clone(), v)
+                    .map_err(|e| e.to_typeerror(span))?;
+            }
+        }
+
+        Ok(ControlMut::Produce(IvySort::Unit))
+    }
+
+    fn begin_assign_logical(
+        &mut self,
+        span: &Span,
+        ast: &mut actions::AssignLogicalAction,
+    ) -> crate::visitor::VisitorResult<IvySort, TypeError, Action> {
+        self.bindings.push_scope();
+        match &ast.lhs {
+            logic::Fmla::App {
+                app: logic::LogicApp { args, .. },
+                ..
+            } => {
+                for arg in args {
+                    if let logic::Fmla::LogicSymbol { sym, .. } = arg {
+                        let s = self.bindings.new_sortvar();
+                        self.bindings
+                            .append(sym.name.clone(), s)
+                            .map_err(|e| e.to_typeerror(span))?;
+                    }
+                }
+            }
+            // TODO: is this true?
+            _ => unreachable!(),
+        }
+        Ok(ControlMut::Produce(IvySort::Unit))
+    }
+
+    fn finish_assign_logical(
+        &mut self,
+        span: &Span,
+        _ast: &mut actions::AssignLogicalAction,
+        lhs_sort: IvySort,
+        rhs_sort: IvySort,
+    ) -> crate::visitor::VisitorResult<IvySort, TypeError, Action> {
+        self.bindings.pop_scope();
+        self.bindings
+            .unify(&lhs_sort, &rhs_sort)
+            .map_err(|e| e.to_typeerror(span))?;
+        Ok(ControlMut::Produce(IvySort::Unit))
+    }
+
+    fn finish_logical_app(
+        &mut self,
+        _ast: &mut logic::LogicApp,
+        func_sort: IvySort,
+        arg_sorts: Vec<IvySort>,
+    ) -> InferenceResult<logic::Fmla> {
+        self.bindings.pop_scope();
+
+        // XXX: This is hacky.
+        let dummy_argnames = (0..arg_sorts.len())
+            .map(|i| format!("arg{i}"))
+            .collect::<Vec<_>>();
+        let expected_sort =
+            IvySort::action_sort(dummy_argnames, arg_sorts, sorts::ActionRet::Unknown);
+        let unified = self
+            .bindings
+            .unify(&func_sort, &expected_sort)
+            .map_err(|e| e.to_typeerror(&Span::Todo))?;
+
+        match unified {
+            IvySort::Action(_argnames, _argsorts, action_ret) => match action_ret {
+                sorts::ActionRet::Unknown => {
+                    let retsort = self.bindings.new_sortvar();
+                    Ok(ControlMut::Produce(retsort))
+                }
+                sorts::ActionRet::Unit => Ok(ControlMut::Produce(IvySort::Unit)),
+                sorts::ActionRet::Named(binding) => Ok(ControlMut::Produce(binding.decl)),
+            },
+            IvySort::Relation(_) => Ok(ControlMut::Produce(IvySort::Bool)),
+            _ => {
+                println!("NBT: {:?}", _ast.func);
+                Err(TypeError::InvalidLogicApp)
+            }
+        }
+    }
+
+    fn finish_logical_binop(
+        &mut self,
+        ast: &mut logic::LogicBinOp,
+        lhs_sort: IvySort,
+        _op_ret: IvySort,
+        rhs_sort: IvySort,
+    ) -> crate::visitor::VisitorResult<IvySort, TypeError, logic::Fmla> {
+        match ast.op {
+            // Boolean operators
+            expressions::Verb::Iff
+            | expressions::Verb::Or
+            | expressions::Verb::And
+            | expressions::Verb::Not
+            | expressions::Verb::Arrow => {
+                self.bindings
+                    .unify(&lhs_sort, &IvySort::Bool)
+                    .map_err(|e| e.to_typeerror(ast.lhs.span()))?;
+                self.bindings
+                    .unify(&IvySort::Bool, &rhs_sort)
+                    .map_err(|e| e.to_typeerror(ast.rhs.span()))?;
+                Ok(ControlMut::Produce(IvySort::Bool))
+            }
+
+            // Equality and comparison
+            expressions::Verb::Lt
+            | expressions::Verb::Le
+            | expressions::Verb::Gt
+            | expressions::Verb::Ge => {
+                self.bindings
+                    .unify(&lhs_sort, &IvySort::Number)
+                    .map_err(|e| e.to_typeerror(ast.lhs.span()))?;
+                self.bindings
+                    .unify(&IvySort::Number, &rhs_sort)
+                    .map_err(|e| e.to_typeerror(ast.rhs.span()))?;
+                Ok(ControlMut::Produce(IvySort::Bool))
+            }
+
+            expressions::Verb::Equals | expressions::Verb::Notequals => {
+                self.bindings.unify(&lhs_sort, &rhs_sort).map_err(|e| {
+                    let span = Span::merge(ast.lhs.span(), ast.rhs.span());
+                    e.to_typeerror(&span)
+                })?;
+                Ok(ControlMut::Produce(IvySort::Bool))
+            }
+
+            // Numeric operators
+            expressions::Verb::Plus
+            | expressions::Verb::Minus
+            | expressions::Verb::Times
+            | expressions::Verb::Div => {
+                if self
+                    .bindings
+                    .unify(&lhs_sort, &IvySort::Number)
+                    .and(self.bindings.unify(&IvySort::Number, &rhs_sort))
+                    .is_err()
+                {
+                    Err(TypeError::unification_error(&lhs_sort, &rhs_sort))
+                } else {
+                    Ok(ControlMut::Produce(IvySort::Number))
+                }
+            }
+
+            // Field access
+            expressions::Verb::Dot => {
+                // This should already be handled - all Dots should be
+                // transformed into an Fmla::FieldAccess.
+                unreachable!()
+            }
+        }
+    }
+
+    fn begin_logical_field_access(
+        &mut self,
+        lhs: &mut logic::Fmla,
+        rhs: &mut Symbol,
+    ) -> InferenceResult<logic::Fmla> {
+        let lhs_sort = lhs.visit(self)?.modifying(lhs);
+
+        // Note that beecause the rhs's symbol is not in our context, we can't
+        // visit it without getting an unbound identifier, so simply resolve its
+        // sort.
+        let annotated_rhs_sort = self.sort(&mut rhs.decl)?.modifying(&mut rhs.decl);
+
+        let mut is_common = false;
+
+        // XXX: awkward amounts of cloning in here.
+
+        // First begin by confirming that the LHS is something we can get a field out of.
+        // If it is, get the field's type.
+        let rhs_sort = match &lhs_sort {
+            IvySort::Module(module) => {
+                Ok::<Option<IvySort>, TypeError>(module.fields.get(&rhs.name).cloned())
+            }
+            IvySort::Object(proc) => {
+                let s = proc.fields.get(&rhs.name);
+                is_common = s.is_none();
+                Ok(s.cloned())
+            }
+            IvySort::SortVar(_) => Ok(Some(self.bindings.new_sortvar())),
+            sort => Err(TypeError::NotARecord(sort.desc())),
+        }?
+        // Next, if the RHS expression has a known type, ensure it doesn't contradict
+        // what we figured out from the field access.
+        .map(|s| self.bindings.unify(&annotated_rhs_sort, &s))
+        .transpose()
+        .map_err(|e| e.to_typeerror(lhs.span()))?
+        // A slightly hacky thing that should probably live elsewhere: if the
+        // rhs is a non-common action, and the first argument is `this`, we need
+        // to curry it.  (TODO: might be that the common aspect is not a requirement
+        // but I need to understand why;  See https://github.com/dijkstracula/irving/issues/35 .)
+        .map(|s| match s {
+            IvySort::Action(argnames, ActionArgs::List(argsorts), ret) if !is_common => {
+                let first_arg = argsorts.get(0).map(|s| self.bindings.resolve(s));
+                if first_arg == Some(&IvySort::This) {
+                    let remaining_argnames = argnames.into_iter().skip(1).collect::<Vec<_>>();
+                    let remaining_argsorts =
+                        argsorts.clone().into_iter().skip(1).collect::<Vec<_>>();
+
+                    Ok(IvySort::action_sort(
+                        remaining_argnames,
+                        remaining_argsorts,
+                        ret,
+                    ))
+                } else {
+                    Ok::<_, TypeError>(IvySort::action_sort(argnames, argsorts, ret))
+                }
+            }
+            _ => Ok(s),
+        })
+        .transpose()?;
+        match rhs_sort {
+            Some(sort) => {
+                rhs.decl = Sort::Resolved(sort.clone());
+                Ok(ControlMut::SkipSiblings(sort))
+            }
+            None => Err(TypeError::MissingRecordField(rhs.name.clone())),
+        }
+    }
+
+    fn finish_logical_unary_op(
+        &mut self,
+        op: &mut expressions::Verb,
+        rhs: &mut logic::Fmla,
+        rhs_sort: IvySort,
+    ) -> crate::visitor::VisitorResult<IvySort, TypeError, logic::Fmla> {
+        match op {
+            expressions::Verb::Not => Ok(ControlMut::Produce(
+                self.bindings
+                    .unify(&IvySort::Bool, &rhs_sort)
+                    .map_err(|e| e.to_typeerror(rhs.span()))?,
+            )),
+            expressions::Verb::Minus => Ok(ControlMut::Produce(
+                self.bindings
+                    .unify(&IvySort::Number, &rhs_sort)
+                    .map_err(|e| e.to_typeerror(rhs.span()))?,
+            )),
+            _ => unimplemented!(),
+        }
     }
 
     // actions and decls

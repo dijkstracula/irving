@@ -18,20 +18,28 @@ log_subscr      =  { PROGTOK ~ ("." ~ PROGTOK)* }
 
 log_term        =  { log_atom ~ (log_infix_op ~ log_atom)* }
 log_atom        = _{ log_prefix_op? ~ log_primary ~ log_postfix_op? }
-    log_prefix_op   = _{ NOT }
+    log_prefix_op   = _{ UMINUS | NOT }
     log_infix_op    = _{ IFF | ARROW |
+                     PLUS | MINUS | TIMES | DIV |
                      LE | LT | GE | GT | EQ | NEQ |
                      AND | OR | DOT }
-    log_postfix_op  = _{ log_app_args | fnapp_args | index }
-log_primary    = _{ relation_lval | logicsym | PROGTOK | boollit | number | "(" ~ log_term ~ ")" }
+    log_postfix_op  = _{ index | log_app_args }
+log_primary    = _{ boollit | logicsym | number | PROGTOK | "(" ~ fmla ~ ")" }
 
 // relations are assignable either all with expressions as arguments (e.g. r(x,
 // 0) for some bound variable `x`) or with a logical variable which acts as a
 // placeholder (e.g.  r(X, 0) for some free `X`).
-relation_lval   = { rval ~ log_app_args }
+// TODO: "relation_lval" isn't a great name, something like "logical_relation_read"
+// sucks but it's more descriptive.
 
+// XXX: This warrants an explanation relation_lval should morally be an (expr ~ log_app_args),
+// but if we do that then the expression parser will consume the function application parens
+// and arguments.  We can't have that because parsing out a logical expression in the arguments
+// would fail.  So we simplify the grammar here, which is unfortunate and may bite us later.
+relation_rval  = { logicsym ~ ( DOT ~ logicsym)* }
 
-log_app_args    = { "(" ~ log_term ~ ("," ~ log_term)* ~ ")" }
+relation_lval   = { relation_rval ~ log_app_args }
+log_app_args    = { "(" ~ (log_term ~ ("," ~ log_term)*)? ~ ")" }
 
 // An lparam is a logicsym with an optional type annotation.  These are for
 // things like relation declaration lists.

@@ -1,5 +1,5 @@
 use super::{
-    expressions::{Expr, ParamList},
+    expressions::{self, Expr, ParamList, Symbol},
     span::Span,
 };
 
@@ -13,17 +13,132 @@ pub struct LogicVar {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Fmla {
-    Forall(Forall),
-    Exists(Exists),
+    Forall {
+        span: Span,
+        fmla: Forall,
+    },
+    Exists {
+        span: Span,
+        fmla: Exists,
+    },
     Pred(Expr),
+
+    App {
+        span: Span,
+        app: LogicApp,
+    },
+
+    BinOp {
+        span: Span,
+        binop: LogicBinOp,
+    },
+
+    Boolean {
+        span: Span,
+        val: bool,
+    },
+
+    FieldAccess {
+        span: Span,
+        fmla: FieldAccess,
+    },
+
+    Number {
+        span: Span,
+        val: i64,
+    },
+
+    LogicSymbol {
+        span: Span,
+        sym: Symbol,
+    },
+
+    ProgramSymbol {
+        span: Span,
+        sym: Symbol,
+    },
+
+    UnaryOp {
+        span: Span,
+        op: expressions::Verb,
+        fmla: Box<Fmla>,
+    },
 }
 
 impl Fmla {
     pub fn span(&self) -> &Span {
         match self {
-            Fmla::Forall(forall) => forall.fmla.span(),
-            Fmla::Exists(exists) => exists.fmla.span(),
+            Fmla::Forall { span, .. } => span,
+            Fmla::Exists { span, .. } => span,
             Fmla::Pred(expr) => expr.span(),
+            Fmla::App { span, .. } => span,
+            Fmla::BinOp { span, .. } => span,
+            Fmla::Boolean { span, .. } => span,
+            Fmla::FieldAccess { span, .. } => span,
+            Fmla::LogicSymbol { span, .. } => span,
+            Fmla::Number { span, .. } => span,
+            Fmla::ProgramSymbol { span, .. } => span,
+            Fmla::UnaryOp { span, .. } => span,
+        }
+    }
+
+    pub fn contains_logicvar(&self) -> bool {
+        match self {
+            Fmla::Forall { .. } => true,
+            Fmla::Exists { .. } => true,
+            Fmla::Pred(_) => false,
+            Fmla::App { app, .. } => app.args.iter().any(|arg| arg.is_quantified()),
+            Fmla::BinOp { binop, .. } => binop.lhs.is_quantified() || binop.rhs.is_quantified(),
+            Fmla::Boolean { .. } => false,
+            Fmla::FieldAccess { fmla, .. } => fmla.record.is_quantified(),
+            Fmla::Number { .. } => false,
+            Fmla::LogicSymbol { .. } => true,
+            Fmla::ProgramSymbol { .. } => false,
+            Fmla::UnaryOp { fmla, .. } => fmla.is_quantified(),
+        }
+    }
+
+    pub fn is_quantified(&self) -> bool {
+        match self {
+            Fmla::Forall { .. } => true,
+            Fmla::Exists { .. } => true,
+            _ => false,
+        }
+    }
+
+    pub fn depth(&self) -> usize {
+        match self {
+            Fmla::Forall {
+                fmla: Forall { fmla, .. },
+                ..
+            } => fmla.depth() + 1,
+            Fmla::Exists {
+                fmla: Exists { fmla, .. },
+                ..
+            } => fmla.depth() + 1,
+            Fmla::Pred(expr) => expr.depth(),
+
+            Fmla::App {
+                app: LogicApp { func, args },
+                ..
+            } => {
+                let func_depth = func.depth();
+                let args_depth = args.iter().map(|arg| arg.depth()).max().unwrap_or(0);
+                usize::max(func_depth, args_depth) + 1
+            }
+            Fmla::BinOp {
+                binop: LogicBinOp { lhs, rhs, .. },
+                ..
+            } => usize::max(lhs.depth(), rhs.depth()) + 1,
+            Fmla::Boolean { .. } => 1,
+            Fmla::FieldAccess {
+                fmla: FieldAccess { record, .. },
+                ..
+            } => record.depth() + 1,
+            Fmla::Number { .. } => 1,
+            Fmla::LogicSymbol { .. } => 1,
+            Fmla::ProgramSymbol { .. } => 1,
+            Fmla::UnaryOp { fmla, .. } => fmla.depth() + 1,
         }
     }
 }
@@ -38,4 +153,23 @@ pub struct Exists {
 pub struct Forall {
     pub vars: ParamList,
     pub fmla: Box<Fmla>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LogicBinOp {
+    pub lhs: Box<Fmla>,
+    pub op: expressions::Verb,
+    pub rhs: Box<Fmla>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LogicApp {
+    pub func: Box<Fmla>,
+    pub args: Vec<Fmla>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FieldAccess {
+    pub record: Box<Fmla>,
+    pub field: Symbol,
 }

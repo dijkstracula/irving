@@ -94,6 +94,9 @@ impl BindingResolver {
                 });
             }
         }
+
+        log::trace!(target:"binding", "Inserting {}:{:?} into the context", sym, sort);
+
         self.sorts.last_mut().unwrap().insert(sym, sort);
 
         Ok(())
