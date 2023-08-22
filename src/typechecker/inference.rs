@@ -189,7 +189,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
                 let resolved = self.identifier(ident)?.modifying(ident);
                 ControlMut::Mutation(Sort::Resolved(resolved.clone()), resolved)
             }
-            Sort::Resolved(ivysort) => ControlMut::Produce(ivysort.clone()),
+            Sort::Resolved(ivysort) => ControlMut::Produce(self.bindings.resolve(ivysort).clone()),
         };
         Ok(ctrl)
     }
@@ -199,6 +199,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
         span: &Span,
         p: &mut expressions::Symbol,
     ) -> InferenceResult<expressions::Symbol> {
+        // XXX: why don't we call self.sort(p.decl)?
         let sort = match &mut p.decl {
             Sort::ToBeInferred => match self.bindings.lookup_sym(&p.name) {
                 None => {
@@ -212,14 +213,23 @@ impl Visitor<IvySort, TypeError> for SortInferer {
             Sort::Annotated(ident) => self.identifier(ident)?.modifying(ident),
             Sort::Resolved(ivysort) => ivysort.clone(),
         };
-        Ok(ControlMut::Produce(sort))
+
+        let resolved = self.bindings.resolve(&sort);
+        if let Sort::Resolved(_) = p.decl {
+            Ok(ControlMut::Produce(sort))
+        } else {
+            Ok(ControlMut::Mutation(
+                Binding::from(p.name.clone(), Sort::Resolved(resolved.clone())),
+                resolved.clone(),
+            ))
+        }
     }
 
     fn token(&mut self, sym: &mut expressions::Token) -> InferenceResult<expressions::Token> {
         match sym.as_str() {
             "bool" => Ok(ControlMut::Produce(IvySort::Bool)),
             "unbounded_sequence" => Ok(ControlMut::Produce(IvySort::Number)),
-            "this" => Ok(ControlMut::Produce(IvySort::This)),
+            //"this" => Ok(ControlMut::Produce(IvySort::This)),
             // TODO: and of course other builtins.
             _ => match self.bindings.lookup_sym(sym) {
                 Some(sort) => Ok(ControlMut::Produce(sort.clone())),
@@ -247,6 +257,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
         self.bindings
             .unify(&lhs_sort, &rhs_sort)
             .map_err(|e| e.to_typeerror(span))?;
+        println!("NBT: {:?}, {:} := {:?}", span, lhs_sort, rhs_sort);
         Ok(ControlMut::Produce(IvySort::Unit))
     }
 
@@ -275,12 +286,12 @@ impl Visitor<IvySort, TypeError> for SortInferer {
     fn begin_local_vardecl(
         &mut self,
         name: &mut Token,
-        _ast: &mut Sort,
+        sort: &mut Sort,
     ) -> InferenceResult<statements::Stmt> {
         // Bind the name to _something_; we'll unify this value with its resolved sort when finishing the visit.
-        let v = self.bindings.new_sortvar();
+        let sort = self.sort(sort)?.modifying(sort);
         self.bindings
-            .append(name.clone(), v)
+            .append(name.clone(), sort)
             .map_err(|e| e.to_typeerror(&Span::Todo))?;
         Ok(ControlMut::Produce(IvySort::Unit))
     }
@@ -434,7 +445,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
                 is_common = s.is_none();
                 Ok(s.cloned())
             }
-            IvySort::SortVar(_) => Ok(Some(self.bindings.new_sortvar())),
+            sortvar @ IvySort::SortVar(_) => Ok(Some(sortvar.clone())),
             sort => Err(TypeError::NotARecord(sort.desc())),
         }?
         // Next, if the RHS expression has a known type, ensure it doesn't contradict
@@ -545,7 +556,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
             if let logic::Fmla::LogicSymbol { sym, span } = arg {
                 // XXX: I think it's fine to discard the Sort from the
                 // logicsymbol here.
-                let v = self.bindings.new_sortvar();
+                let v = self.param(sym)?.modifying(sym);
                 self.bindings
                     .append(sym.name.clone(), v)
                     .map_err(|e| e.to_typeerror(span))?;
@@ -561,14 +572,14 @@ impl Visitor<IvySort, TypeError> for SortInferer {
         ast: &mut actions::AssignLogicalAction,
     ) -> crate::visitor::VisitorResult<IvySort, TypeError, Action> {
         self.bindings.push_scope();
-        match &ast.lhs {
+        match &mut ast.lhs {
             logic::Fmla::App {
                 app: logic::LogicApp { args, .. },
                 ..
             } => {
                 for arg in args {
                     if let logic::Fmla::LogicSymbol { sym, .. } = arg {
-                        let s = self.bindings.new_sortvar();
+                        let s = self.param(sym)?.modifying(sym);
                         self.bindings
                             .append(sym.name.clone(), s)
                             .map_err(|e| e.to_typeerror(span))?;
@@ -624,10 +635,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
                 sorts::ActionRet::Named(binding) => Ok(ControlMut::Produce(binding.decl)),
             },
             IvySort::Relation(_) => Ok(ControlMut::Produce(IvySort::Bool)),
-            _ => {
-                println!("NBT: {:?}", _ast.func);
-                Err(TypeError::InvalidLogicApp)
-            }
+            _ => Err(TypeError::InvalidLogicApp),
         }
     }
 
@@ -729,7 +737,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
                 is_common = s.is_none();
                 Ok(s.cloned())
             }
-            IvySort::SortVar(_) => Ok(Some(self.bindings.new_sortvar())),
+            IvySort::SortVar(id) => Ok(Some(IvySort::SortVar(*id))),
             sort => Err(TypeError::NotARecord(sort.desc())),
         }?
         // Next, if the RHS expression has a known type, ensure it doesn't contradict
@@ -898,13 +906,13 @@ impl Visitor<IvySort, TypeError> for SortInferer {
     fn begin_alias_decl(
         &mut self,
         sym: &mut Token,
-        _s: &mut Sort,
+        s: &mut Sort,
     ) -> InferenceResult<declarations::Decl> {
-        let v = self.bindings.new_sortvar();
+        let s = self.sort(s)?.modifying(s);
         self.bindings
-            .append(sym.clone(), v.clone())
+            .append(sym.clone(), s.clone())
             .map_err(|e| e.to_typeerror(&Span::Todo))?;
-        Ok(ControlMut::Produce(v))
+        Ok(ControlMut::Produce(s))
     }
     fn finish_alias_decl(
         &mut self,
@@ -1401,11 +1409,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
         name: &mut Token,
         sort: &mut Sort,
     ) -> InferenceResult<declarations::Decl> {
-        let resolved = match sort {
-            Sort::ToBeInferred => self.bindings.new_sortvar(),
-            Sort::Annotated(_) => unreachable!(),
-            Sort::Resolved(sort) => sort.clone(),
-        };
+        let resolved = self.sort(sort)?.modifying(sort);
         self.bindings
             .append(name.clone(), resolved.clone())
             .map_err(|e| e.to_typeerror(&Span::Todo))?;
@@ -1450,12 +1454,16 @@ impl Visitor<IvySort, TypeError> for SortInferer {
             .unify(&name_sort, &resolved_sort)
             .map_err(|e| e.to_typeerror(span))?;
 
-        Ok(ControlMut::Mutation(
-            declarations::Decl::Var {
-                span: span.clone(),
-                decl: Binding::from(name.clone(), Sort::Resolved(resolved.clone())),
-            },
-            resolved,
-        ))
+        if &resolved_sort != &resolved {
+            Ok(ControlMut::Mutation(
+                declarations::Decl::Var {
+                    span: span.clone(),
+                    decl: Binding::from(name.clone(), Sort::Resolved(resolved.clone())),
+                },
+                resolved,
+            ))
+        } else {
+            Ok(ControlMut::Produce(resolved_sort))
+        }
     }
 }

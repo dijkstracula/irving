@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use crate::{
     ast::{
-        expressions::{self, Expr, Verb},
+        expressions::{self, Verb},
         logic::{self, Fmla, LogicBinOp},
         span::Span,
         toplevels,

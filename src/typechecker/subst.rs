@@ -40,19 +40,20 @@ impl Visitor<(), TypeError> for SortSubstituter {
         match s {
             expressions::Sort::ToBeInferred | expressions::Sort::Annotated(_) => {
                 println!("Uh oh! {:?}", s);
-                Ok(ControlMut::Produce(()))
+                panic!();
             }
             expressions::Sort::Resolved(is) => {
                 if let IvySort::SortVar(_) = is {
                     let resolved = self.bindings.resolve(is);
-                    log::debug!(target: "sort-substituter", "{is:?} -> {resolved:?}");
-                    Ok(ControlMut::Mutation(
-                        expressions::Sort::Resolved(resolved.clone()),
-                        (),
-                    ))
-                } else {
-                    Ok(ControlMut::Produce(()))
+                    if is != resolved {
+                        log::debug!(target: "sort-substituter", "{is:?} -> {resolved:?}");
+                        return Ok(ControlMut::Mutation(
+                            expressions::Sort::Resolved(resolved.clone()),
+                            (),
+                        ));
+                    }
                 }
+                Ok(ControlMut::Produce(()))
             }
         }
     }

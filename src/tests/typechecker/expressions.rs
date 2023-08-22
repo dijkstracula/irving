@@ -83,11 +83,11 @@ mod tests {
     #[test]
     fn test_ident() {
         let prog = "foo";
-        let mut identop = helpers::rval_from_src(prog);
-
-        // Unbound identifiers should not be resolvable.
 
         let mut tc = SortInferer::new();
+
+        // Unbound identifiers should not be resolvable.
+        let mut identop = helpers::rval_from_src(prog);
         let res = identop.visit(&mut tc);
         assert_eq!(
             res.unwrap_err(),
@@ -98,6 +98,7 @@ mod tests {
         );
 
         // Bindings at the top level should be resolvable.
+        let mut identop = helpers::rval_from_src(prog);
         tc.bindings.append("foo".into(), IvySort::Number).unwrap();
         assert_eq!(
             identop.visit(&mut tc).unwrap().modifying(&mut identop),
@@ -105,6 +106,7 @@ mod tests {
         );
 
         // Now try pushing a scope and shadow the same variable
+        let mut identop = helpers::rval_from_src(prog);
         tc.bindings.push_scope();
         tc.bindings.append("foo".into(), IvySort::Bool).unwrap();
         assert_eq!(
@@ -182,19 +184,19 @@ mod tests {
     #[test]
     fn test_field_access() {
         let prog = "a.b";
-        let mut getop = helpers::rval_from_src(prog);
+
+        let mut tc = SortInferer::new();
 
         // Accessing 'b' should be fine when 'a' is bound to a Process.
         let procsort = Object {
             args: BTreeMap::from([]),
             fields: BTreeMap::from([("b".into(), IvySort::Bool)]),
         };
-
-        let mut tc = SortInferer::new();
         tc.bindings
             .append("a".into(), IvySort::Object(procsort))
             .unwrap();
 
+        let mut getop = helpers::rval_from_src(prog);
         let res = getop.visit(&mut tc).expect("visit").modifying(&mut getop);
         assert_eq!(res, IvySort::Bool);
 
@@ -202,6 +204,7 @@ mod tests {
         tc.bindings.push_scope();
         tc.bindings.append("a".into(), IvySort::Number).unwrap();
 
+        let mut getop = helpers::rval_from_src(prog);
         let res = getop.visit(&mut tc).unwrap_err();
         assert_eq!(res, TypeError::NotARecord(IvySort::Number.desc()));
     }

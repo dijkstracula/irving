@@ -482,73 +482,6 @@ where
         Ok(ControlMut::SkipSiblings(()))
     }
 
-    fn begin_forall(
-        &mut self,
-        fmla: &mut logic::Forall,
-    ) -> VisitorResult<(), std::fmt::Error, logic::Fmla> {
-        let mut qb = QuantBounds::new_forall();
-
-        // XXX: unfortunate that we have to mix Visitable logic in a Visitor.
-        // Suggests that compositionality of visitors needs consideration.
-        qb.begin_forall(fmla)?.and_then(|_| {
-            let vars_t = fmla.vars.visit(&mut qb)?.modifying(&mut fmla.vars);
-            let fmla_t = fmla.fmla.visit(&mut qb)?.modifying(&mut fmla.fmla);
-            qb.finish_forall(fmla, vars_t, fmla_t)
-        })?;
-
-        for (i, var) in fmla.vars.iter().enumerate() {
-            let (mut lo, mut hi) = (None, None);
-            // XXX: This is almost certainly suboptimal for more complicated formulae.
-            // But, this is what ivy_to_cpp does, so ¯\_(ツ)_/¯
-            for (l, h) in qb.bounds.get(&var.name).unwrap() {
-                match (&lo, l) {
-                    (None, Some(_)) => {
-                        lo = l.clone();
-                    }
-                    _ => (),
-                };
-                match (&hi, h) {
-                    (None, Some(_)) => {
-                        hi = h.clone();
-                    }
-                    _ => (),
-                };
-                log::debug!(target: "quantifier-bounds", "{}: [{:?}, {:?})", var.name, lo, hi);
-                match (&lo, &hi) {
-                    (Some(_), Some(_)) => break,
-                    _ => (),
-                }
-            }
-            // XXX: return an ExtractionError or something rather than
-            // std::Fmt::Error so we don't just panic here.
-            assert!(lo.is_some(), "Can't find a lower bound");
-            assert!(hi.is_some(), "Can't find an upper bound");
-
-            let (mut lo, mut hi) = (lo.unwrap(), hi.unwrap());
-
-            self.pp.write_str("IntStream.range(")?;
-            lo.visit(self)?;
-            self.pp.write_str(", ")?;
-            hi.visit(self)?;
-            self.pp.write_str(")")?;
-
-            if i < fmla.vars.len() - 1 {
-                self.pp.write_str(".flatMap(")?;
-            } else {
-                self.pp.write_str(".map(")?;
-            }
-            self.pp.write_fmt(format_args!("{} -> {{\n", var.name))?;
-        }
-
-        fmla.fmla.visit(self)?.modifying(&mut fmla.fmla);
-
-        for _ in &fmla.vars {
-            self.pp.write_str("\n}) ")?;
-        }
-
-        Ok(ControlMut::SkipSiblings(()))
-    }
-
     fn begin_index(&mut self, expr: &mut IndexExpr) -> ExtractResult<expressions::Expr> {
         expr.lhs.visit(self)?;
         self.pp.write_str("[")?;
@@ -618,6 +551,78 @@ where
         Ok(ControlMut::SkipSiblings(()))
     }
 
+    // logic
+
+    fn begin_forall(
+        &mut self,
+        fmla: &mut logic::Forall,
+    ) -> VisitorResult<(), std::fmt::Error, logic::Fmla> {
+        let mut qb = QuantBounds::new_forall();
+
+        // XXX: unfortunate that we have to mix Visitable logic in a Visitor.
+        // Suggests that compositionality of visitors needs consideration.
+        qb.begin_forall(fmla)?.and_then(|_| {
+            let vars_t = fmla.vars.visit(&mut qb)?.modifying(&mut fmla.vars);
+            let fmla_t = fmla.fmla.visit(&mut qb)?.modifying(&mut fmla.fmla);
+            qb.finish_forall(fmla, vars_t, fmla_t)
+        })?;
+
+        for (i, var) in fmla.vars.iter().enumerate() {
+            let (mut lo, mut hi) = (None, None);
+            // XXX: This is almost certainly suboptimal for more complicated formulae.
+            // But, this is what ivy_to_cpp does, so ¯\_(ツ)_/¯
+            for (l, h) in qb.bounds.get(&var.name).unwrap() {
+                match (&lo, l) {
+                    (None, Some(_)) => {
+                        lo = l.clone();
+                    }
+                    _ => (),
+                };
+                match (&hi, h) {
+                    (None, Some(_)) => {
+                        hi = h.clone();
+                    }
+                    _ => (),
+                };
+                log::debug!(target: "quantifier-bounds", "{}: [{:?}, {:?})", var.name, lo, hi);
+                match (&lo, &hi) {
+                    (Some(_), Some(_)) => break,
+                    _ => (),
+                }
+            }
+
+            // XXX: return an ExtractionError or something rather than
+            // std::Fmt::Error so we don't just panic here.
+            assert!(lo.is_some(), "Can't find a lower bound");
+            assert!(hi.is_some(), "Can't find an upper bound");
+
+            let (mut lo, mut hi) = (lo.unwrap(), hi.unwrap());
+
+            self.pp.write_str("IntStream.range(")?;
+            lo.visit(self)?;
+            self.pp.write_str(", ")?;
+            hi.visit(self)?;
+            self.pp.write_str(")")?;
+
+            if i < fmla.vars.len() - 1 {
+                self.pp.write_str(".flatMap(")?;
+            } else {
+                self.pp.write_str(".map(")?;
+            }
+            self.pp.write_fmt(format_args!("{} -> {{\n", var.name))?;
+        }
+
+        fmla.fmla.visit(self)?.modifying(&mut fmla.fmla);
+
+        for _ in &fmla.vars {
+            self.pp.write_str("\n")?;
+            self.pp.write_str("return true;\n")?;
+            self.pp.write_str("}) ")?;
+        }
+
+        Ok(ControlMut::SkipSiblings(()))
+    }
+
     // Terminals
 
     fn boolean(&mut self, b: &mut bool) -> ExtractResult<bool> {
@@ -657,6 +662,15 @@ where
                 self.pp.write_str(j.as_jref().as_str())?;
             }
         }
+        Ok(ControlMut::Produce(()))
+    }
+
+    fn symbol(
+        &mut self,
+        _span: &Span,
+        p: &mut expressions::Symbol,
+    ) -> VisitorResult<(), std::fmt::Error, expressions::Symbol> {
+        self.token(&mut p.name)?.modifying(&mut p.name);
         Ok(ControlMut::Produce(()))
     }
 
