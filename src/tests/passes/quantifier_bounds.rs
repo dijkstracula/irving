@@ -225,10 +225,10 @@ mod tests {
         let mut qb = QuantBounds::new_forall();
         fmla.visit(&mut qb).unwrap().modifying(&mut fmla);
 
-        // TODO: why doesn't ivy_to_cpp generate the range given below???
+        let zero = helpers::logical_number(0);
         let one = helpers::logical_number(1);
 
-        println!("NBT: {:?}", qb.bounds.get("N"));
+        assert!(qb.bounds.get("N").unwrap().contains(&(Some(zero), None)));
         assert!(qb.bounds.get("N").unwrap().contains(&(None, Some(one))));
     }
 
@@ -239,9 +239,8 @@ mod tests {
         let mut qb = QuantBounds::new_forall();
         fmla.visit(&mut qb).unwrap().modifying(&mut fmla);
 
-        // XXX: This fails, but we're doing the wrong thing in order to get other
-        // things right.  I am a good programmer, yes.
-        /* assert!(qb.bounds.get("N").unwrap().is_empty()); */
+        let zero = helpers::logical_number(0);
+        assert!(qb.bounds.get("N").unwrap().contains(&(Some(zero), None)));
     }
 
     #[test]
@@ -251,12 +250,26 @@ mod tests {
         let mut qb = QuantBounds::new_forall();
         fmla.visit(&mut qb).unwrap().modifying(&mut fmla);
 
-        let _n = helpers::inferred_logicsym("N");
         let five = helpers::logical_number(5);
         let ten = helpers::logical_number(10);
 
         assert!(qb.bounds.get("N").unwrap().contains(&(None, Some(ten))));
         assert!(qb.bounds.get("N").unwrap().contains(&(Some(five), None)));
+        //assert!(qb.bounds.get("N").unwrap().contains(&(n.clone(), ten)));
+    }
+
+    #[test]
+    fn bounds_from_forall_nats_false_monotonic_gt() {
+        let mut fmla = typecheck_fmla("forall N. N > 5 -> N > 10").expect("parse and typecheck");
+
+        let mut qb = QuantBounds::new_forall();
+        fmla.visit(&mut qb).unwrap().modifying(&mut fmla);
+
+        let six = helpers::logical_number(6);
+        let eleven = helpers::logical_number(11);
+
+        assert!(qb.bounds.get("N").unwrap().contains(&(None, Some(eleven))));
+        assert!(qb.bounds.get("N").unwrap().contains(&(Some(six), None)));
         //assert!(qb.bounds.get("N").unwrap().contains(&(n.clone(), ten)));
     }
 }

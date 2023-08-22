@@ -196,7 +196,7 @@ impl Visitor<(), std::fmt::Error> for QuantBounds {
         for var in &ast.vars {
             let is = match &var.decl {
                 expressions::Sort::Resolved(is) => is,
-                _ => &IvySort::Number, //XXX: this needs to be unreachable!("Did the typechecker run?")
+                _ => unreachable!("Did the typechecker run?"),
             };
 
             let sort_range = QuantBounds::bounds_for_sort(is);
@@ -243,8 +243,7 @@ impl Visitor<(), std::fmt::Error> for QuantBounds {
 
                 ast.rhs.visit(self)?.modifying(&mut ast.rhs);
             }
-            // XXX: something is wrong
-            Verb::And /* if self.polarity  == Polarity::Exists */ => {
+            Verb::And if self.polarity == Polarity::Exists => {
                 // ivy_to_cpp:3850: "if isinstance(body, il.And) and exists:"
                 ast.lhs.visit(self)?.modifying(&mut ast.lhs);
                 ast.rhs.visit(self)?.modifying(&mut ast.rhs);
@@ -266,7 +265,7 @@ impl Visitor<(), std::fmt::Error> for QuantBounds {
                         Polarity::Exists => ast.clone(),
 
                         // Searching for a counterproof of a universal means we
-                        // want to 
+                        // want to
                         Polarity::Forall => LogicBinOp {
                             lhs: Box::new(*ast.lhs.clone()),
                             op: ast.op.negate(),

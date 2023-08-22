@@ -553,6 +553,56 @@ where
 
     // logic
 
+    fn begin_logical_binop(
+        &mut self,
+        ast: &mut logic::LogicBinOp,
+    ) -> VisitorResult<(), std::fmt::Error, logic::Fmla> {
+        let op_str = match ast.op {
+            Verb::Plus => "+",
+            Verb::Minus => "-",
+            Verb::Times => "*",
+            Verb::Div => "/",
+            Verb::Dot => ".",
+
+            Verb::Equals => "==",
+            Verb::Notequals => "!=",
+            Verb::Lt => "<",
+            Verb::Le => "<=",
+            Verb::Gt => ">",
+            Verb::Ge => ">=",
+
+            Verb::Arrow => "->",
+
+            Verb::And => "&&",
+            Verb::Or => "||",
+            _ => {
+                eprintln!("{:?}", ast.op);
+                unimplemented!()
+            }
+        };
+        match ast.op {
+            Verb::Arrow => {
+                self.pp.write_str("!(")?;
+                ast.lhs.visit(self)?.modifying(&mut ast.lhs);
+                self.pp.write_str(") || ")?;
+                ast.rhs.visit(self)?.modifying(&mut ast.rhs);
+            }
+            Verb::Dot => {
+                ast.lhs.visit(self)?.modifying(&mut ast.lhs);
+                self.pp.write_str(op_str)?;
+                ast.rhs.visit(self)?.modifying(&mut ast.rhs);
+            }
+            _ => {
+                ast.lhs.visit(self)?.modifying(&mut ast.lhs);
+                self.pp.write_fmt(format_args!(" {} ", op_str))?;
+                ast.rhs.visit(self)?.modifying(&mut ast.rhs);
+            }
+        }
+        ast.rhs.visit(self)?;
+
+        Ok(ControlMut::SkipSiblings(()))
+    }
+
     fn begin_forall(
         &mut self,
         fmla: &mut logic::Forall,
@@ -614,10 +664,12 @@ where
 
         fmla.fmla.visit(self)?.modifying(&mut fmla.fmla);
 
+        self.pp.write_str("\n")?;
+        self.pp.write_str("return true;")?;
+
         for _ in &fmla.vars {
             self.pp.write_str("\n")?;
-            self.pp.write_str("return true;\n")?;
-            self.pp.write_str("}) ")?;
+            self.pp.write_str("})")?;
         }
 
         Ok(ControlMut::SkipSiblings(()))

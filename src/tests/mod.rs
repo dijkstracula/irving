@@ -134,6 +134,14 @@ pub mod helpers {
         IvyParser::stmt(res).expect("AST generation failed")
     }
 
+    pub fn fmla_from_src(prog: &str) -> Fmla {
+        let res = IvyParser::parse_with_userdata(Rule::fmla, prog, prog.into())
+            .expect("Parsing failed")
+            .single()
+            .unwrap();
+        IvyParser::fmla(res).expect("AST generation failed")
+    }
+
     pub fn rval_from_src(prog: &str) -> Expr {
         let res = IvyParser::parse_with_userdata(Rule::rval, prog, prog.into())
             .expect("Parsing failed")

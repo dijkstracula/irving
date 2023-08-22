@@ -98,11 +98,20 @@ pub fn parse_log_term(input: Rc<str>, pairs: Pairs<Rule>) -> Result<Fmla> {
                     sym: Symbol::from(primary.as_str(), Sort::ToBeInferred),
                 }),
                 Rule::log_term => parse_log_term(Rc::clone(&input), primary.into_inner()),
-                // TODO: this isn't quite right because a fmla might not be a
-                // log term; if not, when we recurse we'll hit the error case,
-                // which is accidentally correct, but there might be
-                // second-order effects that I've not considered.
-                Rule::fmla => parse_log_term(Rc::clone(&input), primary.into_inner()),
+                Rule::fmla => {
+                    let node = Node::new_with_user_data(primary, Rc::clone(&input));
+                    IvyParser::fmla(node)
+                },
+                Rule::forall => {
+                    let node = Node::new_with_user_data(primary, Rc::clone(&input));
+                    let fmla = IvyParser::forall(node)?;
+                    Ok(Fmla::Forall { span, fmla })
+                }
+                Rule::exists => {
+                    let node = Node::new_with_user_data(primary, Rc::clone(&input));
+                    let fmla = IvyParser::exists(node)?;
+                    Ok(Fmla::Exists { span, fmla })
+                }
                 x => Err(Error::new_from_span(
                     ErrorVariant::CustomError {
                         message: format!("Expected formula expression, got {x:?}"),

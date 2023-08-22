@@ -130,6 +130,20 @@ mod tests {
         assert_eq!(fragment, e.pp.out);
     }
 
+    // Logic
+
+    #[test]
+    fn extract_forall() {
+        let fragment = "forall X: unbounded_sequence . X > 5 -> X > 10";
+        let mut ast = helpers::fmla_from_src(fragment);
+        let mut tc = SortInferer::new();
+        ast.visit(&mut tc).expect("typechecking failed");
+
+        let mut e = Extractor::<String>::new();
+        ast.visit(&mut e).expect("traversal failed");
+        println!("{:?}", e.pp.out);
+    }
+
     // Terminals
 
     #[test]
