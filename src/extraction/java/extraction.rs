@@ -553,6 +553,18 @@ where
 
     // logic
 
+    fn begin_logical_app(
+        &mut self,
+        ast: &mut logic::LogicApp,
+    ) -> VisitorResult<(), std::fmt::Error, logic::Fmla> {
+        ast.func.visit(self)?;
+
+        self.pp.write_str("(")?;
+        self.write_separated(&mut ast.args, ", ")?;
+        self.pp.write_str(")")?;
+        Ok(ControlMut::SkipSiblings(()))
+    }
+
     fn begin_logical_binop(
         &mut self,
         ast: &mut logic::LogicBinOp,
@@ -600,6 +612,37 @@ where
         }
 
         Ok(ControlMut::SkipSiblings(()))
+    }
+
+    fn begin_logical_field_access(
+        &mut self,
+        lhs: &mut logic::Fmla,
+        rhs: &mut expressions::Symbol,
+    ) -> VisitorResult<(), std::fmt::Error, logic::Fmla> {
+        lhs.visit(self)?;
+        self.pp.write_fmt(format_args!(".{}", rhs.name))?;
+        Ok(ControlMut::SkipSiblings(()))
+    }
+
+    fn begin_logical_unary_op(
+        &mut self,
+        op: &mut Verb,
+        rhs: &mut logic::Fmla,
+    ) -> VisitorResult<(), std::fmt::Error, logic::Fmla> {
+        match op {
+            Verb::Not => self.pp.write_str("!")?,
+            Verb::Minus => self.pp.write_str("-")?,
+            _ => unimplemented!(),
+        };
+
+        if let logic::Fmla::BinOp { .. } = rhs {
+            self.pp.write_str("(")?;
+            rhs.visit(self)?.modifying(rhs);
+            self.pp.write_str(")")?;
+            Ok(ControlMut::SkipSiblings(()))
+        } else {
+            Ok(ControlMut::Produce(()))
+        }
     }
 
     fn begin_forall(

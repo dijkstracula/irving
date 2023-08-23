@@ -169,7 +169,15 @@ mod tests {
 
         ast.visit(&mut si).expect("typechecking failed");
         ast.visit(&mut e).expect("traversal failed");
-        println!("{:?}", e.pp.out);
+        assert_eq!(
+            normalize_output(&e.pp.out),
+            normalize_output(
+                "IntStream.range(0, 3).allMatch(P1 -> {
+                return IntStream.range(0, 3).allMatch(P2 -> {
+                    return P1 <= P2;
+                });})"
+            )
+        );
     }
 
     // Terminals
