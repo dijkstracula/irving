@@ -544,9 +544,32 @@ where
 
         self.pp.write_str("\n}\n")?;
 
-        self.pp.write_fmt(format_args!(
-            "IvyObj_{name} {name} = new IvyObj_{name}();\n"
-        ))?;
+        if ast.params.is_empty() {
+            self.pp.write_fmt(format_args!(
+                "IvyObj_{name} {name} = new IvyObj_{name}();\n"
+            ))?;
+        } else {
+            if ast.params.len() > 1 {
+                // I actually don't know if this would even be valid Ivy.
+                todo!()
+            }
+            let self_sort = match &ast.params.get(0).unwrap().decl {
+                expressions::Sort::Resolved(is) => is,
+                _ => unreachable!("argument to object not typechecked"),
+            };
+
+            let (lo, hi) = match QuantBounds::bounds_for_sort(self_sort) {
+                (
+                    Some(logic::Fmla::Number { val: 0, .. }),
+                    Some(logic::Fmla::Number { val: hi, .. }),
+                ) => (0, hi),
+                _ => todo!(),
+            };
+
+            self.pp.write_fmt(format_args!(
+            "IvyObj_{name} {name}[] = IntStream({lo}, {hi}).boxed().map(i -> new IvyObj_{name}(i)).toArray();\n"
+            ))?;
+        }
 
         Ok(ControlMut::SkipSiblings(()))
     }
