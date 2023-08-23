@@ -57,6 +57,9 @@ pub struct QuantBounds {
     /// Are we negating the current subexpression that we're visiting?
     /// (in the ivy_to_cpp implementation, this is `exists`)
     polarity: Polarity,
+
+    /// Are we re-rentering a forall/exists node?
+    nested: bool,
 }
 
 impl QuantBounds {
@@ -64,6 +67,7 @@ impl QuantBounds {
         Self {
             bounds: BTreeMap::new(),
             polarity: Polarity::Forall,
+            nested: false,
         }
     }
 
@@ -193,15 +197,41 @@ impl Visitor<(), std::fmt::Error> for QuantBounds {
         &mut self,
         ast: &mut logic::Forall,
     ) -> VisitorResult<(), std::fmt::Error, logic::Fmla> {
+        log::debug!(target: "quantifier-bounds", "Beginning bounds for {:?}", ast);
+
+        if self.nested {
+            Ok(ControlMut::SkipSiblings(()))
+        } else {
+            for var in &ast.vars {
+                self.bounds.insert(var.name.clone(), vec![]);
+            }
+
+            self.nested = true;
+            Ok(ControlMut::Produce(()))
+        }
+    }
+
+    fn finish_forall(
+        &mut self,
+        ast: &mut logic::Forall,
+        _vars: Vec<()>,
+        _fmla: (),
+    ) -> VisitorResult<(), std::fmt::Error, Fmla> {
+        // In the worst case, we can at least bound each variable according to
+        // what the sort permits.  (We do this last so any actual bounds appear
+        // first in the list, so we only grab them as a worst-case.)
         for var in &ast.vars {
             let is = match &var.decl {
                 expressions::Sort::Resolved(is) => is,
                 _ => unreachable!("Did the typechecker run?"),
             };
 
-            let sort_range = QuantBounds::bounds_for_sort(is);
-            self.bounds.insert(var.name.clone(), vec![sort_range]);
+            self.bounds.get_mut(&var.name).map(|bounds| {
+                let sort_range = QuantBounds::bounds_for_sort(is);
+                bounds.push(sort_range);
+            });
         }
+
         Ok(ControlMut::Produce(()))
     }
 
@@ -233,7 +263,6 @@ impl Visitor<(), std::fmt::Error> for QuantBounds {
         &mut self,
         ast: &mut LogicBinOp,
     ) -> VisitorResult<(), std::fmt::Error, Fmla> {
-        log::debug!(target: "quantifier-bounds", "{:?} {:?} {:?}, {:?}", ast.lhs.span(), ast.op, ast.rhs.span(), self.polarity);
         match ast.op {
             Verb::Arrow if self.polarity == Polarity::Forall => {
                 // ivy_to_cpp:3842: "if isinstance(body, il.Implies) and not exists:"
@@ -257,7 +286,6 @@ impl Visitor<(), std::fmt::Error> for QuantBounds {
                 // ivy_to_cpp:3840: "if body.rep.name in ['<', '<=', '>', '>=']:"
                 if let Some(sym) = QuantBounds::op_on_logicsym(ast) {
                     // XXX: unnecessary clone; match out lhs, op, rhs
-
                     let ast = match self.polarity {
                         // Searching for a counterproof of an existential means
                         // we have to walk all inhabitants in that range, which
@@ -272,13 +300,12 @@ impl Visitor<(), std::fmt::Error> for QuantBounds {
                             rhs: Box::new(*ast.rhs.clone()),
                         },
                     };
-                    log::debug!(target: "quantifier-bounds", "{:?}", ast);
 
                     let (lhs, op, rhs) = (ast.lhs.as_ref(), ast.op, ast.rhs.as_ref());
                     if let Some(bound) = QuantBounds::bounds_from_ast(sym, lhs, op, rhs) {
                         log::debug!(target: "quantifier-bounds", "{} ∈ ({:?}, {:?}], {:?}", sym.name, bound.0, bound.1, self.polarity);
 
-                        self.bounds.get_mut(&sym.name).unwrap().push(bound);
+                        self.bounds.get_mut(&sym.name).map(|bs| bs.push(bound));
                     }
                 }
             }

@@ -17,6 +17,7 @@ forall           =  { FORALL ~ logicsym ~ ("," ~ logicsym)* ~ "." ~ fmla }
 log_subscr      =  { PROGTOK ~ ("." ~ PROGTOK)* }
 
 log_term        =  { log_atom ~ (log_infix_op ~ log_atom)* }
+// This feels like a slightly goofy way to compose quantified formulae - is there a better one?
 log_atom        = _{ forall | exists | (log_prefix_op? ~ log_primary ~ log_postfix_op?) }
     log_prefix_op   = _{ UMINUS | NOT }
     log_infix_op    = _{ IFF | ARROW |

@@ -1,5 +1,7 @@
 #[cfg(test)]
 mod tests {
+    use itertools::Itertools;
+
     use crate::{
         extraction::java::extraction::Extractor,
         tests::helpers,
@@ -9,6 +11,11 @@ mod tests {
         },
         visitor::ast::Visitable,
     };
+
+    fn normalize_output(input: &str) -> String {
+        let input = input.replace("\n", "");
+        input.split_whitespace().join(" ").into()
+    }
 
     #[test]
     fn extract_action_forward_ref() {
@@ -134,12 +141,33 @@ mod tests {
 
     #[test]
     fn extract_forall() {
+        let mut e = Extractor::<String>::new();
+
         let fragment = "forall X: unbounded_sequence . X > 5 -> X > 10";
         let mut ast = helpers::fmla_from_src(fragment);
         let mut tc = SortInferer::new();
         ast.visit(&mut tc).expect("typechecking failed");
+        ast.visit(&mut e).expect("traversal failed");
 
+        assert_eq!(
+            normalize_output(&e.pp.out),
+            "IntStream.range(6, 11).allMatch(X -> { return !(X > 5) || X > 10;})"
+        );
+    }
+
+    #[test]
+    fn extract_nested_forall() {
         let mut e = Extractor::<String>::new();
+
+        let fragment = "forall P1:pid . forall P2:pid . P1 <= P2";
+
+        let mut ast = helpers::fmla_from_src(fragment);
+        let mut si = SortInferer::new();
+        si.bindings
+            .append("pid".into(), IvySort::Range(0, 2))
+            .unwrap();
+
+        ast.visit(&mut si).expect("typechecking failed");
         ast.visit(&mut e).expect("traversal failed");
         println!("{:?}", e.pp.out);
     }

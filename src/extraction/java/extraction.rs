@@ -598,7 +598,6 @@ where
                 ast.rhs.visit(self)?.modifying(&mut ast.rhs);
             }
         }
-        ast.rhs.visit(self)?;
 
         Ok(ControlMut::SkipSiblings(()))
     }
@@ -657,19 +656,19 @@ where
             if i < fmla.vars.len() - 1 {
                 self.pp.write_str(".flatMap(")?;
             } else {
-                self.pp.write_str(".map(")?;
+                self.pp.write_str(".allMatch(")?;
             }
-            self.pp.write_fmt(format_args!("{} -> {{\n", var.name))?;
+            self.pp
+                .write_fmt(format_args!("{} -> {{ \nreturn ", var.name))?;
         }
 
         fmla.fmla.visit(self)?.modifying(&mut fmla.fmla);
 
-        self.pp.write_str("\n")?;
-        self.pp.write_str("return true;")?;
+        //self.pp.write_str("\n")?;
+        //self.pp.write_str("return true;")?;
 
         for _ in &fmla.vars {
-            self.pp.write_str("\n")?;
-            self.pp.write_str("})")?;
+            self.pp.write_str(";\n})")?;
         }
 
         Ok(ControlMut::SkipSiblings(()))

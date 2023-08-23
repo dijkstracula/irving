@@ -41,7 +41,6 @@ lazy_static::lazy_static! {
 // TODO: this should be something other than a Symbol.
 pub fn parse_lsym(_input: Rc<str>, primary: Pair<'_, Rule>) -> Result<Symbol> {
     // TODO: we need a separate AST node for logicvars.
-    println!("{:?}", &primary);
     let mut pairs = primary.into_inner();
     let name = pairs.next().unwrap().as_str().to_owned();
     let sort = pairs.next().map(|s| vec![s.as_str().to_owned()]);
