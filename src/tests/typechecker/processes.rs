@@ -183,6 +183,22 @@ mod tests {
     }
 
     #[test]
+    fn test_parameterized_object_index() {
+        let mut iso = helpers::process_from_decl(
+            "process host(self:pid) = {
+                var foo: bool;
+            
+                after init {
+                host(0).foo := true;
+                }
+            }",
+        );
+
+        let mut tc = typechecker_with_bindings();
+        let _res = iso.visit(&mut tc).unwrap().modifying(&mut iso);
+    }
+
+    #[test]
     fn test_bad_parameterized_object_index() {
         let mut iso = helpers::process_from_decl(
             "process host(self:pid) = {
@@ -195,7 +211,18 @@ mod tests {
         );
 
         let mut tc = typechecker_with_bindings();
-        let _res = iso.visit(&mut tc).unwrap().modifying(&mut iso);
+        let err = iso.visit(&mut tc).unwrap_err();
+
+        assert_eq!(
+            err,
+            TypeError::Spanned {
+                span: Span::IgnoredForTesting,
+                inner: Box::new(TypeError::UnificationError(
+                    "boolean".into(),
+                    "{0..3}".into()
+                ))
+            }
+        );
     }
 
     #[test]

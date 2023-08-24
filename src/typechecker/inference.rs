@@ -257,7 +257,6 @@ impl Visitor<IvySort, TypeError> for SortInferer {
         self.bindings
             .unify(&lhs_sort, &rhs_sort)
             .map_err(|e| e.to_typeerror(span))?;
-        println!("NBT: {:?}, {:} := {:?}", span, lhs_sort, rhs_sort);
         Ok(ControlMut::Produce(IvySort::Unit))
     }
 
@@ -344,6 +343,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
                 sorts::ActionRet::Named(binding) => Ok(ControlMut::Produce(binding.decl)),
             },
             IvySort::Relation(_) => Ok(ControlMut::Produce(IvySort::Bool)),
+            IvySort::Object(obj) => Ok(ControlMut::Produce(IvySort::Object(obj))),
             _ => Err(TypeError::InvalidApplication),
         }
     }

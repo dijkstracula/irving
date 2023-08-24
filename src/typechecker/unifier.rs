@@ -1,4 +1,7 @@
-use std::{collections::HashMap, vec};
+use std::{
+    collections::{BTreeMap, HashMap},
+    vec,
+};
 
 use crate::{
     ast::{expressions::*, span::Span},
@@ -248,21 +251,28 @@ impl BindingResolver {
             // context, then `42` should be treated of course as a bool.  Is
             // this actually what happens???
 
-            // This subtyping relationship is for indexing into an isolate
-            // definition by its arguments.
+            // This subtyping relationship is for indexing into a parameterized
+            // object by its parameters.
             (
-                IvySort::Action(_, ActionArgs::List(fargs), fret),
-                p @ IvySort::Object(Object { args, .. }),
+                IvySort::Action(_, ActionArgs::List(fargs), _),
+                IvySort::Object(Object {
+                    args,
+                    fields: obj_fields,
+                }),
             )
             | (
-                p @ IvySort::Object(Object { args, .. }),
-                IvySort::Action(_, ActionArgs::List(fargs), fret),
+                IvySort::Object(Object {
+                    args,
+                    fields: obj_fields,
+                }),
+                IvySort::Action(_, ActionArgs::List(fargs), _),
             ) => {
-                let unified = match fret {
-                    ActionRet::Unknown => p.clone(),
-                    ActionRet::Unit => IvySort::Unit,
-                    ActionRet::Named(binding) => self.unify(&binding.decl, p)?,
-                };
+                // XXX: I'm not sure about this anymore.
+                //let unified = match fret {
+                //    ActionRet::Unknown => p.clone(),
+                //    ActionRet::Unit => IvySort::Unit,
+                //    ActionRet::Named(binding) => self.unify(&binding.decl, p)?,
+                //};
 
                 // XXX: args is unordered so we can't unify them in the multiple argument case.
                 // see https://github.com/dijkstracula/irving/issues/25 .
@@ -270,7 +280,17 @@ impl BindingResolver {
                     let pargs = args.iter().map(|(_, v)| v.clone()).collect::<Vec<_>>();
                     return Err(ResolverError::LenMismatch(fargs.len(), pargs.len()));
                 }
-                Ok(unified)
+
+                self.unify(fargs.get(0).unwrap(), args.iter().next().unwrap().1)?;
+
+                // If we get this far, we can treat the object as having had its
+                // `self` arguments applied, so "curry those out".
+                let p = IvySort::Object(Object {
+                    args: BTreeMap::new(),
+                    fields: obj_fields.clone(),
+                });
+
+                Ok(p)
             }
 
             // This subtyping relation says that "calling" a Relation with well-typed

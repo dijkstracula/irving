@@ -7,7 +7,7 @@ mod tests {
         tests::helpers,
         typechecker::{
             inference::SortInferer,
-            sorts::{self, ActionArgs, IvySort, Object},
+            sorts::{self, ActionArgs, IvySort, Module, Object},
             unifier::ResolverError,
             TypeError,
         },
@@ -179,6 +179,54 @@ mod tests {
                 ))
             }
         )
+    }
+
+    #[test]
+    fn test_call_parameterized_obj() {
+        let fragment = "host(0)";
+        let mut callop = helpers::rval_from_src(fragment);
+
+        let host_sort = IvySort::Object(Object {
+            args: [("self".into(), IvySort::Range(0, 3))].into(),
+            fields: [("init".to_owned(), Module::init_action_sort())].into(),
+        });
+        let mut si = SortInferer::new();
+        si.bindings.append("host".into(), host_sort).unwrap();
+
+        let indexed_sort = callop.visit(&mut si).unwrap().modifying(&mut callop);
+
+        assert_eq!(
+            indexed_sort,
+            IvySort::Object(Object {
+                args: [].into(), // We've curried out the argument!
+                fields: [("init".to_owned(), Module::init_action_sort())].into(),
+            })
+        );
+    }
+
+    #[test]
+    fn test_call_parameterized_obj_invalid_parameter() {
+        let fragment = "host(true)";
+        let mut callop = helpers::rval_from_src(fragment);
+
+        let host_sort = IvySort::Object(Object {
+            args: [("self".into(), IvySort::Range(0, 3))].into(),
+            fields: [("init".to_owned(), Module::init_action_sort())].into(),
+        });
+        let mut si = SortInferer::new();
+        si.bindings.append("host".into(), host_sort).unwrap();
+
+        let err = callop.visit(&mut si).unwrap_err();
+        assert_eq!(
+            err,
+            TypeError::Spanned {
+                span: Span::IgnoredForTesting,
+                inner: Box::new(TypeError::UnificationError(
+                    "boolean".into(),
+                    "{0..3}".into()
+                ))
+            }
+        );
     }
 
     #[test]
