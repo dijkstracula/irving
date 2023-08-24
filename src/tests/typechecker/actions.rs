@@ -452,4 +452,21 @@ mod tests {
         let mut tc = SortInferer::new();
         let _ = iso.visit(&mut tc).unwrap().modifying(&mut iso);
     }
+
+    #[test]
+    fn action_assign_logical() {
+        let mut iso = isolate_from_src(
+            "process foo = {
+            type node
+            relation link(X: node, Y: node)
+
+            action clear(x:node) = {
+                link(x,Y) := false;
+            }
+        }",
+        );
+
+        let mut tc = SortInferer::new();
+        let _ = iso.visit(&mut tc).unwrap().modifying(&mut iso);
+    }
 }

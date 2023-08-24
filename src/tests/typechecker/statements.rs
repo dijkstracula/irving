@@ -45,6 +45,21 @@ mod tests {
         si.bindings.append("a".into(), IvySort::Number).unwrap();
 
         ast.visit(&mut si).unwrap().modifying(&mut ast);
-        println!("{:?}", ast);
+    }
+
+    #[test]
+    fn logical_assign() {
+        let fragment = "link(x,Y) := false";
+        let mut ast = helpers::stmt_from_src(fragment);
+
+        let mut si = SortInferer::new();
+        si.bindings.append("x".into(), IvySort::Number).unwrap();
+        si.bindings
+            .append(
+                "link".into(),
+                IvySort::Relation(vec![IvySort::Number, IvySort::Number]),
+            )
+            .unwrap();
+        ast.visit(&mut si).unwrap().modifying(&mut ast);
     }
 }
