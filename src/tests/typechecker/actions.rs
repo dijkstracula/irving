@@ -2,6 +2,7 @@
 mod tests {
     use crate::{
         ast::{
+            actions::Action,
             declarations::{ActionDecl, Binding, Decl},
             expressions::{Expr, Sort},
             span::Span,
@@ -32,6 +33,14 @@ mod tests {
             .single()
             .unwrap();
         IvyParser::decl(parsed).expect("AST generation failed")
+    }
+
+    fn action_from_src(src: &str) -> Action {
+        let parsed = IvyParser::parse_with_userdata(Rule::action, src, src.into())
+            .expect("Parsing failed")
+            .single()
+            .unwrap();
+        IvyParser::action(parsed).expect("AST generation failed")
     }
 
     fn expr_from_src(src: &str) -> Expr {
@@ -468,5 +477,32 @@ mod tests {
 
         let mut tc = SortInferer::new();
         let _ = iso.visit(&mut tc).unwrap().modifying(&mut iso);
+    }
+
+    #[test]
+    fn action_assign() {
+        let mut assign = action_from_src("i := self");
+
+        match &assign {
+            Action::Assign { action, .. } => {
+                assert_eq!(action.lhs_sort, Sort::ToBeInferred)
+            }
+            _ => unreachable!(),
+        };
+
+        let mut si = SortInferer::new();
+        si.bindings.append("i".into(), IvySort::Number).unwrap();
+        si.bindings
+            .append("self".into(), IvySort::Range(0, 2))
+            .unwrap();
+
+        let _ = assign.visit(&mut si).unwrap().modifying(&mut assign);
+
+        match &assign {
+            Action::Assign { action, .. } => {
+                assert_eq!(action.lhs_sort, Sort::Resolved(IvySort::Range(0, 2)))
+            }
+            _ => unreachable!(),
+        };
     }
 }

@@ -250,14 +250,25 @@ impl Visitor<IvySort, TypeError> for SortInferer {
     fn finish_assign(
         &mut self,
         span: &Span,
-        _ast: &mut actions::AssignAction,
+        ast: &mut actions::AssignAction,
         lhs_sort: IvySort,
         rhs_sort: IvySort,
     ) -> InferenceResult<Action> {
-        self.bindings
+        let unified = self
+            .bindings
             .unify(&lhs_sort, &rhs_sort)
             .map_err(|e| e.to_typeerror(span))?;
-        Ok(ControlMut::Produce(IvySort::Unit))
+        Ok(ControlMut::Mutation(
+            Action::Assign {
+                span: span.clone(),
+                action: actions::AssignAction {
+                    lhs: ast.lhs.clone(),
+                    lhs_sort: Sort::Resolved(unified),
+                    rhs: ast.rhs.clone(),
+                },
+            },
+            IvySort::Unit,
+        ))
     }
 
     // Statements

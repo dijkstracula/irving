@@ -588,10 +588,10 @@ impl IvyParser {
         input.into_children();
         [var_decl((lhs_span, sym)), rval(rhs)] => {
             Ok((span, AssignAction{
-                lhs: Expr::ProgramSymbol{span: lhs_span, sym}, rhs}))
+                lhs: Expr::ProgramSymbol{span: lhs_span, sym}, lhs_sort: Sort::ToBeInferred, rhs}))
         },
         [lval(lhs), rval(rhs)] => match lhs {
-            Expr::App{..} | Expr::FieldAccess{..} | Expr::Index{..} | Expr::ProgramSymbol{..} | Expr::This(_) => Ok((span, AssignAction{lhs, rhs})),
+            Expr::App{..} | Expr::FieldAccess{..} | Expr::Index{..} | Expr::ProgramSymbol{..} | Expr::This(_) => Ok((span, AssignAction{lhs, lhs_sort: Sort::ToBeInferred, rhs})),
             _ => todo!(),
         }
         )

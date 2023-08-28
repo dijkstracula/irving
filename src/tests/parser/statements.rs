@@ -78,6 +78,7 @@ mod tests {
                                 field: Symbol::from("bar", Sort::ToBeInferred),
                             }
                         },
+                        lhs_sort: Sort::ToBeInferred,
                         rhs: Expr::Boolean {
                             span: Span::IgnoredForTesting,
                             val: false

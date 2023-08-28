@@ -4,6 +4,7 @@ use super::{expressions::*, logic::Fmla, span::Span};
 #[allow(clippy::large_enum_variant)]
 pub struct AssignAction {
     pub lhs: Expr,
+    pub lhs_sort: Sort,
     pub rhs: Expr,
 }
 
