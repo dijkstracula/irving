@@ -81,6 +81,7 @@ pub type Symbol = Binding<Sort>;
 #[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]
 pub struct AppExpr {
     pub func: Box<Expr>,
+    pub func_sort: Sort,
     pub args: Vec<Expr>,
 }
 
@@ -196,7 +197,7 @@ impl Expr {
     pub fn depth(&self) -> usize {
         1 + match self {
             Expr::App {
-                expr: AppExpr { func, args },
+                expr: AppExpr { func, args, .. },
                 ..
             } => {
                 let func_depth = func.depth();
@@ -227,7 +228,7 @@ impl Expr {
     pub fn n_nodes(&self) -> usize {
         1 + match self {
             Expr::App {
-                expr: AppExpr { func, args },
+                expr: AppExpr { func, args, .. },
                 ..
             } => {
                 let func_depth = func.n_nodes();

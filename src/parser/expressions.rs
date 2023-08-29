@@ -173,6 +173,7 @@ pub fn parse_rval(input: Rc<str>, pairs: Pairs<Rule>) -> Result<Expr> {
                         span,
                         expr: AppExpr {
                             func: Box::new(lhs),
+                            func_sort: Sort::ToBeInferred,
                             args,
                         },
                     })

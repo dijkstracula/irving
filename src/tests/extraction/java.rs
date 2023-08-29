@@ -104,7 +104,96 @@ mod tests {
     }
 
     #[test]
-    fn extract_call_not_a_method() {
+    fn extract_assign_nat_lit() {
+        let fragment = "count := 0";
+        let mut ast = helpers::action_from_decl(fragment);
+
+        let mut si = SortInferer::new();
+        si.bindings.append("count".into(), IvySort::Number).unwrap();
+        ast.visit(&mut si)
+            .expect("typechecking failed")
+            .modifying(&mut ast);
+
+        let mut e = Extractor::<String>::new();
+        ast.visit(&mut e).expect("extraction failed");
+        assert_eq!("count = 0", e.pp.out);
+    }
+
+    #[test]
+    fn extract_assign_nat_nonlit() {
+        let fragment = "count := (1 + 1)";
+        let mut ast = helpers::action_from_decl(fragment);
+
+        let mut si = SortInferer::new();
+        si.bindings.append("count".into(), IvySort::Number).unwrap();
+        ast.visit(&mut si)
+            .expect("typechecking failed")
+            .modifying(&mut ast);
+
+        let mut e = Extractor::<String>::new();
+        ast.visit(&mut e).expect("extraction failed");
+        assert_eq!("count = (1 + 1) < 0 ? 0 : (1 + 1)", e.pp.out);
+    }
+
+    #[test]
+    fn extract_assign_range_lit() {
+        let fragment = "count := 0";
+        let mut ast = helpers::action_from_decl(fragment);
+
+        let mut si = SortInferer::new();
+        si.bindings
+            .append("count".into(), IvySort::Range(0, 3))
+            .unwrap();
+        ast.visit(&mut si)
+            .expect("typechecking failed")
+            .modifying(&mut ast);
+
+        let mut e = Extractor::<String>::new();
+        ast.visit(&mut e).expect("extraction failed");
+        assert_eq!("count = 0", e.pp.out);
+    }
+
+    #[test]
+    fn extract_assign_range_saturated_lit() {
+        let fragment = "count := 42";
+        let mut ast = helpers::action_from_decl(fragment);
+
+        let mut si = SortInferer::new();
+        si.bindings
+            .append("count".into(), IvySort::Range(0, 3))
+            .unwrap();
+        ast.visit(&mut si)
+            .expect("typechecking failed")
+            .modifying(&mut ast);
+
+        let mut e = Extractor::<String>::new();
+        ast.visit(&mut e).expect("extraction failed");
+        assert_eq!("count = 3", e.pp.out);
+    }
+
+    #[test]
+    fn extract_assign_range_binop() {
+        let fragment = "count := (1 + 1)";
+        let mut ast = helpers::action_from_decl(fragment);
+
+        let mut si = SortInferer::new();
+        si.bindings
+            .append("count".into(), IvySort::Range(0, 3))
+            .unwrap();
+        ast.visit(&mut si)
+            .expect("typechecking failed")
+            .modifying(&mut ast);
+
+        let mut e = Extractor::<String>::new();
+        ast.visit(&mut e).expect("extraction failed");
+        assert_eq!(
+            "count = ((1 + 1) >= 3 ? 3 : ((1 + 1) < 0 ? 0 : (1 + 1)))",
+            e.pp.out
+        );
+    }
+
+    #[test]
+    fn extract_call() {
         let fragment = "inc(1)";
         let mut ast = helpers::rval_from_src(fragment);
 
@@ -124,6 +213,29 @@ mod tests {
         let mut e = Extractor::<String>::new();
         ast.visit(&mut e).expect("extraction failed");
         assert_eq!(fragment, e.pp.out);
+    }
+
+    #[test]
+    fn extract_call_compound_arg() {
+        let fragment = "inc(1 + 1)";
+        let mut ast = helpers::rval_from_src(fragment);
+
+        let mut tc = SortInferer::new();
+        tc.bindings
+            .append(
+                "inc".into(),
+                IvySort::action_sort(
+                    vec!["i".into()],
+                    vec![IvySort::Number],
+                    sorts::ActionRet::named("ret", IvySort::Number),
+                ),
+            )
+            .unwrap();
+        ast.visit(&mut tc).expect("typechecking failed");
+
+        let mut e = Extractor::<String>::new();
+        ast.visit(&mut e).expect("extraction failed");
+        assert_eq!("inc((1 + 1) < 0 ? 0 : (1 + 1))", e.pp.out);
     }
 
     #[test]

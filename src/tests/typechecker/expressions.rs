@@ -3,7 +3,10 @@ mod tests {
     use std::collections::BTreeMap;
 
     use crate::{
-        ast::span::Span,
+        ast::{
+            expressions::{self, Sort},
+            span::Span,
+        },
         tests::helpers,
         typechecker::{
             inference::SortInferer,
@@ -132,6 +135,16 @@ mod tests {
     fn test_call_resolved() {
         let prog = "f()";
         let mut callop = helpers::rval_from_src(prog);
+        assert!(matches!(
+            callop,
+            expressions::Expr::App {
+                expr: expressions::AppExpr {
+                    func_sort: Sort::ToBeInferred,
+                    ..
+                },
+                ..
+            }
+        ));
 
         let mut tc = SortInferer::new();
         tc.bindings
@@ -145,6 +158,17 @@ mod tests {
             )
             .unwrap();
         let res = callop.visit(&mut tc).expect("visit").modifying(&mut callop);
+
+        assert!(matches!(
+            callop,
+            expressions::Expr::App {
+                expr: expressions::AppExpr {
+                    func_sort: Sort::Resolved(_),
+                    ..
+                },
+                ..
+            }
+        ));
         assert_eq!(res, IvySort::Number);
     }
 

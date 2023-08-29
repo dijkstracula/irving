@@ -6,8 +6,12 @@ use crate::{
     },
     extraction::{java::extraction::expressions::Token, ExtractResult},
     passes::quantifier_bounds::QuantBounds,
+    typechecker::sorts::{ActionArgs, IvySort},
 };
-use std::{collections::BTreeMap, fmt::Write};
+use std::{
+    collections::BTreeMap,
+    fmt::{self, Write},
+};
 
 use thiserror::Error;
 
@@ -124,6 +128,55 @@ where
             }
         }
     }
+
+    pub fn write_bounded_long(
+        &mut self,
+        e: &mut expressions::Expr,
+        lo: i64,
+        hi: i64,
+    ) -> fmt::Result {
+        if let expressions::Expr::Number { val, .. } = e {
+            let normalized = if *val >= hi {
+                hi
+            } else if *val < lo {
+                lo
+            } else {
+                *val
+            };
+            return self.pp.write_fmt(format_args!("{normalized}"));
+        }
+
+        // ((e) >= hi ? hi : ((e) < lo ? lo : (e)))
+        self.pp.write_str("(")?;
+        self.pp.write_str("(")?;
+        e.visit(self)?.modifying(e);
+        self.pp.write_fmt(format_args!(") >= {hi} ? {hi} : "))?;
+
+        self.pp.write_str("(")?;
+        self.pp.write_str("(")?;
+        e.visit(self)?.modifying(e);
+        self.pp.write_fmt(format_args!(") < {lo} ? {lo} : ("))?;
+        e.visit(self)?.modifying(e);
+        self.pp.write_str(")")?;
+        self.pp.write_str(")")?;
+
+        self.pp.write_str(")")
+    }
+
+    pub fn write_unbounded_seq(&mut self, e: &mut expressions::Expr) -> fmt::Result {
+        if let expressions::Expr::Number { val, .. } = e {
+            let normalized = if *val < 0 { 0 } else { *val };
+            return self.pp.write_fmt(format_args!("{normalized}"));
+        }
+
+        // ((e) < 0 ? 0 : (e))
+
+        self.pp.write_str("(")?;
+        e.visit(self)?.modifying(e);
+        self.pp.write_fmt(format_args!(") < 0 ? 0 : ("))?;
+        e.visit(self)?.modifying(e);
+        self.pp.write_str(")")
+    }
 }
 
 impl<W> ast::Visitor<(), std::fmt::Error> for Extractor<W>
@@ -196,7 +249,7 @@ where
         let arity = ast.params.len();
         let mut ret = ast.ret.clone().or(Some(expressions::Symbol {
             name: "_void".into(),
-            decl: expressions::Sort::Resolved(crate::typechecker::sorts::IvySort::Unit),
+            decl: expressions::Sort::Resolved(IvySort::Unit),
         }));
 
         self.pp
@@ -400,7 +453,34 @@ where
         ast.func.visit(self)?;
 
         self.pp.write_str("(")?;
-        self.write_separated(&mut ast.args, ", ")?;
+
+        // XXX: this is slightly gnarly and duplicates functionality in
+        // assignment-emission code, too - how can we make it better?
+        let argsorts = match &ast.func_sort {
+            expressions::Sort::ToBeInferred | expressions::Sort::Annotated(_) => {
+                panic!("Unresolved application sort")
+            }
+            expressions::Sort::Resolved(is) => match is {
+                IvySort::Action(_, ActionArgs::List(args), _) => Some(args),
+                IvySort::Object(_) => todo!(),
+                _ => None,
+            },
+        };
+        if let Some(args) = argsorts {
+            for (i, (arg, asort)) in ast.args.iter_mut().zip(args.iter()).enumerate() {
+                if i > 0 {
+                    self.pp.write_str(", ")?;
+                }
+                match asort {
+                    IvySort::Number => self.write_unbounded_seq(arg)?,
+                    IvySort::Range(lo, hi) => self.write_bounded_long(arg, *lo, *hi)?,
+                    _ => arg.visit(self)?.modifying(arg),
+                }
+            }
+        } else {
+            ast.args.visit(self)?.modifying(&mut ast.args);
+        }
+
         self.pp.write_str(")")?;
         Ok(ControlMut::SkipSiblings(()))
     }
@@ -412,7 +492,17 @@ where
     ) -> ExtractResult<actions::Action> {
         ast.lhs.visit(self)?;
         self.pp.write_str(" = ")?;
-        ast.rhs.visit(self)?;
+
+        match &ast.lhs_sort {
+            expressions::Sort::ToBeInferred | expressions::Sort::Annotated(_) => {
+                unreachable!("Failed to resolve sort of assignment")
+            }
+            expressions::Sort::Resolved(ivysort) => match ivysort {
+                IvySort::Number => self.write_unbounded_seq(&mut ast.rhs)?,
+                IvySort::Range(lo, hi) => self.write_bounded_long(&mut ast.rhs, *lo, *hi)?,
+                _ => ast.rhs.visit(self)?.modifying(&mut ast.rhs),
+            },
+        };
 
         Ok(ControlMut::SkipSiblings(()))
     }

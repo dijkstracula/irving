@@ -18,6 +18,7 @@ fn init() {
 pub mod helpers {
     use crate::{
         ast::{
+            actions::Action,
             declarations::Decl,
             expressions::{self, Expr},
             logic::{self, Fmla},
@@ -132,6 +133,14 @@ pub mod helpers {
             .single()
             .unwrap();
         IvyParser::stmt(res).expect("AST generation failed")
+    }
+
+    pub fn action_from_decl(prog: &str) -> Action {
+        let res = IvyParser::parse_with_userdata(Rule::action, prog, prog.to_owned().into())
+            .expect("Parsing failed")
+            .single()
+            .unwrap();
+        IvyParser::action(res).expect("AST generation failed")
     }
 
     pub fn fmla_from_src(prog: &str) -> Fmla {

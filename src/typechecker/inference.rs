@@ -330,7 +330,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
 
     fn finish_app(
         &mut self,
-        _ast: &mut expressions::AppExpr,
+        ast: &mut expressions::AppExpr,
         fsort: IvySort,
         argsorts: Vec<IvySort>,
     ) -> InferenceResult<Expr> {
@@ -344,6 +344,9 @@ impl Visitor<IvySort, TypeError> for SortInferer {
             .bindings
             .unify(&fsort, &expected_sort)
             .map_err(|e| e.to_typeerror(&Span::Todo))?;
+
+        ast.func_sort = Sort::Resolved(unified.clone());
+
         match unified {
             IvySort::Action(_argnames, _argsorts, action_ret) => match action_ret {
                 sorts::ActionRet::Unknown => {
