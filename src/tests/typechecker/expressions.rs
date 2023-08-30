@@ -4,6 +4,7 @@ mod tests {
 
     use crate::{
         ast::{
+            declarations::Binding,
             expressions::{self, Sort},
             span::Span,
         },
@@ -199,7 +200,12 @@ mod tests {
                 span: Span::IgnoredForTesting,
                 inner: Box::new(TypeError::unification_error(
                     &IvySort::Number,
-                    &IvySort::Action(vec!(), ActionArgs::List(vec!()), sorts::ActionRet::Unknown)
+                    &IvySort::Action(
+                        vec!(),
+                        ActionArgs::List(vec!()),
+                        sorts::ActionRet::Unknown,
+                        sorts::ActionKind::Unknown
+                    )
                 ))
             }
         )
@@ -279,5 +285,41 @@ mod tests {
         let mut getop = helpers::rval_from_src(prog);
         let res = getop.visit(&mut tc).unwrap_err();
         assert_eq!(res, TypeError::NotARecord(IvySort::Number.desc()));
+    }
+
+    #[test]
+    fn test_field_access_call() {
+        let prog = "a.b(a.b(0))";
+
+        let mut tc = SortInferer::new();
+
+        let procsort = Object {
+            args: BTreeMap::from([]),
+            fields: BTreeMap::from([(
+                "b".into(),
+                IvySort::action_sort(
+                    vec!["n".into()],
+                    vec![IvySort::Range(0, 3)],
+                    sorts::ActionRet::Named(Box::new(Binding::from("ret", IvySort::Number))),
+                ),
+            )]),
+        };
+        tc.bindings
+            .append("a".into(), IvySort::Object(procsort))
+            .unwrap();
+
+        let mut callop = helpers::rval_from_src(prog);
+        callop.visit(&mut tc).expect("visit").modifying(&mut callop);
+
+        assert!(matches!(
+            callop,
+            expressions::Expr::App {
+                expr: expressions::AppExpr {
+                    func_sort: Sort::Resolved(_),
+                    ..
+                },
+                ..
+            }
+        ));
     }
 }

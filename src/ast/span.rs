@@ -94,7 +94,7 @@ impl Display for Span {
         match self {
             Span::Source(s) => f.write_fmt(format_args!("{}", s)),
             Span::Optimized => f.write_str("<optimized>"),
-            Span::Todo => todo!(),
+            Span::Todo => f.write_str("<missing>"),
             Span::IgnoredForTesting => todo!(),
         }
     }

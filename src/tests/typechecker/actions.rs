@@ -327,7 +327,7 @@ mod tests {
         let err = action_app.visit(&mut tc).unwrap_err();
         assert_eq!(
             err,
-            ResolverError::LenMismatch(0, 1).to_typeerror(&Span::Todo)
+            ResolverError::LenMismatch(0, 1).to_typeerror(&Span::IgnoredForTesting)
         );
     }
 

@@ -2,7 +2,7 @@ use std::{collections::BTreeMap, error::Error};
 
 use crate::{
     ast::expressions::{self, Token},
-    typechecker::sorts::{ActionArgs, ActionRet, IvySort, Module, Object},
+    typechecker::sorts::{ActionArgs, ActionKind, ActionRet, IvySort, Module, Object},
 };
 
 use super::{ControlMut, VisitorResult};
@@ -63,6 +63,7 @@ where
         _arg_syms: Vec<expressions::Token>,
         _args: &mut ActionArgs,
         _ret: &mut ActionRet,
+        _kind: &mut ActionKind,
         _args_t: Option<Vec<T>>,
         _ret_t: T,
     ) -> VisitorResult<T, E, IvySort> {
@@ -127,7 +128,7 @@ where
             }
             IvySort::Range(lo, hi) => visitor.range(*lo, *hi),
             IvySort::Enum(discs) => visitor.enumeration(discs),
-            IvySort::Action(fargnames, ref mut fargsorts, ref mut ret) => {
+            IvySort::Action(fargnames, ref mut fargsorts, ref mut ret, ref mut kind) => {
                 let farg_t = match fargsorts {
                     ActionArgs::Unknown => None,
                     ActionArgs::List(sorts) => Some(
@@ -149,7 +150,7 @@ where
                 };
 
                 /*ret.visit(visitor)?.modifying(ret)?;*/
-                visitor.action(fargnames.clone(), fargsorts, ret, farg_t, ret_t)
+                visitor.action(fargnames.clone(), fargsorts, ret, kind, farg_t, ret_t)
             }
             IvySort::Relation(args) => {
                 let args_t = args

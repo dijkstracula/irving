@@ -356,6 +356,7 @@ where
     }
     fn finish_import_decl(
         &mut self,
+        _span: &Span,
         _ast: &mut declarations::ImportDecl,
         _n: (),
         _p: Vec<()>,

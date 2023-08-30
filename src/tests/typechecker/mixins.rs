@@ -42,6 +42,7 @@ mod tests {
                         ["x".into()].into(),
                         sorts::ActionArgs::List([IvySort::Bool].into()),
                         sorts::ActionRet::named("y", IvySort::Bool),
+                        sorts::ActionKind::Instance,
                     ),
                 ),
             ]
@@ -74,6 +75,7 @@ mod tests {
                         ["x".into()].into(),
                         sorts::ActionArgs::List([IvySort::Bool].into()),
                         sorts::ActionRet::named("y", IvySort::Bool),
+                        sorts::ActionKind::Instance,
                     ),
                 ),
             ]
@@ -105,6 +107,7 @@ mod tests {
                         ["x".into()].into(),
                         sorts::ActionArgs::List([IvySort::Bool].into()),
                         sorts::ActionRet::named("y", IvySort::Bool),
+                        sorts::ActionKind::Instance,
                     ),
                 ),
             ]

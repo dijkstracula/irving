@@ -1,6 +1,12 @@
 #[cfg(test)]
 mod tests {
     use crate::{
+        ast::{
+            actions::Action,
+            declarations::{ActionDecl, Binding, Decl, ModuleDecl},
+            expressions::Sort,
+            statements::Stmt,
+        },
         tests::helpers,
         typechecker::{
             inference::SortInferer,
@@ -192,5 +198,69 @@ instance c : counter(bool)",
         let mut tc = SortInferer::new();
         proc.visit(&mut tc)
             .expect_err("bool should not be unifiable with a numeric sort for argument `t`");
+    }
+
+    #[test]
+    fn module_extraction() {
+        let mut proc = helpers::prog_from_decls(
+            "
+#lang ivy1.8
+
+module a = { 
+    action foo(a: unbounded_sequence)
+
+    action bar = { 
+        foo(0) # After typechecking, we should have mutated foo()'s `func_sort` field.
+    }   
+}",
+        );
+
+        let mut si = SortInferer::new();
+        proc.visit(&mut si)
+            .expect("typechecking")
+            .modifying(&mut proc);
+
+        // XXX: I hate this!!!  Lenses when
+        let bar = match proc.top.get(0) {
+            Some(crate::ast::declarations::Decl::Module {
+                decl:
+                    Binding {
+                        decl: ModuleDecl { body, .. },
+                        ..
+                    },
+                ..
+            }) => body.get(1).unwrap(),
+            _ => panic!("unexpected AST"),
+        };
+        let bar_impl = match bar {
+            Decl::Action {
+                decl:
+                    Binding {
+                        decl:
+                            ActionDecl {
+                                body: Some(stmts), ..
+                            },
+                        ..
+                    },
+                ..
+            } => stmts.get(0).unwrap(),
+            _ => panic!("unexpected AST"),
+        };
+        let call_action = match bar_impl {
+            Stmt::ActionSequence(stmts) => stmts.get(0).unwrap(),
+            _ => panic!("unexpected AST"),
+        };
+        let app_expr = match call_action {
+            Action::Call { action, .. } => action,
+            _ => panic!("unexpected AST"),
+        };
+        assert_eq!(
+            app_expr.func_sort,
+            Sort::Resolved(IvySort::action_sort(
+                vec!["a".into()],
+                vec![IvySort::Number],
+                sorts::ActionRet::Unit
+            ))
+        );
     }
 }

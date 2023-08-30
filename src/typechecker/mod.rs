@@ -17,6 +17,9 @@ pub type InferenceResult<N> = VisitorResult<IvySort, TypeError, N>;
 
 #[derive(Debug, Error, Clone, PartialEq, Eq)]
 pub enum TypeError {
+    #[error("Invalid kind of action kind???")]
+    ActionKindMismatch,
+
     #[error("Value can't be called")]
     InvalidApplication,
 
@@ -44,7 +47,7 @@ pub enum TypeError {
     #[error("Sort {0:?} mismatches {1:?}")]
     UnificationError(String, String),
 
-    #[error("Sequence length mismatches {actual:?}")]
+    #[error("Sequence of length {actual} received; expected {expected}")]
     LenMismatch { expected: usize, actual: usize },
 
     #[error("Token {expected:?} redefined as {actual:?}")]
@@ -64,5 +67,18 @@ pub enum TypeError {
 impl TypeError {
     pub fn unification_error(lhs: &IvySort, rhs: &IvySort) -> Self {
         Self::UnificationError(format!("{}", lhs), format!("{}", rhs))
+    }
+
+    pub fn rewrap(self, span: &Span) -> Self {
+        match self {
+            TypeError::Spanned {
+                span: Span::Todo,
+                inner,
+            } => TypeError::Spanned {
+                span: span.clone(),
+                inner,
+            },
+            e => e,
+        }
     }
 }

@@ -458,10 +458,10 @@ where
         // assignment-emission code, too - how can we make it better?
         let argsorts = match &ast.func_sort {
             expressions::Sort::ToBeInferred | expressions::Sort::Annotated(_) => {
-                panic!("Unresolved application sort")
+                panic!("Unresolved application sort {:#?}", ast);
             }
             expressions::Sort::Resolved(is) => match is {
-                IvySort::Action(_, ActionArgs::List(args), _) => Some(args),
+                IvySort::Action(_, ActionArgs::List(args), _, _) => Some(args),
                 IvySort::Object(_) => todo!(),
                 _ => None,
             },

@@ -75,7 +75,7 @@ impl From<IvySort> for JavaType {
             }
             IvySort::Range(lo, hi) => Self::BoundedLong(lo, hi),
             IvySort::Enum(_) => todo!(),
-            IvySort::Action(_, _, _) => todo!(),
+            IvySort::Action(_, _, _, _) => todo!(),
             IvySort::Relation(_) => todo!(),
             IvySort::Subclass(_) => todo!(),
             IvySort::Module(Module { name, args, .. }) => {
@@ -113,7 +113,7 @@ impl From<&IvySort> for JavaType {
             }
             IvySort::Range(lo, hi) => Self::BoundedLong(*lo, *hi),
             IvySort::Enum(_) => todo!(),
-            IvySort::Action(_, _, _) => todo!(),
+            IvySort::Action(_, _, _, _) => todo!(),
             IvySort::Relation(_) => todo!(),
             IvySort::Subclass(_) => todo!(),
             IvySort::Module(Module { name, args, .. }) => {

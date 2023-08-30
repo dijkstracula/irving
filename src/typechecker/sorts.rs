@@ -53,6 +53,26 @@ impl ActionRet {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]
+pub enum ActionKind {
+    /// A "callback" into the environment.
+    Imported,
+
+    /// An exposed action that the environment may choose to call.
+    /// Implicitly an instance action.
+    Exported,
+
+    /// The default state of an action: tied to a particular instance
+    /// of a parameterized action.
+    Instance,
+
+    /// A "static" action of sorts.
+    Common,
+
+    /// For unification purposes
+    Unknown,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]
 pub enum IvySort {
     Uninterpreted,
     This,
@@ -64,7 +84,7 @@ pub enum IvySort {
     Vector(Box<IvySort>),
     Range(i64, i64),
     Enum(Vec<Token>),
-    Action(Vec<Token>, ActionArgs, ActionRet),
+    Action(Vec<Token>, ActionArgs, ActionRet, ActionKind),
     Relation(Vec<IvySort>),
     Subclass(Token),
     Module(Module),
@@ -81,7 +101,7 @@ impl Display for IvySort {
             IvySort::Vector(elm) => write!(f, "vector({elm})"),
             IvySort::Range(min, max) => write!(f, "{{{:?}..{:?}}}", min, max),
             IvySort::Enum(discs) => write!(f, "{{ ... {} discriminants ... }}", discs.len()),
-            IvySort::Action(_, args, ret) => {
+            IvySort::Action(_, args, ret, _) => {
                 write!(f, "(")?;
                 match args {
                     ActionArgs::Unknown => write!(f, "?")?,
@@ -113,13 +133,51 @@ impl Display for IvySort {
 
 impl IvySort {
     pub fn action_sort(arg_names: Vec<Token>, arg_sorts: Vec<IvySort>, ret: ActionRet) -> IvySort {
-        // TODO: Do we want this?  Seems like a panic is strictly worse than constructing
-        // the sort and then letting unification fail shortly thereafter.
-        //if arg_names.len() != arg_sorts.len() {
-        //    panic!("mismatch between arg_names and arg_sorts");
-        //}
+        IvySort::Action(
+            arg_names,
+            ActionArgs::List(arg_sorts),
+            ret,
+            ActionKind::Instance,
+        )
+    }
 
-        IvySort::Action(arg_names, ActionArgs::List(arg_sorts), ret)
+    pub fn exported_action_sort(
+        arg_names: Vec<Token>,
+        arg_sorts: Vec<IvySort>,
+        ret: ActionRet,
+    ) -> IvySort {
+        IvySort::Action(
+            arg_names,
+            ActionArgs::List(arg_sorts),
+            ret,
+            ActionKind::Exported,
+        )
+    }
+
+    pub fn imported_action_sort(
+        arg_names: Vec<Token>,
+        arg_sorts: Vec<IvySort>,
+        ret: ActionRet,
+    ) -> IvySort {
+        IvySort::Action(
+            arg_names,
+            ActionArgs::List(arg_sorts),
+            ret,
+            ActionKind::Imported,
+        )
+    }
+
+    pub fn common_action_sort(
+        arg_names: Vec<Token>,
+        arg_sorts: Vec<IvySort>,
+        ret: ActionRet,
+    ) -> IvySort {
+        IvySort::Action(
+            arg_names,
+            ActionArgs::List(arg_sorts),
+            ret,
+            ActionKind::Common,
+        )
     }
 
     pub fn is_sortvar(&self) -> bool {
@@ -141,7 +199,7 @@ impl IvySort {
             IvySort::Vector(_) => "vector",
             IvySort::Range(_, _) => "range",
             IvySort::Enum(_) => "enum",
-            IvySort::Action(_, _, _) => "action",
+            IvySort::Action(_, _, _, _) => "action",
             IvySort::Relation(_) => "relation",
             IvySort::Subclass(_) => "object",
             IvySort::Module(_) => "module",
@@ -208,6 +266,7 @@ impl Visitor<IvySort, TypeError> for SortSubstituter {
         arg_syms: Vec<Token>,
         _args: &mut ActionArgs,
         ret: &mut ActionRet,
+        kind: &mut ActionKind,
         args_t: Option<Vec<IvySort>>,
         ret_t: IvySort,
     ) -> InferenceResult<IvySort> {
@@ -224,7 +283,7 @@ impl Visitor<IvySort, TypeError> for SortSubstituter {
             },
         };
 
-        self.subst(IvySort::Action(arg_syms, args, ret))
+        self.subst(IvySort::Action(arg_syms, args, ret, kind.clone()))
     }
 
     fn vector(

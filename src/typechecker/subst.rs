@@ -36,7 +36,6 @@ impl Visitor<(), TypeError> for SortSubstituter {
         &mut self,
         s: &mut expressions::Sort,
     ) -> VisitorResult<(), TypeError, expressions::Sort> {
-        log::debug!(target: "sort-substituter", "{s:?}");
         match s {
             expressions::Sort::ToBeInferred | expressions::Sort::Annotated(_) => {
                 println!("Uh oh! {:?}", s);

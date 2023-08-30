@@ -9,7 +9,7 @@ use crate::{
 };
 
 use super::{
-    sorts::{ActionRet, IvySort},
+    sorts::{ActionKind, ActionRet, IvySort},
     TypeError,
 };
 
@@ -132,7 +132,7 @@ impl BindingResolver {
         lhs: &Vec<IvySort>,
         rhs: &Vec<IvySort>,
     ) -> Result<Vec<IvySort>, ResolverError> {
-        log::debug!(target: "type-inference", "unify({lhs:?},{rhs:?})");
+        log::debug!(target: "sort-inference", "unify({lhs:?},{rhs:?})");
         if lhs.len() != rhs.len() {
             // XXX: which is expected and which is actual?
             Err(ResolverError::LenMismatch(lhs.len(), rhs.len()))
@@ -150,7 +150,7 @@ impl BindingResolver {
         lhs: &ActionArgs,
         rhs: &ActionArgs,
     ) -> Result<ActionArgs, ResolverError> {
-        log::debug!(target: "type-inference", "unify({lhs:?},{rhs:?})");
+        log::debug!(target: "sort-inference", "unify({lhs:?},{rhs:?})");
         match (lhs, rhs) {
             (ActionArgs::Unknown, ActionArgs::Unknown) => Ok(ActionArgs::Unknown),
             (ActionArgs::Unknown, ActionArgs::List(rhs)) => Ok(ActionArgs::List(rhs.clone())),
@@ -166,7 +166,7 @@ impl BindingResolver {
         lhs: &ActionRet,
         rhs: &ActionRet,
     ) -> Result<ActionRet, ResolverError> {
-        log::debug!(target: "type-inference", "unify({lhs:?},{rhs:?})");
+        log::debug!(target: "sort-inference", "unify({lhs:?},{rhs:?})");
         match (lhs, rhs) {
             (ActionRet::Unknown, ActionRet::Unknown) => Ok(ActionRet::Unknown),
 
@@ -193,10 +193,19 @@ impl BindingResolver {
         }
     }
 
+    fn unify_action_kinds(lhs: &ActionKind, rhs: &ActionKind) -> Result<ActionKind, ResolverError> {
+        match (lhs, rhs) {
+            (ActionKind::Unknown, rhs) => Ok(rhs.clone()),
+            (lhs, ActionKind::Unknown) => Ok(lhs.clone()),
+            (lhs, rhs) if lhs == rhs => Ok(lhs.clone()),
+            (lhs, rhs) => Err(ResolverError::ActionKindMismatch(lhs.clone(), rhs.clone())),
+        }
+    }
+
     pub fn unify(&mut self, lhs: &IvySort, rhs: &IvySort) -> Result<IvySort, ResolverError> {
         let lhs = self.resolve(lhs).clone();
         let rhs = self.resolve(rhs).clone();
-        log::debug!(target: "type-inference", "unify({lhs:?},{rhs:?})");
+        log::debug!(target: "sort-inference", "unify({lhs:?},{rhs:?})");
         match (&lhs, &rhs) {
             (IvySort::SortVar(i), IvySort::SortVar(j)) => {
                 if i < j {
@@ -218,8 +227,8 @@ impl BindingResolver {
                 Ok(lhs)
             }
             (
-                IvySort::Action(lhsargnames, lhsargsorts, lhsret),
-                IvySort::Action(rhsargnames, rhsargsorts, rhsret),
+                IvySort::Action(lhsargnames, lhsargsorts, lhsret, lhskind),
+                IvySort::Action(rhsargnames, rhsargsorts, rhsret, rhskind),
             ) => {
                 if lhsargnames.len() != rhsargnames.len() {
                     return Err(ResolverError::LenMismatch(
@@ -229,10 +238,11 @@ impl BindingResolver {
                 }
                 let args = self.unify_action_args(lhsargsorts, rhsargsorts)?;
                 let ret = self.unify_action_rets(lhsret, rhsret)?;
+                let kind = BindingResolver::unify_action_kinds(lhskind, rhskind)?;
 
                 // XXX: choosing the LHS' argument list arbitrarily!  Maybe we
                 // can't treat the arguments to unify() as symmetric...
-                Ok(IvySort::Action(lhsargnames.clone(), args, ret))
+                Ok(IvySort::Action(lhsargnames.clone(), args, ret, kind))
             }
 
             // These subtyping relationship are meant to capture part of the
@@ -254,7 +264,7 @@ impl BindingResolver {
             // This subtyping relationship is for indexing into a parameterized
             // object by its parameters.
             (
-                IvySort::Action(_, ActionArgs::List(fargs), _),
+                IvySort::Action(_, ActionArgs::List(fargs), _, _),
                 IvySort::Object(Object {
                     args,
                     fields: obj_fields,
@@ -265,7 +275,7 @@ impl BindingResolver {
                     args,
                     fields: obj_fields,
                 }),
-                IvySort::Action(_, ActionArgs::List(fargs), _),
+                IvySort::Action(_, ActionArgs::List(fargs), _, _),
             ) => {
                 // XXX: I'm not sure about this anymore.
                 //let unified = match fret {
@@ -295,13 +305,14 @@ impl BindingResolver {
 
             // This subtyping relation says that "calling" a Relation with well-typed
             // arguments of the correct arity produces a Bool.
+            // TODO: should we constrain the ActionKind parameter?
             (
-                IvySort::Action(_, ActionArgs::List(aargsorts), ActionRet::Unknown),
+                IvySort::Action(_, ActionArgs::List(aargsorts), ActionRet::Unknown, _),
                 IvySort::Relation(rargsorts),
             )
             | (
                 IvySort::Relation(rargsorts),
-                IvySort::Action(_, ActionArgs::List(aargsorts), ActionRet::Unknown),
+                IvySort::Action(_, ActionArgs::List(aargsorts), ActionRet::Unknown, _),
             ) => {
                 let unified_sorts = self.unify_vec(aargsorts, rargsorts)?;
                 Ok(IvySort::Relation(unified_sorts))
@@ -333,6 +344,7 @@ impl BindingResolver {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ResolverError {
+    ActionKindMismatch(ActionKind, ActionKind),
     LenMismatch(usize, usize),
     MissingField(String),
     NotARecord(IvySort),
@@ -350,7 +362,9 @@ impl ResolverError {
         TypeError::Spanned {
             span: span.clone(),
             inner: Box::new(match self {
+                ResolverError::ActionKindMismatch(_, _) => TypeError::ActionKindMismatch,
                 ResolverError::LenMismatch(lhs, rhs) => TypeError::LenMismatch {
+                    // XXX: This is sensitive to the order of arguments to unify, which is suboptimal.
                     expected: lhs,
                     actual: rhs,
                 },

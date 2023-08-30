@@ -139,11 +139,18 @@ where
     }
     fn finish_call(
         &mut self,
-        _ast: &mut AppExpr,
-        _f: T,
-        _args: Vec<T>,
+        span: &Span,
+        ast: &mut AppExpr,
+        f: T,
+        args: Vec<T>,
     ) -> VisitorResult<T, E, Action> {
-        Ok(ControlMut::Produce(T::default()))
+        let res: VisitorResult<T, E, Action> =
+            self.finish_app(span, ast, f, args).map(|ctrl| match ctrl {
+                ControlMut::Produce(t) => ControlMut::Produce(t),
+                ControlMut::SkipSiblings(t) => ControlMut::SkipSiblings(t),
+                ControlMut::Mutation(_, _) => todo!(), // XXX: stupid hack that will bite me later,  but not today satan!
+            });
+        res
     }
 
     fn begin_ensure(&mut self, _ast: &mut EnsureAction) -> VisitorResult<T, E, Action> {
@@ -308,6 +315,7 @@ where
     }
     fn finish_import_decl(
         &mut self,
+        _span: &Span,
         _ast: &mut ImportDecl,
         _n: T,
         _p: Vec<T>,
@@ -550,6 +558,7 @@ where
     }
     fn finish_app(
         &mut self,
+        _span: &Span,
         _ast: &mut AppExpr,
         _f: T,
         _args: Vec<T>,
@@ -686,10 +695,10 @@ where
                 .begin_assume(action)?
                 .map(|_| Ok(action.pred.visit(visitor)?.modifying(&mut action.pred)))?
                 .and_then(|_| visitor.finish_assume(action)),
-            Action::Call { action, .. } => visitor.begin_call(action)?.and_then(|_| {
+            Action::Call { span, action } => visitor.begin_call(action)?.and_then(|_| {
                 let func = action.func.visit(visitor)?.modifying(&mut action.func);
                 let args = action.args.visit(visitor)?.modifying(&mut action.args);
-                visitor.finish_call(action, func, args)
+                visitor.finish_call(span, action, func, args)
             }),
             Action::Ensure { action, .. } => visitor.begin_ensure(action)?.and_then(|_| {
                 let p = action.pred.visit(visitor)?.modifying(&mut action.pred);
@@ -719,10 +728,10 @@ where
         let span = self.span();
         log::trace!(target: "visitor", "Expr {:?}", self);
         let t = match self {
-            Expr::App { expr, .. } => visitor.begin_app(expr)?.and_then(|_| {
+            Expr::App { span, expr } => visitor.begin_app(expr)?.and_then(|_| {
                 let func = expr.func.visit(visitor)?.modifying(&mut expr.func);
                 let args = expr.args.visit(visitor)?.modifying(&mut expr.args);
-                visitor.finish_app(expr, func, args)
+                visitor.finish_app(span, expr, func, args)
             }),
             Expr::BinOp { expr, .. } => visitor.begin_binop(expr)?.and_then(|foo| {
                 let l = expr.lhs.visit(visitor)?.modifying(&mut expr.lhs);
@@ -1029,10 +1038,10 @@ where
                 let body = decl.body.visit(visitor)?.modifying(&mut decl.body);
                 visitor.finish_implement_decl(decl, n, params, ret, body)
             }),
-            Decl::Import { decl, .. } => visitor.begin_import_decl(decl)?.and_then(|_| {
+            Decl::Import { decl, span } => visitor.begin_import_decl(decl)?.and_then(|_| {
                 let n = decl.name.visit(visitor)?.modifying(&mut decl.name);
                 let p = decl.params.visit(visitor)?.modifying(&mut decl.params);
-                visitor.finish_import_decl(decl, n, p)
+                visitor.finish_import_decl(span, decl, n, p)
             }),
             Decl::Include { decl, .. } => visitor.begin_include_decl(decl)?.and_then(|_| {
                 let _ = decl.visit(visitor)?.modifying(decl);

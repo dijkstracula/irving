@@ -49,7 +49,7 @@ impl SortInferer {
         mixin_ret_sort: Option<IvySort>,
     ) -> Result<(ActionMixinDecl, IvySort), TypeError> {
         let action_args = match &action_sort {
-            IvySort::Action(args, _, _) => args,
+            IvySort::Action(args, _, _, _) => args,
             _ => unreachable!(),
         };
         let action_args = match &mixin.params {
@@ -90,11 +90,13 @@ impl SortInferer {
                 action_args,
                 ActionArgs::Unknown,
                 sorts::ActionRet::Named(Box::new(Binding::from("TODO", ret))),
+                sorts::ActionKind::Instance, // TODO: can we have a common mixin?
             ),
             (Some(params), Some(ret)) => IvySort::Action(
                 action_args,
                 ActionArgs::List(params),
                 sorts::ActionRet::Named(Box::new(Binding::from("TODO", ret))),
+                sorts::ActionKind::Instance, // TODO: can we have a common mixin?
             ),
         };
 
@@ -106,7 +108,7 @@ impl SortInferer {
         // Lastly, we want to propagate what we've learned about the argument
         // list for later passes.
         let mixed_params = match &unified {
-            IvySort::Action(args, ActionArgs::List(sorts), _) => args
+            IvySort::Action(args, ActionArgs::List(sorts), _, _) => args
                 .iter()
                 .zip(sorts.iter())
                 .map(|(name, sort)| Symbol::from(name, Sort::Resolved(sort.clone())))
@@ -330,6 +332,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
 
     fn finish_app(
         &mut self,
+        span: &Span,
         ast: &mut expressions::AppExpr,
         fsort: IvySort,
         argsorts: Vec<IvySort>,
@@ -343,12 +346,12 @@ impl Visitor<IvySort, TypeError> for SortInferer {
         let unified = self
             .bindings
             .unify(&fsort, &expected_sort)
-            .map_err(|e| e.to_typeerror(&Span::Todo))?;
+            .map_err(|e| e.to_typeerror(span))?;
 
         ast.func_sort = Sort::Resolved(unified.clone());
 
         match unified {
-            IvySort::Action(_argnames, _argsorts, action_ret) => match action_ret {
+            IvySort::Action(_argnames, _argsorts, action_ret, _) => match action_ret {
                 sorts::ActionRet::Unknown => {
                     let retsort = self.bindings.new_sortvar();
                     Ok(ControlMut::Produce(retsort))
@@ -459,7 +462,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
                 is_common = s.is_none();
                 Ok(s.cloned())
             }
-            sortvar @ IvySort::SortVar(_) => Ok(Some(sortvar.clone())),
+            IvySort::SortVar(id) => Ok(Some(IvySort::SortVar(*id))),
             sort => Err(TypeError::NotARecord(sort.desc())),
         }?
         // Next, if the RHS expression has a known type, ensure it doesn't contradict
@@ -472,7 +475,8 @@ impl Visitor<IvySort, TypeError> for SortInferer {
         // to curry it.  (TODO: might be that the common aspect is not a requirement
         // but I need to understand why;  See https://github.com/dijkstracula/irving/issues/35 .)
         .map(|s| match s {
-            IvySort::Action(argnames, ActionArgs::List(argsorts), ret) if !is_common => {
+            // TODO: remove is_common and use kind instead
+            IvySort::Action(argnames, ActionArgs::List(argsorts), ret, _kind) if !is_common => {
                 let first_arg = argsorts.get(0).map(|s| self.bindings.resolve(s));
                 if first_arg == Some(&IvySort::This) {
                     let remaining_argnames = argnames.into_iter().skip(1).collect::<Vec<_>>();
@@ -593,7 +597,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
             } => {
                 for arg in args {
                     if let logic::Fmla::LogicSymbol { sym, .. } = arg {
-                        let s = self.param(sym)?.modifying(sym);
+                        let s = self.param(sym).map_err(|e| e.rewrap(span))?.modifying(sym);
                         self.bindings
                             .append(sym.name.clone(), s)
                             .map_err(|e| e.to_typeerror(span))?;
@@ -640,7 +644,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
             .map_err(|e| e.to_typeerror(&Span::Todo))?;
 
         match unified {
-            IvySort::Action(_argnames, _argsorts, action_ret) => match action_ret {
+            IvySort::Action(_argnames, _argsorts, action_ret, _) => match action_ret {
                 sorts::ActionRet::Unknown => {
                     let retsort = self.bindings.new_sortvar();
                     Ok(ControlMut::Produce(retsort))
@@ -764,7 +768,8 @@ impl Visitor<IvySort, TypeError> for SortInferer {
         // to curry it.  (TODO: might be that the common aspect is not a requirement
         // but I need to understand why;  See https://github.com/dijkstracula/irving/issues/35 .)
         .map(|s| match s {
-            IvySort::Action(argnames, ActionArgs::List(argsorts), ret) if !is_common => {
+            // TODO: deprecrate is_common and use _kind instead
+            IvySort::Action(argnames, ActionArgs::List(argsorts), ret, _kind) if !is_common => {
                 let first_arg = argsorts.get(0).map(|s| self.bindings.resolve(s));
                 if first_arg == Some(&IvySort::This) {
                     let remaining_argnames = argnames.into_iter().skip(1).collect::<Vec<_>>();
@@ -1105,20 +1110,21 @@ impl Visitor<IvySort, TypeError> for SortInferer {
     }
     fn finish_import_decl(
         &mut self,
+        span: &Span,
         _ast: &mut declarations::ImportDecl,
         decl_sortvar: IvySort,
         param_sorts: Vec<IvySort>,
     ) -> InferenceResult<declarations::Decl> {
-        // TODO
         let relsort = IvySort::Action(
             vec![],
             ActionArgs::List(param_sorts),
             sorts::ActionRet::Unit,
+            sorts::ActionKind::Imported,
         );
         let unifed = self
             .bindings
             .unify(&decl_sortvar, &relsort)
-            .map_err(|e| e.to_typeerror(&Span::Todo))?;
+            .map_err(|e| e.to_typeerror(span))?;
         Ok(ControlMut::Produce(unifed))
     }
 
