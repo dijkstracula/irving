@@ -2,7 +2,7 @@
 mod tests {
     use std::rc::Rc;
 
-    use crate::ast::expressions::*;
+    use crate::ast::expressions::{self, *};
     use crate::ast::logic::{Fmla, LogicBinOp};
     use crate::ast::span::Span;
     use crate::parser::ivy::{IvyParser, Result, Rule};
@@ -56,12 +56,26 @@ mod tests {
 
     #[test]
     fn parse_number_expr() {
-        let _ast = parse_rval("42").unwrap();
+        let ast = parse_rval("42").unwrap();
+        assert!(matches!(ast, expressions::Expr::Number { val: 42, .. }));
     }
 
     #[test]
     fn parse_negative_number_expr() {
-        let _ast = parse_rval("-42").unwrap();
+        let ast = parse_rval("-42").unwrap();
+        assert!(matches!(ast, expressions::Expr::UnaryOp { .. }));
+    }
+
+    #[test]
+    fn parse_le() {
+        let ast = parse_rval("0 <= s").unwrap();
+        assert!(matches!(
+            ast,
+            expressions::Expr::BinOp {
+                expr: expressions::BinOp { op: Verb::Le, .. },
+                ..
+            }
+        ))
     }
 
     #[test]
@@ -88,8 +102,8 @@ mod tests {
     #[test]
     fn parse_complex_expr() {
         let fragment = "sock.send(host(1-self).sock.id, val)";
-        let _ast = parse_rval(fragment).unwrap();
-        println!("{:?}", _ast);
+        let ast = parse_rval(fragment).unwrap();
+        assert!(matches!(ast, expressions::Expr::App { .. }));
     }
 
     #[test]

@@ -1,0 +1,129 @@
+#lang ivy1.8
+
+#include order
+#include collections_impl
+
+################################################################################
+#
+# Arrays
+#
+# Array types represent maps from an interval [0,end) of a type
+# "domain" to a type "range".  An array type thing.t can be created
+# like this:
+#
+#    instance thing : array(domain.t,range.t)
+#
+# The implementation of this type requires that domain.t be
+# interpreted as 'int'.
+
+module array(domain,range) = {
+
+    type this
+    alias t = this
+
+    # return an empty array
+
+    action empty returns (a:t)
+
+    # return an array with end=s and all values mapped to y
+    action create(s:domain,y:range) returns (a:t)
+
+    # mutate an array a so that x in [0,end) maps to y
+    action set(a:t,x:domain,y:range) returns (a:t)
+
+    # get the value y such that x in [0,end) maps to y in array a
+    action get(a:t,x:domain) returns (y:range) 
+
+    # get the value of end
+    action size(a:t) returns (s:domain)
+    
+    # change the size of the array
+    action resize(a:t,s:domain,v:range) returns (a:t)
+
+    # add one element to the array
+    action append(a:t,v:range) returns (a:t)
+
+    # test equality of two arrays
+#    action eq(x:t,y:t) returns (res:bool)
+    # extend an array by another arrary (i.e., concatenate the arrays)
+    action extend(a:t,b:t) returns (a:t)
+
+    ########################################
+    # Representation
+    #
+    # Function "end" gives the end value of an array while value(a,x)
+    # gives the value that x maps to in a.
+
+    #function begin(A:t) : domain
+    #definition begin(A) = 0
+    #function end(A:t) : domain
+    #function value(A:t,X:domain) : range
+    #function eq(X:t,Y:t) = (end(X) = end(Y) & forall I. 0 <= I & I < end(X) -> value(X,I) = value(Y,I))
+
+
+    ########################################
+    # Specification
+    #
+    # Notice that get and set have the precondition that x is in
+    # [0,end).
+
+    object spec = {
+
+#        definition begin(X) = 0
+
+	#property end(X) >= 0
+
+	after empty {
+	    #assert end(a) = 0
+	}
+	before create {
+	    assert 0 <= s
+	}
+	after create {
+	    #assert end(a) = s & value(a,X) = y
+	}
+        before set {
+	    assert 0 <= x & x < end(a)
+	}	       	 
+	after set {
+            #assert end(a) = end(old a);
+	    #assert value(a,X) = y if X = x else value(old a,X)
+	}
+	before get {
+	    assert 0 <= x & x < end(a)
+	}
+	after get {
+	    assert value(a,x) = y
+	}
+	after size {
+	    assert s = end(a)
+	}
+	after resize{
+	    assert end(a) = s;
+	    #assert 0 <= X & X < end(old a) -> value(a,X) = value(old a,X);
+	    #assert end(old a) <= X & X < s -> value(a,X) = v
+	}
+	after append {
+	    #assert end(a) > end(old a) & ~(end(old a) < X & X < end(a));
+#            assert domain.succ(end(old a),end(a));
+	    #assert 0 <= X & X < end(old a) -> value(a,X) = value(old a,X);
+	    #assert value(a,end(old a)) = v
+	}
+
+#        after eq {
+#            ensure res <-> (end(x) = end(y) & forall I. 0 <= I & I < end(x) -> value(x,I) = value(y,I))
+#        }
+
+        #theorem extensionality = {
+        #    property end(X) = end(Y) & forall I. 0 <= I & I < end(X) -> value(X,I) = value(Y,I)
+        #    property X:t = Y
+        #}
+    }
+
+    #instantiate array_impl
+
+    #trusted isolate iso = spec,impl
+
+    #attribute test = impl
+}
+

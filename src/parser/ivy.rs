@@ -578,7 +578,7 @@ impl IvyParser {
         let span = Span::from_node(&input);
         match_nodes!(
         input.into_children();
-        [rval(pred)] => Ok((span, AssertAction{pred})),
+        [fmla(pred)] => Ok((span, AssertAction{pred})),
         )
     }
 
@@ -602,7 +602,7 @@ impl IvyParser {
 
         match_nodes!(
         input.into_children();
-        [rval(pred)] => Ok((span, AssumeAction{pred})),
+        [fmla(pred)] => Ok((span, AssumeAction{pred})),
         )
     }
 

@@ -594,6 +594,13 @@ where
         }
         self.pp.write_str("\n")?;
 
+        for param in ast.params() {
+            self.pp.write_str("private ")?;
+            self.param(param)?;
+            self.pp.write_str(";\n")?;
+        }
+        self.pp.write_str("\n")?;
+
         for decl in ast.vars() {
             self.pp.write_str("private ")?;
             decl.visit(self)?.modifying(decl);

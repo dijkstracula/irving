@@ -18,12 +18,12 @@ pub struct AssignLogicalAction {
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(clippy::large_enum_variant)]
 pub struct AssertAction {
-    pub pred: Expr,
+    pub pred: Fmla,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AssumeAction {
-    pub pred: Expr,
+    pub pred: Fmla,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

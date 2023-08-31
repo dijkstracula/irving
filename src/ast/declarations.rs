@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use super::expressions::*;
+use super::expressions::{self, *};
 use super::logic::Fmla;
 use super::span::Span;
 use super::statements::*;
@@ -101,6 +101,10 @@ impl ObjectDecl {
                 _ => None,
             })
             .collect()
+    }
+
+    pub fn params(&mut self) -> &mut expressions::ParamList {
+        &mut self.params
     }
 
     pub fn vars(&mut self) -> Vec<&mut Decl> {
