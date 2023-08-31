@@ -338,6 +338,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
         argsorts: Vec<IvySort>,
     ) -> InferenceResult<Expr> {
         // XXX: This is hacky.
+
         let dummy_argnames = (0..argsorts.len())
             .map(|i| format!("arg{i}"))
             .collect::<Vec<_>>();
@@ -1111,19 +1112,19 @@ impl Visitor<IvySort, TypeError> for SortInferer {
     fn finish_import_decl(
         &mut self,
         span: &Span,
-        _ast: &mut declarations::ImportDecl,
-        decl_sortvar: IvySort,
+        ast: &mut declarations::ImportDecl,
+        decl_sort: IvySort,
         param_sorts: Vec<IvySort>,
     ) -> InferenceResult<declarations::Decl> {
-        let relsort = IvySort::Action(
-            vec![],
-            ActionArgs::List(param_sorts),
-            sorts::ActionRet::Unit,
-            sorts::ActionKind::Imported,
-        );
+        let param_names = ast
+            .params
+            .iter()
+            .map(|sym| sym.name.clone())
+            .collect::<Vec<_>>();
+        let actsort = IvySort::action_sort(param_names, param_sorts, sorts::ActionRet::Unit);
         let unifed = self
             .bindings
-            .unify(&decl_sortvar, &relsort)
+            .unify(&decl_sort, &actsort)
             .map_err(|e| e.to_typeerror(span))?;
         Ok(ControlMut::Produce(unifed))
     }
