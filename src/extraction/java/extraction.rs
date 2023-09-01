@@ -368,6 +368,12 @@ where
         Ok(ControlMut::SkipSiblings(()))
     }
 
+    fn begin_include_decl(&mut self, ast: &mut Token) -> ExtractResult<declarations::Decl> {
+        self.pp
+            .write_fmt(format_args!("import ivy.stdlib.{ast}.*"))?;
+        Ok(ControlMut::Produce(()))
+    }
+
     fn begin_instance_decl(
         &mut self,
         name: &mut Token,
