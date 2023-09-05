@@ -11,7 +11,7 @@ use super::{InferenceResult, TypeError};
 
 #[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]
 pub struct Object {
-    pub args: BTreeMap<Token, IvySort>,
+    pub args: Vec<Binding<IvySort>>,
     pub fields: BTreeMap<Token, IvySort>,
 }
 

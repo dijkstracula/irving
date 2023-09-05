@@ -1,5 +1,5 @@
 use super::{
-    expressions::{self, Expr, ParamList, Symbol},
+    expressions::{self, ParamList, Symbol},
     span::Span,
 };
 
@@ -21,7 +21,6 @@ pub enum Fmla {
         span: Span,
         fmla: Exists,
     },
-    Pred(Expr),
 
     App {
         span: Span,
@@ -70,7 +69,6 @@ impl Fmla {
         match self {
             Fmla::Forall { span, .. } => span,
             Fmla::Exists { span, .. } => span,
-            Fmla::Pred(expr) => expr.span(),
             Fmla::App { span, .. } => span,
             Fmla::BinOp { span, .. } => span,
             Fmla::Boolean { span, .. } => span,
@@ -86,7 +84,6 @@ impl Fmla {
         match self {
             Fmla::Forall { .. } => true,
             Fmla::Exists { .. } => true,
-            Fmla::Pred(_) => false,
             Fmla::App { app, .. } => app.args.iter().any(|arg| arg.is_quantified()),
             Fmla::BinOp { binop, .. } => binop.lhs.is_quantified() || binop.rhs.is_quantified(),
             Fmla::Boolean { .. } => false,
@@ -116,7 +113,6 @@ impl Fmla {
                 fmla: Exists { fmla, .. },
                 ..
             } => fmla.depth() + 1,
-            Fmla::Pred(expr) => expr.depth(),
 
             Fmla::App {
                 app: LogicApp { func, args },

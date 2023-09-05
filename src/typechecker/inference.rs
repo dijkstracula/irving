@@ -635,7 +635,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
 
         // XXX: This is hacky.
         let dummy_argnames = (0..arg_sorts.len())
-            .map(|i| format!("arg{i}"))
+            .map(|i| format!("logical_arg{i}"))
             .collect::<Vec<_>>();
         let expected_sort =
             IvySort::action_sort(dummy_argnames, arg_sorts, sorts::ActionRet::Unknown);
@@ -1302,8 +1302,10 @@ impl Visitor<IvySort, TypeError> for SortInferer {
             .params
             .iter()
             .zip(param_sorts.iter())
-            .map(|(param, sort)| (param.name.clone(), self.bindings.resolve(sort).clone()))
-            .collect::<BTreeMap<_, _>>();
+            .map(|(param, sort)| {
+                Binding::from(param.name.clone(), self.bindings.resolve(sort).clone())
+            })
+            .collect::<Vec<_>>();
 
         let mut fields = ast
             .body

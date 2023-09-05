@@ -833,7 +833,6 @@ where
                     let f = visitor.symbol(span, field)?.modifying(field);
                     visitor.finish_logical_field_access(record, field, r, f)
                 }),
-            Fmla::Pred(expr) => unreachable!("deprecated"),
             Fmla::Number { span, val } => Ok(ControlMut::Produce(
                 visitor.number(span, val)?.modifying(val),
             )),

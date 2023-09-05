@@ -1,9 +1,12 @@
 #[cfg(test)]
 mod tests {
-    use std::{collections::BTreeMap, vec};
+    use std::vec;
 
     use crate::{
-        ast::{declarations::Decl, span::Span},
+        ast::{
+            declarations::{Binding, Decl},
+            span::Span,
+        },
         parser::ivy::{IvyParser, Rule},
         tests::helpers,
         typechecker::{
@@ -104,7 +107,7 @@ mod tests {
         let mut iso = helpers::process_from_decl("process p = { }");
 
         let sort = IvySort::Object(Object {
-            args: BTreeMap::from([]),
+            args: vec![],
             fields: [("init".to_owned(), Module::init_action_sort())].into(),
         });
 
@@ -119,7 +122,7 @@ mod tests {
     fn test_proc_with_params() {
         let mut iso = helpers::process_from_decl("process host(self:pid) = {}");
         let sort = IvySort::Object(Object {
-            args: [("self".into(), IvySort::Range(0, 3))].into(),
+            args: [Binding::from("self", IvySort::Range(0, 3))].into(),
             fields: [("init".to_owned(), Module::init_action_sort())].into(),
         });
 
@@ -138,7 +141,7 @@ mod tests {
         }",
         );
         let sort = IvySort::Object(Object {
-            args: [("self".into(), IvySort::Range(0, 3))].into(),
+            args: [Binding::from("self", IvySort::Range(0, 3))].into(),
             fields: [
                 ("is_up".into(), IvySort::Bool),
                 ("init".to_owned(), Module::init_action_sort()),
@@ -253,6 +256,27 @@ mod tests {
 
         let mut tc = typechecker_with_bindings();
         let _res = iso.visit(&mut tc).unwrap().modifying(&mut iso);
+    }
+
+    #[test]
+    fn parameterized_obj_index() {
+        let mut iso = helpers::process_from_decl(
+            "process host(self:pid) = {
+                var foo: unbounded_sequence
+        }",
+        );
+        let mut tc = typechecker_with_bindings();
+        let iso_sort = iso.visit(&mut tc).unwrap().modifying(&mut iso);
+
+        // Unsurprisingly, this should typecheck to a parameterized object
+        assert!(matches!(iso_sort, IvySort::Object(_)));
+
+        // Even though this expression looks like function application, we
+        // need to typecheck it as "indexing" into the parameterized object
+        // to yield an unparameterized object.
+        let mut host_zero = helpers::rval_from_src("host(0)");
+        let host_zero_sort = host_zero.visit(&mut tc).unwrap().modifying(&mut host_zero);
+        assert!(matches!(host_zero_sort, IvySort::Object(_)));
     }
 
     #[test]

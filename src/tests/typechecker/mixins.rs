@@ -1,7 +1,5 @@
 #[cfg(test)]
 mod tests {
-    use std::collections::BTreeMap;
-
     use crate::{
         ast::{declarations::Decl, span::Span},
         parser::ivy::{IvyParser, Rule},
@@ -33,7 +31,7 @@ mod tests {
         );
 
         let sort = IvySort::Object(Object {
-            args: BTreeMap::from([]),
+            args: vec![],
             fields: [
                 ("init".to_owned(), Module::init_action_sort()),
                 (
@@ -66,7 +64,7 @@ mod tests {
         );
 
         let sort = IvySort::Object(Object {
-            args: BTreeMap::from([]),
+            args: vec![],
             fields: [
                 ("init".to_owned(), Module::init_action_sort()),
                 (
@@ -98,7 +96,7 @@ mod tests {
         );
 
         let sort = IvySort::Object(Object {
-            args: BTreeMap::from([]),
+            args: vec![],
             fields: [
                 ("init".to_owned(), Module::init_action_sort()),
                 (

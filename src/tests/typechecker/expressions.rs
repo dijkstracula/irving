@@ -217,7 +217,7 @@ mod tests {
         let mut callop = helpers::rval_from_src(fragment);
 
         let host_sort = IvySort::Object(Object {
-            args: [("self".into(), IvySort::Range(0, 3))].into(),
+            args: [Binding::from("self", IvySort::Range(0, 3))].into(),
             fields: [("init".to_owned(), Module::init_action_sort())].into(),
         });
         let mut si = SortInferer::new();
@@ -240,7 +240,7 @@ mod tests {
         let mut callop = helpers::rval_from_src(fragment);
 
         let host_sort = IvySort::Object(Object {
-            args: [("self".into(), IvySort::Range(0, 3))].into(),
+            args: [Binding::from("self", IvySort::Range(0, 3))].into(),
             fields: [("init".to_owned(), Module::init_action_sort())].into(),
         });
         let mut si = SortInferer::new();
@@ -267,7 +267,7 @@ mod tests {
 
         // Accessing 'b' should be fine when 'a' is bound to a Process.
         let procsort = Object {
-            args: BTreeMap::from([]),
+            args: vec![],
             fields: BTreeMap::from([("b".into(), IvySort::Bool)]),
         };
         tc.bindings
@@ -294,7 +294,7 @@ mod tests {
         let mut tc = SortInferer::new();
 
         let procsort = Object {
-            args: BTreeMap::from([]),
+            args: vec![],
             fields: BTreeMap::from([(
                 "b".into(),
                 IvySort::action_sort(

@@ -360,8 +360,15 @@ where
         }
         self.pp.write_str(") {\n")?;
 
-        self.pp.write_str("System.out.println(\"")?;
-        self.pp.write_str("\");")?;
+        self.pp.write_str("System.out.println(")?;
+        self.pp.write_fmt(format_args!("\"{}: \" + ", ast.name))?;
+        for (i, param) in &mut ast.params.iter_mut().enumerate() {
+            if i > 0 {
+                self.pp.write_str(" + \", \" + ")?;
+            }
+            param.name.visit(self)?.modifying(&mut param.name);
+        }
+        self.pp.write_str(");")?;
 
         self.pp.write_str("\n}")?;
 
@@ -408,22 +415,11 @@ where
         &mut self,
         ast: &mut crate::ast::logic::Fmla,
     ) -> ExtractResult<declarations::Decl> {
-        self.pp.write_str("addConjecture(")?;
+        self.pp.write_str("addConjecture(() -> {\n")?;
 
-        match ast {
-            crate::ast::logic::Fmla::Forall { .. } => todo!(),
-            crate::ast::logic::Fmla::Exists { .. } => todo!(),
-            crate::ast::logic::Fmla::Pred(expr) => {
-                self.pp.write_str("() -> ")?;
-                expr.visit(self)?.modifying(expr);
-            }
-            logic::Fmla::LogicSymbol { span, sym } => {
-                self.pp.write_str("() -> ")?;
-                self.symbol(span, sym)?.modifying(sym);
-            }
-            _ => todo!(),
-        }
-        self.pp.write_str(")")?;
+        ast.visit(self)?.modifying(ast);
+
+        self.pp.write_str("\n});")?;
         Ok(ControlMut::SkipSiblings(()))
     }
 

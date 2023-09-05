@@ -1,7 +1,4 @@
-use std::{
-    collections::{BTreeMap, HashMap},
-    vec,
-};
+use std::{collections::HashMap, vec};
 
 use crate::{
     ast::{expressions::*, span::Span},
@@ -14,14 +11,14 @@ use super::{
 };
 
 pub struct BindingResolver {
-    pub sorts: Vec<HashMap<String, IvySort>>,
+    pub scopes: Vec<HashMap<String, IvySort>>,
     pub ctx: Vec<IvySort>,
 }
 
 impl BindingResolver {
     pub fn new() -> Self {
         let mut s = Self {
-            sorts: vec![],
+            scopes: vec![],
             ctx: vec![],
         };
         s.push_scope();
@@ -31,17 +28,17 @@ impl BindingResolver {
     // Name bindings
 
     pub fn push_scope(&mut self) {
-        self.sorts.push(HashMap::<_, _>::new())
+        self.scopes.push(HashMap::<_, _>::new())
     }
 
     pub fn pop_scope(&mut self) {
-        if let None = self.sorts.pop() {
+        if let None = self.scopes.pop() {
             panic!("popping an empty sort scope");
         }
     }
 
     pub fn lookup_sym(&self, sym: &str) -> Option<&IvySort> {
-        self.sorts
+        self.scopes
             .iter()
             .rfind(|scope| scope.contains_key(sym))
             .and_then(|scope| scope.get(sym))
@@ -60,7 +57,14 @@ impl BindingResolver {
                     curr_sort = fields.get(field);
                 }
                 Some(IvySort::Object(Object { args, fields })) => {
-                    curr_sort = args.get(field).or(fields.get(field))
+                    let fld = args.iter().find_map(|binding| {
+                        if &binding.name == field {
+                            Some(&binding.decl)
+                        } else {
+                            None
+                        }
+                    });
+                    curr_sort = fld.or(fields.get(field))
                 }
                 Some(sort) => {
                     return Err(ResolverError::NotARecord(sort.clone()));
@@ -77,17 +81,17 @@ impl BindingResolver {
     }
 
     pub fn append(&mut self, sym: Token, sort: IvySort) -> Result<(), ResolverError> {
-        if self.sorts.last().is_none() {
+        if self.scopes.last().is_none() {
             panic!("Appending into an empty scope");
         }
 
         // Only check the current scope, shadowing should be fine, right?
-        if let Some(existing) = self.sorts.last().unwrap().get(&sym) {
+        if let Some(existing) = self.scopes.last().unwrap().get(&sym) {
             if existing.is_sortvar() || sort.is_sortvar() {
                 let existing = existing.clone();
                 let unified = self.unify(&existing, &sort)?;
 
-                self.sorts.last_mut().unwrap().insert(sym, unified);
+                self.scopes.last_mut().unwrap().insert(sym, unified);
                 return Ok(());
             } else if existing != &sort {
                 return Err(ResolverError::ReboundVariable {
@@ -98,9 +102,9 @@ impl BindingResolver {
             }
         }
 
-        log::trace!(target:"binding", "Inserting {}:{:?} into the context", sym, sort);
+        log::trace!(target:"binding", "Inserting {}:{:?} into context (depth {})", sym, sort, self.scopes.len());
 
-        self.sorts.last_mut().unwrap().insert(sym, sort);
+        self.scopes.last_mut().unwrap().insert(sym, sort);
 
         Ok(())
     }
@@ -284,19 +288,19 @@ impl BindingResolver {
                 //    ActionRet::Named(binding) => self.unify(&binding.decl, p)?,
                 //};
 
-                // XXX: args is unordered so we can't unify them in the multiple argument case.
+                // XXX: args is unordered so we can't unify them in the multiple parameter case.
                 // see https://github.com/dijkstracula/irving/issues/25 .
                 if fargs.len() != args.len() || fargs.len() > 1 {
-                    let pargs = args.iter().map(|(_, v)| v.clone()).collect::<Vec<_>>();
-                    return Err(ResolverError::LenMismatch(fargs.len(), pargs.len()));
+                    return Err(ResolverError::LenMismatch(fargs.len(), args.len()));
                 }
 
-                self.unify(fargs.get(0).unwrap(), args.iter().next().unwrap().1)?;
+                self.unify(fargs.get(0).unwrap(), &args.iter().next().unwrap().decl)?;
 
-                // If we get this far, we can treat the object as having had its
-                // `self` arguments applied, so "curry those out".
                 let p = IvySort::Object(Object {
-                    args: BTreeMap::new(),
+                    // If we get this far, we can treat the object as having had its
+                    // `self` arguments applied, so "curry those out".
+                    // XXX: this is wrong if there's more than one parameter!
+                    args: vec![],
                     fields: obj_fields.clone(),
                 });
 

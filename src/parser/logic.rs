@@ -174,7 +174,6 @@ pub fn parse_log_term(input: Rc<str>, pairs: Pairs<Rule>) -> Result<Fmla> {
             // Lift a Dot binary operation into a field access.
             if verb == Verb::Dot {
                 let (rhs_span, field) = match rhs? {
-                    Fmla::Pred(Expr::ProgramSymbol { span, sym }) => (span, sym),
                     Fmla::ProgramSymbol { span, sym } => (span, sym),
                     x => {
                         return Err(Error::new_from_span(
