@@ -44,7 +44,7 @@ mod tests {
         let mut e = Extractor::<String>::new();
         ast.visit(&mut e).expect("extraction failed");
         assert_eq!(
-            "protected Action2<Long, Boolean, Void> foo = new Action2<>((Long i, Boolean b) -> {return Either.right(null);})",
+            "protected Action2<Long, Boolean, Void> foo = new Action2<>((Long i, Boolean b) -> {return null;})",
             e.pp.out
                 .replace('\n', "")
                 .replace("    ", "")

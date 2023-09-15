@@ -48,7 +48,10 @@ mod tests {
                                     "send".into(),
                                     IvySort::action_sort(
                                         vec!["dst".into(), "msg".into()],
-                                        vec![tc.bindings.lookup_sym("pid").unwrap().clone(), IvySort::BitVec(8)],
+                                        vec![
+                                            tc.bindings.lookup_sym("pid").unwrap().clone(),
+                                            IvySort::BitVec(8),
+                                        ],
                                         sorts::ActionRet::Unit,
                                     ),
                                 ),

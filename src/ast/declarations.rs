@@ -303,7 +303,7 @@ impl Decl {
             Decl::Include { .. } => None,
             Decl::Instance { decl, .. } => Some(&decl.name),
             Decl::Instantiate { .. } => None,
-            Decl::Interpret { .. } => None,
+            Decl::Interpret { decl, .. } => Some(&decl.name),
             Decl::Invariant { .. } => None,
             Decl::Module {
                 decl: Binding { name, .. },

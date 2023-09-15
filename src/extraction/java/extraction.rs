@@ -105,15 +105,13 @@ where
 
         // The final declaration needs to wrap the return value in a Right<U>.
         // (For void-producing actions, U=j.l.Void, the only inhabitant of which
-        // is `null`.)
+        // is `null`.  See https://github.com/dijkstracula/irving/issues/60 .)
         match ret {
-            None => self.pp.write_str("return Either.right(null);\n")?,
-            Some(ret) => self
-                .pp
-                .write_fmt(format_args!("return Either.right({});\n", ret.name))?,
+            None => self.pp.write_str("return null;\n")?,
+            Some(ret) => self.pp.write_fmt(format_args!("return {};\n", ret.name))?,
         }
 
-        self.pp.write_str("})")?;
+        self.pp.write_str("}")?;
 
         Ok(ControlMut::Produce(()))
     }
@@ -188,10 +186,13 @@ where
         self.pp.write_str(imports)?;
         self.pp.write_str("\n\n")?;
 
+        self.pp
+            .write_str("public class Extracted extends Protocol {\n")?;
         for decl in &mut ast.top {
             decl.visit(self)?.modifying(decl);
             self.pp.write_str("\n")?;
         }
+        self.pp.write_str("\n}\n")?;
         Ok(ControlMut::SkipSiblings(()))
     }
 
@@ -264,14 +265,11 @@ where
         self.pp
             .write_fmt(format_args!("> {name} = new Action{arity}<>("))?;
 
-        match &mut ast.body {
-            None => {
-                self.pp.write_str(")")?;
-            }
-            Some(ref mut body) => {
-                self.write_lambda(&mut ast.params, &mut ast.ret, body)?;
-            }
+        if let Some(ref mut body) = &mut ast.body {
+            self.write_lambda(&mut ast.params, &mut ast.ret, body)?;
         }
+
+        self.pp.write_str(")")?;
 
         Ok(ControlMut::SkipSiblings(()))
     }
@@ -345,6 +343,7 @@ where
         self.pp.write_str(".on(")?;
 
         self.write_lambda(ast.params.as_mut().unwrap(), &mut ast.ret, &mut ast.body)?;
+        self.pp.write_str(")")?;
         Ok(ControlMut::SkipSiblings(()))
     }
 
@@ -419,7 +418,7 @@ where
 
         ast.visit(self)?.modifying(ast);
 
-        self.pp.write_str("\n});")?;
+        self.pp.write_str("\n})")?;
         Ok(ControlMut::SkipSiblings(()))
     }
 
@@ -590,6 +589,7 @@ where
         self.pp.write_fmt(format_args!("class IvyObj_{name}"))?;
         self.pp.write_str(" {\n")?;
 
+        // Declare all action instance variables.
         for decl in ast.actions() {
             decl.visit(self)?.modifying(decl);
             self.pp.write_str(";\n")?;
@@ -632,6 +632,21 @@ where
             self.pp.write_str("\n")?;
         }
 
+        // Lastly, register all exported actions with the environment.
+        for action in ast.actions() {
+            if let declarations::Decl::Export { decl, .. } = action {
+                match decl {
+                    declarations::ExportDecl::Action(binding) => {
+                        self.pp
+                            .write_fmt(format_args!("\naddAction({});", binding.name))?;
+                    }
+                    declarations::ExportDecl::ForwardRef(name) => {
+                        self.pp.write_fmt(format_args!("\naddAction({name});"))?;
+                    }
+                }
+            }
+        }
+
         self.pp.write_str("\n} //cstr \n")?;
 
         for decl in ast.subobjects() {
@@ -666,7 +681,10 @@ where
             };
 
             self.pp.write_fmt(format_args!(
-            "IvyObj_{name} {name}[] = IntStream({lo}, {hi}).boxed().map(i -> new IvyObj_{name}(i)).toArray();\n"
+            "IvyObj_{name} {name}_instances [] = IntStream({lo}, {hi}).boxed().map(i -> new IvyObj_{name}(i)).toArray();\n"
+            ))?;
+            self.pp.write_fmt(format_args!(
+                "Function1<Int, IvyObj_{name}> {name} = i -> {name}_instances[i];\n"
             ))?;
         }
 
