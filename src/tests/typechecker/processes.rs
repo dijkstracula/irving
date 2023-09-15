@@ -47,8 +47,8 @@ mod tests {
                                 (
                                     "send".into(),
                                     IvySort::action_sort(
-                                        vec!["dst".into()],
-                                        vec![tc.bindings.lookup_sym("pid").unwrap().clone()],
+                                        vec!["dst".into(), "msg".into()],
+                                        vec![tc.bindings.lookup_sym("pid").unwrap().clone(), IvySort::BitVec(8)],
                                         sorts::ActionRet::Unit,
                                     ),
                                 ),
@@ -56,6 +56,7 @@ mod tests {
                                     "recv".into(),
                                     IvySort::action_sort(
                                         vec!["src".into(), "msg".into()],
+                                        // XXX: why is src a bool?????
                                         vec![IvySort::Bool, IvySort::BitVec(8)],
                                         sorts::ActionRet::Unit,
                                     ),
@@ -103,7 +104,7 @@ mod tests {
     }
 
     #[test]
-    fn test_empty_process() {
+    fn empty_process() {
         let mut iso = helpers::process_from_decl("process p = { }");
 
         let sort = IvySort::Object(Object {
@@ -119,7 +120,7 @@ mod tests {
     }
 
     #[test]
-    fn test_proc_with_params() {
+    fn proc_with_params() {
         let mut iso = helpers::process_from_decl("process host(self:pid) = {}");
         let sort = IvySort::Object(Object {
             args: [Binding::from("self", IvySort::Range(0, 3))].into(),
@@ -134,7 +135,7 @@ mod tests {
     }
 
     #[test]
-    fn test_proc_with_implicit_impl() {
+    fn proc_with_implicit_impl() {
         let mut iso = helpers::process_from_decl(
             "process host(self:pid) = {
             var is_up: bool
@@ -157,7 +158,7 @@ mod tests {
     }
 
     #[test]
-    fn test_proc_with_local_var() {
+    fn proc_with_local_var() {
         let mut iso = helpers::process_from_decl(
             "process host(self:pid) = {
                 var foo: bool;
@@ -186,7 +187,7 @@ mod tests {
     }
 
     #[test]
-    fn test_parameterized_object_index() {
+    fn parameterized_object_index() {
         let mut iso = helpers::process_from_decl(
             "process host(self:pid) = {
                 var foo: bool;
@@ -202,7 +203,7 @@ mod tests {
     }
 
     #[test]
-    fn test_bad_parameterized_object_index() {
+    fn bad_parameterized_object_index() {
         let mut iso = helpers::process_from_decl(
             "process host(self:pid) = {
                 var foo: bool;
@@ -229,9 +230,10 @@ mod tests {
     }
 
     #[test]
-    fn test_append1_host() {
+    fn append1_host() {
         let mut iso = helpers::process_from_decl(
             "process host(self:pid) = {
+                alias byte = bv[8]
                 export action append(val: byte)
                 import action show(content: file)
                 instance sock: net.socket
@@ -280,7 +282,7 @@ mod tests {
     }
 
     #[test]
-    fn test_relation_inference() {
+    fn relation_inference() {
         let mut iso = helpers::process_from_decl(
             "process host(self:pid) = {
                 # Here, we don't know the types of X and Y...
@@ -298,7 +300,7 @@ mod tests {
         let _res = iso.visit(&mut tc).unwrap().modifying(&mut iso);
     }
     #[test]
-    fn test_relation_inference_bad_arity() {
+    fn relation_inference_bad_arity() {
         let mut iso = helpers::process_from_decl(
             "process host(self:pid) = {
                 relation connected(X, Y)
@@ -315,17 +317,17 @@ mod tests {
         assert_eq!(
             res,
             TypeError::Spanned {
-                span: Span::Todo,
+                span: Span::IgnoredForTesting,
                 inner: Box::new(TypeError::LenMismatch {
-                    expected: 3,
-                    actual: 2
+                    expected: 2,
+                    actual: 3
                 })
             }
         )
     }
 
     #[test]
-    fn test_relation_inference_bad_assign() {
+    fn relation_inference_bad_assign() {
         let mut iso = helpers::process_from_decl(
             "process host(self:pid) = {
                 relation connected(X, Y)
@@ -347,7 +349,7 @@ mod tests {
     }
 
     #[test]
-    fn test_relation_bad_inference() {
+    fn relation_bad_inference() {
         let mut iso = helpers::process_from_decl(
             "process host(self:pid) = {
                 # Here, we don't know the types of X and Y...
@@ -367,13 +369,13 @@ mod tests {
         let res = iso.visit(&mut tc).expect_err("Should get a type error");
         assert_eq!(
             res,
-            ResolverError::UnificationError(IvySort::Bool, IvySort::Number)
+            ResolverError::UnificationError(IvySort::Number, IvySort::Bool)
                 .to_typeerror(&Span::IgnoredForTesting)
         )
     }
 
     #[test]
-    fn test_relation_logical_assign() {
+    fn relation_logical_assign() {
         let mut iso = helpers::process_from_decl(
             "process host(self:pid) = {
                 relation connected(X, Y)

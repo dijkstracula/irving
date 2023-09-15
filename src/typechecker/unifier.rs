@@ -318,7 +318,7 @@ impl BindingResolver {
                 IvySort::Relation(rargsorts),
                 IvySort::Action(_, ActionArgs::List(aargsorts), ActionRet::Unknown, _),
             ) => {
-                let unified_sorts = self.unify_vec(aargsorts, rargsorts)?;
+                let unified_sorts = self.unify_vec(rargsorts, aargsorts)?;
                 Ok(IvySort::Relation(unified_sorts))
             }
 

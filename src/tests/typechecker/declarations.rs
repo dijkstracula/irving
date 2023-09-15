@@ -15,7 +15,7 @@ mod tests {
     use pest_consume::Parser;
 
     #[test]
-    fn test_ensure() {
+    fn ensure() {
         let prog = "ensure true";
         let mut decl_ast = helpers::decl_from_src(prog);
 
@@ -24,7 +24,7 @@ mod tests {
     }
 
     #[test]
-    fn test_ensure_bad() {
+    fn ensure_bad() {
         let prog = "ensure 1+1";
         let mut decl_ast = helpers::decl_from_src(prog);
 
@@ -33,7 +33,7 @@ mod tests {
     }
 
     #[test]
-    fn test_ensure_quantified() {
+    fn ensure_quantified() {
         let prog = "ensure forall X . X = X";
         let mut decl_ast = helpers::decl_from_src(prog);
 
@@ -42,7 +42,7 @@ mod tests {
     }
 
     #[test]
-    fn test_require() {
+    fn require() {
         let prog = "require true";
         let mut decl_ast = helpers::decl_from_src(prog);
 
@@ -51,7 +51,7 @@ mod tests {
     }
 
     #[test]
-    fn test_require_bad() {
+    fn require_bad() {
         let prog = "require 1+1";
         let mut decl_ast = helpers::decl_from_src(prog);
 
@@ -60,7 +60,7 @@ mod tests {
     }
 
     #[test]
-    fn test_instance_decl_no_args() {
+    fn instance_decl_no_args() {
         let prog = "instance socket: net.sock";
         let mut decl_ast = helpers::decl_from_src(prog);
 
@@ -158,7 +158,7 @@ mod tests {
     }
 
     #[test]
-    fn test_relation_decl_unannotated() {
+    fn relation_decl_unannotated() {
         let prog = "relation is_up(X, Y)";
         let mut decl_ast = helpers::decl_from_src(prog);
 
@@ -182,7 +182,7 @@ mod tests {
     }
 
     #[test]
-    fn test_relation_decl_annotated() {
+    fn relation_decl_annotated() {
         let prog = "relation is_up(X: bool, Y: bool)";
         let mut decl_ast = helpers::decl_from_src(prog);
 
@@ -200,7 +200,29 @@ mod tests {
     }
 
     #[test]
-    fn test_typedecl_bv() {
+    fn alias_bv() {
+        let prog = "alias addr = bv[32]";
+        let mut decl_ast = helpers::decl_from_src(prog);
+
+        let mut tc = SortInferer::new();
+        let res = decl_ast
+            .visit(&mut tc)
+            .expect("visit")
+            .modifying(&mut decl_ast);
+        assert_eq!(res, IvySort::BitVec(32));
+
+        assert_eq!(tc.bindings.lookup_sym("addr"), Some(&IvySort::BitVec(32)));
+
+        let prog = "alias addr = bv[256]";
+        let res = IvyParser::parse_with_userdata(Rule::decl, prog, prog.into())
+            .expect("Parsing failed")
+            .single()
+            .unwrap();
+        IvyParser::decl(res).expect_err("Bit vectors bigger than 255 are disallowed");
+    }
+
+    #[test]
+    fn typedecl_bv() {
         let prog = "type addr = bv[32]";
         let mut decl_ast = helpers::decl_from_src(prog);
 
@@ -222,7 +244,7 @@ mod tests {
     }
 
     #[test]
-    fn test_typedecl_this() {
+    fn typedecl_this() {
         let prog = "type this";
         let mut decl_ast = helpers::decl_from_src(prog);
 
@@ -236,7 +258,7 @@ mod tests {
     }
 
     #[test]
-    fn test_typedecl_uninterp() {
+    fn typedecl_uninterp() {
         let prog = "type node";
         let mut decl_ast = helpers::decl_from_src(prog);
 
@@ -251,7 +273,7 @@ mod tests {
     }
 
     #[test]
-    fn test_typedecl_enum() {
+    fn typedecl_enum() {
         let prog = "type status = {on, off}";
         let mut decl_ast = helpers::decl_from_src(prog);
 
@@ -269,7 +291,7 @@ mod tests {
     }
 
     #[test]
-    fn test_typedecl_range() {
+    fn typedecl_range() {
         let prog = "type numbers = {0..100}";
         let mut decl_ast = helpers::decl_from_src(prog);
 
@@ -288,7 +310,7 @@ mod tests {
     }
 
     #[test]
-    fn test_vardecl_inferred() {
+    fn vardecl_inferred() {
         let prog = "var i";
         let mut decl_ast = helpers::decl_from_src(prog);
 
@@ -303,7 +325,7 @@ mod tests {
     }
 
     #[test]
-    fn test_vardecl_annotated() {
+    fn vardecl_annotated() {
         let prog = "var b: bool";
         let mut decl_ast = helpers::decl_from_src(prog);
 
@@ -317,7 +339,7 @@ mod tests {
     }
 
     #[test]
-    fn test_declblock() {
+    fn declblock() {
         let prog = "{
             type client
             type server
@@ -339,7 +361,7 @@ mod tests {
     }
 
     #[test]
-    fn test_var_redefinition() {
+    fn var_redefinition() {
         let prog = "{
             var foo: unbounded_sequence
             var foo: bool
