@@ -404,11 +404,18 @@ impl IvyParser {
         )
     }
 
-    pub fn include_decl(input: Node) -> Result<(Span, Token)> {
+    pub fn includes(input: Node) -> Result<Vec<IncludeDecl>> {
+        match_nodes!(
+        input.into_children();
+            [include_decl(decls)..] => Ok(decls.collect::<Vec<_>>())
+        )
+    }
+
+    pub fn include_decl(input: Node) -> Result<IncludeDecl> {
         let span = Span::from_node(&input);
         match_nodes!(
         input.into_children();
-            [PROGTOK(module)] => Ok((span, module))
+            [PROGTOK(name)] => Ok(IncludeDecl { span, name })
         )
     }
 
@@ -538,7 +545,6 @@ impl IvyParser {
         [implement_action_decl((span, decl))] => Ok(Decl::Implement{span, decl}),
         [implementation_decl((span, decl))] => Ok(Decl::Object{ span, decl: Binding { name: "impl".into(), decl }}),
         [import_decl((span, decl))]    => Ok(Decl::Import{span, decl}),
-        [include_decl((span, decl))] => Ok(Decl::Include{span, decl}),
         [invariant_decl((span, decl))] => Ok(Decl::Invariant { span, decl}),
         [instance_decl((span, decl))] => Ok(Decl::Instance{span, decl}),
         [interpret_decl((span, decl))] => Ok(Decl::Interpret{span, decl}),
@@ -721,10 +727,11 @@ impl IvyParser {
     pub fn prog(input: Node) -> Result<Prog> {
         match_nodes!(
         input.into_children();
-        [langver((major, minor)), decl(decls).., EOI(())] => Ok(
+        [langver((major, minor)), includes(idecls), decl(decls).., EOI(())] => Ok(
             Prog {
                 major_version: major,
                 minor_version: minor,
+                includes: idecls,
                 top: decls.collect::<Vec<_>>()
             })
         )

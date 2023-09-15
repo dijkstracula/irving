@@ -92,7 +92,6 @@ decl = {
     | axiom_decl
     | function_decl
     | relation_decl
-    | include_decl
     | var_decl
     | header_decl
     | implement_action_decl
@@ -164,8 +163,11 @@ stmt = {
 hashlang    = _{ SOI ~ "#lang" ~ langver }
     langver = ${ "ivy" ~ number ~ ("." ~ number)? }
 
+includes = { include_decl* }
+
 prog = {
       hashlang
+    ~ includes
     ~ decl*
     ~ EOI
 }

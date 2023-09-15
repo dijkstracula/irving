@@ -323,10 +323,10 @@ where
         Ok(ControlMut::Produce(T::default()))
     }
 
-    fn begin_include_decl(&mut self, _ast: &mut Token) -> VisitorResult<T, E, Decl> {
+    fn begin_include_decl(&mut self, _ast: &mut Token) -> VisitorResult<T, E, Token> {
         Ok(ControlMut::Produce(T::default()))
     }
-    fn finish_include_decl(&mut self, _ast: &mut Token) -> VisitorResult<T, E, Decl> {
+    fn finish_include_decl(&mut self, _ast: &mut Token) -> VisitorResult<T, E, Token> {
         Ok(ControlMut::Produce(T::default()))
     }
 
@@ -668,6 +668,15 @@ where
 {
     fn visit(&mut self, visitor: &mut dyn Visitor<T, E>) -> VisitorResult<T, E, Self> {
         visitor.begin_prog(self)?.and_then(|_| {
+            let _i = self
+                .includes
+                .iter_mut()
+                .map(|p| {
+                    Ok(visitor
+                        .begin_include_decl(&mut p.name)?
+                        .and_then(|_| visitor.finish_include_decl(&mut p.name)))
+                })
+                .collect::<Result<Vec<_>, _>>()?;
             let _d = self.top.visit(visitor)?.modifying(&mut self.top);
             visitor.finish_prog(self)
         })
@@ -1041,10 +1050,6 @@ where
                 let n = decl.name.visit(visitor)?.modifying(&mut decl.name);
                 let p = decl.params.visit(visitor)?.modifying(&mut decl.params);
                 visitor.finish_import_decl(span, decl, n, p)
-            }),
-            Decl::Include { decl, .. } => visitor.begin_include_decl(decl)?.and_then(|_| {
-                let _ = decl.visit(visitor)?.modifying(decl);
-                visitor.finish_include_decl(decl)
             }),
             Decl::Instance {
                 decl:

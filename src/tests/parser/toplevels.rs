@@ -78,4 +78,13 @@ isolate net(pid: node) = {
         IvyParser::parse_with_userdata(Rule::process_decl, iso, iso)
             .expect_err("Can't call an action with a logical variable");
     }
+
+    #[test]
+    fn non_top_include() {
+        let iso = "process foo = {
+            include number
+        } ";
+        IvyParser::parse_with_userdata(Rule::process_decl, iso, iso)
+            .expect_err("includes must be at the top level");
+    }
 }

@@ -365,10 +365,7 @@ where
         Ok(ControlMut::Produce(()))
     }
 
-    fn begin_include_decl(
-        &mut self,
-        _ast: &mut expressions::Token,
-    ) -> ExtractResult<declarations::Decl> {
+    fn begin_include_decl(&mut self, _ast: &mut expressions::Token) -> ExtractResult<Token> {
         self.pp.write_str("include ")?;
         Ok(ControlMut::Produce(()))
     }

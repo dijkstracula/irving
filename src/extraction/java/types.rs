@@ -59,7 +59,7 @@ impl JavaType {
             JavaType::Boolean => "random::nextBoolean()".into(),
             JavaType::Char => "() -> new Character(random::nextInt(0, 256))".into(),
             JavaType::Long => "random::nextLong()".into(),
-            JavaType::Range(lo, hi) => todo!(),
+            JavaType::Range(_, _) => todo!(),
             JavaType::ArrayList(_) => todo!(),
             JavaType::Object(_, _) => todo!(),
             JavaType::Void => todo!(),

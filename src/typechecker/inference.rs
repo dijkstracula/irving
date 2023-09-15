@@ -1362,6 +1362,11 @@ impl Visitor<IvySort, TypeError> for SortInferer {
         Ok(ControlMut::Produce(unifed))
     }
 
+    fn begin_include_decl(&mut self, _ast: &mut Token) -> InferenceResult<Token> {
+        // XXX: We could imagine whitelisting the files that we can include here, but, eh.
+        Ok(ControlMut::SkipSiblings(IvySort::Unit))
+    }
+
     fn begin_instance_decl(
         &mut self,
         name: &mut Token,

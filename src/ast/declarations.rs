@@ -61,6 +61,12 @@ pub struct ImportDecl {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct IncludeDecl {
+    pub span: Span,
+    pub name: Token,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct InstanceDecl {
     pub sort: Ident,
     pub args: ParamList,
@@ -213,11 +219,6 @@ pub enum Decl {
         decl: ImportDecl,
     },
 
-    Include {
-        span: Span,
-        decl: Token,
-    },
-
     Instance {
         span: Span,
         decl: Binding<InstanceDecl>,
@@ -300,7 +301,6 @@ impl Decl {
             Decl::Globals(_) => None,
             Decl::Implement { .. } => None,
             Decl::Import { decl, .. } => Some(&decl.name),
-            Decl::Include { .. } => None,
             Decl::Instance { decl, .. } => Some(&decl.name),
             Decl::Instantiate { .. } => None,
             Decl::Interpret { decl, .. } => Some(&decl.name),
@@ -351,7 +351,6 @@ impl Decl {
             Decl::Globals(_) => DEFAULT_SPAN,
             Decl::Implement { span, .. } => span,
             Decl::Import { span, .. } => span,
-            Decl::Include { span, .. } => span,
             Decl::Instance { span, .. } => span,
             Decl::Instantiate { .. } => DEFAULT_SPAN,
             Decl::Interpret { span, .. } => span,

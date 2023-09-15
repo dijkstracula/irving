@@ -184,7 +184,14 @@ where
     fn begin_prog(&mut self, ast: &mut toplevels::Prog) -> ExtractResult<toplevels::Prog> {
         let imports = include_str!("templates/imports.txt");
         self.pp.write_str(imports)?;
-        self.pp.write_str("\n\n")?;
+        self.pp.write_str("\n")?;
+
+        for inc in ast.includes.iter_mut() {
+            self.begin_include_decl(&mut inc.name)?
+                .and_then(|_| self.finish_include_decl(&mut inc.name))?;
+            self.pp.write_str("\n")?;
+        }
+        self.pp.write_str("\n")?;
 
         self.pp
             .write_str("public class Extracted extends Protocol {\n")?;
@@ -374,10 +381,10 @@ where
         Ok(ControlMut::SkipSiblings(()))
     }
 
-    fn begin_include_decl(&mut self, ast: &mut Token) -> ExtractResult<declarations::Decl> {
+    fn begin_include_decl(&mut self, ast: &mut Token) -> ExtractResult<Token> {
         self.pp
             .write_fmt(format_args!("import ivy.stdlib.{ast}.*"))?;
-        Ok(ControlMut::Produce(()))
+        Ok(ControlMut::SkipSiblings(()))
     }
 
     fn begin_instance_decl(
