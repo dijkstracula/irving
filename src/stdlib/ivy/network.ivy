@@ -1,7 +1,7 @@
 #lang ivy1.8
 
 module tcp = {
-    type endpoint
+    alias endpoint = bv[32]
     module net(msg) = {
         module socket = {
             var id: unbounded_sequence

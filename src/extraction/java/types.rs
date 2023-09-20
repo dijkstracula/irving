@@ -8,7 +8,7 @@ pub enum JavaType {
     Boolean,
     Char,
     Long,
-    Range(i64, i64),
+    BoundedLong(i64, i64),
     ArrayList(Box<JavaType>),
     Object(String, Vec<JavaType>),
     Void,
@@ -24,7 +24,7 @@ impl JavaType {
             JavaType::Boolean => "Boolean".into(),
             JavaType::Char => "Character".into(),
             JavaType::Long => "Long".into(),
-            JavaType::Range(_, _) => "Long".into(),
+            JavaType::BoundedLong(_, _) => "Long".into(),
             JavaType::ArrayList(t) => format!("ArrayList<{}>", t.as_jref()),
             JavaType::Object(clazz, ts) => {
                 if ts.is_empty() {
@@ -46,23 +46,8 @@ impl JavaType {
             JavaType::Boolean => "boolean".into(),
             JavaType::Char => "char".into(),
             JavaType::Long => "long".into(),
-            JavaType::Range(_, _) => "long".into(),
+            JavaType::BoundedLong(_, _) => "long".into(),
             _ => self.as_jref(),
-        }
-    }
-
-    // TODO: these should just call into the stdlib on the Melina side.
-    // Can we assume that `random` is in scope?
-    // https://github.com/dijkstracula/irving/issues/61
-    pub fn generator(&self) -> String {
-        match self {
-            JavaType::Boolean => "random::nextBoolean()".into(),
-            JavaType::Char => "() -> new Character(random::nextInt(0, 256))".into(),
-            JavaType::Long => "random::nextLong()".into(),
-            JavaType::Range(_, _) => todo!(),
-            JavaType::ArrayList(_) => todo!(),
-            JavaType::Object(_, _) => todo!(),
-            JavaType::Void => todo!(),
         }
     }
 }
@@ -88,7 +73,7 @@ impl From<IvySort> for JavaType {
             IvySort::Vector(elem_type) => {
                 Self::ArrayList(Box::new(Into::<JavaType>::into(*elem_type)))
             }
-            IvySort::Range(lo, hi) => Self::Range(lo, hi),
+            IvySort::Range(lo, hi) => Self::BoundedLong(lo, hi),
             IvySort::Enum(_) => todo!(),
             IvySort::Action(_, _, _, _) => todo!(),
             IvySort::Relation(_) => todo!(),
@@ -126,7 +111,7 @@ impl From<&IvySort> for JavaType {
                 let jelem: JavaType = elem_type.as_ref().into();
                 Self::ArrayList(Box::new(jelem))
             }
-            IvySort::Range(lo, hi) => Self::Range(*lo, *hi),
+            IvySort::Range(lo, hi) => Self::BoundedLong(*lo, *hi),
             IvySort::Enum(_) => todo!(),
             IvySort::Action(_, _, _, _) => todo!(),
             IvySort::Relation(_) => todo!(),
