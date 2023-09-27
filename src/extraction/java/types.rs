@@ -77,7 +77,7 @@ impl From<IvySort> for JavaType {
             IvySort::Enum(_) => todo!(),
             IvySort::Action(_, _, _, _) => todo!(),
             IvySort::Relation(_) => todo!(),
-            IvySort::Subclass(_) => todo!(),
+            IvySort::Class(_) => todo!(),
             IvySort::Module(Module { name, args, .. }) => {
                 let args: Vec<JavaType> =
                     args.into_iter().map(|(_, sort)| sort.into()).collect::<_>();
@@ -115,7 +115,7 @@ impl From<&IvySort> for JavaType {
             IvySort::Enum(_) => todo!(),
             IvySort::Action(_, _, _, _) => todo!(),
             IvySort::Relation(_) => todo!(),
-            IvySort::Subclass(_) => todo!(),
+            IvySort::Class(_) => todo!(),
             IvySort::Module(Module { name, args, .. }) => {
                 let args: Vec<JavaType> = args.iter().map(|(_, sort)| sort.into()).collect::<_>();
                 Self::Object(name.clone(), args)

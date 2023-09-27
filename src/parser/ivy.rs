@@ -8,6 +8,7 @@ use crate::ast::declarations::*;
 use crate::ast::expressions;
 use crate::ast::expressions::*;
 use crate::ast::logic::*;
+use crate::ast::span::SourceSpan;
 use crate::ast::span::Span;
 use crate::ast::statements::*;
 use crate::ast::toplevels::*;
@@ -17,8 +18,6 @@ use crate::typechecker::sorts::IvySort;
 
 use super::logic::parse_log_term;
 
-// include the grammar file so that Cargo knows to rebuild this file on grammar
-// changes (c.f. the Calyx frontend compiler)
 const _LEXER: &str = include_str!("./grammars/lexer.pest");
 const _GRAMMAR: &str = include_str!("grammars/syntax.pest");
 const _LOGIC: &str = include_str!("grammars/logic.pest");
@@ -32,6 +31,18 @@ pub struct IvyParser;
 pub type ParseError = Error<Rule>;
 pub type Result<T> = std::result::Result<T, ParseError>;
 pub type Node<'i> = pest_consume::Node<'i, Rule, Rc<str>>;
+
+fn pest_err(message: String, irving_span: Span) -> Option<ParseError> {
+    if let Span::Source(SourceSpan { input, start, end }) = irving_span {
+        let span = pest::Span::new(input.as_ref(), start, end).unwrap();
+        Some(Error::new_from_span(
+            ErrorVariant::<Rule>::CustomError { message },
+            span,
+        ))
+    } else {
+        None
+    }
+}
 
 #[pest_consume::parser]
 #[allow(dead_code)]
@@ -187,7 +198,7 @@ impl IvyParser {
         [bv_decl(width)] => Ok(Sort::Resolved(IvySort::BitVec(width))),
         [enum_decl(cstrs)] => Ok(Sort::Resolved(IvySort::Enum(cstrs))),
         [range_decl((lo, hi))] => Ok(Sort::Resolved(IvySort::Range(lo, hi))),
-        [PROGTOK(supr)] => Ok(Sort::Resolved(IvySort::Subclass(supr))),
+        [PROGTOK(_)] => todo!(),
         [_THIS] => Ok(Sort::Resolved(IvySort::This)),
         )
     }
@@ -327,6 +338,49 @@ impl IvyParser {
                     message: format!("Bit vector width {} too large", width) },
                     span))
         }
+        )
+    }
+
+    pub fn class_decl(input: Node) -> Result<Binding<ClassDecl>> {
+        let span = Span::from_node(&input);
+        let parent: Option<Token> = None;
+
+        match_nodes!(
+        input.into_children();
+        [PROGTOK(name), class_slot_block(slots)] => {
+            let mut fields: Vec<Binding<Sort>> = vec!();
+            let mut actions: Vec<Binding<ActionDecl>> = vec!();
+
+            for slot in slots {
+                match slot {
+                    ClassSlot::Field(b) => {
+                        if b.decl == Sort::ToBeInferred {
+                            return Err(pest_err("Field type must be declared".into(), b.span).unwrap());
+                        }
+                        fields.push(b);
+                    },
+                    ClassSlot::Action(b) => actions.push(b),
+                }
+            }
+
+            Ok(Binding::from(name, ClassDecl {
+                parent, fields, actions
+            }, span))
+        })
+    }
+
+    pub fn class_slot_block(input: Node) -> Result<Vec<ClassSlot>> {
+        match_nodes!(
+        input.into_children();
+        [class_slot_decl(decls)..] => Ok(decls.collect::<Vec<_>>())
+        )
+    }
+
+    pub fn class_slot_decl(input: Node) -> Result<ClassSlot> {
+        match_nodes!(
+        input.into_children();
+        [param(sym)] => Ok(ClassSlot::Field(sym)),
+        [action_decl(binding)] => Ok(ClassSlot::Action(binding))
         )
     }
 
@@ -506,12 +560,39 @@ impl IvyParser {
         )
     }
 
+    pub fn subclass_decl(input: Node) -> Result<Binding<ClassDecl>> {
+        let span = Span::from_node(&input);
+
+        match_nodes!(
+        input.into_children();
+        [PROGTOK(name), PROGTOK(parent), class_slot_block(slots)] => {
+            let mut fields: Vec<Binding<Sort>> = vec!();
+            let mut actions: Vec<Binding<ActionDecl>> = vec!();
+
+            for slot in slots {
+                match slot {
+                    ClassSlot::Field(b) => {
+                        if b.decl == Sort::ToBeInferred {
+                            return Err(pest_err("Field type must be declared".into(), b.span).unwrap());
+                        }
+                        fields.push(b);
+                    },
+                    ClassSlot::Action(b) => actions.push(b),
+                }
+            }
+
+            Ok(Binding::from(name, ClassDecl {
+                parent: Some(parent), fields, actions
+            }, span))
+        })
+    }
+
     pub fn type_decl(input: Node) -> Result<Binding<Sort>> {
         let span = Span::from_node(&input);
         match_nodes!(
         input.into_children();
         [PROGTOK(sym), builtin_type(resolved)] => Ok(Binding::from(sym, resolved, span)),
-        [PROGTOK(lhs), PROGTOK(rhs)] => Ok(Binding::from(lhs, Sort::Resolved(IvySort::Subclass(rhs)), span)),
+        [PROGTOK(_), PROGTOK(_)] => todo!(),
         [PROGTOK(sym)] => Ok(Binding::from(sym, Sort::ToBeInferred, span)),
         [PROGTOK(sym)] => {
             Ok(Binding::from(sym, Sort::ToBeInferred, span))
@@ -535,6 +616,7 @@ impl IvyParser {
         [attribute_decl((span, decl))] => Ok(Decl::Attribute{span, decl}),
         [axiom_decl((span, decl))]    => Ok(Decl::Axiom{span, decl}),
         [before_decl((span, decl))]    => Ok(Decl::BeforeAction{span, decl}),
+        [class_decl(decl)] => Ok(Decl::Class{decl}),
         [common_decl((span, decl))] => Ok(Decl::Common{span, decl}),
         [export_decl((span, decl))]   => Ok(Decl::Export{span, decl}),
         [global_decl(decls)]         => Ok(Decl::Globals(decls)),
@@ -550,6 +632,7 @@ impl IvyParser {
         [process_decl(decl)]   => Ok(Decl::Object{decl}),
         [relation_decl(decl)] => Ok(Decl::Relation{decl}),
         [specification_decl((span, decl))] => Ok(Decl::Object{ decl: Binding { name: "spec".into(), decl, span }}),
+        [subclass_decl(decl)] => Ok(Decl::Subclass{decl}),
         [type_decl(decl)]     => Ok(Decl::Type { decl }),
         [var_decl(decl)]      => Ok(Decl::Var{ decl }),
         [stmt(stmts)..]       => Ok(Decl::Stmts(stmts.collect()))
@@ -615,6 +698,11 @@ impl IvyParser {
         match_nodes!(
         input.into_children();
         [rval(call)] => match call {
+            Expr::ProgramSymbol { span, sym } => Ok((span.clone(), AppExpr {
+                func: Box::new(Expr::ProgramSymbol { span, sym }),
+                func_sort: Sort::ToBeInferred,
+                args: vec!()
+            })),
             Expr::App { span, expr} => Ok((span, expr)),
 
             Expr::BinOp { expr: BinOp { op: Verb::Equals, ..}, ..} => Err(

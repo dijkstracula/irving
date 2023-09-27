@@ -257,6 +257,25 @@ where
         Ok(ControlMut::Produce(T::default()))
     }
 
+    fn begin_class_decl(
+        &mut self,
+        _span: &Span,
+        _name: &mut Token,
+        _ast: &mut ClassDecl,
+    ) -> VisitorResult<T, E, Decl> {
+        Ok(ControlMut::Produce(T::default()))
+    }
+    fn finish_class_decl(
+        &mut self,
+        _span: &Span,
+        _name: &mut Token,
+        _ast: &mut ClassDecl,
+        name_t: T,
+        parent_t: Option<T>,
+    ) -> VisitorResult<T, E, Decl> {
+        Ok(ControlMut::Produce(T::default()))
+    }
+
     fn begin_common_decl(&mut self, _ast: &mut Vec<Decl>) -> VisitorResult<T, E, Decl> {
         Ok(ControlMut::Produce(T::default()))
     }
@@ -988,6 +1007,24 @@ where
                 let b = decl.body.visit(visitor)?.modifying(&mut decl.body);
                 visitor.finish_before_decl(decl, n, p, b)
             }),
+            Decl::Class {
+                decl:
+                    Binding {
+                        ref mut name,
+                        ref mut decl,
+                        ref mut span,
+                    },
+            } => visitor.begin_class_decl(span, name, decl)?.and_then(|_| {
+                let name_t = name.visit(visitor)?.modifying(name);
+                let parent_t = decl
+                    .parent
+                    .as_mut()
+                    .map(|p| Ok(p.visit(visitor)?.modifying(p)))
+                    .transpose()?;
+                let fields_t = decl.fields.visit(visitor)?.modifying(&mut decl.fields);
+                //let actions_t = decl.actions.iter_mut().map(|a| )
+                visitor.finish_class_decl(span, name, decl, name_t, parent_t)
+            }),
             Decl::Common { decl, .. } => visitor.begin_common_decl(decl)?.and_then(|_| {
                 let _d = decl.visit(visitor)?.modifying(decl);
                 visitor.finish_common_decl(decl)
@@ -1137,6 +1174,22 @@ where
                 let mut _t = stmts.visit(visitor)?.modifying(stmts);
                 Ok(ControlMut::Produce(T::default()))
             }
+            Decl::Subclass {
+                decl:
+                    Binding {
+                        ref mut name,
+                        ref mut decl,
+                        ref mut span,
+                    },
+            } => visitor.begin_class_decl(span, name, decl)?.and_then(|_| {
+                let name_t = name.visit(visitor)?.modifying(name);
+                let parent_t = decl
+                    .parent
+                    .as_mut()
+                    .map(|p| Ok(p.visit(visitor)?.modifying(p)))
+                    .transpose()?;
+                visitor.finish_class_decl(span, name, decl, name_t, parent_t)
+            }),
             Decl::Var {
                 decl:
                     Binding {

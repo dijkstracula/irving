@@ -42,6 +42,14 @@ where
         Ok(ControlMut::Produce(T::default()))
     }
 
+    fn class(
+        &mut self,
+        _parent: Option<Box<T>>,
+        _slots: BTreeMap<Token, T>,
+    ) -> VisitorResult<T, E, IvySort> {
+        Ok(ControlMut::Produce(T::default()))
+    }
+
     fn vector(
         &mut self,
         _elem_sort: &mut IvySort,
@@ -75,10 +83,6 @@ where
         _args: &mut Vec<IvySort>,
         _args_t: Vec<T>,
     ) -> VisitorResult<T, E, IvySort> {
-        Ok(ControlMut::Produce(T::default()))
-    }
-
-    fn subclass(&mut self, _cname: &mut Token) -> VisitorResult<T, E, IvySort> {
         Ok(ControlMut::Produce(T::default()))
     }
 
@@ -159,7 +163,19 @@ where
                     .collect::<Result<Vec<_>, _>>()?;
                 visitor.relation(args, args_t)
             }
-            IvySort::Subclass(cls) => visitor.subclass(cls),
+            IvySort::Class(cls) => {
+                let parent = cls
+                    .parent
+                    .as_mut()
+                    .map(|ref mut p| Ok(Box::from(p.visit(visitor)?.modifying(p))))
+                    .transpose()?;
+                let slots = cls
+                    .slots
+                    .iter_mut()
+                    .map(|(name, slot)| Ok((name.clone(), slot.visit(visitor)?.modifying(slot))))
+                    .collect::<Result<BTreeMap<_, _>, _>>()?;
+                visitor.class(parent, slots)
+            }
             IvySort::Module(module) => {
                 let args_t = module
                     .args

@@ -722,9 +722,6 @@ where
                 IvySort::Number => {
                     self.pp.write_str("unbounded_sequence")?;
                 }
-                IvySort::Subclass(s) => {
-                    self.pp.write_fmt(format_args!("of {}", s))?;
-                }
                 IvySort::Object(_proc) => {
                     self.pp.write_str("{\n")?;
                     self.pp.write_str("implementation {\n")?;

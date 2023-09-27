@@ -43,6 +43,20 @@ pub struct ActionMixinDecl {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ClassDecl {
+    pub parent: Option<Token>,
+
+    pub fields: Vec<Binding<Sort>>,
+    pub actions: Vec<Binding<ActionDecl>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ClassSlot {
+    Field(Binding<Sort>),
+    Action(Binding<ActionDecl>),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FunctionDecl {
     pub params: ParamList,
     pub ret: Token, // Am I an idiot? Where's the bee^W body
@@ -176,7 +190,14 @@ pub enum Decl {
 
     BeforeAction { span: Span, decl: ActionMixinDecl },
 
-    Common { span: Span, decl: Vec<Decl> },
+    Class {
+        decl: Binding<ClassDecl>,
+    },
+
+    Common {
+        span: Span,
+        decl: Vec<Decl>,
+    },
 
     Export { span: Span, decl: ExportDecl },
 
@@ -206,7 +227,13 @@ pub enum Decl {
 
     Stmts(Vec<Stmt>),
 
-    Var { decl: Binding<Sort> },
+    Subclass {
+        decl: Binding<ClassDecl>,
+    },
+
+    Var {
+        decl: Binding<Sort>,
+    },
 
     Type { decl: Binding<Sort> },
 }
@@ -228,6 +255,10 @@ impl Decl {
             Decl::Axiom { .. } => None,
             Decl::BeforeAction { .. } => None,
             Decl::Common { .. } => None,
+            Decl::Class {
+                decl: Binding { name, .. },
+                ..
+            } => Some(name),
             Decl::Export {
                 decl: ExportDecl::Action(Binding { name, .. }),
                 ..
@@ -261,6 +292,10 @@ impl Decl {
                 ..
             } => Some(name),
             Decl::Stmts(_) => None,
+            Decl::Subclass {
+                decl: Binding { name, .. },
+                ..
+            } => Some(name),
             Decl::Var {
                 decl: Binding { name, .. },
                 ..
@@ -293,6 +328,7 @@ impl Decl {
             Decl::Axiom { span, .. } => span,
             Decl::BeforeAction { span, .. } => span,
             Decl::Common { span, .. } => span,
+            Decl::Class { decl: Binding { span, .. }} => span,
             Decl::Export { span, .. } => span,
             Decl::Function {
                 decl: Binding { span, .. },
@@ -317,12 +353,9 @@ impl Decl {
                 decl: Binding { span, .. },
             } => span,
             Decl::Stmts(_) => DEFAULT_SPAN,
-            Decl::Var {
-                decl: Binding { span, .. },
-            } => span,
-            Decl::Type {
-                decl: Binding { span, .. },
-            } => span,
+            Decl::Subclass { decl: Binding { span, .. } } => span,
+            Decl::Var { decl: Binding { span, .. }} => span,
+            Decl::Type { decl: Binding { span, .. }} => span,
         }
     }
 }

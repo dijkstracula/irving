@@ -11,11 +11,11 @@ use crate::parser::ivy::Node;
 /// use to generate an annotated snippet from.
 #[derive(Clone, Eq, PartialEq, PartialOrd, Ord)]
 pub struct SourceSpan {
-    input: Rc<str>,
+    pub input: Rc<str>,
 
-    start: usize,
+    pub start: usize,
 
-    end: usize,
+    pub end: usize,
 }
 
 impl std::fmt::Debug for SourceSpan {
@@ -35,7 +35,7 @@ impl std::fmt::Debug for SourceSpan {
 impl Display for SourceSpan {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let annot = SourceAnnotation {
-            range: (self.start, self.end - 1),
+            range: (self.start, self.end),
             label: "here",
             annotation_type: annotate_snippets::snippet::AnnotationType::Error,
         };

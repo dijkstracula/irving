@@ -10,6 +10,7 @@ mod tests {
         },
         parser::ivy::{IvyParser, Rule},
         tests::helpers,
+        typechecker::sorts::IvySort,
     };
     use pest_consume::Parser;
 
@@ -48,6 +49,48 @@ mod tests {
         let fragment = "axiom host(0).sock.id ~= host(1).sock.id";
         let _ast = helpers::decl_from_src(fragment);
         println!("{:?}", _ast);
+    }
+
+    #[test]
+    fn parse_class_decl() {
+        let fragment = "class pt = {
+            field x: nat
+            field y: nat
+            action norm(self: pt) returns (n: nat)
+        }";
+        let ast = helpers::decl_from_src(fragment);
+        assert!(matches!(
+            ast,
+            Decl::Class {
+                decl: Binding {
+                    decl: declarations::ClassDecl { parent: None, .. },
+                    ..
+                },
+                ..
+            }
+        ))
+    }
+
+    #[test]
+    fn parse_subclass_decl() {
+        let fragment = "subclass pt3 of pt = {
+            field z: nat
+            action cross(self: pt3, other: pt3) returns (ortho: pt3)
+        }";
+        let ast = helpers::decl_from_src(fragment);
+        assert!(matches!(
+            ast,
+            Decl::Subclass {
+                decl: Binding {
+                    decl: declarations::ClassDecl {
+                        parent: Some(_),
+                        ..
+                    },
+                    ..
+                },
+                ..
+            }
+        ))
     }
 
     #[test]
@@ -256,12 +299,32 @@ mod tests {
     #[test]
     fn parse_type_enum_range() {
         let fragment = "type coolguys = {sammy, nathan, james}";
-        helpers::decl_from_src(fragment);
+        let ast = helpers::decl_from_src(fragment);
+        assert!(matches!(
+            ast,
+            Decl::Type {
+                decl: Binding {
+                    decl: Sort::Resolved(IvySort::Enum(_)),
+                    ..
+                },
+                ..
+            }
+        ))
     }
     #[test]
     fn parse_type_decl_range() {
         let fragment = "type pid = {0..1}";
-        helpers::decl_from_src(fragment);
+        let ast = helpers::decl_from_src(fragment);
+        assert!(matches!(
+            ast,
+            Decl::Type {
+                decl: Binding {
+                    decl: Sort::Resolved(IvySort::Range { .. }),
+                    ..
+                },
+                ..
+            }
+        ))
     }
 
     #[test]

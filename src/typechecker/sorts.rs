@@ -9,14 +9,24 @@ use crate::{
 
 use super::{InferenceResult, TypeError};
 
+// Classes
+
+#[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]
+pub struct Class {
+    pub parent: Option<Box<IvySort>>,
+    pub slots: BTreeMap<Token, IvySort>,
+}
+
+// Objects, parameterized and singletons
+
 #[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]
 pub struct Object {
     pub args: Vec<Binding<IvySort>>,
     pub fields: BTreeMap<Token, IvySort>,
 }
 
-// TODO: this module is non-monomorphized (e.g. module type parameters are
-// still in the argument list).  We're good with this??
+// Modules
+
 #[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]
 pub struct Module {
     pub name: Token,
@@ -90,7 +100,7 @@ pub enum IvySort {
     Enum(Vec<Token>),
     Action(Vec<Token>, ActionArgs, ActionRet, ActionKind),
     Relation(Vec<IvySort>),
-    Subclass(Token),
+    Class(Class),
     Module(Module),
     Object(Object),
 
@@ -205,7 +215,7 @@ impl IvySort {
             IvySort::Enum(_) => "enum",
             IvySort::Action(_, _, _, _) => "action",
             IvySort::Relation(_) => "relation",
-            IvySort::Subclass(_) => "object",
+            IvySort::Class(_) => "class",
             IvySort::Module(_) => "module",
             IvySort::Object(_) => "object",
             IvySort::SortVar(_) => "sortvar",
@@ -314,8 +324,15 @@ impl Visitor<IvySort, TypeError> for SortSubstituter {
         self.subst(IvySort::Relation(substituted))
     }
 
-    fn subclass(&mut self, cname: &mut Token) -> InferenceResult<IvySort> {
-        self.subst(IvySort::Subclass(cname.clone()))
+    fn class(
+        &mut self,
+        parent: Option<Box<IvySort>>,
+        slots: BTreeMap<Token, IvySort>,
+    ) -> InferenceResult<IvySort> {
+        self.subst(IvySort::Class(Class {
+            parent: parent,
+            slots: slots,
+        }))
     }
 
     fn module(

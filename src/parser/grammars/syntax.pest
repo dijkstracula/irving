@@ -63,13 +63,11 @@ module_decl       = { MODULE ~ mod_sig ~ "=" ~ decl_block }
 
 instance_decl     = { INSTANCE ~ PROGTOK ~ ":" ~ mixin_sig }
 
-implementation_decl    = { IMPLEMENTATION ~ decl_block }
-specification_decl     = { SPECIFICATION ~ decl_block }
-common_decl            = { COMMON ~ decl_block }
+implementation_decl = { IMPLEMENTATION ~ decl_block }
+specification_decl  = { SPECIFICATION ~ decl_block }
+common_decl         = { COMMON ~ decl_block }
 
-// TODO: struct decl
-//type_name         = { PROGTOK | THIS }
-type_decl         = { TYPE ~ (THIS | (PROGTOK ~ (("=" ~ builtin_type) | ("of" ~ PROGTOK))?)) } // superclass might have to be more than a PROGTOK
+type_decl         = { TYPE ~ (THIS | (PROGTOK ~ ("=" ~ builtin_type)?)) } 
 
 invariant_decl    = { INVARIANT ~ fmla }
 
@@ -78,6 +76,12 @@ header_decl       = { HEADER ~ PROGTOK }
 interpret_decl    = { INTERPRET ~ PROGTOK ~ ("->" ~ ident)? }
 instantiate_decl  = { INSTANTIATE ~ PROGTOK }
 autoinstance_decl = { AUTOINSTANCE ~ decl_sig }
+
+class_decl        = { CLASS ~ PROGTOK ~ "=" ~ class_slot_block }
+subclass_decl     = { SUBCLASS ~ PROGTOK ~ "of" ~ PROGTOK ~ "=" ~ class_slot_block }
+
+class_slot_block  = { "{" ~ (class_slot_decl ~ ";"?)* ~ "}" }
+class_slot_decl   = { ("field" ~ param) | action_decl }
 
 decl = {
       action_decl
@@ -90,6 +94,7 @@ decl = {
     | alias_decl
     | attribute_decl
     | axiom_decl
+    | class_decl
     | function_decl
     | relation_decl
     | var_decl
@@ -102,6 +107,7 @@ decl = {
     | module_decl
     | object_decl
     | process_decl
+    | subclass_decl
     | instance_decl
     | autoinstance_decl
     | import_decl

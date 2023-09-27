@@ -53,6 +53,9 @@ ENSURE          = _{ "ensure"    }
 REQUIRE         = _{ "require"   }
 AXIOM           = _{ "axiom" | "property" }
 BV              = _{ "bv" /* | "strbv" | "intbv" | "uint"*/ }
+CLASS           = _{ "class"     }
+SUBCLASS        = _{ "subclass"  }
+FIELD           = _{ "field"     }
 FUNCTION        = _{ "function"  }
 RELATION        = _{ "relation"  }
 INCLUDE         = _{ "include "  }
@@ -60,22 +63,23 @@ VAR             = _{ "individual" | "var" }
 GLOBAL          = _{ "global"    }
 IMPLEMENTATION  = _{ "implementation" }
 SPECIFICATION   = _{ "specification"  }
-COMMON          = _{ "common"  }
+COMMON          = _{ "common"    }
 HEADER          = _{ "header"    }
 IMPLEMENT       = _{ "implement" }
 INTERPRET       = _{ "interpret" }
 INVARIANT       = _{ "invariant" }
 INSTANTIATE     = _{ "instantiate" }
-INSTANCE        = _{ "instance" }
-MODULE          = _{ "module "}
-OBJECT          = _{ "object" }
+INSTANCE        = _{ "instance"  }
+MODULE          = _{ "module "   }
+OBJECT          = _{ "object"    }
+OF              = _{ "of"       }
 AUTOINSTANCE    = _{ "autoinstance" }
-IMPORT          = _{ "import" }
-EXPORT          = _{ "export" }
-INIT            = _{ "init"   }
-AFTER           = _{ "after"  }
-BEFORE          = _{ "before" }
-TYPE            = _{ "type"   }
+IMPORT          = _{ "import"    }
+EXPORT          = _{ "export"    }
+INIT            = _{ "init"      }
+AFTER           = _{ "after"     }
+BEFORE          = _{ "before"    }
+TYPE            = _{ "type"      }
 
 IF =     _{ "if" }
 WHILE =  _{ "while" }
@@ -95,9 +99,12 @@ reserved = {
 | ASSUME
 | ATTRIBUTE
 | BV
+| CLASS
+| SUBCLASS
 | ENSURE
 | REQUIRE
 | AXIOM
+| FIELD
 | FUNCTION
 | RELATION
 | INCLUDE
@@ -131,7 +138,7 @@ reserved = {
 | THIS
 }
 
-PROGTOK   = @{ !reserved ~ ASCII_ALPHA_LOWER       ~ ("_" | ASCII_ALPHANUMERIC)* }
+PROGTOK   = @{ !reserved ~ ASCII_ALPHA_LOWER ~ ("_" | ASCII_ALPHANUMERIC)* }
 
 // An identifier is a program variable, possibly qualified with a module
 // prefix.
