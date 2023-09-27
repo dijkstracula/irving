@@ -116,7 +116,8 @@ mod tests {
                     ModuleDecl {
                         sortsyms: vec!("pid".into()),
                         body: vec!()
-                    }
+                    },
+                    Span::IgnoredForTesting
                 )
             }
         )

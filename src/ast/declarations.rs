@@ -148,7 +148,7 @@ pub struct Binding<T> {
 }
 
 impl<T> Binding<T> {
-    pub fn from<S>(name: S, decl: T) -> Self
+    pub fn from<S>(name: S, decl: T, span: Span) -> Self
     where
         S: Into<String>,
     {

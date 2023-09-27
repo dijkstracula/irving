@@ -39,7 +39,7 @@ action inc(x: node) returns (y: node) = {
         assert_eq!(
             Some(&declarations::Decl::Type {
                 span: Span::IgnoredForTesting,
-                decl: Binding::from("node", Sort::ToBeInferred)
+                decl: Binding::from("node", Sort::ToBeInferred, Span::IgnoredForTesting)
             }),
             prog.top.get(0)
         );
@@ -55,7 +55,11 @@ action inc(x: node) returns (y: node) = {
             // SortVar ID must be 0.
             Some(&declarations::Decl::Type {
                 span: Span::IgnoredForTesting,
-                decl: Binding::from("node", Sort::Resolved(IvySort::SortVar(0)))
+                decl: Binding::from(
+                    "node",
+                    Sort::Resolved(IvySort::SortVar(0)),
+                    Span::IgnoredForTesting
+                )
             }),
             prog.top.get(0)
         );
@@ -76,7 +80,11 @@ action inc(x: node) returns (y: node) = {
             // SortVar ID must be 0.
             Some(&declarations::Decl::Type {
                 span: Span::IgnoredForTesting,
-                decl: Binding::from("node", Sort::Resolved(IvySort::Number))
+                decl: Binding::from(
+                    "node",
+                    Sort::Resolved(IvySort::Number),
+                    Span::IgnoredForTesting
+                )
             }),
             prog.top.get(0)
         );

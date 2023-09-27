@@ -3,7 +3,7 @@
 use std::{collections::BTreeMap, fmt::Display};
 
 use crate::{
-    ast::{declarations::Binding, expressions::Token},
+    ast::{declarations::Binding, expressions::Token, span::Span},
     visitor::{sort::Visitor, ControlMut},
 };
 
@@ -48,7 +48,11 @@ impl ActionRet {
     where
         S: Into<String>,
     {
-        ActionRet::Named(Box::new(Binding::from(name.into(), sort)))
+        ActionRet::Named(Box::new(Binding::from(
+            name.into(),
+            sort,
+            Span::IgnoredForTesting,
+        )))
     }
 }
 

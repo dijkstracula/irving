@@ -92,7 +92,7 @@ where
             let mut retdecl =
                 declarations::Decl::Var {
                     span: Span::Optimized, /* We're just using this to walk the binding, so it doesn't matter */
-                    decl: Binding::from(ret.name.clone(), ret.decl.clone())
+                    decl: Binding::from(ret.name.clone(), ret.decl.clone(), Span::Optimized)
                 };
             retdecl.visit(self).unwrap();
             self.pp.write_str(";\n").unwrap();

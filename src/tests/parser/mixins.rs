@@ -49,10 +49,15 @@ mod tests {
                 Binding::from(
                     "foo",
                     ActionDecl {
-                        params: vec![Symbol::from("a", Sort::Annotated(vec!["int".into()]))],
+                        params: vec![Symbol::from(
+                            "a",
+                            Sort::Annotated(vec!["int".into()]),
+                            Span::IgnoredForTesting
+                        )],
                         ret: None,
                         body: None,
-                    }
+                    },
+                    Span::IgnoredForTesting
                 )
             ))
         );
@@ -73,10 +78,15 @@ mod tests {
                 Binding::from(
                     "foo",
                     ActionDecl {
-                        params: vec![Symbol::from("a", Sort::Annotated(vec!["int".into()]))],
+                        params: vec![Symbol::from(
+                            "a",
+                            Sort::Annotated(vec!["int".into()]),
+                            Span::IgnoredForTesting
+                        )],
                         ret: None,
                         body: Some(vec![])
-                    }
+                    },
+                    Span::IgnoredForTesting
                 )
             ))
         );
@@ -112,10 +122,19 @@ mod tests {
                 Binding::from(
                     "foo",
                     ActionDecl {
-                        params: vec![Symbol::from("a", Sort::Annotated(vec!["int".into()]))],
-                        ret: Some(Symbol::from("b", Sort::Annotated(vec!["int".into()]))),
+                        params: vec![Symbol::from(
+                            "a",
+                            Sort::Annotated(vec!["int".into()]),
+                            Span::IgnoredForTesting
+                        )],
+                        ret: Some(Symbol::from(
+                            "b",
+                            Sort::Annotated(vec!["int".into()]),
+                            Span::IgnoredForTesting
+                        )),
                         body: None
-                    }
+                    },
+                    Span::IgnoredForTesting
                 )
             ))
         );

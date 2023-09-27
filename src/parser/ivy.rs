@@ -58,10 +58,11 @@ impl IvyParser {
     }
 
     fn param(input: Node) -> Result<Symbol> {
+        let span = Span::from_node(&input);
         match_nodes!(
         input.into_children();
-        [PROGTOK(name), ident(sort)] => Ok(Symbol::from(name, Sort::Annotated(sort))),
-        [PROGTOK(name)] => Ok(Symbol::from(name, Sort::ToBeInferred))
+        [PROGTOK(name), ident(sort)] => Ok(Symbol::from(name, Sort::Annotated(sort), span)),
+        [PROGTOK(name)] => Ok(Symbol::from(name, Sort::ToBeInferred, span))
         )
     }
 
@@ -94,10 +95,11 @@ impl IvyParser {
     // Formulas
 
     fn logicsym(input: Node) -> Result<Symbol> {
+        let span = Span::from_node(&input);
         match_nodes!(
         input.into_children();
-        [LOGICTOK(name), PROGTOK(sort)] => Ok(Symbol::from(name, Sort::Annotated(vec!(sort)))),
-        [LOGICTOK(name)]               => Ok(Symbol::from(name, Sort::ToBeInferred))
+        [LOGICTOK(name), PROGTOK(sort)] => Ok(Symbol::from(name, Sort::Annotated(vec!(sort)), span)),
+        [LOGICTOK(name)]                => Ok(Symbol::from(name, Sort::ToBeInferred, span))
         )
     }
 
@@ -244,16 +246,16 @@ impl IvyParser {
         match_nodes!(
         input.into_children();
             [decl_sig(DeclSig{name, params}), decl_ret(ret), stmt_block(body)] => Ok(
-                (span, Binding::from(name, ActionDecl{params, ret, body: Some(body)}))
+                (span.clone(), Binding::from(name, ActionDecl{params, ret, body: Some(body)}, span))
             ),
             [decl_sig(DeclSig{name, params}), stmt_block(body)] => Ok(
-                (span, Binding::from(name, ActionDecl{params, ret: None, body: Some(body)}))
+                (span.clone(), Binding::from(name, ActionDecl{params, ret: None, body: Some(body)}, span))
             ),
             [decl_sig(DeclSig{name, params}), decl_ret(ret)] => Ok(
-                (span, Binding::from(name, ActionDecl{params, ret, body: None}))
+                (span.clone(), Binding::from(name, ActionDecl{params, ret, body: None}, span))
             ),
             [decl_sig(DeclSig{name, params})] => Ok(
-                (span, Binding::from(name, ActionDecl{params, ret: None, body: None}))
+                (span.clone(), Binding::from(name, ActionDecl{params, ret: None, body: None}, span))
             ),
         )
     }
@@ -263,7 +265,7 @@ impl IvyParser {
 
         match_nodes!(
         input.into_children();
-        [PROGTOK(lhs), builtin_type(rhs)] => Ok((span, Binding::from(lhs, rhs))),
+        [PROGTOK(lhs), builtin_type(rhs)] => Ok((span.clone(), Binding::from(lhs, rhs, span))),
         )
     }
 
@@ -361,7 +363,7 @@ impl IvyParser {
         match_nodes!(
         input.into_children();
             [PROGTOK(name), lparamlist(params), PROGTOK(ret)] =>
-                Ok((span, Binding::from(name, FunctionDecl {params, ret})))
+                Ok((span.clone(), Binding::from(name, FunctionDecl {params, ret}, span)))
         )
     }
 
@@ -424,7 +426,7 @@ impl IvyParser {
         match_nodes!(
         input.into_children();
         [PROGTOK(name), mixin_sig(MixinSig{name: sort, params: sort_args})] =>
-            Ok((span, Binding::from(name, InstanceDecl{sort, args: sort_args.unwrap_or_default()})))
+            Ok((span.clone(), Binding::from(name, InstanceDecl{sort, args: sort_args.unwrap_or_default()}, span)))
         )
     }
 
@@ -452,10 +454,10 @@ impl IvyParser {
         match_nodes!(
         input.into_children();
         [decl_sig(DeclSig{name, params}), decl_block(body)] => {
-            Ok((span, Binding::from(name, ObjectDecl{
+            Ok((span.clone(), Binding::from(name, ObjectDecl{
                 params,
                 body
-                })))
+                }, span)))
         })
     }
 
@@ -465,7 +467,7 @@ impl IvyParser {
         match_nodes!(
         input.into_children();
         [mod_sig(ModSig{name, sortsyms}), decl_block(body)] => Ok(
-            (span, Binding::from(name, ModuleDecl{sortsyms, body}))))
+            (span.clone(), Binding::from(name, ModuleDecl{sortsyms, body}, span))))
     }
 
     pub fn object_decl(input: Node) -> Result<(Span, Binding<ObjectDecl>)> {
@@ -474,7 +476,7 @@ impl IvyParser {
         match_nodes!(
         input.into_children();
         [PROGTOK(name), decl_block(body)] => Ok(
-            (span, Binding::from(name, ObjectDecl{params: vec!(), body}))))
+            (span.clone(), Binding::from(name, ObjectDecl{params: vec!(), body}, span))))
     }
 
     pub fn range_decl(input: Node) -> Result<(i64, i64)> {
@@ -491,10 +493,10 @@ impl IvyParser {
         input.into_children();
         [PROGTOK(name)] => {
             let params = vec!();
-            Ok((span, Binding::from(name, Relation{params})))
+            Ok((span.clone(), Binding::from(name, Relation{params}, span)))
         },
         [PROGTOK(name), lparamlist(params)] =>
-            Ok((span, Binding::from(name, Relation{params})))
+            Ok((span.clone(), Binding::from(name, Relation{params}, span)))
         )
     }
 
@@ -510,23 +512,23 @@ impl IvyParser {
         let span = Span::from_node(&input);
         match_nodes!(
         input.into_children();
-        [PROGTOK(sym), builtin_type(resolved)] => Ok((span, Binding::from(sym, resolved))),
-        [PROGTOK(lhs), PROGTOK(rhs)] => Ok((span, Binding::from(lhs, Sort::Resolved(IvySort::Subclass(rhs))))),
-        [PROGTOK(sym)] => Ok((span, Binding::from(sym, Sort::ToBeInferred))),
+        [PROGTOK(sym), builtin_type(resolved)] => Ok((span.clone(), Binding::from(sym, resolved, span))),
+        [PROGTOK(lhs), PROGTOK(rhs)] => Ok((span.clone(), Binding::from(lhs, Sort::Resolved(IvySort::Subclass(rhs)), span))),
+        [PROGTOK(sym)] => Ok((span.clone(), Binding::from(sym, Sort::ToBeInferred, span))),
         [PROGTOK(sym)] => {
-            Ok((span, Binding::from(sym, Sort::ToBeInferred)))
+            Ok((span.clone(), Binding::from(sym, Sort::ToBeInferred, span)))
         },
-        [_THIS] => Ok((span, Binding::from("this", Sort::Resolved(IvySort::This)))),
+        [_THIS] => Ok((span.clone(), Binding::from("this", Sort::Resolved(IvySort::This), span))),
         )
     }
 
     pub fn var_decl(input: Node) -> Result<(Span, Binding<Sort>)> {
         let src = Rc::clone(input.user_data());
-        let span = input.as_span();
+        let span = Span::from_node(&input);
 
         match_nodes!(
         input.into_children();
-        [param(Symbol { name, decl })] => Ok((Span::from_pest(src, &span), Binding::from(name, decl))))
+        [param(Symbol { name, decl })] => Ok((span.clone(), Binding::from(name, decl, span))))
     }
 
     pub fn decl(input: Node) -> Result<Decl> {

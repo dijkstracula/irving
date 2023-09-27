@@ -190,7 +190,7 @@ mod tests {
                 span: Span::IgnoredForTesting,
                 expr: FieldAccess {
                     record: Box::new(helpers::inferred_progsym("a")),
-                    field: Symbol::from("b", Sort::ToBeInferred),
+                    field: Symbol::from("b", Sort::ToBeInferred, Span::IgnoredForTesting),
                 }
             }
         );

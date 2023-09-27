@@ -929,6 +929,7 @@ where
                     Some(sym) => Some(Binding::from(
                         sym.name.clone(),
                         visitor.param(sym)?.modifying(sym),
+                        span.clone(),
                     )),
                 };
                 let body = decl
@@ -1002,6 +1003,7 @@ where
                             Some(sym) => Some(Binding::from(
                                 sym.name.clone(),
                                 visitor.param(sym)?.modifying(sym),
+                                span.clone(),
                             )),
                         };
                         let body = decl
@@ -1029,7 +1031,7 @@ where
                 let _d = decl.visit(visitor)?.modifying(decl);
                 visitor.finish_global_decl(decl)
             }),
-            Decl::Implement { decl, .. } => visitor.begin_implement_decl(decl)?.and_then(|_| {
+            Decl::Implement { span, decl } => visitor.begin_implement_decl(decl)?.and_then(|_| {
                 let n = decl.name.visit(visitor)?.modifying(&mut decl.name);
                 let params = decl
                     .params
@@ -1041,6 +1043,7 @@ where
                     Some(sym) => Some(Binding::from(
                         sym.name.clone(),
                         visitor.param(sym)?.modifying(sym),
+                        span.clone(),
                     )),
                 };
                 let body = decl.body.visit(visitor)?.modifying(&mut decl.body);

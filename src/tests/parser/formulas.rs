@@ -93,12 +93,12 @@ mod tests {
 
         let arg = Fmla::LogicSymbol {
             span: Span::IgnoredForTesting,
-            sym: Symbol::from("X", Sort::ToBeInferred),
+            sym: Symbol::from("X", Sort::ToBeInferred, Span::IgnoredForTesting),
         };
         let app = LogicApp {
             func: Box::new(Fmla::ProgramSymbol {
                 span: Span::IgnoredForTesting,
-                sym: Symbol::from("f", Sort::ToBeInferred),
+                sym: Symbol::from("f", Sort::ToBeInferred, Span::IgnoredForTesting),
             }),
             args: vec![arg],
         };
@@ -115,12 +115,12 @@ mod tests {
 
         let arg = Fmla::ProgramSymbol {
             span: Span::IgnoredForTesting,
-            sym: Symbol::from("x", Sort::ToBeInferred),
+            sym: Symbol::from("x", Sort::ToBeInferred, Span::IgnoredForTesting),
         };
         let app = LogicApp {
             func: Box::new(Fmla::ProgramSymbol {
                 span: Span::IgnoredForTesting,
-                sym: Symbol::from("f", Sort::ToBeInferred),
+                sym: Symbol::from("f", Sort::ToBeInferred, Span::IgnoredForTesting),
             }),
             args: vec![arg],
         };
@@ -247,9 +247,13 @@ mod tests {
                 span: Span::IgnoredForTesting,
                 fmla: Forall {
                     vars: vec![
-                        Symbol::from("X", Sort::Annotated(vec!["node".into()])),
-                        Symbol::from("Y", Sort::ToBeInferred),
-                        Symbol::from("Z", Sort::ToBeInferred),
+                        Symbol::from(
+                            "X",
+                            Sort::Annotated(vec!["node".into()]),
+                            Span::IgnoredForTesting
+                        ),
+                        Symbol::from("Y", Sort::ToBeInferred, Span::IgnoredForTesting),
+                        Symbol::from("Z", Sort::ToBeInferred, Span::IgnoredForTesting),
                     ],
                     fmla: Box::new(implication)
                 }

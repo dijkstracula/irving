@@ -62,7 +62,7 @@ mod tests {
             binop: logic::LogicBinOp {
                 lhs: Box::new(Fmla::ProgramSymbol {
                     span: Span::IgnoredForTesting,
-                    sym: Binding::from("foo", Sort::ToBeInferred),
+                    sym: Binding::from("foo", Sort::ToBeInferred, Span::IgnoredForTesting),
                 }),
                 op: Verb::Plus,
                 rhs: Box::new(helpers::logical_number(1)),
@@ -73,7 +73,7 @@ mod tests {
             binop: logic::LogicBinOp {
                 lhs: Box::new(Fmla::ProgramSymbol {
                     span: Span::IgnoredForTesting,
-                    sym: Binding::from("foo", Sort::ToBeInferred),
+                    sym: Binding::from("foo", Sort::ToBeInferred, Span::IgnoredForTesting),
                 }),
                 op: Verb::Plus,
                 rhs: Box::new(helpers::logical_number(2)),
@@ -98,7 +98,7 @@ mod tests {
 
     #[test]
     fn bounds_from_binop_literals() {
-        let var = Binding::from("N".to_owned(), Sort::ToBeInferred);
+        let var = Binding::from("N".to_owned(), Sort::ToBeInferred, Span::IgnoredForTesting);
 
         assert_eq!(
             QuantBounds::bounds_from_ast(
@@ -128,7 +128,7 @@ mod tests {
 
     #[test]
     fn bounds_from_binop_logicvar() {
-        let _var = Binding::from("N".to_owned(), Sort::ToBeInferred);
+        let _var = Binding::from("N".to_owned(), Sort::ToBeInferred, Span::IgnoredForTesting);
 
         /*
         // N < 5 means we have to check [0, 5)

@@ -126,7 +126,12 @@ mod tests {
     fn proc_with_params() {
         let mut iso = helpers::process_from_decl("process host(self:pid) = {}");
         let sort = IvySort::Object(Object {
-            args: [Binding::from("self", IvySort::Range(0, 3))].into(),
+            args: [Binding::from(
+                "self",
+                IvySort::Range(0, 3),
+                Span::IgnoredForTesting,
+            )]
+            .into(),
             fields: [("init".to_owned(), Module::init_action_sort())].into(),
         });
 
@@ -145,7 +150,12 @@ mod tests {
         }",
         );
         let sort = IvySort::Object(Object {
-            args: [Binding::from("self", IvySort::Range(0, 3))].into(),
+            args: [Binding::from(
+                "self",
+                IvySort::Range(0, 3),
+                Span::IgnoredForTesting,
+            )]
+            .into(),
             fields: [
                 ("is_up".into(), IvySort::Bool),
                 ("init".to_owned(), Module::init_action_sort()),
