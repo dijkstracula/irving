@@ -44,21 +44,18 @@ mod tests {
 
         assert_eq!(
             IvyParser::action_decl(res),
-            Ok((
-                Span::IgnoredForTesting,
-                Binding::from(
-                    "foo",
-                    ActionDecl {
-                        params: vec![Symbol::from(
-                            "a",
-                            Sort::Annotated(vec!["int".into()]),
-                            Span::IgnoredForTesting
-                        )],
-                        ret: None,
-                        body: None,
-                    },
-                    Span::IgnoredForTesting
-                )
+            Ok(Binding::from(
+                "foo",
+                ActionDecl {
+                    params: vec![Symbol::from(
+                        "a",
+                        Sort::Annotated(vec!["int".into()]),
+                        Span::IgnoredForTesting
+                    )],
+                    ret: None,
+                    body: None,
+                },
+                Span::IgnoredForTesting
             ))
         );
     }
@@ -73,21 +70,18 @@ mod tests {
                 .unwrap();
         assert_eq!(
             IvyParser::action_decl(res),
-            Ok((
-                Span::IgnoredForTesting,
-                Binding::from(
-                    "foo",
-                    ActionDecl {
-                        params: vec![Symbol::from(
-                            "a",
-                            Sort::Annotated(vec!["int".into()]),
-                            Span::IgnoredForTesting
-                        )],
-                        ret: None,
-                        body: Some(vec![])
-                    },
-                    Span::IgnoredForTesting
-                )
+            Ok(Binding::from(
+                "foo",
+                ActionDecl {
+                    params: vec![Symbol::from(
+                        "a",
+                        Sort::Annotated(vec!["int".into()]),
+                        Span::IgnoredForTesting
+                    )],
+                    ret: None,
+                    body: Some(vec![])
+                },
+                Span::IgnoredForTesting
             ))
         );
     }
@@ -103,7 +97,7 @@ mod tests {
                 .single()
                 .unwrap();
         // This assert indicates that parsing the action stopped when we hit the second action (i.e. what follows is invalid).
-        assert!(IvyParser::action_decl(res).unwrap().1.decl.body.is_none());
+        assert!(IvyParser::action_decl(res).unwrap().decl.body.is_none());
     }
 
     #[test]
@@ -117,25 +111,22 @@ mod tests {
 
         assert_eq!(
             IvyParser::action_decl(res),
-            Ok((
-                Span::IgnoredForTesting,
-                Binding::from(
-                    "foo",
-                    ActionDecl {
-                        params: vec![Symbol::from(
-                            "a",
-                            Sort::Annotated(vec!["int".into()]),
-                            Span::IgnoredForTesting
-                        )],
-                        ret: Some(Symbol::from(
-                            "b",
-                            Sort::Annotated(vec!["int".into()]),
-                            Span::IgnoredForTesting
-                        )),
-                        body: None
-                    },
-                    Span::IgnoredForTesting
-                )
+            Ok(Binding::from(
+                "foo",
+                ActionDecl {
+                    params: vec![Symbol::from(
+                        "a",
+                        Sort::Annotated(vec!["int".into()]),
+                        Span::IgnoredForTesting
+                    )],
+                    ret: Some(Symbol::from(
+                        "b",
+                        Sort::Annotated(vec!["int".into()]),
+                        Span::IgnoredForTesting
+                    )),
+                    body: None
+                },
+                Span::IgnoredForTesting
             ))
         );
     }

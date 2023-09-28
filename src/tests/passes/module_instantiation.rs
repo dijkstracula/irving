@@ -13,7 +13,7 @@ mod tests {
             .expect("Parsing")
             .single()
             .unwrap();
-        let (span, decl) = IvyParser::module_decl(res).expect("AST generation");
+        let decl = IvyParser::module_decl(res).expect("AST generation");
         let mut module = Decl::Module { decl };
 
         let mut tc = SortInferer::new();
