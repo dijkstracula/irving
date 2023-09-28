@@ -43,7 +43,6 @@ where
         }
     }
 
-    /// XXX: "unwrap"?
     pub fn modifying(self, target: &mut Node) -> T {
         match self {
             ControlMut::Produce(t) => t,
@@ -53,6 +52,14 @@ where
                 *target = repl;
                 t
             }
+        }
+    }
+
+    pub fn unwrap(self) -> T {
+        match self {
+            ControlMut::Produce(t) => t,
+            ControlMut::SkipSiblings(t) => t,
+            ControlMut::Mutation(_, _) => panic!("called unwrap on a ControlMut::Mutation"),
         }
     }
 }

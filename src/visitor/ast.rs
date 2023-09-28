@@ -678,6 +678,8 @@ where
     fn verb(&mut self, v: &mut Verb) -> VisitorResult<T, E, Verb> {
         Ok(ControlMut::Produce(T::default()))
     }
+
+    //
 }
 
 impl<T, E> Visitable<T, E> for Prog
@@ -933,32 +935,7 @@ where
     fn visit(&mut self, visitor: &mut dyn Visitor<T, E>) -> VisitorResult<T, E, Self> {
         log::trace!(target: "visitor", "Decl {:?}", self.span());
         let t = match self {
-            Decl::Action {
-                decl:
-                    Binding {
-                        ref mut name,
-                        ref mut decl,
-                        ref mut span,
-                    },
-                ..
-            } => visitor.begin_action_decl(span, name, decl)?.and_then(|_| {
-                let n = visitor.token(name)?.modifying(name);
-                let params = decl.params.visit(visitor)?.modifying(&mut decl.params);
-                let ret = match &mut decl.ret {
-                    None => None,
-                    Some(sym) => Some(Binding::from(
-                        sym.name.clone(),
-                        visitor.param(sym)?.modifying(sym),
-                        span.clone(),
-                    )),
-                };
-                let body = decl
-                    .body
-                    .as_mut()
-                    .map(|b| Ok(b.visit(visitor)?.modifying(b)))
-                    .transpose()?;
-                visitor.finish_action_decl(span, name, decl, n, params, ret, body)
-            }),
+            Decl::Action { decl } => helpers::walk_action_decl(visitor, decl),
             Decl::AfterAction { span, decl } => {
                 visitor.begin_after_decl(span, decl)?.and_then(|_| {
                     let n = decl.name.visit(visitor)?.modifying(&mut decl.name);
@@ -1011,7 +988,7 @@ where
                 decl:
                     Binding {
                         ref mut name,
-                        ref mut decl,
+                        decl,
                         ref mut span,
                     },
             } => visitor.begin_class_decl(span, name, decl)?.and_then(|_| {
@@ -1022,7 +999,11 @@ where
                     .map(|p| Ok(p.visit(visitor)?.modifying(p)))
                     .transpose()?;
                 let fields_t = decl.fields.visit(visitor)?.modifying(&mut decl.fields);
-                //let actions_t = decl.actions.iter_mut().map(|a| )
+                let actions_t = decl
+                    .actions
+                    .iter_mut()
+                    .map(|a| Ok(helpers::walk_action_decl(visitor, a)?.unwrap()))
+                    .collect::<Result<Vec<_>, E>>()?;
                 visitor.finish_class_decl(span, name, decl, name_t, parent_t)
             }),
             Decl::Common { decl, .. } => visitor.begin_common_decl(decl)?.and_then(|_| {
@@ -1031,28 +1012,7 @@ where
             }),
             Decl::Export { span, decl } => {
                 visitor.begin_export_decl(decl)?.and_then(|_| match decl {
-                    ExportDecl::Action(Binding {
-                        ref mut name,
-                        ref mut decl,
-                        ref mut span,
-                    }) => visitor.begin_action_decl(span, name, decl)?.and_then(|_| {
-                        let n = visitor.token(name)?.modifying(name);
-                        let params = decl.params.visit(visitor)?.modifying(&mut decl.params);
-                        let ret = match &mut decl.ret {
-                            None => None,
-                            Some(sym) => Some(Binding::from(
-                                sym.name.clone(),
-                                visitor.param(sym)?.modifying(sym),
-                                span.clone(),
-                            )),
-                        };
-                        let body = decl
-                            .body
-                            .as_mut()
-                            .map(|b| Ok(b.visit(visitor)?.modifying(b)))
-                            .transpose()?;
-                        visitor.finish_action_decl(span, name, decl, n, params, ret, body)
-                    }),
+                    ExportDecl::Action(binding) => helpers::walk_action_decl(visitor, binding),
                     ExportDecl::ForwardRef(sym) => {
                         Ok(ControlMut::Produce(sym.visit(visitor)?.modifying(sym)))
                     }
@@ -1426,4 +1386,47 @@ where
     Self: Sized,
 {
     fn visit(&mut self, visitor: &mut dyn Visitor<T, E>) -> VisitorResult<U, E, Self>;
+}
+
+mod helpers {
+    use std::error::Error;
+
+    use crate::ast::declarations::{self, Binding};
+
+    use super::{Visitable, Visitor};
+
+    // We need to walk specifically action declarations in several places in
+    // Visitor, so factor that functionality out.  This probably suggests I
+    // designed this part wrong, c'est la vie.
+    pub fn walk_action_decl<T, E>(
+        visitor: &mut dyn Visitor<T, E>,
+        binding: &mut Binding<declarations::ActionDecl>,
+    ) -> Result<crate::visitor::ControlMut<T, crate::ast::declarations::Decl>, E>
+    where
+        T: Default,
+        E: Error,
+    {
+        let span = &mut binding.span;
+        let name = &mut binding.name;
+        let decl = &mut binding.decl;
+
+        visitor.begin_action_decl(span, name, decl)?.and_then(|_| {
+            let n = visitor.token(name)?.modifying(name);
+            let params = decl.params.visit(visitor)?.modifying(&mut decl.params);
+            let ret = match &mut decl.ret {
+                None => None,
+                Some(sym) => Some(Binding::from(
+                    sym.name.clone(),
+                    visitor.param(sym)?.modifying(sym),
+                    span.clone(),
+                )),
+            };
+            let body = decl
+                .body
+                .as_mut()
+                .map(|b| Ok(b.visit(visitor)?.modifying(b)))
+                .transpose()?;
+            visitor.finish_action_decl(span, name, decl, n, params, ret, body)
+        })
+    }
 }

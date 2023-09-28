@@ -15,6 +15,22 @@ mod tests {
     use pest_consume::Parser;
 
     #[test]
+    fn class() {
+        let fragment = "class pt = {
+            field x: unbounded_sequence
+            field y: unbounded_sequence
+            action norm(self: pt) returns (n: unbounded_sequence)
+        }";
+        let mut decl_ast = helpers::decl_from_src(fragment);
+
+        let mut tc = SortInferer::new();
+        let mut sort = decl_ast
+            .visit(&mut tc)
+            .expect("sort inference")
+            .modifying(&mut decl_ast);
+    }
+
+    #[test]
     fn ensure() {
         let prog = "ensure true";
         let mut decl_ast = helpers::decl_from_src(prog);
