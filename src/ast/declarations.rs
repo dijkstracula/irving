@@ -164,111 +164,51 @@ impl<T> Binding<T> {
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(clippy::large_enum_variant)]
 pub enum Decl {
-    Action {
-        span: Span,
-        decl: Binding<ActionDecl>,
-    },
+    Action { decl: Binding<ActionDecl> },
 
-    AfterAction {
-        span: Span,
-        decl: ActionMixinDecl,
-    },
+    AfterAction { span: Span, decl: ActionMixinDecl },
 
-    Alias {
-        span: Span,
-        decl: Binding<Sort>,
-    },
+    Alias { decl: Binding<Sort> },
 
-    Attribute {
-        span: Span,
-        decl: Expr,
-    },
+    Attribute { span: Span, decl: Expr },
 
-    Axiom {
-        span: Span,
-        decl: Fmla,
-    },
+    Axiom { span: Span, decl: Fmla },
 
-    BeforeAction {
-        span: Span,
-        decl: ActionMixinDecl,
-    },
+    BeforeAction { span: Span, decl: ActionMixinDecl },
 
-    Common {
-        span: Span,
-        decl: Vec<Decl>,
-    },
+    Common { span: Span, decl: Vec<Decl> },
 
-    Export {
-        span: Span,
-        decl: ExportDecl,
-    },
+    Export { span: Span, decl: ExportDecl },
 
-    Function {
-        span: Span,
-        decl: Binding<FunctionDecl>,
-    },
+    Function { decl: Binding<FunctionDecl> },
 
     Globals(Vec<Decl>),
 
-    Implement {
-        span: Span,
-        decl: ActionMixinDecl,
-    },
+    Implement { span: Span, decl: ActionMixinDecl },
 
-    Import {
-        span: Span,
-        decl: ImportDecl,
-    },
+    Import { span: Span, decl: ImportDecl },
 
-    Instance {
-        span: Span,
-        decl: Binding<InstanceDecl>,
-    },
+    Instance { decl: Binding<InstanceDecl> },
 
-    Instantiate {
-        name: Expr,
-        prms: Vec<Expr>,
-    },
+    Instantiate { name: Expr, prms: Vec<Expr> },
 
-    Interpret {
-        span: Span,
-        decl: InterpretDecl,
-    },
+    Interpret { span: Span, decl: InterpretDecl },
 
-    Invariant {
-        span: Span,
-        decl: Fmla,
-    },
+    Invariant { span: Span, decl: Fmla },
 
-    Module {
-        span: Span,
-        decl: Binding<ModuleDecl>,
-    },
+    Module { decl: Binding<ModuleDecl> },
 
     Noop,
 
-    Object {
-        span: Span,
-        decl: Binding<ObjectDecl>,
-    },
+    Object { decl: Binding<ObjectDecl> },
 
-    Relation {
-        span: Span,
-        decl: Binding<Relation>,
-    },
+    Relation { decl: Binding<Relation> },
 
     Stmts(Vec<Stmt>),
 
-    Var {
-        span: Span,
-        decl: Binding<Sort>,
-    },
+    Var { decl: Binding<Sort> },
 
-    Type {
-        span: Span,
-        decl: Binding<Sort>,
-    },
+    Type { decl: Binding<Sort> },
 }
 
 impl Decl {
@@ -341,29 +281,48 @@ impl Decl {
 
     pub fn span(&self) -> &Span {
         match self {
-            Decl::Action { span, .. } => span,
+            Decl::Action {
+                decl: Binding { span, .. },
+                ..
+            } => span,
             Decl::AfterAction { span, .. } => span,
-            Decl::Alias { span, .. } => span,
+            Decl::Alias {
+                decl: Binding { span, .. },
+            } => span,
             Decl::Attribute { span, .. } => span,
             Decl::Axiom { span, .. } => span,
             Decl::BeforeAction { span, .. } => span,
             Decl::Common { span, .. } => span,
             Decl::Export { span, .. } => span,
-            Decl::Function { span, .. } => span,
+            Decl::Function {
+                decl: Binding { span, .. },
+            } => span,
             Decl::Globals(_) => DEFAULT_SPAN,
             Decl::Implement { span, .. } => span,
             Decl::Import { span, .. } => span,
-            Decl::Instance { span, .. } => span,
+            Decl::Instance {
+                decl: Binding { span, .. },
+            } => span,
             Decl::Instantiate { .. } => DEFAULT_SPAN,
             Decl::Interpret { span, .. } => span,
             Decl::Invariant { span, .. } => span,
-            Decl::Module { span, .. } => span,
+            Decl::Module {
+                decl: Binding { span, .. },
+            } => span,
             Decl::Noop => DEFAULT_SPAN,
-            Decl::Object { span, .. } => span,
-            Decl::Relation { span, .. } => span,
+            Decl::Object {
+                decl: Binding { span, .. },
+            } => span,
+            Decl::Relation {
+                decl: Binding { span, .. },
+            } => span,
             Decl::Stmts(_) => DEFAULT_SPAN,
-            Decl::Var { span, .. } => span,
-            Decl::Type { span, .. } => span,
+            Decl::Var {
+                decl: Binding { span, .. },
+            } => span,
+            Decl::Type {
+                decl: Binding { span, .. },
+            } => span,
         }
     }
 }

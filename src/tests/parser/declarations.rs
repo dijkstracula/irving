@@ -111,7 +111,6 @@ mod tests {
         assert_eq!(
             decl,
             Decl::Module {
-                span: Span::IgnoredForTesting,
                 decl: Binding::from(
                     "net",
                     ModuleDecl {

@@ -89,11 +89,10 @@ where
 
         // The first declaration needs to define the return value.
         ret.as_mut().map(|ret| {
-            let mut retdecl =
-                declarations::Decl::Var {
-                    span: Span::Optimized, /* We're just using this to walk the binding, so it doesn't matter */
-                    decl: Binding::from(ret.name.clone(), ret.decl.clone(), Span::Optimized)
-                };
+            let mut retdecl = declarations::Decl::Var {
+                /* We're just using this to walk the binding, so the span */
+                decl: Binding::from(ret.name.clone(), ret.decl.clone(), Span::Optimized),
+            };
             retdecl.visit(self).unwrap();
             self.pp.write_str(";\n").unwrap();
         });

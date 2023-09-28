@@ -915,12 +915,11 @@ where
         log::trace!(target: "visitor", "Decl {:?}", self.span());
         let t = match self {
             Decl::Action {
-                span,
                 decl:
                     Binding {
                         ref mut name,
                         ref mut decl,
-                        ..
+                        ref mut span,
                     },
                 ..
             } => visitor.begin_action_decl(span, name, decl)?.and_then(|_| {

@@ -523,7 +523,6 @@ impl IvyParser {
     }
 
     pub fn var_decl(input: Node) -> Result<(Span, Binding<Sort>)> {
-        let src = Rc::clone(input.user_data());
         let decl_span = Span::from_node(&input);
 
         match_nodes!(
@@ -534,29 +533,29 @@ impl IvyParser {
     pub fn decl(input: Node) -> Result<Decl> {
         match_nodes!(
         input.into_children();
-        [action_decl((span, decl))]   => Ok(Decl::Action{span, decl}),
+        [action_decl((span, decl))]   => Ok(Decl::Action{decl}),
         [after_decl((span, decl))]    => Ok(Decl::AfterAction{span, decl}),
-        [alias_decl((span, decl))]   => Ok(Decl::Alias{span, decl}),
+        [alias_decl((span, decl))]   => Ok(Decl::Alias{decl}),
         [attribute_decl((span, decl))] => Ok(Decl::Attribute{span, decl}),
         [axiom_decl((span, decl))]    => Ok(Decl::Axiom{span, decl}),
         [before_decl((span, decl))]    => Ok(Decl::BeforeAction{span, decl}),
         [common_decl((span, decl))] => Ok(Decl::Common{span, decl}),
         [export_decl((span, decl))]   => Ok(Decl::Export{span, decl}),
         [global_decl(decls)]  => Ok(Decl::Globals(decls)),
-        [function_decl((span, decl))] => Ok(Decl::Function{ span, decl }),
+        [function_decl((span, decl))] => Ok(Decl::Function{ decl }),
         [implement_action_decl((span, decl))] => Ok(Decl::Implement{span, decl}),
-        [implementation_decl((span, decl))] => Ok(Decl::Object{ span: span.clone(), decl: Binding { name: "impl".into(), decl, span }}),
+        [implementation_decl((span, decl))] => Ok(Decl::Object{ decl: Binding { name: "impl".into(), decl, span }}),
         [import_decl((span, decl))]    => Ok(Decl::Import{span, decl}),
         [invariant_decl((span, decl))] => Ok(Decl::Invariant { span, decl}),
-        [instance_decl((span, decl))] => Ok(Decl::Instance{span, decl}),
+        [instance_decl((span, decl))] => Ok(Decl::Instance{decl}),
         [interpret_decl((span, decl))] => Ok(Decl::Interpret{span, decl}),
-        [module_decl((span, decl))]   => Ok(Decl::Module{span, decl}),
-        [object_decl((span, decl))]   => Ok(Decl::Object{span, decl}),
-        [process_decl((span, decl))]   => Ok(Decl::Object{span, decl}),
-        [relation_decl((span, decl))] => Ok(Decl::Relation{span, decl}),
-        [specification_decl((span, decl))] => Ok(Decl::Object{ span: span.clone(), decl: Binding { name: "spec".into(), decl, span }}),
-        [type_decl((span, decl))]     => Ok(Decl::Type { span, decl }),
-        [var_decl((span, decl))]      => Ok(Decl::Var{ span, decl }),
+        [module_decl((span, decl))]   => Ok(Decl::Module{decl}),
+        [object_decl((span, decl))]   => Ok(Decl::Object{decl}),
+        [process_decl((span, decl))]   => Ok(Decl::Object{decl}),
+        [relation_decl((span, decl))] => Ok(Decl::Relation{decl}),
+        [specification_decl((span, decl))] => Ok(Decl::Object{ decl: Binding { name: "spec".into(), decl, span }}),
+        [type_decl((span, decl))]     => Ok(Decl::Type { decl }),
+        [var_decl((span, decl))]      => Ok(Decl::Var{ decl }),
         [stmt(stmts)..]       => Ok(Decl::Stmts(stmts.collect()))
         )
     }

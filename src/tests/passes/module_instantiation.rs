@@ -14,7 +14,7 @@ mod tests {
             .single()
             .unwrap();
         let (span, decl) = IvyParser::module_decl(res).expect("AST generation");
-        let mut module = Decl::Module { span, decl };
+        let mut module = Decl::Module { decl };
 
         let mut tc = SortInferer::new();
         match module

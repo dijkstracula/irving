@@ -88,7 +88,7 @@ mod tests {
             .unwrap();
 
         let (span, decl) = IvyParser::module_decl(parsed).expect("Parsing of Vec stub module");
-        let vecdecl = Decl::Module { span, decl };
+        let vecdecl = Decl::Module { decl };
 
         let mut filedecl = vecdecl;
         /*

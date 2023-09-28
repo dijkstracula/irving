@@ -52,7 +52,7 @@ pub mod helpers {
             .single()
             .unwrap();
         let (span, decl) = IvyParser::process_decl(res).expect("AST generation failed");
-        Decl::Object { span, decl }
+        Decl::Object { decl }
     }
 
     pub fn module_from_src(prog: &str) -> Decl {
@@ -62,7 +62,7 @@ pub mod helpers {
             .unwrap();
 
         let (span, decl) = IvyParser::module_decl(res).expect("AST generation failed");
-        Decl::Module { span, decl }
+        Decl::Module { decl }
     }
 
     #[allow(dead_code)]

@@ -24,7 +24,7 @@ mod tests {
             .single()
             .unwrap();
         let (span, decl) = IvyParser::process_decl(res).expect("AST generation failed");
-        Decl::Object { span, decl }
+        Decl::Object { decl }
     }
 
     fn decl_from_src(src: &str) -> Decl {
@@ -384,7 +384,6 @@ mod tests {
         }",
         ) {
             Decl::Action {
-                span: _,
                 decl:
                     Binding {
                         decl:

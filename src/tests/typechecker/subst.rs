@@ -38,7 +38,6 @@ action inc(x: node) returns (y: node) = {
         // typechecking, we know nothing of `node`'s sort.
         assert_eq!(
             Some(&declarations::Decl::Type {
-                span: Span::IgnoredForTesting,
                 decl: Binding::from("node", Sort::ToBeInferred, Span::IgnoredForTesting)
             }),
             prog.top.get(0)
@@ -54,7 +53,6 @@ action inc(x: node) returns (y: node) = {
             // There's only one Sort in play in this program, so we know that the
             // SortVar ID must be 0.
             Some(&declarations::Decl::Type {
-                span: Span::IgnoredForTesting,
                 decl: Binding::from(
                     "node",
                     Sort::Resolved(IvySort::SortVar(0)),
@@ -79,7 +77,6 @@ action inc(x: node) returns (y: node) = {
             // There's only one Sort in play in this program, so we know that the
             // SortVar ID must be 0.
             Some(&declarations::Decl::Type {
-                span: Span::IgnoredForTesting,
                 decl: Binding::from(
                     "node",
                     Sort::Resolved(IvySort::Number),

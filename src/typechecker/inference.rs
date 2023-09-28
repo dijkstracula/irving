@@ -956,7 +956,6 @@ impl Visitor<IvySort, TypeError> for SortInferer {
             .map_err(|e| e.to_typeerror(&Span::Todo))?;
         Ok(ControlMut::Mutation(
             declarations::Decl::Alias {
-                span: Span::Optimized,
                 decl: Binding::from(sym.clone(), Sort::Resolved(unified.clone()), Span::Todo),
             },
             unified,
@@ -1457,10 +1456,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
 
         let binding = Binding::from(name.clone(), Sort::Resolved(resolved.clone()), span.clone());
         Ok(ControlMut::Mutation(
-            declarations::Decl::Type {
-                span: span.clone(),
-                decl: binding,
-            },
+            declarations::Decl::Type { decl: binding },
             resolved,
         ))
     }
@@ -1498,7 +1494,6 @@ impl Visitor<IvySort, TypeError> for SortInferer {
         if &resolved_sort != &resolved {
             Ok(ControlMut::Mutation(
                 declarations::Decl::Var {
-                    span: span.clone(),
                     decl: Binding::from(
                         name.clone(),
                         Sort::Resolved(resolved.clone()),
