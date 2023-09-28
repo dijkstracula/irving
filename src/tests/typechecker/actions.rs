@@ -400,7 +400,8 @@ mod tests {
             stmts.get(0),
             Some(&Stmt::VarDecl(Binding {
                 name: "foo".into(),
-                decl: Sort::Annotated(["bool".into()].into())
+                decl: Sort::Annotated(["bool".into()].into()),
+                span: Span::IgnoredForTesting
             }))
         );
     }

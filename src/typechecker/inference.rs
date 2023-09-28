@@ -561,12 +561,12 @@ impl Visitor<IvySort, TypeError> for SortInferer {
         vars: Vec<IvySort>,
         _fmla: IvySort,
     ) -> InferenceResult<logic::Fmla> {
-        for (Binding { name, decl }, sort) in ast.vars.iter_mut().zip(vars.iter()) {
+        for (Binding { name, decl, span }, sort) in ast.vars.iter_mut().zip(vars.iter()) {
             let bound_sort = self.bindings.lookup_sym(name).unwrap().clone();
             let unified = self
                 .bindings
                 .unify(&bound_sort, sort)
-                .map_err(|e| e.to_typeerror(&Span::Todo))?;
+                .map_err(|e| e.to_typeerror(&span))?;
             *decl = Sort::Resolved(unified);
         }
         self.bindings.pop_scope();

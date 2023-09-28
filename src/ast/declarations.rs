@@ -145,6 +145,7 @@ pub struct Relation {
 pub struct Binding<T> {
     pub name: String,
     pub decl: T,
+    pub span: Span,
 }
 
 impl<T> Binding<T> {
@@ -155,6 +156,7 @@ impl<T> Binding<T> {
         Self {
             name: name.into(),
             decl,
+            span,
         }
     }
 }

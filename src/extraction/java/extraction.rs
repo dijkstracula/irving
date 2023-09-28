@@ -258,6 +258,7 @@ where
         let mut ret = ast.ret.clone().or(Some(expressions::Symbol {
             name: "_void".into(),
             decl: expressions::Sort::Resolved(IvySort::Unit),
+            span: Span::Optimized,
         }));
 
         self.pp

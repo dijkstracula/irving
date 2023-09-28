@@ -41,6 +41,9 @@ pub enum TypeError {
     #[error("Undefined field {0} ")]
     MissingRecordField(Token),
 
+    #[error("{0:?} cannot be subclassed")]
+    NonClassInheritance(IvySort),
+
     #[error("Unbound variable {0}")]
     UnboundVariable(Token),
 

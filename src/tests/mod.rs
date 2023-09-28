@@ -187,6 +187,7 @@ pub mod helpers {
             sym: expressions::Symbol {
                 name: s.into(),
                 decl: expressions::Sort::ToBeInferred,
+                span: Span::IgnoredForTesting,
             },
         }
     }
@@ -201,6 +202,7 @@ pub mod helpers {
             sym: expressions::Symbol {
                 name: s.into(),
                 decl: expressions::Sort::ToBeInferred,
+                span: Span::IgnoredForTesting,
             },
         }
     }

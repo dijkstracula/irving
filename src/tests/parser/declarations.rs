@@ -4,7 +4,8 @@ mod tests {
 
     use crate::{
         ast::{
-            declarations::{Binding, Decl, ModuleDecl},
+            declarations::{self, Binding, Decl, ModuleDecl},
+            expressions::Sort,
             span::Span,
         },
         parser::ivy::{IvyParser, Rule},
@@ -158,11 +159,17 @@ mod tests {
         let isol_fragment = "isolate timer(x: bool) = { }";
 
         let proc = match helpers::decl_from_src(proc_fragment) {
-            Decl::Object { decl, .. } => decl,
+            Decl::Object {
+                decl: Binding { decl, .. },
+                ..
+            } => decl,
             _ => unreachable!(),
         };
         let isol = match helpers::decl_from_src(isol_fragment) {
-            Decl::Object { decl, .. } => decl,
+            Decl::Object {
+                decl: Binding { decl, .. },
+                ..
+            } => decl,
             _ => unreachable!(),
         };
 
@@ -170,7 +177,30 @@ mod tests {
         // comes from an implicit `extract` directive in the former, which we don't consider.)
         // (Note that we extract the object declaration from the enclosing Decl because the latter's
         // Span will be different; it remembers what keyword was used to define the object!)
-        assert_eq!(proc, isol);
+        assert_eq!(
+            proc,
+            declarations::ObjectDecl {
+                params: [Binding::from(
+                    "x",
+                    Sort::Annotated(["bool".into()].into()),
+                    Span::IgnoredForTesting
+                )]
+                .into(),
+                body: vec!(),
+            }
+        );
+        assert_eq!(
+            isol,
+            declarations::ObjectDecl {
+                params: [Binding::from(
+                    "x",
+                    Sort::Annotated(["bool".into()].into()),
+                    Span::IgnoredForTesting
+                )]
+                .into(),
+                body: vec!(),
+            }
+        );
     }
 
     #[test]
