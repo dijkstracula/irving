@@ -89,11 +89,10 @@ where
 
         // The first declaration needs to define the return value.
         ret.as_mut().map(|ret| {
-            let mut retdecl =
-                declarations::Decl::Var {
-                    span: Span::Optimized, /* We're just using this to walk the binding, so it doesn't matter */
-                    decl: Binding::from(ret.name.clone(), ret.decl.clone())
-                };
+            let mut retdecl = declarations::Decl::Var {
+                /* We're just using this to walk the binding, so the span */
+                decl: Binding::from(ret.name.clone(), ret.decl.clone(), Span::Optimized),
+            };
             retdecl.visit(self).unwrap();
             self.pp.write_str(";\n").unwrap();
         });
@@ -258,6 +257,7 @@ where
         let mut ret = ast.ret.clone().or(Some(expressions::Symbol {
             name: "_void".into(),
             decl: expressions::Sort::Resolved(IvySort::Unit),
+            span: Span::Optimized,
         }));
 
         self.pp

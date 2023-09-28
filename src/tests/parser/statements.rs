@@ -75,7 +75,11 @@ mod tests {
                             span: Span::IgnoredForTesting,
                             expr: crate::ast::expressions::FieldAccess {
                                 record: Box::new(helpers::inferred_progsym("foo")),
-                                field: Symbol::from("bar", Sort::ToBeInferred),
+                                field: Symbol::from(
+                                    "bar",
+                                    Sort::ToBeInferred,
+                                    Span::IgnoredForTesting
+                                ),
                             }
                         },
                         lhs_sort: Sort::ToBeInferred,
@@ -140,11 +144,19 @@ mod tests {
                         app: LogicApp {
                             func: Box::new(Fmla::ProgramSymbol {
                                 span: Span::IgnoredForTesting,
-                                sym: Binding::from("failed", Sort::ToBeInferred)
+                                sym: Binding::from(
+                                    "failed",
+                                    Sort::ToBeInferred,
+                                    Span::IgnoredForTesting
+                                )
                             }),
                             args: [Fmla::ProgramSymbol {
                                 span: Span::IgnoredForTesting,
-                                sym: Binding::from("y", Sort::ToBeInferred)
+                                sym: Binding::from(
+                                    "y",
+                                    Sort::ToBeInferred,
+                                    Span::IgnoredForTesting
+                                )
                             }]
                             .into()
                         }
@@ -170,7 +182,7 @@ mod tests {
                     binop: LogicBinOp {
                         lhs: Box::new(Fmla::ProgramSymbol {
                             span: Span::IgnoredForTesting,
-                            sym: Binding::from("x", Sort::ToBeInferred)
+                            sym: Binding::from("x", Sort::ToBeInferred, Span::IgnoredForTesting)
                         }),
                         op: Verb::Ge,
                         rhs: Box::new(Fmla::Number {

@@ -89,13 +89,13 @@ impl SortInferer {
             (None, Some(ret)) => IvySort::Action(
                 action_args,
                 ActionArgs::Unknown,
-                sorts::ActionRet::Named(Box::new(Binding::from("TODO", ret))),
+                sorts::ActionRet::Named(Box::new(Binding::from("TODO", ret, Span::Todo))),
                 sorts::ActionKind::Instance, // TODO: can we have a common mixin?
             ),
             (Some(params), Some(ret)) => IvySort::Action(
                 action_args,
                 ActionArgs::List(params),
-                sorts::ActionRet::Named(Box::new(Binding::from("TODO", ret))),
+                sorts::ActionRet::Named(Box::new(Binding::from("TODO", ret, Span::Todo))),
                 sorts::ActionKind::Instance, // TODO: can we have a common mixin?
             ),
         };
@@ -111,7 +111,7 @@ impl SortInferer {
             IvySort::Action(args, ActionArgs::List(sorts), _, _) => args
                 .iter()
                 .zip(sorts.iter())
-                .map(|(name, sort)| Symbol::from(name, Sort::Resolved(sort.clone())))
+                .map(|(name, sort)| Symbol::from(name, Sort::Resolved(sort.clone()), Span::Todo))
                 .collect::<Vec<_>>(),
             _ => unreachable!(),
         };
@@ -168,7 +168,11 @@ impl Visitor<IvySort, TypeError> for SortInferer {
                     .append(p.name.clone(), resolved.clone())
                     .map_err(|e| e.to_typeerror(&Span::Todo))?;
                 Ok(ControlMut::Mutation(
-                    expressions::Symbol::from(p.name.clone(), Sort::Resolved(resolved.clone())),
+                    expressions::Symbol::from(
+                        p.name.clone(),
+                        Sort::Resolved(resolved.clone()),
+                        Span::Todo,
+                    ),
                     resolved,
                 ))
             }
@@ -221,7 +225,11 @@ impl Visitor<IvySort, TypeError> for SortInferer {
             Ok(ControlMut::Produce(sort))
         } else {
             Ok(ControlMut::Mutation(
-                Binding::from(p.name.clone(), Sort::Resolved(resolved.clone())),
+                Binding::from(
+                    p.name.clone(),
+                    Sort::Resolved(resolved.clone()),
+                    span.clone(),
+                ),
                 resolved.clone(),
             ))
         }
@@ -323,6 +331,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
             statements::Stmt::VarDecl(Binding::from(
                 name.clone(),
                 Sort::Resolved(resolved.clone()),
+                Span::Todo,
             )),
             resolved,
         ))
@@ -552,12 +561,12 @@ impl Visitor<IvySort, TypeError> for SortInferer {
         vars: Vec<IvySort>,
         _fmla: IvySort,
     ) -> InferenceResult<logic::Fmla> {
-        for (Binding { name, decl }, sort) in ast.vars.iter_mut().zip(vars.iter()) {
+        for (Binding { name, decl, span }, sort) in ast.vars.iter_mut().zip(vars.iter()) {
             let bound_sort = self.bindings.lookup_sym(name).unwrap().clone();
             let unified = self
                 .bindings
                 .unify(&bound_sort, sort)
-                .map_err(|e| e.to_typeerror(&Span::Todo))?;
+                .map_err(|e| e.to_typeerror(&span))?;
             *decl = Sort::Resolved(unified);
         }
         self.bindings.pop_scope();
@@ -947,8 +956,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
             .map_err(|e| e.to_typeerror(&Span::Todo))?;
         Ok(ControlMut::Mutation(
             declarations::Decl::Alias {
-                span: Span::Optimized,
-                decl: Binding::from(sym.clone(), Sort::Resolved(unified.clone())),
+                decl: Binding::from(sym.clone(), Sort::Resolved(unified.clone()), Span::Todo),
             },
             unified,
         ))
@@ -1303,7 +1311,11 @@ impl Visitor<IvySort, TypeError> for SortInferer {
             .iter()
             .zip(param_sorts.iter())
             .map(|(param, sort)| {
-                Binding::from(param.name.clone(), self.bindings.resolve(sort).clone())
+                Binding::from(
+                    param.name.clone(),
+                    self.bindings.resolve(sort).clone(),
+                    Span::Todo,
+                )
             })
             .collect::<Vec<_>>();
 
@@ -1442,12 +1454,9 @@ impl Visitor<IvySort, TypeError> for SortInferer {
             .append(name.clone(), resolved.clone())
             .map_err(|e| e.to_typeerror(&Span::Todo))?;
 
-        let binding = Binding::from(name.clone(), Sort::Resolved(resolved.clone()));
+        let binding = Binding::from(name.clone(), Sort::Resolved(resolved.clone()), span.clone());
         Ok(ControlMut::Mutation(
-            declarations::Decl::Type {
-                span: span.clone(),
-                decl: binding,
-            },
+            declarations::Decl::Type { decl: binding },
             resolved,
         ))
     }
@@ -1485,8 +1494,11 @@ impl Visitor<IvySort, TypeError> for SortInferer {
         if &resolved_sort != &resolved {
             Ok(ControlMut::Mutation(
                 declarations::Decl::Var {
-                    span: span.clone(),
-                    decl: Binding::from(name.clone(), Sort::Resolved(resolved.clone())),
+                    decl: Binding::from(
+                        name.clone(),
+                        Sort::Resolved(resolved.clone()),
+                        span.clone(),
+                    ),
                 },
                 resolved,
             ))

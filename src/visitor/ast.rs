@@ -894,6 +894,7 @@ where
             Stmt::VarDecl(Binding {
                 ref mut name,
                 ref mut decl,
+                ..
             }) => visitor.begin_local_vardecl(name, decl)?.and_then(|_| {
                 let n = name.visit(visitor)?.modifying(name);
                 let s = visitor.sort(decl)?.modifying(decl);
@@ -914,11 +915,11 @@ where
         log::trace!(target: "visitor", "Decl {:?}", self.span());
         let t = match self {
             Decl::Action {
-                span,
                 decl:
                     Binding {
                         ref mut name,
                         ref mut decl,
+                        ref mut span,
                     },
                 ..
             } => visitor.begin_action_decl(span, name, decl)?.and_then(|_| {
@@ -929,6 +930,7 @@ where
                     Some(sym) => Some(Binding::from(
                         sym.name.clone(),
                         visitor.param(sym)?.modifying(sym),
+                        span.clone(),
                     )),
                 };
                 let body = decl
@@ -960,6 +962,7 @@ where
                     Binding {
                         ref mut name,
                         ref mut decl,
+                        ..
                     },
                 ..
             } => visitor.begin_alias_decl(name, decl)?.and_then(|_| {
@@ -994,6 +997,7 @@ where
                     ExportDecl::Action(Binding {
                         ref mut name,
                         ref mut decl,
+                        ref mut span,
                     }) => visitor.begin_action_decl(span, name, decl)?.and_then(|_| {
                         let n = visitor.token(name)?.modifying(name);
                         let params = decl.params.visit(visitor)?.modifying(&mut decl.params);
@@ -1002,6 +1006,7 @@ where
                             Some(sym) => Some(Binding::from(
                                 sym.name.clone(),
                                 visitor.param(sym)?.modifying(sym),
+                                span.clone(),
                             )),
                         };
                         let body = decl
@@ -1017,7 +1022,7 @@ where
                 })
             }
             Decl::Function {
-                decl: Binding { name, decl },
+                decl: Binding { name, decl, span },
                 ..
             } => visitor.begin_function_decl(name, decl)?.and_then(|_| {
                 let n = visitor.token(name)?.modifying(name);
@@ -1029,7 +1034,7 @@ where
                 let _d = decl.visit(visitor)?.modifying(decl);
                 visitor.finish_global_decl(decl)
             }),
-            Decl::Implement { decl, .. } => visitor.begin_implement_decl(decl)?.and_then(|_| {
+            Decl::Implement { span, decl } => visitor.begin_implement_decl(decl)?.and_then(|_| {
                 let n = decl.name.visit(visitor)?.modifying(&mut decl.name);
                 let params = decl
                     .params
@@ -1041,6 +1046,7 @@ where
                     Some(sym) => Some(Binding::from(
                         sym.name.clone(),
                         visitor.param(sym)?.modifying(sym),
+                        span.clone(),
                     )),
                 };
                 let body = decl.body.visit(visitor)?.modifying(&mut decl.body);
@@ -1056,6 +1062,7 @@ where
                     Binding {
                         ref mut name,
                         ref mut decl,
+                        ref mut span,
                     },
                 ..
             } => visitor.begin_instance_decl(name, decl)?.and_then(|_| {
@@ -1090,6 +1097,7 @@ where
                     Binding {
                         ref mut name,
                         ref mut decl,
+                        ref mut span,
                     },
                 ..
             } => visitor.begin_module_decl(name, decl)?.and_then(|_| {
@@ -1108,6 +1116,7 @@ where
                     Binding {
                         ref mut name,
                         ref mut decl,
+                        ref mut span,
                     },
                 ..
             } => visitor.begin_object_decl(name, decl)?.and_then(|_| {
@@ -1117,7 +1126,7 @@ where
                 visitor.finish_object_decl(name, decl, n, p, b)
             }),
             Decl::Relation {
-                decl: Binding { name, decl },
+                decl: Binding { name, decl, span },
                 ..
             } => visitor.begin_relation(name, decl)?.and_then(|_| {
                 let n = name.visit(visitor)?.modifying(name);
@@ -1129,23 +1138,24 @@ where
                 Ok(ControlMut::Produce(T::default()))
             }
             Decl::Var {
-                span,
                 decl:
                     Binding {
                         ref mut name,
                         ref mut decl,
+                        ref mut span,
                     },
+                ..
             } => visitor.begin_vardecl(span, name, decl)?.and_then(|_| {
                 let n = name.visit(visitor)?.modifying(name);
                 let s = visitor.sort(decl)?.modifying(decl);
                 visitor.finish_vardecl(span, name, decl, n, s)
             }),
             Decl::Type {
-                span,
                 decl:
                     Binding {
                         ref mut name,
                         ref mut decl,
+                        ref mut span,
                     },
                 ..
             } => visitor.begin_typedecl(span, name, decl)?.and_then(|_| {

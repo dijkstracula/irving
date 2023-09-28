@@ -23,8 +23,8 @@ mod tests {
             .expect("Parsing failed")
             .single()
             .unwrap();
-        let (span, decl) = IvyParser::process_decl(res).expect("AST generation failed");
-        Decl::Object { span, decl }
+        let decl = IvyParser::process_decl(res).expect("AST generation failed");
+        Decl::Object { decl }
     }
 
     fn decl_from_src(src: &str) -> Decl {
@@ -384,7 +384,6 @@ mod tests {
         }",
         ) {
             Decl::Action {
-                span: _,
                 decl:
                     Binding {
                         decl:
@@ -400,7 +399,8 @@ mod tests {
             stmts.get(0),
             Some(&Stmt::VarDecl(Binding {
                 name: "foo".into(),
-                decl: Sort::Annotated(["bool".into()].into())
+                decl: Sort::Annotated(["bool".into()].into()),
+                span: Span::IgnoredForTesting
             }))
         );
     }

@@ -17,8 +17,8 @@ mod tests {
             .expect("Parsing failed")
             .single()
             .unwrap();
-        let (span, decl) = IvyParser::process_decl(res).expect("AST generation failed");
-        Decl::Object { span, decl }
+        let decl = IvyParser::process_decl(res).expect("AST generation failed");
+        Decl::Object { decl }
     }
 
     #[test]

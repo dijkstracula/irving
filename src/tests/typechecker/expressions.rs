@@ -217,7 +217,12 @@ mod tests {
         let mut callop = helpers::rval_from_src(fragment);
 
         let host_sort = IvySort::Object(Object {
-            args: [Binding::from("self", IvySort::Range(0, 3))].into(),
+            args: [Binding::from(
+                "self",
+                IvySort::Range(0, 3),
+                Span::IgnoredForTesting,
+            )]
+            .into(),
             fields: [("init".to_owned(), Module::init_action_sort())].into(),
         });
         let mut si = SortInferer::new();
@@ -240,7 +245,12 @@ mod tests {
         let mut callop = helpers::rval_from_src(fragment);
 
         let host_sort = IvySort::Object(Object {
-            args: [Binding::from("self", IvySort::Range(0, 3))].into(),
+            args: [Binding::from(
+                "self",
+                IvySort::Range(0, 3),
+                Span::IgnoredForTesting,
+            )]
+            .into(),
             fields: [("init".to_owned(), Module::init_action_sort())].into(),
         });
         let mut si = SortInferer::new();
@@ -300,7 +310,11 @@ mod tests {
                 IvySort::action_sort(
                     vec!["n".into()],
                     vec![IvySort::Range(0, 3)],
-                    sorts::ActionRet::Named(Box::new(Binding::from("ret", IvySort::Number))),
+                    sorts::ActionRet::Named(Box::new(Binding::from(
+                        "ret",
+                        IvySort::Number,
+                        Span::IgnoredForTesting,
+                    ))),
                 ),
             )]),
         };

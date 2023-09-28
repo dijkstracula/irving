@@ -51,8 +51,8 @@ pub mod helpers {
             .expect("Parsing failed")
             .single()
             .unwrap();
-        let (span, decl) = IvyParser::process_decl(res).expect("AST generation failed");
-        Decl::Object { span, decl }
+        let decl = IvyParser::process_decl(res).expect("AST generation failed");
+        Decl::Object { decl }
     }
 
     pub fn module_from_src(prog: &str) -> Decl {
@@ -61,8 +61,8 @@ pub mod helpers {
             .single()
             .unwrap();
 
-        let (span, decl) = IvyParser::module_decl(res).expect("AST generation failed");
-        Decl::Module { span, decl }
+        let decl = IvyParser::module_decl(res).expect("AST generation failed");
+        Decl::Module { decl }
     }
 
     #[allow(dead_code)]
@@ -187,6 +187,7 @@ pub mod helpers {
             sym: expressions::Symbol {
                 name: s.into(),
                 decl: expressions::Sort::ToBeInferred,
+                span: Span::IgnoredForTesting,
             },
         }
     }
@@ -201,6 +202,7 @@ pub mod helpers {
             sym: expressions::Symbol {
                 name: s.into(),
                 decl: expressions::Sort::ToBeInferred,
+                span: Span::IgnoredForTesting,
             },
         }
     }

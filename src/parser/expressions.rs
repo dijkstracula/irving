@@ -44,8 +44,8 @@ pub fn parse_rval(input: Rc<str>, pairs: Pairs<Rule>) -> Result<Expr> {
             match primary.as_rule() {
                 Rule::THIS => Ok(Expr::This(span)),
                 Rule::PROGTOK => Ok(Expr::ProgramSymbol {
-                    span,
-                    sym: Symbol::from(primary.as_str(), Sort::ToBeInferred),
+                    span: span.clone(),
+                    sym: Symbol::from(primary.as_str(), Sort::ToBeInferred, span),
                 }),
                 Rule::boollit => {
                     let val = match primary.as_str() {

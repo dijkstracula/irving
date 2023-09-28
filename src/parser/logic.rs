@@ -39,14 +39,15 @@ lazy_static::lazy_static! {
 }
 
 // TODO: this should be something other than a Symbol.
-pub fn parse_lsym(_input: Rc<str>, primary: Pair<'_, Rule>) -> Result<Symbol> {
-    // TODO: we need a separate AST node for logicvars.
+pub fn parse_lsym(input: Rc<str>, primary: Pair<'_, Rule>) -> Result<Symbol> {
+    let span = Span::from_pest(input, &primary.as_span());
     let mut pairs = primary.into_inner();
     let name = pairs.next().unwrap().as_str().to_owned();
     let sort = pairs.next().map(|s| vec![s.as_str().to_owned()]);
+
     match sort {
-        None => Ok(Symbol::from(name, Sort::ToBeInferred)),
-        Some(sort) => Ok(Symbol::from(name, Sort::Annotated(sort))),
+        None => Ok(Symbol::from(name, Sort::ToBeInferred, span)),
+        Some(sort) => Ok(Symbol::from(name, Sort::Annotated(sort), span)),
     }
 }
 
@@ -69,8 +70,8 @@ pub fn parse_log_term(input: Rc<str>, pairs: Pairs<Rule>) -> Result<Fmla> {
                         span: span.clone(),
                         app: logic::LogicApp {
                             func: Box::new(Fmla::ProgramSymbol {
-                                span, //XXX: not really right, this is the whole application's span
-                                sym: Binding::from(name, Sort::ToBeInferred),
+                                span: span.clone(), //XXX: not really right, this is the whole application's span
+                                sym: Binding::from(name, Sort::ToBeInferred, span),
                             }),
                             args,
                         },
@@ -93,8 +94,8 @@ pub fn parse_log_term(input: Rc<str>, pairs: Pairs<Rule>) -> Result<Fmla> {
                     sym: parse_lsym(Rc::clone(&input), primary)?
                 }),
                 Rule::PROGTOK => Ok(Fmla::ProgramSymbol {
-                    span,
-                    sym: Symbol::from(primary.as_str(), Sort::ToBeInferred),
+                    span: span.clone(),
+                    sym: Symbol::from(primary.as_str(), Sort::ToBeInferred, span),
                 }),
                 Rule::log_term => parse_log_term(Rc::clone(&input), primary.into_inner()),
                 Rule::fmla => {
