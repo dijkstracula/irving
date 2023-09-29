@@ -18,6 +18,11 @@ mod typechecker {
     }
 
     #[test]
+    fn typecheck_102_counter() {
+        helpers::typeinference_from_filename("./programs/102_counter.ivy");
+    }
+
+    #[test]
     fn typecheck_200_chainrep() {
         helpers::typeinference_from_filename("./programs/200_chainrep.ivy");
     }

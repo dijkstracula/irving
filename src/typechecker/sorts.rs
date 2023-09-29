@@ -14,7 +14,8 @@ use super::{InferenceResult, TypeError};
 #[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]
 pub struct Class {
     pub parent: Option<Box<IvySort>>,
-    pub slots: BTreeMap<Token, IvySort>,
+    pub actions: BTreeMap<Token, IvySort>,
+    pub fields: BTreeMap<Token, IvySort>,
 }
 
 // Objects, parameterized and singletons
@@ -327,11 +328,13 @@ impl Visitor<IvySort, TypeError> for SortSubstituter {
     fn class(
         &mut self,
         parent: Option<Box<IvySort>>,
-        slots: BTreeMap<Token, IvySort>,
+        actions: BTreeMap<Token, IvySort>,
+        fields: BTreeMap<Token, IvySort>,
     ) -> InferenceResult<IvySort> {
         self.subst(IvySort::Class(Class {
-            parent: parent,
-            slots: slots,
+            parent,
+            actions,
+            fields,
         }))
     }
 

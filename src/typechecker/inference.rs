@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use super::{
-    sorts::{self, ActionArgs, IvySort, Object},
+    sorts::{self, ActionArgs, Class, IvySort, Object},
     unifier::BindingResolver,
     InferenceResult,
 };
@@ -1009,11 +1009,67 @@ impl Visitor<IvySort, TypeError> for SortInferer {
         name: &mut Token,
         _ast: &mut declarations::ClassDecl,
     ) -> InferenceResult<declarations::Decl> {
+        self.bindings.push_scope();
+
         let v = self.bindings.new_sortvar();
         self.bindings
             .append(name.clone(), v.clone())
             .map_err(|e| e.to_typeerror(span))?;
         Ok(ControlMut::Produce(v))
+    }
+
+    fn finish_class_decl(
+        &mut self,
+        span: &Span,
+        _name: &mut Token,
+        ast: &mut declarations::ClassDecl,
+        name_sort: IvySort,
+        parent_sort: Option<IvySort>,
+        fields_sorts: Vec<IvySort>,
+        actions_sorts: Vec<IvySort>,
+    ) -> InferenceResult<declarations::Decl> {
+        let mut fields = ast
+            .fields
+            .iter()
+            .zip(fields_sorts.into_iter())
+            .map(|(Binding { name, .. }, sort)| (name.clone(), sort))
+            .collect::<BTreeMap<_, _>>();
+
+        let mut actions = ast
+            .actions
+            .iter()
+            .zip(actions_sorts.into_iter())
+            .map(|(Binding { name, .. }, sort)| (name.clone(), sort))
+            .collect::<BTreeMap<_, _>>();
+
+        match &parent_sort {
+            None => (),
+            Some(IvySort::Class(parent)) => {
+                // TODO: what happens on a slot redeclaration?
+                fields.extend(parent.fields.clone().into_iter());
+                actions.extend(parent.actions.clone().into_iter());
+            }
+            Some(other) => {
+                return Err(TypeError::Spanned {
+                    span: span.clone(),
+                    inner: Box::new(TypeError::NonClassInheritance(other.clone())),
+                });
+            }
+        }
+
+        let cls = IvySort::Class(Class {
+            parent: parent_sort.map(|parent| Box::new(parent)),
+            actions: actions,
+            fields: fields,
+        });
+
+        let unified = self
+            .bindings
+            .unify(&name_sort, &cls)
+            .map_err(|e| e.to_typeerror(span))?;
+
+        self.bindings.pop_scope();
+        Ok(ControlMut::Produce(unified))
     }
 
     fn finish_ensure(
@@ -1070,12 +1126,12 @@ impl Visitor<IvySort, TypeError> for SortInferer {
             param_sorts,
             sorts::ActionRet::named("TODO", ret_sort),
         );
-        let unifed = self
+        let unified = self
             .bindings
             .unify(&name_sort, &fnsort)
             .map_err(|e| e.to_typeerror(&Span::Todo))?;
         self.bindings.pop_scope();
-        Ok(ControlMut::Produce(unifed))
+        Ok(ControlMut::Produce(unified))
     }
 
     fn begin_implement_decl(
@@ -1143,11 +1199,11 @@ impl Visitor<IvySort, TypeError> for SortInferer {
             .map(|sym| sym.name.clone())
             .collect::<Vec<_>>();
         let actsort = IvySort::action_sort(param_names, param_sorts, sorts::ActionRet::Unit);
-        let unifed = self
+        let unified = self
             .bindings
             .unify(&decl_sort, &actsort)
             .map_err(|e| e.to_typeerror(span))?;
-        Ok(ControlMut::Produce(unifed))
+        Ok(ControlMut::Produce(unified))
     }
 
     fn finish_interpret_decl(
@@ -1277,14 +1333,14 @@ impl Visitor<IvySort, TypeError> for SortInferer {
             args,
             fields,
         });
-        let unifed = self
+        let unified = self
             .bindings
             .unify(&mod_sort, &module)
             .map_err(|e| e.to_typeerror(&Span::Todo))?;
 
         self.bindings.pop_scope();
 
-        Ok(ControlMut::Produce(unifed))
+        Ok(ControlMut::Produce(unified))
     }
 
     fn begin_object_decl(
@@ -1379,12 +1435,12 @@ impl Visitor<IvySort, TypeError> for SortInferer {
         paramsorts: Vec<IvySort>,
     ) -> InferenceResult<declarations::Decl> {
         let relsort = IvySort::Relation(paramsorts);
-        let unifed = self
+        let unified = self
             .bindings
             .unify(&n, &relsort)
             .map_err(|e| e.to_typeerror(&Span::Todo))?;
         self.bindings.pop_scope();
-        Ok(ControlMut::Produce(unifed))
+        Ok(ControlMut::Produce(unified))
     }
 
     fn begin_include_decl(&mut self, _ast: &mut Token) -> InferenceResult<Token> {
@@ -1442,11 +1498,11 @@ impl Visitor<IvySort, TypeError> for SortInferer {
                     args: vec![],
                     fields: module.fields,
                 });
-                let unifed = self
+                let unified = self
                     .bindings
                     .unify(&decl_sort, &modsort)
                     .map_err(|e| e.to_typeerror(&Span::Todo))?;
-                Ok(ControlMut::Produce(unifed))
+                Ok(ControlMut::Produce(unified))
             }
         } else {
             return Err(TypeError::Spanned {

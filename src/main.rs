@@ -29,7 +29,6 @@ fn main_impl() -> std::result::Result<(), IrvingError> {
     let mut gl = GlobalLowerer::new();
     log::info!(target: "pass", "lowering globals");
     prog.visit(&mut gl)?.modifying(&mut prog);
-    log::info!(target: "pass", "typechecking");
     irving::stdlib::typecheck(&mut prog)?;
 
     match cli.cmd {

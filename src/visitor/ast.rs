@@ -270,8 +270,10 @@ where
         _span: &Span,
         _name: &mut Token,
         _ast: &mut ClassDecl,
-        name_t: T,
-        parent_t: Option<T>,
+        _name_t: T,
+        _parent_t: Option<T>,
+        _fields_t: Vec<T>,
+        _actions_t: Vec<T>,
     ) -> VisitorResult<T, E, Decl> {
         Ok(ControlMut::Produce(T::default()))
     }
@@ -1004,7 +1006,7 @@ where
                     .iter_mut()
                     .map(|a| Ok(helpers::walk_action_decl(visitor, a)?.unwrap()))
                     .collect::<Result<Vec<_>, E>>()?;
-                visitor.finish_class_decl(span, name, decl, name_t, parent_t)
+                visitor.finish_class_decl(span, name, decl, name_t, parent_t, fields_t, actions_t)
             }),
             Decl::Common { decl, .. } => visitor.begin_common_decl(decl)?.and_then(|_| {
                 let _d = decl.visit(visitor)?.modifying(decl);
@@ -1148,7 +1150,13 @@ where
                     .as_mut()
                     .map(|p| Ok(p.visit(visitor)?.modifying(p)))
                     .transpose()?;
-                visitor.finish_class_decl(span, name, decl, name_t, parent_t)
+                let fields_t = decl.fields.visit(visitor)?.modifying(&mut decl.fields);
+                let actions_t = decl
+                    .actions
+                    .iter_mut()
+                    .map(|a| Ok(helpers::walk_action_decl(visitor, a)?.unwrap()))
+                    .collect::<Result<Vec<_>, E>>()?;
+                visitor.finish_class_decl(span, name, decl, name_t, parent_t, fields_t, actions_t)
             }),
             Decl::Var {
                 decl:

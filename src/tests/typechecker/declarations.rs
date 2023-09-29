@@ -1,12 +1,15 @@
 #[cfg(test)]
 mod tests {
+    use core::panic;
+
     use crate::{
         ast::span::Span,
         parser::ivy::{IvyParser, Rule},
         tests::helpers,
         typechecker::{
             inference::SortInferer,
-            sorts::{IvySort, Module},
+            sorts::{Class, IvySort, Module},
+            subst::SortSubstituter,
             unifier::ResolverError,
             TypeError,
         },
@@ -23,11 +26,105 @@ mod tests {
         }";
         let mut decl_ast = helpers::decl_from_src(fragment);
 
+        // Phase 1
         let mut tc = SortInferer::new();
-        let mut sort = decl_ast
+        let sort = decl_ast
             .visit(&mut tc)
             .expect("sort inference")
             .modifying(&mut decl_ast);
+
+        // Phase 2
+        let mut ss = SortSubstituter::from_inferer(tc);
+        decl_ast
+            .visit(&mut ss)
+            .expect("sort inference")
+            .modifying(&mut decl_ast);
+
+        let sort = match sort {
+            IvySort::Class(cls) => cls,
+            _ => panic!(),
+        };
+
+        assert!(matches!(sort, Class { parent: None, .. }));
+        assert_eq!(
+            sort.fields,
+            [("x".into(), IvySort::Number), ("y".into(), IvySort::Number)].into()
+        );
+    }
+
+    #[test]
+    fn subclass_invalid_inheritance() {
+        let fragment = "subclass pt of unbounded_sequence = {
+            field z: unbounded_sequence
+            action norm(self: pt) returns (n: unbounded_sequence)
+        }";
+        let mut decl_ast = helpers::decl_from_src(fragment);
+
+        let mut tc = SortInferer::new();
+        let sort = decl_ast.visit(&mut tc).expect_err("typecheck");
+
+        let err = match sort {
+            TypeError::Spanned { inner, .. } => *inner,
+            _ => panic!(),
+        };
+        assert_eq!(err, TypeError::NonClassInheritance(IvySort::Number));
+    }
+
+    #[test]
+    fn subclass() {
+        let fragment = "subclass pt3 of pt = {
+            field z: unbounded_sequence
+            action norm(self: pt) returns (n: unbounded_sequence)
+        }";
+        let mut decl_ast = helpers::decl_from_src(fragment);
+
+        // Phase 1
+        let mut tc = SortInferer::new();
+
+        tc.bindings
+            .append(
+                "pt".into(),
+                IvySort::Class(Class {
+                    parent: None,
+                    fields: [("x".into(), IvySort::Number), ("y".into(), IvySort::Number)].into(),
+                    actions: [].into(),
+                }),
+            )
+            .unwrap();
+
+        let sort = decl_ast
+            .visit(&mut tc)
+            .expect("sort inference")
+            .modifying(&mut decl_ast);
+
+        // Phase 2
+        let mut ss = SortSubstituter::from_inferer(tc);
+        decl_ast
+            .visit(&mut ss)
+            .expect("sort inference")
+            .modifying(&mut decl_ast);
+
+        let sort = match sort {
+            IvySort::Class(cls) => cls,
+            _ => panic!(),
+        };
+
+        assert!(matches!(
+            sort,
+            Class {
+                parent: Some(_),
+                ..
+            }
+        ));
+        assert_eq!(
+            sort.fields,
+            [
+                ("x".into(), IvySort::Number),
+                ("y".into(), IvySort::Number),
+                ("z".into(), IvySort::Number)
+            ]
+            .into()
+        );
     }
 
     #[test]

@@ -40,12 +40,12 @@ pub fn load_stdlib() -> Result<SortInferer, IrvingError> {
 // XXX: Not a great place for this to live.
 pub fn typecheck(prog: &mut toplevels::Prog) -> Result<(), TypeError> {
     let mut inferer = load_stdlib().unwrap();
-    log::info!(target: "typechecking", "beginning sort-inference");
+    log::info!(target: "pass", "typechecking");
+    log::info!(target: "typechecking", "sort-inference");
     prog.visit(&mut inferer)?.modifying(prog);
 
-    log::info!(target: "typechecking", "beginning sort-substitution");
+    log::info!(target: "typechecking", "sort-substitution");
     let mut subst = SortSubstituter::from_inferer(inferer);
     prog.visit(&mut subst)?.modifying(prog);
-
     Ok(())
 }

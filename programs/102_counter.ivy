@@ -6,6 +6,7 @@ process mutator = {
 
     export action inc
     export action dec
+    export action add(n: unbounded_sequence)
     
     var count : t
 
@@ -20,8 +21,16 @@ process mutator = {
         count := count - 1;
     }
 
-	#invariant [nonnegativity] count >= 0
-	invariant count >= 0
+
+    implement add {
+        if n > 0 {
+            inc();
+            add(n-1);
+        }
+    }
+
+    #invariant [nonnegativity] count >= 0
+    invariant count >= 0
 }
 
 #attribute method=bmc[10]

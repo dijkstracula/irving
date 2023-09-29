@@ -45,7 +45,8 @@ where
     fn class(
         &mut self,
         _parent: Option<Box<T>>,
-        _slots: BTreeMap<Token, T>,
+        _actions: BTreeMap<Token, T>,
+        _fields: BTreeMap<Token, T>,
     ) -> VisitorResult<T, E, IvySort> {
         Ok(ControlMut::Produce(T::default()))
     }
@@ -169,12 +170,17 @@ where
                     .as_mut()
                     .map(|ref mut p| Ok(Box::from(p.visit(visitor)?.modifying(p))))
                     .transpose()?;
-                let slots = cls
-                    .slots
+                let actions = cls
+                    .actions
                     .iter_mut()
                     .map(|(name, slot)| Ok((name.clone(), slot.visit(visitor)?.modifying(slot))))
                     .collect::<Result<BTreeMap<_, _>, _>>()?;
-                visitor.class(parent, slots)
+                let fields = cls
+                    .actions
+                    .iter_mut()
+                    .map(|(name, slot)| Ok((name.clone(), slot.visit(visitor)?.modifying(slot))))
+                    .collect::<Result<BTreeMap<_, _>, _>>()?;
+                visitor.class(parent, actions, fields)
             }
             IvySort::Module(module) => {
                 let args_t = module
