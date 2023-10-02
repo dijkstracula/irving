@@ -2,6 +2,7 @@
 mod tests {
     use std::fs::read_to_string;
 
+    use crate::ast::declarations::Decl;
     use crate::extraction::ivy::Extractor;
     use crate::tests::helpers::prog_from_filename;
     use crate::visitor::ast::Visitable;
@@ -10,6 +11,14 @@ mod tests {
         parser::ivy::{IvyParser, Result, Rule},
     };
     use pest_consume::Parser;
+
+    fn parse_decl(fragment: &str) -> Result<Decl> {
+        let res = IvyParser::parse_with_userdata(Rule::decl, fragment, fragment.to_owned().into())
+            .expect("Parsing failed")
+            .single()
+            .unwrap();
+        IvyParser::decl(res)
+    }
 
     fn parse_rval(fragment: &str) -> Result<Expr> {
         let res = IvyParser::parse_with_userdata(Rule::rval, fragment, fragment.to_owned().into())
@@ -25,6 +34,37 @@ mod tests {
             .single()
             .unwrap();
         IvyParser::fmla(res)
+    }
+
+    #[test]
+    fn pprint_class() {
+        let mut e = Extractor::<String>::new();
+
+        let fragment = "class pt = {
+    field x: unbounded_sequence
+    field y: unbounded_sequence
+
+    action norm(self:pt) returns(n:unbounded_sequence)
+}
+";
+        let mut ast = parse_decl(fragment).expect("Parsing failed");
+        ast.visit(&mut e).expect("traversal failed");
+        assert_eq!(fragment, e.pp.out);
+    }
+
+    #[test]
+    fn pprint_subclass() {
+        let mut e = Extractor::<String>::new();
+
+        let fragment = "subclass pt of unbounded_sequence = {
+    field z: unbounded_sequence
+
+    action norm(self:pt) returns(n:unbounded_sequence)
+}
+";
+        let mut ast = parse_decl(fragment).expect("Parsing failed");
+        ast.visit(&mut e).expect("traversal failed");
+        assert_eq!(fragment, e.pp.out);
     }
 
     #[test]

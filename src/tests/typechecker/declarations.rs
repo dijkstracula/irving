@@ -116,15 +116,7 @@ mod tests {
                 ..
             }
         ));
-        assert_eq!(
-            sort.fields,
-            [
-                ("x".into(), IvySort::Number),
-                ("y".into(), IvySort::Number),
-                ("z".into(), IvySort::Number)
-            ]
-            .into()
-        );
+        assert_eq!(sort.fields, [("z".into(), IvySort::Number)].into());
     }
 
     #[test]

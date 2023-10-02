@@ -2,7 +2,8 @@ use std::fmt::Write;
 
 use crate::{
     ast::{
-        actions, declarations,
+        actions,
+        declarations::{self, Binding},
         expressions::{self, IndexExpr, Sort, Symbol, Token, Verb},
         logic,
         span::Span,
@@ -264,6 +265,34 @@ where
         self.write_separated(&mut ast.body, ";\n")?;
         self.pp.write_str("\n}\n")?;
 
+        Ok(ControlMut::SkipSiblings(()))
+    }
+
+    fn begin_class_decl(
+        &mut self,
+        _span: &Span,
+        name: &mut Token,
+        ast: &mut declarations::ClassDecl,
+    ) -> VisitorResult<(), std::fmt::Error, declarations::Decl> {
+        match &ast.parent {
+            None => self.pp.write_fmt(format_args!("class {} = {{\n", name))?,
+            Some(parent) => self
+                .pp
+                .write_fmt(format_args!("subclass {} of {} = {{\n", name, parent))?,
+        };
+
+        for Binding { name, decl, .. } in &mut ast.fields {
+            self.pp.write_fmt(format_args!("field {}: ", name))?;
+            decl.visit(self)?.modifying(decl);
+            self.pp.write_str("\n")?;
+        }
+        self.pp.write_str("\n")?;
+        for Binding { name, decl, span } in &mut ast.actions {
+            self.begin_action_decl(span, name, decl)?;
+            // In this case, begin_action_decl returns SkipSiblings so there
+            // is nothing else we need to do.
+        }
+        self.pp.write_str("\n}\n")?;
         Ok(ControlMut::SkipSiblings(()))
     }
 
