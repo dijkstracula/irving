@@ -77,7 +77,7 @@ where
         Ok(ControlMut::Produce(()))
     }
 
-    fn write_lambda(
+    pub fn write_lambda(
         &mut self,
         params: &mut expressions::ParamList,
         ret: &mut Option<expressions::Symbol>,
@@ -181,24 +181,7 @@ where
     W: Write,
 {
     fn begin_prog(&mut self, ast: &mut toplevels::Prog) -> ExtractResult<toplevels::Prog> {
-        let imports = include_str!("templates/imports.txt");
-        self.pp.write_str(imports)?;
-        self.pp.write_str("\n")?;
-
-        for inc in ast.includes.iter_mut() {
-            self.begin_include_decl(&mut inc.name)?
-                .and_then(|_| self.finish_include_decl(&mut inc.name))?;
-            self.pp.write_str("\n")?;
-        }
-        self.pp.write_str("\n")?;
-
-        self.pp
-            .write_str("public class Extracted extends Protocol {\n")?;
-        for decl in &mut ast.top {
-            decl.visit(self)?.modifying(decl);
-            self.pp.write_str("\n")?;
-        }
-        self.pp.write_str("\n}\n")?;
+        self.emit_prog(ast)?;
         Ok(ControlMut::SkipSiblings(()))
     }
 
@@ -213,35 +196,12 @@ where
     }
 
     fn begin_if(&mut self, ast: &mut statements::If) -> ExtractResult<statements::Stmt> {
-        self.pp.write_str("if (")?;
-        ast.tst.visit(self)?;
-        self.pp.write_str(") {\n")?;
-
-        self.write_separated(&mut ast.thn, ";\n")?;
-
-        if let Some(stmts) = &mut ast.els {
-            self.pp.write_str("} else {\n")?;
-            for stmt in stmts {
-                stmt.visit(self)?.modifying(stmt);
-                self.pp.write_str(";\n")?;
-            }
-        }
-        self.pp.write_str("}\n")?;
-
+        self.emit_if(ast)?;
         Ok(ControlMut::SkipSiblings(()))
     }
 
     fn begin_while(&mut self, ast: &mut statements::While) -> ExtractResult<statements::Stmt> {
-        self.pp.write_str("while ")?;
-        ast.test.visit(self)?;
-
-        self.pp.write_str(" {\n")?;
-        for stmt in &mut ast.doit {
-            stmt.visit(self)?.modifying(stmt);
-            self.pp.write_str(";\n")?;
-        }
-        self.pp.write_str("}\n")?;
-
+        self.emit_while(ast)?;
         Ok(ControlMut::SkipSiblings(()))
     }
 
@@ -249,35 +209,12 @@ where
 
     fn begin_action_decl(
         &mut self,
-        _span: &Span,
+        span: &Span,
         name: &mut Token,
         ast: &mut declarations::ActionDecl,
     ) -> ExtractResult<declarations::Decl> {
-        let arity = ast.params.len();
-        let mut ret = ast.ret.clone().or(Some(expressions::Symbol {
-            name: "_void".into(),
-            decl: expressions::Sort::Resolved(IvySort::Unit),
-            span: Span::Optimized,
-        }));
-
-        self.pp
-            .write_fmt(format_args!("protected Action{}<", arity))?;
-        let mut sorts: Vec<expressions::Sort> = ast
-            .params
-            .iter_mut()
-            .chain(ret.iter_mut())
-            .map(|sym| sym.decl.clone())
-            .collect::<_>();
-        self.write_separated(&mut sorts, ", ")?;
-        self.pp
-            .write_fmt(format_args!("> {name} = new Action{arity}<>("))?;
-
-        if let Some(ref mut body) = &mut ast.body {
-            self.write_lambda(&mut ast.params, &mut ast.ret, body)?;
-        }
-
-        self.pp.write_str(")")?;
-
+        self.pp.write_str("protected ")?;
+        self.emit_action_object_declaration(span, name, ast)?;
         Ok(ControlMut::SkipSiblings(()))
     }
 
@@ -340,6 +277,17 @@ where
         }
         self.pp.write_str("})")?;
         Ok(ControlMut::SkipSiblings(()))
+    }
+
+    fn begin_class_decl(
+        &mut self,
+        _span: &Span,
+        name: &mut Token,
+        ast: &mut declarations::ClassDecl,
+    ) -> VisitorResult<(), std::fmt::Error, declarations::Decl> {
+        self.emit_class_definition(name, ast)?;
+        self.emit_class_factory(name, ast)?;
+        Ok(ControlMut::Produce(()))
     }
 
     fn begin_implement_decl(

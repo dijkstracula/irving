@@ -85,6 +85,7 @@ mod tests {
             .append(
                 "pt".into(),
                 IvySort::Class(Class {
+                    name: "pt".into(),
                     parent: None,
                     fields: [("x".into(), IvySort::Number), ("y".into(), IvySort::Number)].into(),
                     actions: [].into(),

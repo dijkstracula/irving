@@ -44,6 +44,7 @@ where
 
     fn class(
         &mut self,
+        _name: String,
         _parent: Option<Box<T>>,
         _actions: BTreeMap<Token, T>,
         _fields: BTreeMap<Token, T>,
@@ -180,7 +181,7 @@ where
                     .iter_mut()
                     .map(|(name, slot)| Ok((name.clone(), slot.visit(visitor)?.modifying(slot))))
                     .collect::<Result<BTreeMap<_, _>, _>>()?;
-                visitor.class(parent, actions, fields)
+                visitor.class(cls.name.clone(), parent, actions, fields)
             }
             IvySort::Module(module) => {
                 let args_t = module

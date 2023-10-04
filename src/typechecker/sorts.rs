@@ -13,6 +13,7 @@ use super::{InferenceResult, TypeError};
 
 #[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]
 pub struct Class {
+    pub name: String,
     pub parent: Option<Box<IvySort>>,
     pub actions: BTreeMap<Token, IvySort>,
     pub fields: BTreeMap<Token, IvySort>,
@@ -327,11 +328,13 @@ impl Visitor<IvySort, TypeError> for SortSubstituter {
 
     fn class(
         &mut self,
+        name: String,
         parent: Option<Box<IvySort>>,
         actions: BTreeMap<Token, IvySort>,
         fields: BTreeMap<Token, IvySort>,
     ) -> InferenceResult<IvySort> {
         self.subst(IvySort::Class(Class {
+            name,
             parent,
             actions,
             fields,

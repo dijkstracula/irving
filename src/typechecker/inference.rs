@@ -1009,19 +1009,19 @@ impl Visitor<IvySort, TypeError> for SortInferer {
         name: &mut Token,
         _ast: &mut declarations::ClassDecl,
     ) -> InferenceResult<declarations::Decl> {
-        self.bindings.push_scope();
-
         let v = self.bindings.new_sortvar();
         self.bindings
             .append(name.clone(), v.clone())
             .map_err(|e| e.to_typeerror(span))?;
+
+        self.bindings.push_scope();
         Ok(ControlMut::Produce(v))
     }
 
     fn finish_class_decl(
         &mut self,
         span: &Span,
-        _name: &mut Token,
+        name: &mut Token,
         ast: &mut declarations::ClassDecl,
         name_sort: IvySort,
         parent_sort: Option<IvySort>,
@@ -1058,6 +1058,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
         }
 
         let cls = IvySort::Class(Class {
+            name: name.clone(),
             parent: parent_sort.map(|parent| Box::new(parent)),
             actions: actions,
             fields: fields,
