@@ -1,0 +1,36 @@
+#lang ivy1.8
+
+include numbers
+include collections
+include network
+
+class msg_t = {
+    action handle(self: msg_t)
+}
+
+subclass ping_t of msg_t = {
+    field ping_val: unbounded_sequence
+
+    action handle(self: ping_t)
+}
+
+subclass pong_t of msg_t = {
+    field pong_val: unbounded_sequence
+
+    action handle(self: pong_t)
+}
+
+type pid = {0..2}
+instance net : tcp.net(msg_t)
+
+process proc(self: pid) = {
+    instance sock : net.socket
+
+    after init {
+        #sock := net.dial(self)
+    }
+
+    implement sock.recv(src:tcp.endpoint, msg: msg_t) {
+        msg.handle()
+    }
+}
