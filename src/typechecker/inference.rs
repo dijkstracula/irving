@@ -1038,14 +1038,14 @@ impl Visitor<IvySort, TypeError> for SortInferer {
         fields_sorts: Vec<IvySort>,
         actions_sorts: Vec<IvySort>,
     ) -> InferenceResult<declarations::Decl> {
-        let mut fields = ast
+        let fields = ast
             .fields
             .iter()
             .zip(fields_sorts.into_iter())
             .map(|(Binding { name, .. }, sort)| (name.clone(), sort))
             .collect::<BTreeMap<_, _>>();
 
-        let mut actions = ast
+        let actions = ast
             .actions
             .iter()
             .zip(actions_sorts.into_iter())
@@ -1054,11 +1054,15 @@ impl Visitor<IvySort, TypeError> for SortInferer {
 
         match &parent_sort {
             None => (),
+            Some(IvySort::Class(_)) => (),
+
+            /*
+            Apprently this is _not_ how Ivy classes work...
             Some(IvySort::Class(parent)) => {
                 // TODO: what happens on a slot redeclaration?
                 fields.extend(parent.fields.clone().into_iter());
                 actions.extend(parent.actions.clone().into_iter());
-            }
+            }*/
             Some(other) => {
                 return Err(TypeError::Spanned {
                     span: span.clone(),
