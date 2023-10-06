@@ -26,6 +26,11 @@ mod typechecker {
     fn typecheck_200_chainrep() {
         helpers::typeinference_from_filename("./programs/200_chainrep.ivy");
     }
+
+    #[test]
+    fn typecheck_202_pingpong() {
+        helpers::typeinference_from_filename("./programs/202_pingpong.ivy");
+    }
 }
 
 #[cfg(test)]
@@ -35,6 +40,19 @@ mod extraction {
     #[test]
     fn extract_200_chainrep() {
         let mut ast = helpers::typeinference_from_filename("./programs/200_chainrep.ivy");
+
+        let mut ivy_extractor = Extractor::<String>::new();
+        ast.visit(&mut ivy_extractor)
+            .expect("ivy extraction failed");
+
+        let mut java_extractor = Extractor::<String>::new();
+        ast.visit(&mut java_extractor)
+            .expect("java extraction failed");
+    }
+
+    #[test]
+    fn extract_202_pingpong() {
+        let mut ast = helpers::typeinference_from_filename("./programs/202_pingpong.ivy");
 
         let mut ivy_extractor = Extractor::<String>::new();
         ast.visit(&mut ivy_extractor)

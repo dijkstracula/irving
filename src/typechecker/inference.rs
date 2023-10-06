@@ -472,6 +472,11 @@ impl Visitor<IvySort, TypeError> for SortInferer {
                 is_common = s.is_none();
                 Ok(s.cloned())
             }
+            IvySort::Class(cls) => Ok(cls
+                .fields
+                .get(&rhs.name)
+                .or(cls.actions.get(&rhs.name))
+                .cloned()),
             IvySort::SortVar(id) => Ok(Some(IvySort::SortVar(*id))),
             sort => Err(TypeError::NotARecord(sort.desc())),
         }?
@@ -488,7 +493,9 @@ impl Visitor<IvySort, TypeError> for SortInferer {
             // TODO: remove is_common and use kind instead
             IvySort::Action(argnames, ActionArgs::List(argsorts), ret, _kind) if !is_common => {
                 let first_arg = argsorts.get(0).map(|s| self.bindings.resolve(s));
-                if first_arg == Some(&IvySort::This) {
+                // Two possibilities: the first argument is either explicitly `this`
+                // or it is resolved to be the LHS of the the field access.
+                if first_arg == Some(&IvySort::This) || first_arg == Some(&lhs_sort) {
                     let remaining_argnames = argnames.into_iter().skip(1).collect::<Vec<_>>();
                     let remaining_argsorts =
                         argsorts.clone().into_iter().skip(1).collect::<Vec<_>>();
@@ -781,7 +788,10 @@ impl Visitor<IvySort, TypeError> for SortInferer {
             // TODO: deprecrate is_common and use _kind instead
             IvySort::Action(argnames, ActionArgs::List(argsorts), ret, _kind) if !is_common => {
                 let first_arg = argsorts.get(0).map(|s| self.bindings.resolve(s));
-                if first_arg == Some(&IvySort::This) {
+
+                // Two possibilities: the first argument is either explicitly `this`
+                // or it is resolved to be the LHS of the the field access.
+                if first_arg == Some(&IvySort::This) || first_arg == Some(&lhs_sort) {
                     let remaining_argnames = argnames.into_iter().skip(1).collect::<Vec<_>>();
                     let remaining_argsorts =
                         argsorts.clone().into_iter().skip(1).collect::<Vec<_>>();

@@ -287,7 +287,7 @@ where
     ) -> VisitorResult<(), std::fmt::Error, declarations::Decl> {
         self.emit_class_definition(name, ast)?;
         self.emit_class_factory(name, ast)?;
-        Ok(ControlMut::Produce(()))
+        Ok(ControlMut::SkipSiblings(()))
     }
 
     fn begin_implement_decl(

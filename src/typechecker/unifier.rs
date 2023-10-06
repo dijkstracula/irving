@@ -6,7 +6,7 @@ use crate::{
 };
 
 use super::{
-    sorts::{ActionKind, ActionRet, IvySort},
+    sorts::{ActionKind, ActionRet, Class, IvySort},
     TypeError,
 };
 
@@ -65,6 +65,18 @@ impl BindingResolver {
                         }
                     });
                     curr_sort = fld.or(fields.get(field))
+                }
+                Some(IvySort::Class(Class {
+                    actions, fields, ..
+                })) => {
+                    curr_sort = actions
+                        .iter()
+                        .find_map(|b| if b.0 == field { Some(b.1) } else { None })
+                        .or_else(|| {
+                            fields
+                                .iter()
+                                .find_map(|b| if b.0 == field { Some(b.1) } else { None })
+                        });
                 }
                 Some(sort) => {
                     return Err(ResolverError::NotARecord(sort.clone()));
@@ -323,9 +335,11 @@ impl BindingResolver {
             }
 
             // This subtyping relationship says that `this` shoudl only
-            // unify with processes or modules.
+            // unify with processes or modules.  (Or classes?)
             (IvySort::This, s @ IvySort::Object(_))
             | (IvySort::This, s @ IvySort::Module(_))
+            | (IvySort::This, s @ IvySort::Class(_))
+            | (s @ IvySort::Class(_), IvySort::This)
             | (s @ IvySort::Module(_), IvySort::This)
             | (s @ IvySort::Object(_), IvySort::This) => Ok(s.clone()),
 
