@@ -133,11 +133,6 @@ mod tests {
             res,
             TypeError::Spanned {
                 span: Span::IgnoredForTesting,
-                inner: Box::new(TypeError::unification_error(
-                    &IvySort::Bool,
-                    &IvySort::Number
-                ))
-            }
-        );
+                inner: Box::new(TypeError::ReboundVariable { sym: "x".to_string(), prev: "boolean".to_string(), new: "unbounded_sequence".to_string() })});
     }
 }

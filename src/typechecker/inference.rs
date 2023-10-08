@@ -9,13 +9,13 @@ use crate::{
     ast::{
         actions::{self, Action},
         declarations::{self, ActionMixinDecl, Binding},
-        expressions::{self, Expr, Sort, Symbol, Token},
+        expressions::{self, Expr, Sort, Symbol, Token, Ident},
         logic,
         span::Span,
         statements,
     },
     passes::module_instantiation,
-    typechecker::{sorts::Module, TypeError},
+    typechecker::{sorts::{Module, ActionRet}, TypeError},
     visitor::{ast::Visitable, ast::Visitor, control::ControlMut},
 };
 
@@ -25,7 +25,7 @@ pub struct SortInferer {
 
     // Remember the function signature (arguments; named ret) from the
     // function definition, so we are always sure how to bind those values locally.
-    pub action_locals: BTreeMap<Token, Vec<Token>>,
+    pub action_locals: BTreeMap<Ident, Vec<Token>>,
 }
 
 impl SortInferer {
@@ -859,7 +859,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
         &mut self,
         span: &Span,
 
-        name: &mut Token,
+        _name: &mut Token,
         ast: &mut declarations::ActionDecl,
         name_sort: IvySort,
         param_sorts: Vec<IvySort>,
@@ -874,7 +874,13 @@ impl Visitor<IvySort, TypeError> for SortInferer {
         if let Some(ret) = &ast.ret {
             locals.push(ret.name.clone())
         }
-        self.action_locals.insert(name.clone(), locals);
+
+        // Remember the path of declarations where this action is defined.
+        // We'll use this later on when it comes time to deal with its
+        // `implement` declaration.
+        // TODO: should we be more specific about doing this only if the body is
+        // elided?
+        self.action_locals.insert(self.bindings.named_scope_path(), locals);
 
         let ret_sort = match ret_sort {
             None => sorts::ActionRet::Unit,
@@ -902,20 +908,15 @@ impl Visitor<IvySort, TypeError> for SortInferer {
         span: &Span,
         ast: &mut declarations::ActionMixinDecl,
     ) -> InferenceResult<declarations::Decl> {
-        // XXX: this feels like a hack for something, but I've forgotten for what.
-        if let Some(sym) = ast.name.first() {
-            self.bindings.push_anonymous_scope();
+        self.bindings.push_anonymous_scope();
 
-            if let Some(locals) = self.action_locals.get(sym) {
-                for local in locals {
-                    let s = self.bindings.new_sortvar();
-                    self.bindings
-                        .append(local.clone(), s)
-                        .map_err(|e| e.to_typeerror(span))?;
-                }
+        if let Some(locals) = self.action_locals.get(&ast.name) {
+            for local in locals {
+                let s = self.bindings.new_sortvar();
+                self.bindings
+                    .append(local.clone(), s)
+                    .map_err(|e| e.to_typeerror(span))?;
             }
-        } else {
-            todo!()
         }
 
         Ok(ControlMut::Produce(IvySort::Unit))
@@ -976,19 +977,17 @@ impl Visitor<IvySort, TypeError> for SortInferer {
         &mut self,
         ast: &mut declarations::ActionMixinDecl,
     ) -> InferenceResult<declarations::Decl> {
-        if let Some(sym) = ast.name.first() {
-            self.bindings.push_anonymous_scope();
+        self.bindings.push_anonymous_scope();
 
-            if let Some(locals) = self.action_locals.get(sym) {
-                for local in locals {
-                    let s = self.bindings.new_sortvar();
-                    self.bindings
-                        .append(local.clone(), s)
-                        .map_err(|e| e.to_typeerror(&Span::Todo))?;
-                }
+        let mut curr_path = self.bindings.named_scope_path();
+        curr_path.append(&mut ast.name.clone());
+        if let Some(locals) = self.action_locals.get(&curr_path) {
+            for local in locals {
+                let s = self.bindings.new_sortvar();
+                self.bindings
+                    .append(local.clone(), s)
+                    .map_err(|e| e.to_typeerror(&Span::Todo))?;
             }
-        } else {
-            todo!()
         }
 
         Ok(ControlMut::Produce(IvySort::Unit))
@@ -1153,21 +1152,30 @@ impl Visitor<IvySort, TypeError> for SortInferer {
         &mut self,
         ast: &mut declarations::ActionMixinDecl,
     ) -> InferenceResult<declarations::Decl> {
-        if let Some(sym) = ast.name.first() {
-            self.bindings.push_anonymous_scope();
+        self.bindings.push_anonymous_scope();
 
-            if let Some(locals) = self.action_locals.get(sym) {
-                println!("{:?} {:?}", sym, locals);
-                for local in locals {
-                    let s = self.bindings.new_sortvar();
+        let mut curr_path = self.bindings.named_scope_path();
+        curr_path.append(&mut ast.name.clone());
+
+        let original_decl = self.bindings.lookup_ident(&ast.name).map_err(|e| e.to_typeerror(&Span::Todo))?.clone();
+        match original_decl {
+            IvySort::Action(argnames, ActionArgs::List(argsorts), ret, kind) => {
+                for (name, sort) in argnames.iter().take(argsorts.len()).zip(argsorts.iter()) {
                     self.bindings
-                        .append(local.clone(), s)
+                        .append(name.clone(), sort.clone())
                         .map_err(|e| e.to_typeerror(&Span::Todo))?;
                 }
+                match ret {
+                    ActionRet::Unknown => todo!(),
+                    ActionRet::Unit => (),
+                    ActionRet::Named(ret) => {
+                        self.bindings.append(ret.name, ret.decl)
+                        .map_err(|e| e.to_typeerror(&ret.span))?;
+                    }
+                }
             }
-        } else {
-            todo!()
-        }
+            _ => todo!() //Something like like a non-mixinable thing?
+        };
 
         Ok(ControlMut::Produce(IvySort::Unit))
     }
