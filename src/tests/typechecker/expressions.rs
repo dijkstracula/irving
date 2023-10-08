@@ -111,7 +111,7 @@ mod tests {
 
         // Now try pushing a scope and shadow the same variable
         let mut identop = helpers::rval_from_src(prog);
-        tc.bindings.push_scope();
+        tc.bindings.push_anonymous_scope();
         tc.bindings.append("foo".into(), IvySort::Bool).unwrap();
         assert_eq!(
             identop.visit(&mut tc).unwrap().modifying(&mut identop),
@@ -289,7 +289,7 @@ mod tests {
         assert_eq!(res, IvySort::Bool);
 
         // But it doesn't make sense to access 'b' if 'a' is a scalar type.
-        tc.bindings.push_scope();
+        tc.bindings.push_anonymous_scope();
         tc.bindings.append("a".into(), IvySort::Number).unwrap();
 
         let mut getop = helpers::rval_from_src(prog);

@@ -5,7 +5,6 @@ include collections
 include network
 
 global {
-
     # Some global resources
 
     alias byte = bv[8]
@@ -15,6 +14,7 @@ global {
     instance net : tcp.net(byte)
 
 }
+
 
 process host(self:pid) = {
 

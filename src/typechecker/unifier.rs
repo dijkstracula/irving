@@ -10,8 +10,37 @@ use super::{
     TypeError,
 };
 
+pub struct Scope {
+    pub decl_name: Option<Token>,
+    bindings: HashMap<Token, IvySort>
+}
+
+impl Scope {
+    fn new_unnamed() -> Self {
+        Self { decl_name: None, bindings: HashMap::<_, _>::new() }
+    }
+
+    fn new_decled<S>(decl: S) -> Self where S: Into<String> {
+        Self { decl_name: Some(decl.into()), bindings: HashMap::<_,_>::new() }
+    }
+
+    fn contains_key(&self, name: &str) -> bool {
+        self.bindings.contains_key(name)
+    }
+
+    fn get(&self, name: &str) -> Option<&IvySort> {
+        self.bindings.get(name)
+    }
+
+    fn insert<S>(&mut self, name: S, sort: IvySort) where S: Into<String> {
+        self.bindings.insert(name.into(), sort);
+    }
+}
+
 pub struct BindingResolver {
-    pub scopes: Vec<HashMap<String, IvySort>>,
+    // A scope is a mapping of names to sorts, with additionally
+    // an optional 
+    pub scopes: Vec<Scope>,
     pub ctx: Vec<IvySort>,
 }
 
@@ -21,20 +50,51 @@ impl BindingResolver {
             scopes: vec![],
             ctx: vec![],
         };
-        s.push_scope();
+        s.push_anonymous_scope();
         s
     }
 
     // Name bindings
 
-    pub fn push_scope(&mut self) {
-        self.scopes.push(HashMap::<_, _>::new())
+    // Named scopes are for lexical scopes that have an associated declaration
+    // with them (such as function declarations, objects/classes, etc...)
+
+    pub fn push_named_scope<S>(&mut self, name: S) where S: Into<String> {
+        self.scopes.push(Scope::new_decled(name))
     }
 
-    pub fn pop_scope(&mut self) {
-        if let None = self.scopes.pop() {
-            panic!("popping an empty sort scope");
+    pub fn pop_named_scope(&mut self) {
+        match self.scopes.pop() {
+            None => {
+                panic!("popping an empty sort scope");
+            },
+            Some(scope) if scope.decl_name.is_none() => {
+                panic!("Expecting to pop a named scope but got an anonymous scope");
+            }
+            Some(_) => ()
         }
+    }
+
+    // Anonymous scopes are for lexical scopes where we don't have to derive a named path.
+
+    pub fn push_anonymous_scope(&mut self) {
+        self.scopes.push(Scope::new_unnamed())
+    }
+
+    pub fn pop_anonymous_scope(&mut self) {
+        match self.scopes.pop() {
+            None => {
+                panic!("popping an empty sort scope");
+            },
+            Some(scope) if scope.decl_name.is_some() => {
+                panic!("Expecting to pop an anonymous scope but got named scope {}", scope.decl_name.unwrap());
+            }
+            Some(_) => ()
+        }
+    }
+
+    pub fn named_scope_path(&self) -> Ident {
+        self.scopes.iter().filter_map(|scope| scope.decl_name.clone()).collect::<Ident>()
     }
 
     pub fn lookup_sym(&self, sym: &str) -> Option<&IvySort> {

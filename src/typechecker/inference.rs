@@ -545,7 +545,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
     // Formulas
 
     fn begin_exists(&mut self, _ast: &mut logic::Exists) -> InferenceResult<logic::Fmla> {
-        self.bindings.push_scope();
+        self.bindings.push_anonymous_scope();
         Ok(ControlMut::Produce(IvySort::Bool))
     }
     fn finish_exists(
@@ -554,12 +554,12 @@ impl Visitor<IvySort, TypeError> for SortInferer {
         _vars: Vec<IvySort>,
         _fmla: IvySort,
     ) -> InferenceResult<logic::Fmla> {
-        self.bindings.pop_scope();
+        self.bindings.pop_anonymous_scope();
         Ok(ControlMut::Produce(IvySort::Bool))
     }
 
     fn begin_forall(&mut self, _ast: &mut logic::Forall) -> InferenceResult<logic::Fmla> {
-        self.bindings.push_scope();
+        self.bindings.push_anonymous_scope();
         Ok(ControlMut::Produce(IvySort::Bool))
     }
     fn finish_forall(
@@ -576,7 +576,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
                 .map_err(|e| e.to_typeerror(&span))?;
             *decl = Sort::Resolved(unified);
         }
-        self.bindings.pop_scope();
+        self.bindings.pop_anonymous_scope();
         Ok(ControlMut::Produce(IvySort::Bool))
     }
 
@@ -584,7 +584,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
         &mut self,
         ast: &mut logic::LogicApp,
     ) -> crate::visitor::VisitorResult<IvySort, TypeError, logic::Fmla> {
-        self.bindings.push_scope();
+        self.bindings.push_anonymous_scope();
         for arg in &mut ast.args {
             // A difference between a logical application and one with a program
             // term is that a wildcard logical symbol may not be in the context.
@@ -606,7 +606,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
         span: &Span,
         ast: &mut actions::AssignLogicalAction,
     ) -> crate::visitor::VisitorResult<IvySort, TypeError, Action> {
-        self.bindings.push_scope();
+        self.bindings.push_anonymous_scope();
         match &mut ast.lhs {
             logic::Fmla::App {
                 app: logic::LogicApp { args, .. },
@@ -634,7 +634,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
         lhs_sort: IvySort,
         rhs_sort: IvySort,
     ) -> crate::visitor::VisitorResult<IvySort, TypeError, Action> {
-        self.bindings.pop_scope();
+        self.bindings.pop_anonymous_scope();
         self.bindings
             .unify(&lhs_sort, &rhs_sort)
             .map_err(|e| e.to_typeerror(span))?;
@@ -647,7 +647,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
         func_sort: IvySort,
         arg_sorts: Vec<IvySort>,
     ) -> InferenceResult<logic::Fmla> {
-        self.bindings.pop_scope();
+        self.bindings.pop_anonymous_scope();
 
         // XXX: This is hacky.
         let dummy_argnames = (0..arg_sorts.len())
@@ -851,7 +851,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
         self.bindings
             .append(name.clone(), v)
             .map_err(|e| e.to_typeerror(span))?;
-        self.bindings.push_scope();
+        self.bindings.push_named_scope(name.clone());
 
         Ok(ControlMut::Produce(IvySort::Unit))
     }
@@ -892,7 +892,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
             .unify(&name_sort, &actsort)
             .map_err(|e| e.to_typeerror(span))?;
 
-        self.bindings.pop_scope();
+        self.bindings.pop_named_scope();
 
         Ok(ControlMut::Produce(unified))
     }
@@ -904,7 +904,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
     ) -> InferenceResult<declarations::Decl> {
         // XXX: this feels like a hack for something, but I've forgotten for what.
         if let Some(sym) = ast.name.first() {
-            self.bindings.push_scope();
+            self.bindings.push_anonymous_scope();
 
             if let Some(locals) = self.action_locals.get(sym) {
                 for local in locals {
@@ -930,7 +930,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
         after_ret_sort: Option<IvySort>,
         _after_body_sort: Vec<IvySort>,
     ) -> InferenceResult<declarations::Decl> {
-        self.bindings.pop_scope();
+        self.bindings.pop_anonymous_scope();
         let (new_ast, sort) =
             self.resolve_mixin(ast, action_sort, after_params_sort, after_ret_sort)?;
         Ok(ControlMut::Mutation(
@@ -977,7 +977,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
         ast: &mut declarations::ActionMixinDecl,
     ) -> InferenceResult<declarations::Decl> {
         if let Some(sym) = ast.name.first() {
-            self.bindings.push_scope();
+            self.bindings.push_anonymous_scope();
 
             if let Some(locals) = self.action_locals.get(sym) {
                 for local in locals {
@@ -1000,7 +1000,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
         params_sort: Option<Vec<IvySort>>,
         _body_sorts: Vec<IvySort>,
     ) -> InferenceResult<declarations::Decl> {
-        self.bindings.pop_scope();
+        self.bindings.pop_anonymous_scope();
         let (decl, sort) = self.resolve_mixin(ast, action_sort, params_sort, None)?;
 
         // XXX: What's the right span here?  Should we stash a Span in ActionMixinDecl?
@@ -1024,7 +1024,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
             .append(name.clone(), v.clone())
             .map_err(|e| e.to_typeerror(span))?;
 
-        self.bindings.push_scope();
+        self.bindings.push_named_scope(name.clone());
         Ok(ControlMut::Produce(v))
     }
 
@@ -1083,7 +1083,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
             .unify(&name_sort, &cls)
             .map_err(|e| e.to_typeerror(span))?;
 
-        self.bindings.pop_scope();
+        self.bindings.pop_named_scope();
         Ok(ControlMut::Produce(unified))
     }
 
@@ -1118,7 +1118,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
         self.bindings
             .append(name.clone(), v.clone())
             .map_err(|e| e.to_typeerror(&Span::Todo))?;
-        self.bindings.push_scope();
+        self.bindings.push_anonymous_scope();
         Ok(ControlMut::Produce(v))
     }
 
@@ -1145,7 +1145,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
             .bindings
             .unify(&name_sort, &fnsort)
             .map_err(|e| e.to_typeerror(&Span::Todo))?;
-        self.bindings.pop_scope();
+        self.bindings.pop_anonymous_scope();
         Ok(ControlMut::Produce(unified))
     }
 
@@ -1154,9 +1154,10 @@ impl Visitor<IvySort, TypeError> for SortInferer {
         ast: &mut declarations::ActionMixinDecl,
     ) -> InferenceResult<declarations::Decl> {
         if let Some(sym) = ast.name.first() {
-            self.bindings.push_scope();
+            self.bindings.push_anonymous_scope();
 
             if let Some(locals) = self.action_locals.get(sym) {
+                println!("{:?} {:?}", sym, locals);
                 for local in locals {
                     let s = self.bindings.new_sortvar();
                     self.bindings
@@ -1178,7 +1179,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
         ret_sort: Option<Binding<IvySort>>,
         _body: Vec<IvySort>,
     ) -> InferenceResult<declarations::Decl> {
-        self.bindings.pop_scope();
+        self.bindings.pop_anonymous_scope();
         let (decl, sort) =
             self.resolve_mixin(ast, action_sort, params_sort, ret_sort.map(|b| b.decl))?;
         Ok(ControlMut::Mutation(
@@ -1254,7 +1255,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
             .append(name.clone(), v.clone())
             .map_err(|e| e.to_typeerror(&Span::Todo))?;
 
-        self.bindings.push_scope();
+        self.bindings.push_anonymous_scope();
         self.bindings
             .append("init".into(), Module::init_action_sort())
             .map_err(|e| e.to_typeerror(&Span::Todo))?;
@@ -1353,7 +1354,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
             .unify(&mod_sort, &module)
             .map_err(|e| e.to_typeerror(&Span::Todo))?;
 
-        self.bindings.pop_scope();
+        self.bindings.pop_anonymous_scope();
 
         Ok(ControlMut::Produce(unified))
     }
@@ -1372,7 +1373,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
         // This is needed for the typechecker visiting multiple Progs and expecting
         // earlier declarations to be in scope.
         if name != "top" {
-            self.bindings.push_scope();
+            self.bindings.push_named_scope(name.clone());
         }
 
         self.bindings
@@ -1424,7 +1425,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
         // This is needed for the typechecker visiting multiple Progs and expecting
         // earlier declarations to be in scope.
         if name != "top" {
-            self.bindings.push_scope();
+            self.bindings.pop_named_scope();
         }
         Ok(ControlMut::Produce(unified))
     }
@@ -1439,7 +1440,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
         self.bindings
             .append(name.clone(), v.clone())
             .map_err(|e| e.to_typeerror(&Span::Todo))?;
-        self.bindings.push_scope();
+        self.bindings.push_anonymous_scope();
         Ok(ControlMut::Produce(v))
     }
     fn finish_relation(
@@ -1454,7 +1455,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
             .bindings
             .unify(&n, &relsort)
             .map_err(|e| e.to_typeerror(&Span::Todo))?;
-        self.bindings.pop_scope();
+        self.bindings.pop_anonymous_scope();
         Ok(ControlMut::Produce(unified))
     }
 

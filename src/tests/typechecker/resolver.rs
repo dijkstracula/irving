@@ -63,4 +63,20 @@ mod tests {
             Ok(&IvySort::Number)
         );
     }
+
+    #[test]
+    fn test_path_lookup() {
+        let mut r = BindingResolver::new();
+        r.push_named_scope("a");
+        r.push_named_scope("b");
+        r.pop_named_scope();
+        r.push_named_scope("x");
+        r.push_anonymous_scope();
+        r.push_named_scope("y");
+        r.push_anonymous_scope();
+        r.pop_anonymous_scope();
+        r.push_anonymous_scope();
+
+        assert_eq!(r.named_scope_path(), vec!("a".to_string(), "x".to_string(), "y".to_string()));
+    }
 }

@@ -179,7 +179,7 @@ mod tests {
         );
 
         // If `net` is in the context, it needs to be a module.
-        tc.bindings.push_scope();
+        tc.bindings.push_anonymous_scope();
         tc.bindings.append("net".into(), IvySort::Bool).unwrap();
 
         let res = decl_ast.visit(&mut tc).expect_err("visit");
@@ -188,10 +188,10 @@ mod tests {
             ResolverError::NotARecord(IvySort::Bool).to_typeerror(&Span::Todo)
         );
 
-        tc.bindings.pop_scope();
+        tc.bindings.pop_anonymous_scope();
 
         // If it is module, field lookup needs to succeed.
-        tc.bindings.push_scope();
+        tc.bindings.push_anonymous_scope();
         tc.bindings
             .append(
                 "net".into(),
@@ -208,10 +208,10 @@ mod tests {
             res,
             ResolverError::UnboundVariable("sock".into()).to_typeerror(&Span::Todo)
         );
-        tc.bindings.pop_scope();
+        tc.bindings.pop_anonymous_scope();
 
         // If field lookup succeeds, ensure it's something that can be instantiated (ie. a module or process)
-        tc.bindings.push_scope();
+        tc.bindings.push_anonymous_scope();
         tc.bindings
             .append(
                 "net".into(),
@@ -231,7 +231,7 @@ mod tests {
                 inner: Box::new(TypeError::NotInstanceable(IvySort::Number.desc()))
             }
         );
-        tc.bindings.pop_scope();
+        tc.bindings.pop_anonymous_scope();
 
         // If field lookup succeeds, and it can be instantiated, do so!
         let sock_mod = IvySort::Module(Module {
@@ -240,7 +240,7 @@ mod tests {
             fields: [("fd".to_owned(), IvySort::Number)].into(),
         });
 
-        tc.bindings.push_scope();
+        tc.bindings.push_anonymous_scope();
         tc.bindings
             .append(
                 "net".into(),
@@ -260,7 +260,7 @@ mod tests {
         assert_eq!(res, sock_mod);
 
         assert_eq!(tc.bindings.lookup_sym("socket"), Some(&sock_mod));
-        tc.bindings.pop_scope();
+        tc.bindings.pop_anonymous_scope();
     }
 
     #[test]
