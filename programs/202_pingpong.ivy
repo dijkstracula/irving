@@ -6,24 +6,17 @@ include network
 
 type pid = {0..1}
 
+type msg_type = {
+    ping_kind,
+    pong_kind
+}
+
 class msg_t = {
-    action handle(self: msg_t)
-}
+    field typ: msg_type
 
-subclass ping_t of msg_t = {
     field src: pid
     field dst: pid
-    field ping_val: unbounded_sequence
-
-    action handle(msg: ping_t)
-}
-
-subclass pong_t of msg_t = {
-    field src: pid
-    field dst: pid
-    field pong_val: unbounded_sequence
-
-    action handle(msg: pong_t)
+    field ping_val: nat
 }
 
 instance net : tcp.net(msg_t)
@@ -36,24 +29,14 @@ process proc(self: pid) = {
     }
 
     implement sock.recv(src:tcp.endpoint, msg: msg_t) {
-        msg.handle()
-    }
-
-    implement ping_t.handle {
-        var resp: pong_t;
-        resp.src := self;
-        resp.dst := msg.src;
-        resp.pong_val := msg.ping_val;
-
-        sock.send(proc(resp.dst).sock.id, resp);
-    }
-
-    implement pong_t.handle {
-        var resp: ping_t;
-        resp.src := self;
-        resp.dst := msg.src;
-        resp.ping_val := msg.pong_val + 1;
-        
-        sock.send(proc(resp.dst).sock.id, resp);
+        if msg.typ = ping_kind {
+            msg.typ := pong_kind;
+        } else {
+            msg.typ := ping_kind;
+        }
+        msg.dst := msg.src;
+        msg.src := self;
+        sock.send(proc(msg.dst).sock.id, msg);
     }
 }
+

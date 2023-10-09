@@ -77,6 +77,9 @@ mod tests {
         r.pop_anonymous_scope();
         r.push_anonymous_scope();
 
-        assert_eq!(r.named_scope_path(), vec!("a".to_string(), "x".to_string(), "y".to_string()));
+        assert_eq!(
+            r.named_scope_path(),
+            vec!("a".to_string(), "x".to_string(), "y".to_string())
+        );
     }
 }

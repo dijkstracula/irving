@@ -102,9 +102,6 @@ where
             self.pp.write_str(";\n")?;
         }
 
-        // The final declaration needs to wrap the return value in a Right<U>.
-        // (For void-producing actions, U=j.l.Void, the only inhabitant of which
-        // is `null`.  See https://github.com/dijkstracula/irving/issues/60 .)
         match ret {
             None => self.pp.write_str("return null;\n")?,
             Some(ret) => self.pp.write_fmt(format_args!("return {};\n", ret.name))?,
@@ -377,6 +374,19 @@ where
         Ok(ControlMut::SkipSiblings(()))
     }
 
+    fn begin_local_vardecl(
+        &mut self,
+        name: &mut Token,
+        sort: &mut expressions::Sort,
+    ) -> ExtractResult<statements::Stmt> {
+        self.pp
+            .write_fmt(format_args!("{} ", Self::jtype_from_sort(sort).as_jval()))?;
+        name.visit(self)?.modifying(name);
+        Ok(ControlMut::SkipSiblings(()))
+    }
+
+    // Expressions
+
     fn begin_typedecl(
         &mut self,
         _span: &Span,
@@ -636,10 +646,10 @@ where
             };
 
             self.pp.write_fmt(format_args!(
-            "IvyObj_{name} {name}_instances [] = IntStream({lo}, {hi}).boxed().map(i -> new IvyObj_{name}(i)).toArray();\n"
+            "List<IvyObj_{name}> {name}_instances [] = LongStream.range({lo}, {hi}).mapToObj(i -> new IvyObj_{name}(i)).collect(Collectors.toList());\n"
             ))?;
             self.pp.write_fmt(format_args!(
-                "Function1<Int, IvyObj_{name}> {name} = i -> {name}_instances[i];\n"
+                "Function1<Long, IvyObj_{name}> {name} = i -> {name}_instances.get(i.intValue());\n"
             ))?;
         }
 

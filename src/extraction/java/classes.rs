@@ -28,7 +28,12 @@ where
         name: &mut expressions::Token,
         ast: &mut declarations::ClassDecl,
     ) -> Result<(), Error> {
-        self.pp.write_fmt(format_args!("class {} {{\n", name))?;
+        match &ast.parent {
+            None => self.pp.write_fmt(format_args!("class {} {{\n", name))?,
+            Some(parent) => self
+                .pp
+                .write_fmt(format_args!("class {} extends {} {{\n", name, parent))?,
+        };
 
         self.pp.write_str("// Fields\n")?;
         for Binding { name, decl, .. } in &ast.fields {

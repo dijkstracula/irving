@@ -15,7 +15,10 @@ use crate::{
         statements,
     },
     passes::module_instantiation,
-    typechecker::{sorts::{Module, ActionRet}, TypeError},
+    typechecker::{
+        sorts::{ActionRet, Module},
+        TypeError,
+    },
     visitor::{ast::Visitable, ast::Visitor, control::ControlMut},
 };
 
@@ -129,7 +132,11 @@ impl SortInferer {
         curr_path.append(&mut ast.name.clone());
 
         // Grab the Action declaration out of the context.
-        let original_decl = self.bindings.lookup_ident(&ast.name).map_err(|e| e.to_typeerror(&Span::Todo))?.clone();
+        let original_decl = self
+            .bindings
+            .lookup_ident(&ast.name)
+            .map_err(|e| e.to_typeerror(&Span::Todo))?
+            .clone();
         match original_decl {
             IvySort::Action(argnames, ActionArgs::List(argsorts), ret, _kind) => {
                 for (name, sort) in argnames.iter().take(argsorts.len()).zip(argsorts.iter()) {
@@ -141,12 +148,13 @@ impl SortInferer {
                     ActionRet::Unknown => todo!(),
                     ActionRet::Unit => (),
                     ActionRet::Named(ret) => {
-                        self.bindings.append(ret.name, ret.decl)
-                        .map_err(|e| e.to_typeerror(&ret.span))?;
+                        self.bindings
+                            .append(ret.name, ret.decl)
+                            .map_err(|e| e.to_typeerror(&ret.span))?;
                     }
                 }
             }
-            _ => todo!() //Something like like a non-mixinable thing?
+            _ => todo!(), //Something like like a non-mixinable thing?
         };
 
         Ok(())
@@ -265,6 +273,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
         match sym.as_str() {
             "bool" => Ok(ControlMut::Produce(IvySort::Bool)),
             "unbounded_sequence" => Ok(ControlMut::Produce(IvySort::Number)),
+            "nat" => Ok(ControlMut::Produce(IvySort::Number)),
             //"this" => Ok(ControlMut::Produce(IvySort::This)),
             // TODO: and of course other builtins.
             _ => match self.bindings.lookup_sym(sym) {
