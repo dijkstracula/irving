@@ -1,5 +1,5 @@
 use crate::{
-    ast::expressions::{self},
+    ast::expressions::{self, Token},
     typechecker::sorts::{IvySort, Module},
 };
 
@@ -9,6 +9,7 @@ pub enum JavaType {
     Char,
     Long,
     Range(i64, i64),
+    Enum(Vec<Token>),
     ArrayList(Box<JavaType>),
     Object(String, Vec<JavaType>),
     Void,
@@ -25,6 +26,7 @@ impl JavaType {
             JavaType::Char => todo!(),
             JavaType::Long => "ctx.randomLong()".into(),
             JavaType::Range(min, max) => format!("ctx.randomBounded({}, {})", min, max),
+            JavaType::Enum(discs) => format!("ctx.randomBounded(0, {}", discs.len()),
             JavaType::ArrayList(_) => todo!(),
             JavaType::Object(name, _) => name.clone(),
             JavaType::Void => todo!(),
@@ -37,6 +39,7 @@ impl JavaType {
             JavaType::Char => "Character".into(),
             JavaType::Long => "Long".into(),
             JavaType::Range(_, _) => "Long".into(),
+            JavaType::Enum(_) => "Integer".into(),
             JavaType::ArrayList(t) => format!("ArrayList<{}>", t.as_jref()),
             JavaType::Object(clazz, ts) => {
                 if ts.is_empty() {
@@ -86,7 +89,7 @@ impl From<IvySort> for JavaType {
                 Self::ArrayList(Box::new(Into::<JavaType>::into(*elem_type)))
             }
             IvySort::Range(lo, hi) => Self::Range(lo, hi),
-            IvySort::Enum(_) => todo!(),
+            IvySort::Enum(discs) => Self::Enum(discs),
             IvySort::Action(_, _, _, _) => todo!(),
             IvySort::Relation(_) => todo!(),
             IvySort::Class(cls) => Self::Object(cls.name, vec![]),
@@ -124,7 +127,7 @@ impl From<&IvySort> for JavaType {
                 Self::ArrayList(Box::new(jelem))
             }
             IvySort::Range(lo, hi) => Self::Range(*lo, *hi),
-            IvySort::Enum(_) => todo!(),
+            IvySort::Enum(discs) => Self::Enum(discs.clone()),
             IvySort::Action(_, _, _, _) => todo!(),
             IvySort::Relation(_) => todo!(),
             IvySort::Class(_) => todo!(),

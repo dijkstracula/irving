@@ -396,6 +396,11 @@ where
         if let expressions::Sort::ToBeInferred = s {
             return Ok(ControlMut::SkipSiblings(()));
         }
+        if let expressions::Sort::Resolved(IvySort::Enum(discs)) = s {
+            for (i, d) in discs.iter().enumerate() {
+                self.pp.write_fmt(format_args!("int {} = {};\n", d, i))?;
+            }
+        }
         self.type_aliases
             .insert(name.clone(), (s as &expressions::Sort).into());
         Ok(ControlMut::SkipSiblings(()))
