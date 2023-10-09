@@ -39,7 +39,7 @@ impl Scope {
 
 pub struct BindingResolver {
     // A scope is a mapping of names to sorts, with additionally
-    // an optional 
+    // an optional declaration 
     pub scopes: Vec<Scope>,
     pub ctx: Vec<IvySort>,
 }
@@ -392,6 +392,24 @@ impl BindingResolver {
             ) => {
                 let unified_sorts = self.unify_vec(rargsorts, aargsorts)?;
                 Ok(IvySort::Relation(unified_sorts))
+            }
+
+            // This subtyping relation says that two classes that share a common ancestor
+            // should type to that ancestor.
+            (
+                c1 @ IvySort::Class(Class { parent: p1, ..}),
+                c2 @ IvySort::Class(Class { parent: p2, ..}),
+            ) if p1.is_some() || p2.is_some()
+            => {
+                // XXX: obviously extend this to find the common ancestor.
+                if c1 == c2 {
+                    return Ok(c1.clone())
+                }
+                match (p1, p2) {
+                    (None, Some(x)) if x.as_ref() == c1 => Ok(c1.clone()),
+                    (Some(x), None) if x.as_ref() == c2 => Ok(c2.clone()),
+                    _ => todo!()
+                }
             }
 
             // This subtyping relationship says that `this` shoudl only

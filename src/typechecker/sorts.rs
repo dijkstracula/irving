@@ -203,24 +203,24 @@ impl IvySort {
         }
     }
 
-    pub fn desc(&self) -> &'static str {
+    pub fn desc(&self) -> String {
         match self {
-            IvySort::Uninterpreted => "uninterpreted",
-            IvySort::This => "this",
-            IvySort::Unit => "unit",
-            IvySort::Top => "top",
-            IvySort::Bool => "boolean",
-            IvySort::Number => "unbounded_sequence",
-            IvySort::BitVec(_) => "bitvec",
-            IvySort::Vector(_) => "vector",
-            IvySort::Range(_, _) => "range",
-            IvySort::Enum(_) => "enum",
-            IvySort::Action(_, _, _, _) => "action",
-            IvySort::Relation(_) => "relation",
-            IvySort::Class(_) => "class",
-            IvySort::Module(_) => "module",
-            IvySort::Object(_) => "object",
-            IvySort::SortVar(_) => "sortvar",
+            IvySort::Uninterpreted => "uninterpreted".into(),
+            IvySort::This => "this".into(),
+            IvySort::Unit => "unit".into(),
+            IvySort::Top => "top".into(),
+            IvySort::Bool => "boolean".into(),
+            IvySort::Number => "unbounded_sequence".into(),
+            IvySort::BitVec(_) => "bitvec".into(),
+            IvySort::Vector(_) => "vector".into(),
+            IvySort::Range(_, _) => "range".into(),
+            IvySort::Enum(_) => "enum".into(),
+            IvySort::Action(_, _, _, _) => "action".into(),
+            IvySort::Relation(_) => "relation".into(),
+            IvySort::Class(cls) => cls.name.clone(),
+            IvySort::Module(_) => "module".into(),
+            IvySort::Object(_) => "object".into(),
+            IvySort::SortVar(_) => "sortvar".into(),
         }
     }
 }

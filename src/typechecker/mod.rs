@@ -33,10 +33,10 @@ pub enum TypeError {
     NonBindingDecl,
 
     #[error("{0:?} cannot be instantiated (did you mean to use `var`?)")]
-    NotInstanceable(&'static str),
+    NotInstanceable(String),
 
     #[error("{0:?} cannot be indexed into with `.`")]
-    NotARecord(&'static str),
+    NotARecord(String),
 
     #[error("Undefined field {0} ")]
     MissingRecordField(Token),
@@ -47,7 +47,7 @@ pub enum TypeError {
     #[error("Unbound variable {0}")]
     UnboundVariable(Token),
 
-    #[error("Sort {0:?} mismatches {1:?}")]
+    #[error("Sort {0} mismatches {1}")]
     UnificationError(String, String),
 
     #[error("Sequence of length {actual} received; expected {expected}")]
