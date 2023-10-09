@@ -1544,6 +1544,15 @@ impl Visitor<IvySort, TypeError> for SortInferer {
             .append(name.clone(), resolved.clone())
             .map_err(|e| e.to_typeerror(span))?;
 
+        if let Sort::Resolved(IvySort::Enum(discs)) = sort {
+            // I hate this
+            let d2 = discs.clone();
+            for disc in discs {
+                self.bindings
+                    .append(disc.clone(), IvySort::Enum(d2.clone()))
+                    .map_err(|e| e.to_typeerror(span))?;
+            }
+        }
         let binding = Binding::from(name.clone(), Sort::Resolved(resolved.clone()), span.clone());
         Ok(ControlMut::Mutation(
             declarations::Decl::Type { decl: binding },
