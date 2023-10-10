@@ -764,6 +764,9 @@ impl IvyParser {
         [rval(tst), stmt_block(thens), stmt_block(elses)] => Ok(
             If{tst, thn: thens, els: Some(elses)}
         ),
+        [rval(tst), stmt_block(thens), if_stmt(elsif)] => Ok(
+            If{tst, thn: thens, els: Some(vec!(Stmt::If(elsif)))}
+        ),
         )
     }
 

@@ -154,7 +154,7 @@ actions = { action ~ (";" ~ action)* }
 stmt_block = { "{" ~ (stmt ~ ";"?)* ~ "}" }
 
 return_stmt = { "return" ~ rval }
-if_stmt     = { "if"    ~ rval ~ stmt_block ~ ("else" ~ stmt_block)? }
+if_stmt     = { "if"    ~ rval ~ stmt_block ~ ("else" ~ (if_stmt | stmt_block))? }
 while_stmt  = { "while" ~ rval ~ stmt_block }
 
 stmt = {

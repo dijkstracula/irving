@@ -46,15 +46,26 @@ where
             stmt.visit(self)?.modifying(stmt);
             self.pp.write_str(";\n")?;
         }
+        self.pp.write_str("}")?;
 
-        if let Some(stmts) = &mut ast.els {
-            self.pp.write_str("} else {\n")?;
-            for stmt in stmts {
+        match &mut ast.els {
+            None => (),
+            Some(stmts) if matches!(stmts.as_slice(), [statements::Stmt::If(_)]) => {
+                self.pp.write_str(" else ")?;
+
+                let stmt = stmts.get_mut(0).unwrap();
                 stmt.visit(self)?.modifying(stmt);
-                self.pp.write_str(";\n")?;
+            }
+            Some(stmts) => {
+                self.pp.write_str(" else {\n")?;
+                for stmt in stmts {
+                    stmt.visit(self)?.modifying(stmt);
+                    self.pp.write_str(";\n")?;
+                }
+                self.pp.write_str("}\n")?;
             }
         }
-        self.pp.write_str("}\n")?;
+        self.pp.write_str("\n")?;
 
         Ok(())
     }

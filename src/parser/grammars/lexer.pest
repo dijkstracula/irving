@@ -52,7 +52,7 @@ ATTRIBUTE       = _{ "attribute" }
 ENSURE          = _{ "ensure"    }
 REQUIRE         = _{ "require"   }
 AXIOM           = _{ "axiom" | "property" }
-BV              = _{ "bv" /* | "strbv" | "intbv" | "uint"*/ }
+BV              = _{ "bv" | "uint" /* | "strbv" | "intbv" | "uint"*/ }
 CLASS           = _{ "class"     }
 SUBCLASS        = _{ "subclass"  }
 FIELD           = _{ "field"     }
@@ -82,6 +82,7 @@ BEFORE          = _{ "before"    }
 TYPE            = _{ "type"      }
 
 IF =     _{ "if" }
+ELSE =   _{ "else" }
 WHILE =  _{ "while" }
 RETURN = _{" return "}
 
@@ -129,6 +130,7 @@ reserved = {
 | AFTER
 | TYPE
 | IF
+| ELSE
 | WHILE
 | RETURN
 | BEFORE

@@ -1545,11 +1545,9 @@ impl Visitor<IvySort, TypeError> for SortInferer {
             .map_err(|e| e.to_typeerror(span))?;
 
         if let Sort::Resolved(IvySort::Enum(discs)) = sort {
-            // I hate this
-            let d2 = discs.clone();
-            for disc in discs {
+            for disc in discs as &Vec<Token> {
                 self.bindings
-                    .append(disc.clone(), IvySort::Enum(d2.clone()))
+                    .append(disc.clone(), IvySort::Enum(discs.clone()))
                     .map_err(|e| e.to_typeerror(span))?;
             }
         }

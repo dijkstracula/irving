@@ -202,6 +202,12 @@ mod tests {
     }
 
     #[test]
+    fn parse_if_ladder() {
+        let fragment = "if 1 < 2 { a := 42; } else if 3 < 4 { a := 99; } else { a := 101; } ";
+        let _ast = helpers::stmt_from_src(fragment);
+    }
+
+    #[test]
     fn parse_stmt_block() {
         let fragment = "requires a = 0; a := 42; ensure a = 42";
         helpers::stmt_from_src(fragment);
