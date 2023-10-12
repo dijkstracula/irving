@@ -1,0 +1,118 @@
+#lang ivy1.8
+
+include numbers
+include collections
+include network
+
+alias byte = uint[8]
+instance file : vector(byte)
+
+type pid = {0..2}
+
+type msg_kind = {
+    read_req,
+    read_resp,
+    append_req,
+    append_resp
+}
+
+class msg_t = {
+    field kind: msg_kind
+    field src: pid
+    
+    # append_req
+    field to_append: byte
+     
+    # read_resp:
+    field read_state: file
+}
+
+instance net : tcp.net(msg_t)
+
+process host(self:pid) = {
+
+    export action read
+    export action append(val:byte)
+
+    import action show(content:file)
+    
+    instance sock : net.socket
+    var contents : file
+
+    after init {
+        contents := file.empty();
+    }
+   
+    implement append {
+        var msg: msg_t;
+        msg.src := self;
+        msg.kind := append_req;
+        msg.to_append := val;
+
+        sock.send(host(0).sock.id, msg);
+    }
+
+    implement read {
+        var msg: msg_t;
+        msg.src := self;
+        msg.kind := read_req;
+        sock.send(host(2).sock.id, msg);
+    }
+    
+    implement sock.recv(src:tcp.endpoint, msg: msg_t) {
+        if msg.kind = read_req {
+            assert self = 2;
+
+            var resp: msg_t;
+            resp.kind := read_resp;
+            resp.src := self;
+            resp.read_state := contents;
+            
+            sock.send(host(msg.src).sock.id, resp);
+
+        } else
+        if msg.kind = read_resp {
+            show(msg.read_state);
+        } else
+
+        if msg.kind = append_req {
+            contents := contents.append(msg.to_append);
+            if (self < 2) {
+                sock.send(host(self+1).sock.id, msg);
+            } else {
+                var resp: msg_t;
+                resp.kind := append_resp;
+                resp.src := self;
+                resp.read_state := contents;
+                sock.send(host(msg.src).sock.id, resp);
+            }
+        } else
+
+        if msg.kind = append_resp {
+        } else {
+	    assert false;
+	}
+    }
+
+    specification {
+        var msg_count : nat
+
+        after init {
+            msg_count := 0;
+        }
+
+        after sock.send(dst:tcp.endpoint, msg:msg_t) {
+            msg_count := msg_count + 1;
+        }
+
+        after sock.recv(dst:tcp.endpoint, msg:msg_t) {
+            ensure msg_count > 0;
+            msg_count := msg_count - 1;
+            #ensure msg_count = 0 -> forall P1:pid,P2:pid. (host(P1).contents = host(P2).contents);
+        }
+
+	#attribute sock.recv.weight = "3"
+    }
+}
+
+#axiom host(0).sock.id ~= host(1).sock.id
