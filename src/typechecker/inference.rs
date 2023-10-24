@@ -1250,6 +1250,38 @@ impl Visitor<IvySort, TypeError> for SortInferer {
         ))
     }
 
+    fn begin_map_decl(
+        &mut self,
+        span: &Span,
+        name: &mut Token,
+        _ast: &mut declarations::MapDecl,
+    ) -> crate::visitor::VisitorResult<IvySort, TypeError, declarations::Decl> {
+        let v = self.bindings.new_sortvar();
+        self.bindings
+            .append(name.clone(), v.clone())
+            .map_err(|e| e.to_typeerror(span))?;
+        self.bindings.push_anonymous_scope();
+        Ok(ControlMut::Produce(v))
+    }
+
+    fn finish_map_decl(
+        &mut self,
+        span: &Span,
+        _name: &mut Token,
+        _ast: &mut declarations::MapDecl,
+        name_t: IvySort,
+        domain_t: Vec<IvySort>,
+        range_t: IvySort,
+    ) -> crate::visitor::VisitorResult<IvySort, TypeError, declarations::Decl> {
+        let mapsort = IvySort::Map(domain_t, Box::new(range_t));
+        let unified = self
+            .bindings
+            .unify(&name_t, &mapsort)
+            .map_err(|e| e.to_typeerror(span))?;
+        self.bindings.pop_anonymous_scope();
+        Ok(ControlMut::Produce(unified))
+    }
+
     fn begin_module_decl(
         &mut self,
         span: &Span,
@@ -1433,35 +1465,6 @@ impl Visitor<IvySort, TypeError> for SortInferer {
         if name != "top" {
             self.bindings.pop_named_scope();
         }
-        Ok(ControlMut::Produce(unified))
-    }
-
-    fn begin_relation(
-        &mut self,
-        name: &mut Token,
-        _ast: &mut declarations::Relation,
-    ) -> InferenceResult<declarations::Decl> {
-        // Bind the name to _something_; we'll unify this value with a function sort when finishing the visit.
-        let v = self.bindings.new_sortvar();
-        self.bindings
-            .append(name.clone(), v.clone())
-            .map_err(|e| e.to_typeerror(&Span::Todo))?;
-        self.bindings.push_anonymous_scope();
-        Ok(ControlMut::Produce(v))
-    }
-    fn finish_relation(
-        &mut self,
-        _name: &mut Token,
-        _ast: &mut declarations::Relation,
-        n: IvySort,
-        paramsorts: Vec<IvySort>,
-    ) -> InferenceResult<declarations::Decl> {
-        let relsort = IvySort::Map(paramsorts, Box::new(IvySort::Bool));
-        let unified = self
-            .bindings
-            .unify(&n, &relsort)
-            .map_err(|e| e.to_typeerror(&Span::Todo))?;
-        self.bindings.pop_anonymous_scope();
         Ok(ControlMut::Produce(unified))
     }
 

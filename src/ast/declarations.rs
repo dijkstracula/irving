@@ -154,11 +154,6 @@ impl ObjectDecl {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Relation {
-    pub params: ParamList,
-}
-
 // Transformed AST nodes
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -218,13 +213,13 @@ pub enum Decl {
 
     Invariant { span: Span, decl: Fmla },
 
+    Map { decl: Binding<MapDecl> },
+
     Module { decl: Binding<ModuleDecl> },
 
     Noop,
 
     Object { decl: Binding<ObjectDecl> },
-
-    Relation { decl: Binding<Relation> },
 
     Stmts(Vec<Stmt>),
 
@@ -275,16 +270,16 @@ impl Decl {
             Decl::Instantiate { .. } => None,
             Decl::Interpret { decl, .. } => Some(&decl.name),
             Decl::Invariant { .. } => None,
+            Decl::Map {
+                decl: Binding { name, .. },
+                ..
+            } => Some(name),
             Decl::Module {
                 decl: Binding { name, .. },
                 ..
             } => Some(name),
             Decl::Noop => None,
             Decl::Object {
-                decl: Binding { name, .. },
-                ..
-            } => Some(name),
-            Decl::Relation {
                 decl: Binding { name, .. },
                 ..
             } => Some(name),
@@ -341,14 +336,14 @@ impl Decl {
             Decl::Instantiate { .. } => DEFAULT_SPAN,
             Decl::Interpret { span, .. } => span,
             Decl::Invariant { span, .. } => span,
+            Decl::Map {
+                decl: Binding { span, .. },
+            } => span,
             Decl::Module {
                 decl: Binding { span, .. },
             } => span,
             Decl::Noop => DEFAULT_SPAN,
             Decl::Object {
-                decl: Binding { span, .. },
-            } => span,
-            Decl::Relation {
                 decl: Binding { span, .. },
             } => span,
             Decl::Stmts(_) => DEFAULT_SPAN,

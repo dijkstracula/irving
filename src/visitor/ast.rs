@@ -396,6 +396,7 @@ where
 
     fn begin_map_decl(
         &mut self,
+        _span: &Span,
         _name: &mut Token,
         _ast: &mut MapDecl,
     ) -> VisitorResult<T, E, Decl> {
@@ -403,8 +404,10 @@ where
     }
     fn finish_map_decl(
         &mut self,
+        _span: &Span,
         _name: &mut Token,
         _ast: &mut MapDecl,
+        _name_t: T,
         _domain_t: Vec<T>,
         _range_t: T,
     ) -> VisitorResult<T, E, Decl> {
@@ -445,23 +448,6 @@ where
         _n: T,
         _p: Vec<T>,
         _b: Vec<T>,
-    ) -> VisitorResult<T, E, Decl> {
-        Ok(ControlMut::Produce(T::default()))
-    }
-
-    fn begin_relation(
-        &mut self,
-        _name: &mut Token,
-        _ast: &mut Relation,
-    ) -> VisitorResult<T, E, Decl> {
-        Ok(ControlMut::Produce(T::default()))
-    }
-    fn finish_relation(
-        &mut self,
-        _name: &mut Token,
-        _ast: &mut Relation,
-        _n: T,
-        _ps: Vec<T>,
     ) -> VisitorResult<T, E, Decl> {
         Ok(ControlMut::Produce(T::default()))
     }
@@ -1118,6 +1104,19 @@ where
                 let _f = decl.visit(visitor)?.modifying(decl);
                 visitor.finish_invariant_decl(decl)
             }),
+            Decl::Map {
+                decl:
+                    Binding {
+                        ref mut name,
+                        ref mut decl,
+                        ref mut span,
+                    },
+            } => visitor.begin_map_decl(span, name, decl)?.and_then(|_| {
+                let n = name.visit(visitor)?.modifying(name);
+                let domain_t = decl.domain.visit(visitor)?.modifying(&mut decl.domain);
+                let range_t = decl.range.visit(visitor)?.modifying(&mut decl.range);
+                visitor.finish_map_decl(span, name, decl, n, domain_t, range_t)
+            }),
             Decl::Module {
                 decl:
                     Binding {
@@ -1150,14 +1149,6 @@ where
                 let p = decl.params.visit(visitor)?.modifying(&mut decl.params);
                 let b = decl.body.visit(visitor)?.modifying(&mut decl.body);
                 visitor.finish_object_decl(name, decl, n, p, b)
-            }),
-            Decl::Relation {
-                decl: Binding { name, decl, span },
-                ..
-            } => visitor.begin_relation(name, decl)?.and_then(|_| {
-                let n = name.visit(visitor)?.modifying(name);
-                let p = decl.params.visit(visitor)?.modifying(&mut decl.params);
-                visitor.finish_relation(name, decl, n, p)
             }),
             Decl::Stmts(stmts) => {
                 let mut _t = stmts.visit(visitor)?.modifying(stmts);

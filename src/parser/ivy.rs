@@ -540,15 +540,16 @@ impl IvyParser {
         )
     }
 
-    pub fn relation_decl(input: Node) -> Result<Binding<Relation>> {
+    pub fn relation_decl(input: Node) -> Result<Binding<MapDecl>> {
         let span = Span::from_node(&input);
+        let range = Sort::Resolved(IvySort::Bool);
 
         match_nodes!(
         input.into_children();
         [PROGTOK(name)] =>
-            Ok(Binding::from(name, Relation{params: vec!()}, span)),
+            Ok(Binding::from(name, MapDecl{ domain: vec!(), range: range}, span)),
         [PROGTOK(name), lparamlist(params)] =>
-            Ok(Binding::from(name, Relation{params}, span))
+            Ok(Binding::from(name, MapDecl{ domain: params, range: range}, span)),
         )
     }
 
@@ -630,7 +631,7 @@ impl IvyParser {
         [module_decl(decl)]   => Ok(Decl::Module{decl}),
         [object_decl(decl)]   => Ok(Decl::Object{decl}),
         [process_decl(decl)]   => Ok(Decl::Object{decl}),
-        [relation_decl(decl)] => Ok(Decl::Relation{decl}),
+        [relation_decl(decl)] => Ok(Decl::Map{decl}),
         [specification_decl((span, decl))] => Ok(Decl::Object{ decl: Binding { name: "spec".into(), decl, span }}),
         [subclass_decl(decl)] => Ok(Decl::Subclass{decl}),
         [type_decl(decl)]     => Ok(Decl::Type { decl }),

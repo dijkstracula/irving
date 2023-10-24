@@ -479,17 +479,6 @@ where
         Ok(ControlMut::SkipSiblings(()))
     }
 
-    fn begin_relation(
-        &mut self,
-        name: &mut Token,
-        ast: &mut declarations::Relation,
-    ) -> ExtractResult<declarations::Decl> {
-        self.pp.write_fmt(format_args!("relation {}(", name))?;
-        self.write_paramlist(&mut ast.params, ", ")?;
-        self.pp.write_str(")\n")?;
-        Ok(ControlMut::SkipSiblings(()))
-    }
-
     fn begin_typedecl(
         &mut self,
         _span: &Span,
