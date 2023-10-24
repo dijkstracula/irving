@@ -57,7 +57,10 @@ mod tests {
         si.bindings
             .append(
                 "link".into(),
-                IvySort::Relation(vec![IvySort::Number, IvySort::Number]),
+                IvySort::Map(
+                    vec![IvySort::Number, IvySort::Number],
+                    Box::new(IvySort::Bool),
+                ),
             )
             .unwrap();
         ast.visit(&mut si).unwrap().modifying(&mut ast);

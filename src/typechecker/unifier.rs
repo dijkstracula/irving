@@ -400,19 +400,20 @@ impl BindingResolver {
                 Ok(p)
             }
 
-            // This subtyping relation says that "calling" a Relation with well-typed
-            // arguments of the correct arity produces a Bool.
+            // This subtyping relation says that "calling" a map with well-typed
+            // arguments of the correct arity produces a the map's range.
             // TODO: should we constrain the ActionKind parameter?
+            // TODO: what if the action return type is known?  Can that ever happen?
             (
                 IvySort::Action(_, ActionArgs::List(aargsorts), ActionRet::Unknown, _),
-                IvySort::Relation(rargsorts),
+                IvySort::Map(mapdom, maprange),
             )
             | (
-                IvySort::Relation(rargsorts),
+                IvySort::Map(mapdom, maprange),
                 IvySort::Action(_, ActionArgs::List(aargsorts), ActionRet::Unknown, _),
             ) => {
-                let unified_sorts = self.unify_vec(rargsorts, aargsorts)?;
-                Ok(IvySort::Relation(unified_sorts))
+                let unified_domain = self.unify_vec(mapdom, aargsorts)?;
+                Ok(IvySort::Map(unified_domain, maprange.clone()))
             }
 
             // This subtyping relation says that two classes that share a common ancestor

@@ -88,6 +88,16 @@ where
         Ok(ControlMut::Produce(T::default()))
     }
 
+    fn map(
+        &mut self,
+        _keys: &mut Vec<IvySort>,
+        _val: &mut IvySort,
+        _keys_t: Vec<T>,
+        _val_t: T,
+    ) -> VisitorResult<T, E, IvySort> {
+        Ok(ControlMut::Produce(T::default()))
+    }
+
     fn module(
         &mut self,
         _mod: &mut Module,
@@ -158,12 +168,13 @@ where
                 /*ret.visit(visitor)?.modifying(ret)?;*/
                 visitor.action(fargnames.clone(), fargsorts, ret, kind, farg_t, ret_t)
             }
-            IvySort::Relation(args) => {
-                let args_t = args
+            IvySort::Map(keys, val) => {
+                let keys_t = keys
                     .iter_mut()
-                    .map(|s| Ok(s.visit(visitor)?.modifying(s)))
+                    .map(|k| Ok(k.visit(visitor)?.modifying(k)))
                     .collect::<Result<Vec<_>, _>>()?;
-                visitor.relation(args, args_t)
+                let val_t = val.as_mut().visit(visitor)?.modifying(val.as_mut());
+                visitor.map(keys, val, keys_t, val_t)
             }
             IvySort::Class(cls) => {
                 let parent = cls

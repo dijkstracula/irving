@@ -275,15 +275,18 @@ mod tests {
             .modifying(&mut decl_ast);
         assert_eq!(
             res,
-            IvySort::Relation(vec!(IvySort::SortVar(1), IvySort::SortVar(2)))
+            IvySort::Map(
+                vec!(IvySort::SortVar(1), IvySort::SortVar(2)),
+                Box::new(IvySort::Bool)
+            )
         );
 
         assert_eq!(
             tc.bindings.lookup_sym("is_up"),
-            Some(&IvySort::Relation(vec!(
-                IvySort::SortVar(1),
-                IvySort::SortVar(2)
-            )))
+            Some(&IvySort::Map(
+                vec!(IvySort::SortVar(1), IvySort::SortVar(2)),
+                Box::new(IvySort::Bool)
+            ))
         )
     }
 
@@ -297,11 +300,17 @@ mod tests {
             .visit(&mut tc)
             .expect("visit")
             .modifying(&mut decl_ast);
-        assert_eq!(res, IvySort::Relation(vec!(IvySort::Bool, IvySort::Bool)));
+        assert_eq!(
+            res,
+            IvySort::Map(vec!(IvySort::Bool, IvySort::Bool), Box::new(IvySort::Bool))
+        );
 
         assert_eq!(
             tc.bindings.lookup_sym("is_up"),
-            Some(&IvySort::Relation(vec!(IvySort::Bool, IvySort::Bool)))
+            Some(&IvySort::Map(
+                vec!(IvySort::Bool, IvySort::Bool),
+                Box::new(IvySort::Bool)
+            ))
         )
     }
 

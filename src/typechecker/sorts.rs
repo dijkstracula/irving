@@ -101,7 +101,7 @@ pub enum IvySort {
     Range(i64, i64),
     Enum(Vec<Token>),
     Action(Vec<Token>, ActionArgs, ActionRet, ActionKind),
-    Relation(Vec<IvySort>),
+    Map(Vec<IvySort>, Box<IvySort>),
     Class(Class),
     Module(Module),
     Object(Object),
@@ -138,8 +138,8 @@ impl Display for IvySort {
                     ActionRet::Named(binding) => write!(f, "-> {}", binding.decl),
                 }
             }
-            IvySort::Relation(args) => {
-                write!(f, "relation({:#?})", args)
+            IvySort::Map(keys, val) => {
+                write!(f, "relation({:#?}, {:#?})", keys, val)
             }
             IvySort::Module(module) => write!(f, "{}", module.name),
             _ => write!(f, "{}", self.desc()),
@@ -216,7 +216,13 @@ impl IvySort {
             IvySort::Range(_, _) => "range".into(),
             IvySort::Enum(_) => "enum".into(),
             IvySort::Action(_, _, _, _) => "action".into(),
-            IvySort::Relation(_) => "relation".into(),
+            IvySort::Map(_, ret) => {
+                if ret.as_ref() == &IvySort::Bool {
+                    "relation".into()
+                } else {
+                    "map".into()
+                }
+            }
             IvySort::Class(cls) => cls.name.clone(),
             IvySort::Module(_) => "module".into(),
             IvySort::Object(_) => "object".into(),
@@ -316,14 +322,6 @@ impl Visitor<IvySort, TypeError> for SortSubstituter {
 
     fn enumeration(&mut self, discriminants: &mut Vec<Token>) -> InferenceResult<IvySort> {
         self.subst(IvySort::Enum(discriminants.clone()))
-    }
-
-    fn relation(
-        &mut self,
-        _args: &mut Vec<IvySort>,
-        substituted: Vec<IvySort>,
-    ) -> InferenceResult<IvySort> {
-        self.subst(IvySort::Relation(substituted))
     }
 
     fn class(

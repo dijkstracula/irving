@@ -93,6 +93,12 @@ pub struct InterpretDecl {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MapDecl {
+    pub domain: ParamList,
+    pub range: Sort,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ModuleDecl {
     pub sortsyms: Vec<Token>,
     pub body: Vec<Decl>,

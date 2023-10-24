@@ -394,6 +394,23 @@ where
         Ok(ControlMut::Produce(T::default()))
     }
 
+    fn begin_map_decl(
+        &mut self,
+        _name: &mut Token,
+        _ast: &mut MapDecl,
+    ) -> VisitorResult<T, E, Decl> {
+        Ok(ControlMut::Produce(T::default()))
+    }
+    fn finish_map_decl(
+        &mut self,
+        _name: &mut Token,
+        _ast: &mut MapDecl,
+        _domain_t: Vec<T>,
+        _range_t: T,
+    ) -> VisitorResult<T, E, Decl> {
+        Ok(ControlMut::Produce(T::default()))
+    }
+
     fn begin_module_decl(
         &mut self,
         _span: &Span,

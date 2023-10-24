@@ -11,6 +11,7 @@ pub enum JavaType {
     Range(i64, i64),
     Enum(Vec<Token>),
     ArrayList(Box<JavaType>),
+    Map(Vec<JavaType>, Box<JavaType>),
     Object(String, Vec<JavaType>),
     Void,
 }
@@ -28,6 +29,7 @@ impl JavaType {
             JavaType::Range(min, max) => format!("ctx.randomBounded({}, {})", min, max),
             JavaType::Enum(discs) => format!("ctx.randomBounded(0, {}", discs.len()),
             JavaType::ArrayList(_) => todo!(),
+            JavaType::Map(_, _) => todo!(),
             JavaType::Object(name, _) => name.clone(),
             JavaType::Void => todo!(),
         }
@@ -51,6 +53,15 @@ impl JavaType {
                         ts.iter().map(|t| t.as_jref()).collect::<Vec<_>>().join(",")
                     )
                 }
+            }
+            JavaType::Map(keys, val) => {
+                let keys = keys
+                    .iter()
+                    .map(|t| t.as_jref())
+                    .collect::<Vec<_>>()
+                    .join(",");
+                let val = val.as_jref();
+                format!("HashMap<{},{}>", keys, val)
             }
             JavaType::Void => "Void".into(),
         }
@@ -91,7 +102,11 @@ impl From<IvySort> for JavaType {
             IvySort::Range(lo, hi) => Self::Range(lo, hi),
             IvySort::Enum(discs) => Self::Enum(discs),
             IvySort::Action(_, _, _, _) => todo!(),
-            IvySort::Relation(_) => todo!(),
+            IvySort::Map(keys, val) => {
+                let keys: Vec<JavaType> = keys.into_iter().map(|sort| sort.into()).collect::<_>();
+                let val: JavaType = val.as_ref().into();
+                Self::Map(keys, Box::new(val))
+            }
             IvySort::Class(cls) => Self::Object(cls.name, vec![]),
             IvySort::Module(Module { name, args, .. }) => {
                 let args: Vec<JavaType> =
@@ -129,7 +144,11 @@ impl From<&IvySort> for JavaType {
             IvySort::Range(lo, hi) => Self::Range(*lo, *hi),
             IvySort::Enum(discs) => Self::Enum(discs.clone()),
             IvySort::Action(_, _, _, _) => todo!(),
-            IvySort::Relation(_) => todo!(),
+            IvySort::Map(keys, val) => {
+                let keys: Vec<JavaType> = keys.into_iter().map(|sort| sort.into()).collect::<_>();
+                let val: JavaType = val.as_ref().into();
+                Self::Map(keys, Box::new(val))
+            }
             IvySort::Class(_) => todo!(),
             IvySort::Module(Module { name, args, .. }) => {
                 let args: Vec<JavaType> = args.iter().map(|(_, sort)| sort.into()).collect::<_>();

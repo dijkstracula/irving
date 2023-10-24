@@ -404,7 +404,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
                 sorts::ActionRet::Unit => Ok(ControlMut::Produce(IvySort::Unit)),
                 sorts::ActionRet::Named(binding) => Ok(ControlMut::Produce(binding.decl)),
             },
-            IvySort::Relation(_) => Ok(ControlMut::Produce(IvySort::Bool)),
+            IvySort::Map(_, ret) => Ok(ControlMut::Produce(ret.as_ref().clone())),
             IvySort::Object(obj) => Ok(ControlMut::Produce(IvySort::Object(obj))),
             _ => Err(TypeError::InvalidApplication),
         }
@@ -704,7 +704,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
                 sorts::ActionRet::Unit => Ok(ControlMut::Produce(IvySort::Unit)),
                 sorts::ActionRet::Named(binding) => Ok(ControlMut::Produce(binding.decl)),
             },
-            IvySort::Relation(_) => Ok(ControlMut::Produce(IvySort::Bool)),
+            IvySort::Map(_, ret) => Ok(ControlMut::Produce(ret.as_ref().clone())),
             _ => Err(TypeError::InvalidLogicApp),
         }
     }
@@ -1456,7 +1456,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
         n: IvySort,
         paramsorts: Vec<IvySort>,
     ) -> InferenceResult<declarations::Decl> {
-        let relsort = IvySort::Relation(paramsorts);
+        let relsort = IvySort::Map(paramsorts, Box::new(IvySort::Bool));
         let unified = self
             .bindings
             .unify(&n, &relsort)
