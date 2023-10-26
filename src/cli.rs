@@ -23,8 +23,8 @@ pub enum Commands {
 #[derive(Subcommand)]
 pub enum ExtractTarget {
     Ivy,
-
     Java,
+    Vmt,
 }
 
 impl Cli {

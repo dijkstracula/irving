@@ -398,6 +398,7 @@ where
     ) -> ExtractResult<declarations::Decl> {
         self.pp
             .write_fmt(format_args!("import action {}(", ast.name))?;
+        self.pp.write_str(")")?;
         Ok(ControlMut::Produce(()))
     }
     fn finish_import_decl(
