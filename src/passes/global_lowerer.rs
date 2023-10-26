@@ -19,8 +19,8 @@ impl GlobalLowerer {
 
 impl Visitor<(), std::fmt::Error> for GlobalLowerer {
     fn finish_prog(&mut self, prog: &mut Prog) -> VisitorResult<(), std::fmt::Error, Prog> {
-        self.globals.append(&mut prog.top);
-        prog.top.append(&mut self.globals);
+        self.globals.append(&mut prog.top.body);
+        prog.top.body.append(&mut self.globals);
         Ok(ControlMut::Produce(()))
     }
 

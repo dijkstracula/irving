@@ -29,10 +29,7 @@ where
         self.pp
             .write_str("public Extracted(MelinaContext ctx) { super(ctx); }\n")?;
 
-        for decl in &mut ast.top {
-            decl.visit(self)?.modifying(decl);
-            self.pp.write_str("\n")?;
-        }
+        ast.top.body.visit(self)?.modifying(&mut ast.top.body);
         self.pp.write_str("\n}\n")?;
         Ok(())
     }

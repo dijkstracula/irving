@@ -40,7 +40,7 @@ action inc(x: node) returns (y: node) = {
             Some(&declarations::Decl::Type {
                 decl: Binding::from("node", Sort::ToBeInferred, Span::IgnoredForTesting)
             }),
-            prog.top.get(0)
+            prog.top.body.get(0)
         );
 
         // Now let's perform phase 1 of typechecking.  We'll lift Sort::ToBeInferred
@@ -55,17 +55,25 @@ action inc(x: node) returns (y: node) = {
             Some(&declarations::Decl::Type {
                 decl: Binding::from(
                     "node",
-                    Sort::Resolved(IvySort::SortVar(0)),
+                    Sort::Resolved(IvySort::SortVar(1)),
                     Span::IgnoredForTesting
                 )
             }),
-            prog.top.get(0)
+            prog.top.body.get(0)
         );
+
+        // The zeroth SortVar will be the top-level isolate itself
+        assert!(
+            matches!(
+                si.bindings.ctx.get(0),
+                Some(&IvySort::Object(_))
+            )
+        );
+        // There's only one Sort in play in this program, so we know that the
+        // SortVar ID must be 1, after `this`.
         assert_eq!(
-            // There's only one Sort in play in this program, so we know that the
-            // SortVar ID must be 0.
             Some(&IvySort::Number),
-            si.bindings.ctx.get(0)
+            si.bindings.ctx.get(1)
         );
 
         // Now let's conclude type checking by resolving the constraints we've
@@ -83,7 +91,7 @@ action inc(x: node) returns (y: node) = {
                     Span::IgnoredForTesting
                 )
             }),
-            prog.top.get(0)
+            prog.top.body.get(0)
         );
     }
 }

@@ -1,4 +1,4 @@
-use super::declarations::{Decl, IncludeDecl};
+use super::declarations::{IncludeDecl, ObjectDecl};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Prog {
@@ -6,5 +6,5 @@ pub struct Prog {
     pub minor_version: u8,
 
     pub includes: Vec<IncludeDecl>,
-    pub top: Vec<Decl>,
+    pub top: ObjectDecl
 }

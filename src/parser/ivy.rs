@@ -820,8 +820,12 @@ impl IvyParser {
                 major_version: major,
                 minor_version: minor,
                 includes: idecls,
-                top: decls.collect::<Vec<_>>()
-            })
+                top: ObjectDecl {
+                        params: vec!(),
+                        body: decls.collect::<>()
+                    }
+                }
+            )
         )
     }
 }

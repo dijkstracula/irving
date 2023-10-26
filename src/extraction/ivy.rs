@@ -76,10 +76,7 @@ where
             p.major_version, p.minor_version
         ))?;
 
-        for decl in &mut p.top {
-            decl.visit(self)?.modifying(decl);
-            self.pp.write_str("\n")?;
-        }
+        let _ = p.top.body.visit(self)?.modifying(&mut p.top.body);
         Ok(ControlMut::SkipSiblings(()))
     }
 

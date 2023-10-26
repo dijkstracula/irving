@@ -221,7 +221,7 @@ module a = {
             .modifying(&mut proc);
 
         // XXX: I hate this!!!  Lenses when
-        let bar = match proc.top.get(0) {
+        let bar = match proc.top.body.get(0) {
             Some(crate::ast::declarations::Decl::Module {
                 decl:
                     Binding {

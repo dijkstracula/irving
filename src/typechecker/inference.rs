@@ -1261,6 +1261,9 @@ impl Visitor<IvySort, TypeError> for SortInferer {
             .map_err(|e| e.to_typeerror(&Span::Todo))?;
 
         self.bindings.push_anonymous_scope();
+        self.bindings.append("this".into(), IvySort::This)
+            .map_err(|e| e.to_typeerror(&Span::Todo))?;
+
         self.bindings
             .append("init".into(), Module::init_action_sort())
             .map_err(|e| e.to_typeerror(&Span::Todo))?;
@@ -1374,12 +1377,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
             .append(name.clone(), v.clone())
             .map_err(|e| e.to_typeerror(&Span::Todo))?;
 
-        // Don't create a new scope if we're at the special top-level declaration.
-        // This is needed for the typechecker visiting multiple Progs and expecting
-        // earlier declarations to be in scope.
-        if name != "top" {
             self.bindings.push_named_scope(name.clone());
-        }
 
         self.bindings
             .append("init".into(), Module::init_action_sort())
