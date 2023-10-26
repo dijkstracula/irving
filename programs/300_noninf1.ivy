@@ -1,0 +1,46 @@
+#lang ivy1.8
+
+type id
+
+var tok : bool
+relation client(X:id) # needs to go to array
+relation return(X:id)
+var owner : id
+
+after init {
+    tok := true;
+    client(X) := false; # needs to go to constarr
+    return(X) := false; # needs to go to constarr
+}
+
+action grant(x:id) = { # needs to go to
+    require tok;
+    client(x) := true;
+    tok := false;
+    owner := x;
+}
+
+action invalidate(x:id) = {
+    require client(x);
+    client(x) := false;
+    return(x) := true;
+}
+
+action release(x:id) = {
+    require return(x);
+    return(x) := false;
+    tok := true;
+}
+
+# property to prove
+invariant forall X,Y . X ~= Y -> ~(client(X) & client(Y))
+
+# auxiliary invariant
+#invariant return(X) -> X = owner
+
+export grant
+export invalidate
+export release
+
+#include mc_schemata
+#attribute method = mc
