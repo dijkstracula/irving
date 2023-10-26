@@ -553,6 +553,7 @@ where
 
     fn begin_object_decl(
         &mut self,
+        _span: &Span,
         name: &mut Token,
         ast: &mut declarations::ObjectDecl,
     ) -> ExtractResult<declarations::Decl> {

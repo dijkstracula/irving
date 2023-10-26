@@ -396,6 +396,7 @@ where
 
     fn begin_module_decl(
         &mut self,
+        _span: &Span,
         _name: &mut Token,
         _ast: &mut ModuleDecl,
     ) -> VisitorResult<T, E, Decl> {
@@ -414,6 +415,7 @@ where
 
     fn begin_object_decl(
         &mut self,
+        _span: &Span,
         _name: &mut Token,
         _ast: &mut ObjectDecl,
     ) -> VisitorResult<T, E, Decl> {
@@ -703,7 +705,7 @@ where
 
             let mut this_name = String::from("top");
             let mut this_params: ParamList = vec!();
-            visitor.begin_object_decl(&mut this_name, &mut self.top)?.and_then(|_| {
+            visitor.begin_object_decl(&Span::Todo, &mut this_name, &mut self.top)?.and_then(|_| {
                 let n = this_name.visit(visitor)?.modifying(&mut this_name);
                 let p = this_params.visit(visitor)?.modifying(&mut this_params);
                 let b = self.top.body.visit(visitor)?.modifying(&mut self.top.body);
@@ -1107,7 +1109,7 @@ where
                         ref mut span,
                     },
                 ..
-            } => visitor.begin_module_decl(name, decl)?.and_then(|_| {
+            } => visitor.begin_module_decl(span, name, decl)?.and_then(|_| {
                 let n = name.visit(visitor)?.modifying(name);
                 let p = decl
                     .sortsyms
@@ -1126,7 +1128,7 @@ where
                         ref mut span,
                     },
                 ..
-            } => visitor.begin_object_decl(name, decl)?.and_then(|_| {
+            } => visitor.begin_object_decl(span, name, decl)?.and_then(|_| {
                 let n = name.visit(visitor)?.modifying(name);
                 let p = decl.params.visit(visitor)?.modifying(&mut decl.params);
                 let b = decl.body.visit(visitor)?.modifying(&mut decl.body);

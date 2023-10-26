@@ -416,6 +416,7 @@ where
 
     fn begin_module_decl(
         &mut self,
+        _span: &Span,
         name: &mut Token,
         module: &mut declarations::ModuleDecl,
     ) -> ExtractResult<declarations::Decl> {
@@ -435,6 +436,7 @@ where
 
     fn begin_object_decl(
         &mut self,
+        _span: &Span,
         name: &mut Token,
         ast: &mut declarations::ObjectDecl,
     ) -> ExtractResult<declarations::Decl> {

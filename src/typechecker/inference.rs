@@ -1252,21 +1252,23 @@ impl Visitor<IvySort, TypeError> for SortInferer {
 
     fn begin_module_decl(
         &mut self,
+        span: &Span,
         name: &mut Token,
         ast: &mut declarations::ModuleDecl,
     ) -> InferenceResult<declarations::Decl> {
         let v = self.bindings.new_sortvar();
         self.bindings
             .append(name.clone(), v.clone())
-            .map_err(|e| e.to_typeerror(&Span::Todo))?;
+            .map_err(|e| e.to_typeerror(span))?;
 
         self.bindings.push_anonymous_scope();
+
         self.bindings.append("this".into(), IvySort::This)
-            .map_err(|e| e.to_typeerror(&Span::Todo))?;
+            .map_err(|e| e.to_typeerror(span))?;
 
         self.bindings
             .append("init".into(), Module::init_action_sort())
-            .map_err(|e| e.to_typeerror(&Span::Todo))?;
+            .map_err(|e| e.to_typeerror(span))?;
 
         // Note: we have to pull the sort arguments into scope explicitly
         // unlike action decls since the argument list AST isn't a Vec<Param>.
@@ -1274,7 +1276,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
             let s = self.bindings.new_sortvar();
             self.bindings
                 .append(sortarg.clone(), s)
-                .map_err(|e| e.to_typeerror(&Span::Todo))?;
+                .map_err(|e| e.to_typeerror(span))?;
         }
 
         // TODO: possibly this could be its own pass.
@@ -1369,19 +1371,20 @@ impl Visitor<IvySort, TypeError> for SortInferer {
 
     fn begin_object_decl(
         &mut self,
+        span: &Span,
         name: &mut Token,
         _ast: &mut declarations::ObjectDecl,
     ) -> InferenceResult<declarations::Decl> {
         let v = self.bindings.new_sortvar();
         self.bindings
             .append(name.clone(), v.clone())
-            .map_err(|e| e.to_typeerror(&Span::Todo))?;
+            .map_err(|e| e.to_typeerror(span))?;
 
             self.bindings.push_named_scope(name.clone());
 
         self.bindings
             .append("init".into(), Module::init_action_sort())
-            .map_err(|e| e.to_typeerror(&Span::Todo))?;
+            .map_err(|e| e.to_typeerror(span))?;
 
         Ok(ControlMut::Produce(v))
     }
