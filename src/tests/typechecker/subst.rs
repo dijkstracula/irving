@@ -63,18 +63,10 @@ action inc(x: node) returns (y: node) = {
         );
 
         // The zeroth SortVar will be the top-level isolate itself
-        assert!(
-            matches!(
-                si.bindings.ctx.get(0),
-                Some(&IvySort::Object(_))
-            )
-        );
+        assert!(matches!(si.bindings.ctx.get(0), Some(&IvySort::Object(_))));
         // There's only one Sort in play in this program, so we know that the
         // SortVar ID must be 1, after `this`.
-        assert_eq!(
-            Some(&IvySort::Number),
-            si.bindings.ctx.get(1)
-        );
+        assert_eq!(Some(&IvySort::Number), si.bindings.ctx.get(1));
 
         // Now let's conclude type checking by resolving the constraints we've
         // uncovered back into the AST.  Now, we should be able to see that we now

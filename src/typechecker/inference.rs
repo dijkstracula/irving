@@ -1295,7 +1295,8 @@ impl Visitor<IvySort, TypeError> for SortInferer {
 
         self.bindings.push_anonymous_scope();
 
-        self.bindings.append("this".into(), IvySort::This)
+        self.bindings
+            .append("this".into(), IvySort::This)
             .map_err(|e| e.to_typeerror(span))?;
 
         self.bindings
@@ -1412,7 +1413,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
             .append(name.clone(), v.clone())
             .map_err(|e| e.to_typeerror(span))?;
 
-            self.bindings.push_named_scope(name.clone());
+        self.bindings.push_named_scope(name.clone());
 
         self.bindings
             .append("init".into(), Module::init_action_sort())

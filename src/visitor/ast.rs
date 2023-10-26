@@ -707,13 +707,15 @@ where
                 .collect::<Result<Vec<_>, _>>()?;
 
             let mut this_name = String::from("top");
-            let mut this_params: ParamList = vec!();
-            visitor.begin_object_decl(&Span::Todo, &mut this_name, &mut self.top)?.and_then(|_| {
-                let n = this_name.visit(visitor)?.modifying(&mut this_name);
-                let p = this_params.visit(visitor)?.modifying(&mut this_params);
-                let b = self.top.body.visit(visitor)?.modifying(&mut self.top.body);
-                visitor.finish_object_decl(&mut this_name, &mut self.top, n, p, b)
-            })?;
+            let mut this_params: ParamList = vec![];
+            visitor
+                .begin_object_decl(&Span::Todo, &mut this_name, &mut self.top)?
+                .and_then(|_| {
+                    let n = this_name.visit(visitor)?.modifying(&mut this_name);
+                    let p = this_params.visit(visitor)?.modifying(&mut this_params);
+                    let b = self.top.body.visit(visitor)?.modifying(&mut self.top.body);
+                    visitor.finish_object_decl(&mut this_name, &mut self.top, n, p, b)
+                })?;
             visitor.finish_prog(self)
         })
     }

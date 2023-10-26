@@ -133,11 +133,10 @@ where
     }
 
     fn begin_assign_logical(
-            &mut self,
-            _span: &Span,
-            ast: &mut actions::AssignLogicalAction,
-        ) -> VisitorResult<(), std::fmt::Error, actions::Action> {
-
+        &mut self,
+        _span: &Span,
+        ast: &mut actions::AssignLogicalAction,
+    ) -> VisitorResult<(), std::fmt::Error, actions::Action> {
         ast.lhs.visit(self)?;
         self.pp.write_str(" := ")?;
         ast.rhs.visit(self)?;
@@ -314,7 +313,10 @@ where
         Ok(ControlMut::Produce(()))
     }
 
-    fn finish_export_decl(&mut self, _ast: &mut declarations::ExportDecl) -> VisitorResult<(), std::fmt::Error, declarations::Decl> {
+    fn finish_export_decl(
+        &mut self,
+        _ast: &mut declarations::ExportDecl,
+    ) -> VisitorResult<(), std::fmt::Error, declarations::Decl> {
         self.pp.write_str("\n")?;
         Ok(ControlMut::Produce(()))
     }
@@ -431,9 +433,24 @@ where
         self.pp.write_str("invariant ")?;
         Ok(ControlMut::Produce(()))
     }
-    fn finish_invariant_decl(&mut self, _ast: &mut logic::Fmla) -> VisitorResult<(), std::fmt::Error, declarations::Decl> {
+    fn finish_invariant_decl(
+        &mut self,
+        _ast: &mut logic::Fmla,
+    ) -> VisitorResult<(), std::fmt::Error, declarations::Decl> {
         self.pp.write_str("\n")?;
         Ok(ControlMut::Produce(()))
+    }
+
+    fn begin_map_decl(
+        &mut self,
+        _span: &Span,
+        name: &mut Token,
+        ast: &mut declarations::MapDecl,
+    ) -> VisitorResult<(), std::fmt::Error, declarations::Decl> {
+        self.pp.write_fmt(format_args!("var {} = (", name))?;
+        self.write_paramlist(&mut ast.domain, ",")?;
+        self.pp.write_str(")\n")?;
+        Ok(ControlMut::SkipSiblings(()))
     }
 
     fn begin_module_decl(
@@ -507,7 +524,9 @@ where
     ) -> ExtractResult<declarations::Decl> {
         self.pp.write_fmt(format_args!("var {}", name))?;
         match sort {
-            expressions::Sort::ToBeInferred | expressions::Sort::Resolved(IvySort::SortVar(_)) => (),
+            expressions::Sort::ToBeInferred | expressions::Sort::Resolved(IvySort::SortVar(_)) => {
+                ()
+            }
             expressions::Sort::Annotated(_) | expressions::Sort::Resolved(_) => {
                 self.pp.write_str(": ")?;
                 self.sort(sort)?.modifying(sort);
@@ -728,7 +747,7 @@ where
         p.name.visit(self)?;
 
         match &mut p.decl {
-            expressions::Sort::ToBeInferred | expressions::Sort::Resolved(IvySort::SortVar(_))=> {
+            expressions::Sort::ToBeInferred | expressions::Sort::Resolved(IvySort::SortVar(_)) => {
                 // In these cases, it's still uninterpreted, I think.
                 self.pp.write_str(":???")?;
             }

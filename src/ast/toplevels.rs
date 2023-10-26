@@ -6,5 +6,5 @@ pub struct Prog {
     pub minor_version: u8,
 
     pub includes: Vec<IncludeDecl>,
-    pub top: ObjectDecl
+    pub top: ObjectDecl,
 }
