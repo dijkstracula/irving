@@ -92,7 +92,7 @@ pub struct InterpretDecl {
     pub sort: Sort,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]
 pub struct MapDecl {
     pub domain: ParamList,
     pub range: Sort,

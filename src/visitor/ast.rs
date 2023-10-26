@@ -1299,6 +1299,7 @@ where
     E: Error,
 {
     fn visit(&mut self, visitor: &mut dyn Visitor<T, E>) -> VisitorResult<Vec<T>, E, Self> {
+        log::trace!(target: "visitor", "Vec<Stmt> (len {:?})", self.len());
         let mut res = vec![];
         for node in self {
             match node.visit(visitor)? {

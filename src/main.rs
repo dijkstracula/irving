@@ -44,6 +44,12 @@ fn main_impl() -> std::result::Result<(), IrvingError> {
             prog.visit(&mut e)?;
             println!("{}", e.pp.out);
         }
+        Commands::Extract(ExtractTarget::Vmt) => {
+            let mut e = extraction::vmt::Extractor::<String>::new();
+            log::info!(target: "cli", "Extracting VMT");
+            prog.visit(&mut e)?;
+            println!("{}", e.pp.out);
+        }
     }
     Ok(())
 }
