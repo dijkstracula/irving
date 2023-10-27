@@ -499,8 +499,8 @@ where
         name: &mut expressions::Token,
         sort: &mut expressions::Sort,
     ) -> VisitorResult<(), std::fmt::Error, declarations::Decl> {
-        let id = self.emit_unique_symbol(name, sort)?;
-        self.pp.write_str(&Self::lvar(name, &id))?;
+        let _ = self.emit_unique_symbol(name, sort)?;
+        //self.pp.write_str(&Self::lvar(name, &id))?;
         Ok(ControlMut::SkipSiblings(()))
     }
 

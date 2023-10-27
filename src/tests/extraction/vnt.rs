@@ -27,4 +27,18 @@ mod tests {
         assert!(extracted.contains("declare-fun x () Int"));
         assert!(extracted.contains("declare-fun x1 () Bool"));
     }
+
+    #[test]
+    fn test_noninf1() {
+        // This is Cole's noninterference program.  We should always be able to
+        // extract it.
+        let path = "programs/300_noninf1.ivy";
+        let mut ast = helpers::prog_from_filename(path);
+
+        let mut tc = SortInferer::new();
+        ast.visit(&mut tc).expect("typechecking failed");
+
+        let mut e = Extractor::<String>::new();
+        ast.visit(&mut e).expect("extraction failed");
+    }
 }

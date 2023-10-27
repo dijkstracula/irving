@@ -36,4 +36,9 @@ mod parser {
     fn test_append2() {
         let _ast = helpers::typeinference_from_filename("programs/101_append2.ivy");
     }
+
+    #[test]
+    fn test_noninf1() {
+        let _ast = helpers::typeinference_from_filename("programs/300_noninf1.ivy");
+    }
 }
