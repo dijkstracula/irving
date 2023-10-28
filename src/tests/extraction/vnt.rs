@@ -29,6 +29,35 @@ mod tests {
     }
 
     #[test]
+    fn test_relation_init() {
+        let fragment = "#lang ivy1.8
+        type id
+        relation client(X: id)
+        relation foo(X: bool)
+
+        after init {
+            client(X) := false;
+            foo(X) := false;
+        }
+        ";
+
+        let extracted = extract(fragment);
+        println!("{:?}", extracted);
+
+        // The first sort (Arr/Const/Read/Write) is for `client`, whereas the
+        // second sort (Arr1/Const1/Read1/Write) is for `foo`.
+        //
+        // TODO: this seems wrong.  The type of a Read and Write function ought
+        // to be `(Arr Domain) Range` and `(Arr Domain Range) Arr`, but Arrays
+        // simply must be indexed according to Int, right?  So what if the
+        // domain does not boil down to one?
+        assert!(extracted.contains("(declare-fun Read (Arr Int) Bool"));
+        assert!(extracted.contains("(declare-fun Read1 (Arr1 Bool) Bool"));
+        assert!(extracted.contains("(declare-fun Write (Arr Int Bool) Arr"));
+        assert!(extracted.contains("(declare-fun Write1 (Arr1 Bool Bool) Arr1"));
+    }
+
+    #[test]
     fn test_noninf1() {
         // This is Cole's noninterference program.  We should always be able to
         // extract it.

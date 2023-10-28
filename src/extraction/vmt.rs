@@ -17,7 +17,13 @@ where
     W: Write,
 {
     pub pp: PrettyPrinter<W>,
+
+    /// We need to remember whether we are traversing `after init` as we emit different
+    /// predicates for actions in that case.
     pub emitting_after_init: bool,
+
+    /// In order to deduplicate tokens that in Ivy reside in different nonoverlapping
+    /// scopes, we remember 
     pub emitted_relations_by_name: BTreeMap<expressions::Token, usize>,
     pub emitted_relations_by_decl: BTreeMap<MapDecl, usize>,
     pub emitted_symbols: BTreeMap<expressions::Token, BTreeMap<expressions::Sort, usize>>,
@@ -432,6 +438,7 @@ where
     ) -> VisitorResult<(), std::fmt::Error, declarations::Decl> {
         assert!(ast.domain.len() == 1);
         let mut dom = &mut ast.domain.get_mut(0).unwrap().decl.clone();
+        let mut range = ast.range.clone();
 
         if !self.emitted_relations_by_decl.contains_key(ast) {
             let new_id = self.emitted_relations_by_decl.len();
@@ -446,18 +453,25 @@ where
                 Self::const_fun(&new_id),
                 array_sort
             ))?;
+
             self.pp.write_fmt(format_args!(
-                "(declare-fun {} ({} Int) Int)\n",
+                "(declare-fun {} ({} ",
                 Self::read_fun(&new_id),
                 array_sort,
             ))?;
+            self.sort(&mut dom)?.modifying(&mut dom);
+            self.pp.write_str(") ")?;
+            self.sort(&mut range)?.modifying(&mut range);
+            self.pp.write_str(")\n")?;
 
             self.pp.write_fmt(format_args!(
-                "(declare-fun {} ({} Int ",
+                "(declare-fun {} ({} ",
                 Self::write_fun(&new_id),
                 array_sort,
             ))?;
             self.sort(&mut dom)?.modifying(&mut dom);
+            self.pp.write_str(" ")?;
+            self.sort(&mut range)?.modifying(&mut range);
             self.pp.write_fmt(format_args!(") {})\n", array_sort,))?;
             self.pp.write_str("\n")?;
         }
