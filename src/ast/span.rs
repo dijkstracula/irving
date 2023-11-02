@@ -5,13 +5,13 @@ use annotate_snippets::{
     snippet::{Slice, Snippet, SourceAnnotation},
 };
 
-use crate::parser::ivy::Node;
+use crate::parser::ivy::{Node, ParserState};
 
 /// A span derived from a location in a source file, which we can
 /// use to generate an annotated snippet from.
 #[derive(Clone, Eq, PartialEq, PartialOrd, Ord)]
 pub struct SourceSpan {
-    pub input: Rc<str>,
+    pub input: Rc<ParserState>,
 
     pub start: usize,
 
@@ -20,10 +20,11 @@ pub struct SourceSpan {
 
 impl std::fmt::Debug for SourceSpan {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self.input.get(self.start..self.end) {
+        match self.input.file_text.get(self.start..self.end) {
             None => f
                 .debug_struct("SourceSpan")
-                .field("input", &self.input)
+                .field("file_name", &self.input.file_name)
+                .field("file_text", &self.input.file_text)
                 .field("start", &self.start)
                 .field("end", &self.end)
                 .finish(),
@@ -32,7 +33,7 @@ impl std::fmt::Debug for SourceSpan {
     }
 }
 
-impl Display for SourceSpan {
+impl<'a> Display for SourceSpan {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         println!("{:?}", self.input);
         let annot = SourceAnnotation {
@@ -42,9 +43,9 @@ impl Display for SourceSpan {
         };
 
         let slice = Slice {
-            source: &self.input,
+            source: &self.input.file_text,
             line_start: 1,
-            origin: None,
+            origin: self.input.file_name.to_str(),
             annotations: vec![annot],
             fold: true,
         };
@@ -65,7 +66,7 @@ impl Display for SourceSpan {
 
 impl SourceSpan {
     pub fn lineno(&self) -> usize {
-        self.input[0..self.start]
+        self.input.file_text[0..self.start]
             .chars()
             .filter(|c| c == &'\n')
             .count()
@@ -156,7 +157,7 @@ impl Ord for Span {
 }
 
 impl Span {
-    pub fn from_pest(input: Rc<str>, span: &pest::Span) -> Self {
+    pub fn from_pest(input: Rc<ParserState>, span: &pest::Span) -> Self {
         Self::Source(SourceSpan {
             input,
             start: span.start(),
@@ -171,8 +172,7 @@ impl Span {
     pub fn merge(s1: &Span, s2: &Span) -> Self {
         match (s1, s2) {
             (Span::Source(s1), Span::Source(s2)) => {
-                if s1.input.len() != s2.input.len() {
-                    // Unsound but fast
+                if s1.input.file_name != s2.input.file_name {
                     panic!("Trying to merge two different spans: {:?} {:?}", s1, s2);
                 }
                 let start = s1.start.min(s2.start);

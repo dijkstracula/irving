@@ -37,7 +37,7 @@ lazy_static::lazy_static! {
 
 }
 
-pub fn parse_rval(input: Rc<str>, pairs: Pairs<Rule>) -> Result<Expr> {
+pub fn parse_rval(input: Rc<ParserState>, pairs: Pairs<Rule>) -> Result<Expr> {
     PRATT
         .map_primary(|primary| {
             let span = Span::from_pest(Rc::clone(&input), &primary.as_span());

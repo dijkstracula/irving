@@ -1,8 +1,10 @@
 #[cfg(test)]
 mod tests {
+    use std::rc::Rc;
+
     use crate::{
         ast::{declarations::Decl, span::Span},
-        parser::ivy::{IvyParser, Rule},
+        parser::ivy::{IvyParser, ParserState, Rule},
         typechecker::{
             inference::SortInferer,
             sorts::{self, IvySort, Module, Object},
@@ -12,8 +14,9 @@ mod tests {
     };
     use pest_consume::Parser;
 
-    fn process_from_src(prog: &str) -> Decl {
-        let res = IvyParser::parse_with_userdata(Rule::process_decl, prog, prog.into())
+    fn process_from_src(fragment: &str) -> Decl {
+        let user_data = Rc::new(ParserState::new(file!(), fragment));
+        let res = IvyParser::parse_with_userdata(Rule::process_decl, fragment, user_data)
             .expect("Parsing failed")
             .single()
             .unwrap();

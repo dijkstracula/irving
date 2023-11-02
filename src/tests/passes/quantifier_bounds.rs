@@ -1,5 +1,7 @@
 #[cfg(test)]
 mod tests {
+    use std::rc::Rc;
+
     use pest_consume::Parser;
 
     use crate::{
@@ -10,7 +12,7 @@ mod tests {
             span::Span,
         },
         error::IrvingError,
-        parser::ivy::{IvyParser, Rule},
+        parser::ivy::{IvyParser, ParserState, Rule},
         passes::quantifier_bounds::QuantBounds,
         tests::helpers::{self, logical_number},
         typechecker::{inference::SortInferer, sorts::IvySort},
@@ -18,7 +20,8 @@ mod tests {
     };
 
     fn typecheck_fmla(fragment: &str) -> Result<Fmla, IrvingError> {
-        let res = IvyParser::parse_with_userdata(Rule::fmla, fragment, fragment.into())
+        let user_data = Rc::new(ParserState::new(file!(), fragment));
+        let res = IvyParser::parse_with_userdata(Rule::fmla, fragment, user_data)
             .expect("Parsing failed")
             .single()
             .unwrap();

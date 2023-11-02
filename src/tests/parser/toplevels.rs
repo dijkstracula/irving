@@ -1,12 +1,15 @@
 #[cfg(test)]
 mod tests {
-    use crate::parser::ivy::{IvyParser, Rule};
+    use std::rc::Rc;
+
+    use crate::parser::ivy::{IvyParser, ParserState, Rule};
     use pest_consume::Parser;
 
     #[test]
     fn parse_hashlang_major_minor() {
-        let body = "#lang ivy1.8";
-        let res = IvyParser::parse_with_userdata(Rule::hashlang, body, body.into())
+        let fragment = "#lang ivy1.8";
+        let user_data = Rc::new(ParserState::new(file!(), fragment));
+        let res = IvyParser::parse_with_userdata(Rule::hashlang, fragment, user_data)
             .expect("Parsing failed")
             .single()
             .unwrap();
@@ -18,8 +21,9 @@ mod tests {
 
     #[test]
     fn parse_hashlang_major_only() {
-        let body = "#lang ivy2";
-        let res = IvyParser::parse_with_userdata(Rule::hashlang, body, body.into())
+        let fragment = "#lang ivy2";
+        let user_data = Rc::new(ParserState::new(file!(), fragment));
+        let res = IvyParser::parse_with_userdata(Rule::hashlang, fragment, user_data)
             .expect("Parsing failed")
             .single()
             .unwrap();
@@ -35,7 +39,8 @@ mod tests {
     fn parse_trivial_prog() {
         let body = "#lang ivy2";
 
-        let res = IvyParser::parse_with_userdata(Rule::prog, body, body.into())
+        let user_data = Rc::new(ParserState::new(file!(), body));
+        let res = IvyParser::parse_with_userdata(Rule::prog, body, user_data)
             .expect("Parsing failed")
             .single()
             .unwrap();
@@ -55,7 +60,8 @@ isolate net(pid: node) = {
     }
 }";
 
-        let res = IvyParser::parse_with_userdata(Rule::prog, body, body.to_owned().into())
+        let user_data = Rc::new(ParserState::new(file!(), body));
+        let res = IvyParser::parse_with_userdata(Rule::prog, body, user_data)
             .expect("Parsing failed")
             .single()
             .unwrap();

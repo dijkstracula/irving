@@ -39,7 +39,7 @@ lazy_static::lazy_static! {
 }
 
 // TODO: this should be something other than a Symbol.
-pub fn parse_lsym(input: Rc<str>, primary: Pair<'_, Rule>) -> Result<Symbol> {
+pub fn parse_lsym(input: Rc<ParserState>, primary: Pair<'_, Rule>) -> Result<Symbol> {
     let span = Span::from_pest(input, &primary.as_span());
     let mut pairs = primary.into_inner();
     let name = pairs.next().unwrap().as_str().to_owned();
@@ -51,7 +51,7 @@ pub fn parse_lsym(input: Rc<str>, primary: Pair<'_, Rule>) -> Result<Symbol> {
     }
 }
 
-pub fn parse_log_term(input: Rc<str>, pairs: Pairs<Rule>) -> Result<Fmla> {
+pub fn parse_log_term(input: Rc<ParserState>, pairs: Pairs<Rule>) -> Result<Fmla> {
     PRATT
         .map_primary(|primary| {
             let span = Span::from_pest(Rc::clone(&input), &primary.as_span());

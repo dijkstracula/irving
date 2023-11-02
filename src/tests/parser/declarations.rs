@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use std::rc::Rc;
+    use std::{path::PathBuf, rc::Rc};
 
     use crate::{
         ast::{
@@ -8,7 +8,7 @@ mod tests {
             expressions::Sort,
             span::Span,
         },
-        parser::ivy::{IvyParser, Rule},
+        parser::ivy::{IvyParser, ParserState, Rule},
         tests::helpers,
         typechecker::sorts::IvySort,
     };
@@ -19,7 +19,8 @@ mod tests {
     #[test]
     fn parse_decl_sig() {
         let fragment = "foo(a: int) returns (b: int)";
-        let res = IvyParser::parse_with_userdata(Rule::decl_sig, fragment, fragment.into())
+        let user_data = Rc::new(ParserState::new(PathBuf::from(file!()), fragment));
+        let res = IvyParser::parse_with_userdata(Rule::decl_sig, fragment, user_data)
             .expect("Parsing failed")
             .single()
             .unwrap();

@@ -12,7 +12,7 @@ fn main() {
     // solution someday, or maybe not.
     match main_impl() {
         Ok(()) => (),
-        Err(e) => eprintln!("Error: {:?}", e),
+        Err(e) => eprintln!("Error: {}", e),
     }
 }
 
@@ -22,7 +22,7 @@ fn main_impl() -> Result<(), IrvingError> {
     let cli = Cli::parse();
     let ivy_file = cli.read_ivy_file()?;
 
-    let mut prog = irving::parser::prog_from_str(&ivy_file)?;
+    let mut prog = irving::parser::prog_from_str(cli.ivy_file.clone(), ivy_file)?;
     passes::all_passes(&mut prog)?;
 
     match cli.cmd {

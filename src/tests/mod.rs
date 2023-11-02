@@ -16,6 +16,8 @@ fn init() {
 
 #[cfg(test)]
 pub mod helpers {
+    use std::{path::PathBuf, rc::Rc};
+
     use crate::{
         ast::{
             actions::Action,
@@ -26,18 +28,24 @@ pub mod helpers {
             statements::Stmt,
             toplevels::Prog,
         },
-        parser::ivy::{IvyParser, Rule},
+        parser::ivy::{IvyParser, ParserState, Rule},
         passes::{self},
     };
     use pest_consume::Parser;
 
     pub fn prog_from_filename(path: &str) -> Prog {
         let prog = std::fs::read_to_string(path).unwrap();
-        prog_from_decls(&prog)
+        let user_data = Rc::new(ParserState::new(PathBuf::from(path), prog.to_string()));
+        let res = IvyParser::parse_with_userdata(Rule::prog, &prog, user_data)
+            .expect("Parsing failed")
+            .single()
+            .unwrap();
+        IvyParser::prog(res).expect("AST generation failed")
     }
 
     pub fn prog_from_decls(prog: &str) -> Prog {
-        let res = IvyParser::parse_with_userdata(Rule::prog, prog, prog.to_string().into())
+        let user_data = Rc::new(ParserState::new(PathBuf::from(file!()), prog.to_string()));
+        let res = IvyParser::parse_with_userdata(Rule::prog, prog, user_data)
             .expect("Parsing failed")
             .single()
             .unwrap();
@@ -45,7 +53,8 @@ pub mod helpers {
     }
 
     pub fn process_from_decl(prog: &str) -> Decl {
-        let res = IvyParser::parse_with_userdata(Rule::process_decl, prog, prog.to_owned().into())
+        let user_data = Rc::new(ParserState::new(PathBuf::from(file!()), prog.to_string()));
+        let res = IvyParser::parse_with_userdata(Rule::process_decl, prog, user_data)
             .expect("Parsing failed")
             .single()
             .unwrap();
@@ -54,7 +63,8 @@ pub mod helpers {
     }
 
     pub fn module_from_src(prog: &str) -> Decl {
-        let res = IvyParser::parse_with_userdata(Rule::module_decl, prog, prog.to_owned().into())
+        let user_data = Rc::new(ParserState::new(PathBuf::from(file!()), prog.to_string()));
+        let res = IvyParser::parse_with_userdata(Rule::module_decl, prog, user_data)
             .expect("Parsing failed")
             .single()
             .unwrap();
@@ -95,7 +105,8 @@ pub mod helpers {
 
     pub fn typeinference_from_filename(path: &str) -> Prog {
         let text = std::fs::read_to_string(path).unwrap();
-        let res = IvyParser::parse_with_userdata(Rule::prog, &text, text.to_owned().into())
+        let user_data = Rc::new(ParserState::new(PathBuf::from(path), text.clone()));
+        let res = IvyParser::parse_with_userdata(Rule::prog, &text, user_data)
             .expect("Parsing failed")
             .single()
             .unwrap();
@@ -105,7 +116,8 @@ pub mod helpers {
     }
 
     pub fn decl_from_src(prog: &str) -> Decl {
-        let res = IvyParser::parse_with_userdata(Rule::decl, prog, prog.into())
+        let user_data = Rc::new(ParserState::new(PathBuf::from(file!()), prog));
+        let res = IvyParser::parse_with_userdata(Rule::decl, prog, user_data)
             .expect("Parsing failed")
             .single()
             .unwrap();
@@ -113,7 +125,8 @@ pub mod helpers {
     }
 
     pub fn stmt_from_src(prog: &str) -> Stmt {
-        let res = IvyParser::parse_with_userdata(Rule::stmt, prog, prog.into())
+        let user_data = Rc::new(ParserState::new(PathBuf::from(file!()), prog));
+        let res = IvyParser::parse_with_userdata(Rule::stmt, prog, user_data)
             .expect("Parsing failed")
             .single()
             .unwrap();
@@ -121,7 +134,8 @@ pub mod helpers {
     }
 
     pub fn action_from_decl(prog: &str) -> Action {
-        let res = IvyParser::parse_with_userdata(Rule::action, prog, prog.to_owned().into())
+        let user_data = Rc::new(ParserState::new(PathBuf::from(file!()), prog));
+        let res = IvyParser::parse_with_userdata(Rule::action, prog, user_data)
             .expect("Parsing failed")
             .single()
             .unwrap();
@@ -129,7 +143,8 @@ pub mod helpers {
     }
 
     pub fn fmla_from_src(prog: &str) -> Fmla {
-        let res = IvyParser::parse_with_userdata(Rule::fmla, prog, prog.into())
+        let user_data = Rc::new(ParserState::new(PathBuf::from(file!()), prog));
+        let res = IvyParser::parse_with_userdata(Rule::fmla, prog, user_data)
             .expect("Parsing failed")
             .single()
             .unwrap();
@@ -137,7 +152,8 @@ pub mod helpers {
     }
 
     pub fn rval_from_src(prog: &str) -> Expr {
-        let res = IvyParser::parse_with_userdata(Rule::rval, prog, prog.into())
+        let user_data = Rc::new(ParserState::new(PathBuf::from(file!()), prog));
+        let res = IvyParser::parse_with_userdata(Rule::rval, prog, user_data)
             .expect("Parsing failed")
             .single()
             .unwrap();

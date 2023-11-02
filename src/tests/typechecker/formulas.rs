@@ -1,15 +1,18 @@
 #[cfg(test)]
 mod tests {
+    use std::rc::Rc;
+
     use crate::ast::logic::*;
     use crate::error::IrvingError;
-    use crate::parser::ivy::{IvyParser, Rule};
+    use crate::parser::ivy::{IvyParser, ParserState, Rule};
     use crate::typechecker::inference::SortInferer;
     use crate::typechecker::sorts::IvySort;
     use crate::visitor::ast::Visitable;
     use pest_consume::Parser;
 
     fn typecheck_fmla(fragment: &str) -> Result<Fmla, IrvingError> {
-        let res = IvyParser::parse_with_userdata(Rule::fmla, fragment, fragment.into())
+        let user_data = Rc::new(ParserState::new(file!(), fragment));
+        let res = IvyParser::parse_with_userdata(Rule::fmla, fragment, user_data)
             .expect("Parsing failed")
             .single()
             .unwrap();

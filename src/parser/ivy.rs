@@ -1,3 +1,4 @@
+use std::path::PathBuf;
 use std::rc::Rc;
 
 use pest::error::ErrorVariant;
@@ -28,13 +29,32 @@ const _LOGIC: &str = include_str!("grammars/logic.pest");
 #[grammar = "parser/grammars/logic.pest"]
 pub struct IvyParser;
 
+#[derive(Clone, Eq, PartialEq, PartialOrd, Ord, Debug)]
+pub struct ParserState {
+    pub file_name: PathBuf,
+    pub file_text: Rc<String>,
+}
+
+impl ParserState {
+    pub fn new<P, S>(file_name: P, file_text: S) -> Self
+    where
+        P: Into<PathBuf>,
+        S: Into<String>,
+    {
+        Self {
+            file_name: file_name.into(),
+            file_text: Rc::from(file_text.into()),
+        }
+    }
+}
+
 pub type ParseError = Error<Rule>;
 pub type Result<T> = std::result::Result<T, ParseError>;
-pub type Node<'i> = pest_consume::Node<'i, Rule, Rc<str>>;
+pub type Node<'i> = pest_consume::Node<'i, Rule, Rc<ParserState>>;
 
 fn pest_err(message: String, irving_span: Span) -> Option<ParseError> {
     if let Span::Source(SourceSpan { input, start, end }) = irving_span {
-        let span = pest::Span::new(input.as_ref(), start, end).unwrap();
+        let span = pest::Span::new(&input.file_text, start, end).unwrap();
         Some(Error::new_from_span(
             ErrorVariant::<Rule>::CustomError { message },
             span,

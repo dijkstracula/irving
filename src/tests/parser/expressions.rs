@@ -1,11 +1,12 @@
 #[cfg(test)]
 mod tests {
+    use std::path::PathBuf;
     use std::rc::Rc;
 
     use crate::ast::expressions::{self, *};
     use crate::ast::logic::{Fmla, LogicBinOp};
     use crate::ast::span::Span;
-    use crate::parser::ivy::{IvyParser, Result, Rule};
+    use crate::parser::ivy::{IvyParser, ParserState, Result, Rule};
     use crate::tests::helpers;
     use pest_consume::Parser;
 
@@ -13,10 +14,14 @@ mod tests {
 
     fn parse_rval<S>(fragment: S) -> Result<Expr>
     where
-        S: Into<Rc<str>>,
+        S: Into<String>,
     {
-        let rc = fragment.into();
-        let res = IvyParser::parse_with_userdata(Rule::rval, &rc, rc.clone())
+        let fragment = fragment.into();
+        let user_data = Rc::new(ParserState::new(
+            PathBuf::from(file!()),
+            fragment.to_string(),
+        ));
+        let res = IvyParser::parse_with_userdata(Rule::rval, &fragment, user_data)
             .expect("Parsing failed")
             .single()
             .unwrap();
@@ -25,10 +30,14 @@ mod tests {
 
     fn parse_fmla<S>(fragment: S) -> Result<Fmla>
     where
-        S: Into<Rc<str>>,
+        S: Into<String>,
     {
-        let rc = fragment.into();
-        let res = IvyParser::parse_with_userdata(Rule::fmla, &rc, rc.clone())
+        let fragment = fragment.into();
+        let user_data = Rc::new(ParserState::new(
+            PathBuf::from(file!()),
+            fragment.to_string(),
+        ));
+        let res = IvyParser::parse_with_userdata(Rule::fmla, &fragment, user_data)
             .expect("Parsing failed")
             .single()
             .unwrap();

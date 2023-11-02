@@ -1,13 +1,13 @@
 #[cfg(test)]
 mod tests {
-    use std::vec;
+    use std::{rc::Rc, vec};
 
     use crate::{
         ast::{
             declarations::{Binding, Decl},
             span::Span,
         },
-        parser::ivy::{IvyParser, Rule},
+        parser::ivy::{IvyParser, ParserState, Rule},
         tests::helpers,
         typechecker::{
             inference::SortInferer,
@@ -82,12 +82,13 @@ mod tests {
 
             action append(a:t,e:elems) returns (b:t)
         }";
-        let parsed = IvyParser::parse_with_userdata(Rule::module_decl, vecimpl, vecimpl.into())
+        let user_data = Rc::new(ParserState::new(file!(), vecimpl));
+        let res = IvyParser::parse_with_userdata(Rule::module_decl, vecimpl, user_data)
             .expect("Parsing failed")
             .single()
             .unwrap();
 
-        let decl = IvyParser::module_decl(parsed).expect("Parsing of Vec stub module");
+        let decl = IvyParser::module_decl(res).expect("Parsing of Vec stub module");
         let vecdecl = Decl::Module { decl };
 
         let mut filedecl = vecdecl;

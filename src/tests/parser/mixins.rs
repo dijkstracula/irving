@@ -1,8 +1,10 @@
 #[cfg(test)]
 mod tests {
+    use std::rc::Rc;
+
     use crate::{
         ast::{declarations::*, expressions::*, span::Span},
-        parser::ivy::{IvyParser, Rule},
+        parser::ivy::{IvyParser, ParserState, Rule},
         tests::helpers,
     };
     use pest_consume::Parser;
@@ -36,11 +38,11 @@ mod tests {
     #[test]
     fn parse_action_decl_no_ret_nor_body() {
         let fragment = "action foo(a: int)";
-        let res =
-            IvyParser::parse_with_userdata(Rule::action_decl, fragment, fragment.to_owned().into())
-                .expect("Parsing failed")
-                .single()
-                .unwrap();
+        let user_data = Rc::new(ParserState::new(file!(), fragment));
+        let res = IvyParser::parse_with_userdata(Rule::action_decl, fragment, user_data)
+            .expect("Parsing failed")
+            .single()
+            .unwrap();
 
         assert_eq!(
             IvyParser::action_decl(res),
@@ -63,11 +65,11 @@ mod tests {
     #[test]
     fn parse_action_decl_no_ret_but_body() {
         let fragment = "action foo(a: int) = { }";
-        let res =
-            IvyParser::parse_with_userdata(Rule::action_decl, fragment, fragment.to_owned().into())
-                .expect("Parsing failed")
-                .single()
-                .unwrap();
+        let user_data = Rc::new(ParserState::new(file!(), fragment));
+        let res = IvyParser::parse_with_userdata(Rule::action_decl, fragment, user_data)
+            .expect("Parsing failed")
+            .single()
+            .unwrap();
         assert_eq!(
             IvyParser::action_decl(res),
             Ok(Binding::from(
@@ -91,11 +93,11 @@ mod tests {
         let fragment = "action foo(a: int) = { 
             action(bar: b) = {}
         }";
-        let res =
-            IvyParser::parse_with_userdata(Rule::action_decl, fragment, fragment.to_owned().into())
-                .expect("Parsing failed")
-                .single()
-                .unwrap();
+        let user_data = Rc::new(ParserState::new(file!(), fragment));
+        let res = IvyParser::parse_with_userdata(Rule::action_decl, fragment, user_data)
+            .expect("Parsing failed")
+            .single()
+            .unwrap();
         // This assert indicates that parsing the action stopped when we hit the second action (i.e. what follows is invalid).
         assert!(IvyParser::action_decl(res).unwrap().decl.body.is_none());
     }
@@ -103,11 +105,11 @@ mod tests {
     #[test]
     fn parse_action_decl_with_ret_no_body() {
         let fragment = "action foo(a: int) returns (b: int)";
-        let res =
-            IvyParser::parse_with_userdata(Rule::action_decl, fragment, fragment.to_owned().into())
-                .expect("Parsing failed")
-                .single()
-                .unwrap();
+        let user_data = Rc::new(ParserState::new(file!(), fragment));
+        let res = IvyParser::parse_with_userdata(Rule::action_decl, fragment, user_data)
+            .expect("Parsing failed")
+            .single()
+            .unwrap();
 
         assert_eq!(
             IvyParser::action_decl(res),

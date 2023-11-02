@@ -1,21 +1,24 @@
 #[cfg(test)]
 mod tests {
+    use std::path::PathBuf;
     use std::rc::Rc;
 
     use crate::ast::expressions::*;
     use crate::ast::logic;
     use crate::ast::logic::*;
     use crate::ast::span::Span;
+    use crate::parser::ivy::ParserState;
     use crate::parser::ivy::{IvyParser, Result, Rule};
     use crate::tests::helpers;
     use pest_consume::Parser;
 
     fn parse_fmla<S>(fragment: S) -> Result<Fmla>
     where
-        S: Into<Rc<str>>,
+        S: Into<String>,
     {
-        let rc = fragment.into();
-        let res = IvyParser::parse_with_userdata(Rule::fmla, &rc, rc.clone())
+        let fragment = fragment.into();
+        let user_data = Rc::new(ParserState::new(file!(), fragment.to_string()));
+        let res = IvyParser::parse_with_userdata(Rule::fmla, &fragment, user_data)
             .expect("Parsing failed")
             .single()
             .unwrap();

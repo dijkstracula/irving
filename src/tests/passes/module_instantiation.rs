@@ -1,7 +1,9 @@
 #[cfg(test)]
 mod tests {
+    use std::rc::Rc;
+
     use crate::ast::declarations::Decl;
-    use crate::parser::ivy::{IvyParser, Rule};
+    use crate::parser::ivy::{IvyParser, ParserState, Rule};
     use crate::passes::module_instantiation;
     use crate::typechecker::inference::SortInferer;
     use crate::typechecker::sorts::{IvySort, Module};
@@ -9,7 +11,8 @@ mod tests {
     use pest_consume::Parser;
 
     fn sort_from_module_src(prog: &str) -> Module {
-        let res = IvyParser::parse_with_userdata(Rule::module_decl, prog, prog.into())
+        let user_data = Rc::new(ParserState::new(file!(), prog));
+        let res = IvyParser::parse_with_userdata(Rule::module_decl, prog, user_data)
             .expect("Parsing")
             .single()
             .unwrap();

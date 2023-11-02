@@ -42,7 +42,7 @@ impl IncludeExpander {
         }?;
 
         log::info!(target: "include_expander", "Including {}", path.display());
-        Ok(crate::parser::prog_from_str(&text)?)
+        Ok(crate::parser::prog_from_str(path, text)?)
     }
 }
 

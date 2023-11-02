@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::path::{self, Path, PathBuf};
 
 use clap::{CommandFactory, Parser, Subcommand};
 
@@ -9,7 +9,7 @@ use clap::{CommandFactory, Parser, Subcommand};
 pub struct Cli {
     /// Path to the input Ivy file
     #[arg(value_hint = clap::ValueHint::FilePath)]
-    ivy_file: std::path::PathBuf,
+    pub ivy_file: PathBuf,
 
     /// What do?
     #[command(subcommand)]

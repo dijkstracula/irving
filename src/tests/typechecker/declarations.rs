@@ -1,10 +1,11 @@
 #[cfg(test)]
 mod tests {
     use core::panic;
+    use std::rc::Rc;
 
     use crate::{
         ast::span::Span,
-        parser::ivy::{IvyParser, Rule},
+        parser::ivy::{IvyParser, ParserState, Rule},
         tests::helpers,
         typechecker::{
             inference::SortInferer,
@@ -329,7 +330,8 @@ mod tests {
         assert_eq!(tc.bindings.lookup_sym("addr"), Some(&IvySort::BitVec(32)));
 
         let prog = "alias addr = bv[256]";
-        let res = IvyParser::parse_with_userdata(Rule::decl, prog, prog.into())
+        let user_data = Rc::new(ParserState::new(file!(), prog));
+        let res = IvyParser::parse_with_userdata(Rule::decl, prog, user_data)
             .expect("Parsing failed")
             .single()
             .unwrap();
@@ -351,7 +353,8 @@ mod tests {
         assert_eq!(tc.bindings.lookup_sym("addr"), Some(&IvySort::BitVec(32)));
 
         let prog = "type addr = bv[256]";
-        let res = IvyParser::parse_with_userdata(Rule::decl, prog, prog.into())
+        let user_data = Rc::new(ParserState::new(file!(), prog));
+        let res = IvyParser::parse_with_userdata(Rule::decl, prog, user_data)
             .expect("Parsing failed")
             .single()
             .unwrap();
@@ -462,7 +465,8 @@ mod tests {
             relation link(X:client, Y:server)
             relation semaphore(X:server) # X was previously defined to be a client.
         }";
-        let parsed = IvyParser::parse_with_userdata(Rule::decl_block, prog, prog.into())
+        let user_data = Rc::new(ParserState::new(file!(), prog));
+        let parsed = IvyParser::parse_with_userdata(Rule::decl_block, prog, user_data)
             .expect("Parsing failed")
             .single()
             .unwrap();
@@ -481,7 +485,8 @@ mod tests {
             var foo: unbounded_sequence
             var foo: bool
         }";
-        let parsed = IvyParser::parse_with_userdata(Rule::decl_block, prog, prog.into())
+        let user_data = Rc::new(ParserState::new(file!(), prog));
+        let parsed = IvyParser::parse_with_userdata(Rule::decl_block, prog, user_data)
             .expect("Parsing failed")
             .single()
             .unwrap();

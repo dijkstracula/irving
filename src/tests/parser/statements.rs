@@ -1,11 +1,13 @@
 #[cfg(test)]
 mod tests {
+    use std::rc::Rc;
+
     use crate::{
         ast::{
             actions::*, declarations::Binding, expressions::*, logic::*, span::Span,
             statements::Stmt,
         },
-        parser::ivy::{IvyParser, Rule},
+        parser::ivy::{IvyParser, ParserState, Rule},
         tests::helpers,
     };
     use pest_consume::Parser;
@@ -17,7 +19,8 @@ mod tests {
         // My number one biggest ivy typo: this should be `foo := 42`.
         let fragment = "foo = 42";
 
-        let res = IvyParser::parse_with_userdata(Rule::stmt, fragment, fragment.into())
+        let user_data = Rc::new(ParserState::new(file!(), fragment));
+        let res = IvyParser::parse_with_userdata(Rule::stmt, fragment, user_data)
             .expect("Parsing")
             .single()
             .unwrap();
@@ -127,7 +130,8 @@ mod tests {
     #[test]
     fn parse_requires_action() {
         let fragment = "require ~failed(y)";
-        let res = IvyParser::parse_with_userdata(Rule::requires_action, fragment, fragment.into())
+        let user_data = Rc::new(ParserState::new(file!(), fragment));
+        let res = IvyParser::parse_with_userdata(Rule::requires_action, fragment, user_data)
             .expect("Parsing failed")
             .single()
             .unwrap();
@@ -169,7 +173,8 @@ mod tests {
     #[test]
     fn parse_requires_action_2() {
         let fragment = "require x >= 0";
-        let res = IvyParser::parse_with_userdata(Rule::requires_action, fragment, fragment.into())
+        let user_data = Rc::new(ParserState::new(file!(), fragment));
+        let res = IvyParser::parse_with_userdata(Rule::requires_action, fragment, user_data)
             .expect("Parsing failed")
             .single()
             .unwrap();

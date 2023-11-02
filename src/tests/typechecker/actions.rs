@@ -1,5 +1,7 @@
 #[cfg(test)]
 mod tests {
+    use std::rc::Rc;
+
     use crate::{
         ast::{
             actions::Action,
@@ -8,7 +10,7 @@ mod tests {
             span::Span,
             statements::Stmt,
         },
-        parser::ivy::{IvyParser, Rule},
+        parser::ivy::{IvyParser, ParserState, Rule},
         typechecker::{
             inference::SortInferer,
             sorts::{self, IvySort},
@@ -18,8 +20,9 @@ mod tests {
     };
     use pest_consume::Parser;
 
-    fn isolate_from_src(prog: &str) -> Decl {
-        let res = IvyParser::parse_with_userdata(Rule::process_decl, prog, prog.into())
+    fn isolate_from_src(fragment: &str) -> Decl {
+        let user_data = Rc::new(ParserState::new(file!(), fragment));
+        let res = IvyParser::parse_with_userdata(Rule::process_decl, fragment, user_data)
             .expect("Parsing failed")
             .single()
             .unwrap();
@@ -27,28 +30,31 @@ mod tests {
         Decl::Object { decl }
     }
 
-    fn decl_from_src(src: &str) -> Decl {
-        let parsed = IvyParser::parse_with_userdata(Rule::decl, src, src.into())
+    fn decl_from_src(fragment: &str) -> Decl {
+        let user_data = Rc::new(ParserState::new(file!(), fragment));
+        let res = IvyParser::parse_with_userdata(Rule::decl, fragment, user_data)
             .expect("Parsing failed")
             .single()
             .unwrap();
-        IvyParser::decl(parsed).expect("AST generation failed")
+        IvyParser::decl(res).expect("AST generation failed")
     }
 
-    fn action_from_src(src: &str) -> Action {
-        let parsed = IvyParser::parse_with_userdata(Rule::action, src, src.into())
+    fn action_from_src(fragment: &str) -> Action {
+        let user_data = Rc::new(ParserState::new(file!(), fragment));
+        let res = IvyParser::parse_with_userdata(Rule::action, fragment, user_data)
             .expect("Parsing failed")
             .single()
             .unwrap();
-        IvyParser::action(parsed).expect("AST generation failed")
+        IvyParser::action(res).expect("AST generation failed")
     }
 
-    fn expr_from_src(src: &str) -> Expr {
-        let parsed = IvyParser::parse_with_userdata(Rule::rval, src, src.into())
+    fn expr_from_src(fragment: &str) -> Expr {
+        let user_data = Rc::new(ParserState::new(file!(), fragment));
+        let res = IvyParser::parse_with_userdata(Rule::rval, fragment, user_data)
             .expect("Parsing failed")
             .single()
             .unwrap();
-        IvyParser::rval(parsed).expect("AST generation failed")
+        IvyParser::rval(res).expect("AST generation failed")
     }
 
     #[test]
