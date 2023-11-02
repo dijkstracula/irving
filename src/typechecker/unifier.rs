@@ -476,6 +476,7 @@ pub enum ResolverError {
 
 impl ResolverError {
     pub fn to_typeerror(self, span: &Span) -> TypeError {
+        println!("NBT: {:?}", span);
         TypeError::Spanned {
             span: span.clone(),
             inner: Box::new(match self {

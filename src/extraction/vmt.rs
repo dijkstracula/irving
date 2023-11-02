@@ -23,7 +23,7 @@ where
     pub emitting_after_init: bool,
 
     /// In order to deduplicate tokens that in Ivy reside in different nonoverlapping
-    /// scopes, we remember 
+    /// scopes, we remember
     pub emitted_relations_by_name: BTreeMap<expressions::Token, usize>,
     pub emitted_relations_by_decl: BTreeMap<MapDecl, usize>,
     pub emitted_symbols: BTreeMap<expressions::Token, BTreeMap<expressions::Sort, usize>>,

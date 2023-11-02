@@ -1,6 +1,5 @@
 #lang ivy1.8
 
-include numbers
 include collections
 include network
 

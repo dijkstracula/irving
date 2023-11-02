@@ -551,6 +551,25 @@ where
         Ok(ControlMut::SkipSiblings(()))
     }
 
+    fn begin_module_decl(
+        &mut self,
+        _span: &Span,
+        name: &mut Token,
+        _ast: &mut declarations::ModuleDecl,
+    ) -> VisitorResult<(), std::fmt::Error, declarations::Decl> {
+        // XXX: stupid hack: if this is a collection that has a Melina implementation,
+        // don't emit it.  I hate this.
+        if name == &"vector" {
+            return Ok(ControlMut::SkipSiblings(()));
+        }
+
+        // TODO...
+        self.pp.write_fmt(format_args!("class IvyMod_{name}"))?;
+        self.pp.write_str(" {\n")?;
+        self.pp.write_str("\n}\n")?;
+        return Ok(ControlMut::SkipSiblings(()));
+    }
+
     fn begin_object_decl(
         &mut self,
         _span: &Span,

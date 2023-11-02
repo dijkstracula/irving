@@ -1,10 +1,9 @@
 use clap::Parser;
 use env_logger::Env;
-use irving::cli::{Cli, Commands, ExtractTarget};
 use irving::error::IrvingError;
-use irving::extraction;
-use irving::passes::global_lowerer::GlobalLowerer;
+use irving::io::{Cli, Commands, ExtractTarget};
 use irving::visitor::ast::Visitable;
+use irving::{extraction, passes};
 
 fn main() {
     // This is dreadful!  But, I want to explicitly emit the IvyError's Display,
@@ -13,23 +12,18 @@ fn main() {
     // solution someday, or maybe not.
     match main_impl() {
         Ok(()) => (),
-        Err(e) => eprintln!("{}", e),
+        Err(e) => eprintln!("Error: {:?}", e),
     }
 }
 
-fn main_impl() -> std::result::Result<(), IrvingError> {
+fn main_impl() -> Result<(), IrvingError> {
     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
 
     let cli = Cli::parse();
     let ivy_file = cli.read_ivy_file()?;
 
     let mut prog = irving::parser::prog_from_str(&ivy_file)?;
-
-    // TODO: Might be good to wrap these all up in one meta-pass.
-    let mut gl = GlobalLowerer::new();
-    log::info!(target: "pass", "lowering globals");
-    prog.visit(&mut gl)?.modifying(&mut prog);
-    irving::stdlib::typecheck(&mut prog)?;
+    passes::all_passes(&mut prog)?;
 
     match cli.cmd {
         Commands::Extract(ExtractTarget::Ivy) => {

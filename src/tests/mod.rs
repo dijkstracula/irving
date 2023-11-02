@@ -27,9 +27,7 @@ pub mod helpers {
             toplevels::Prog,
         },
         parser::ivy::{IvyParser, Rule},
-        passes::global_lowerer::GlobalLowerer,
-        stdlib::load_stdlib,
-        visitor::ast::Visitable,
+        passes::{self},
     };
     use pest_consume::Parser;
 
@@ -102,20 +100,7 @@ pub mod helpers {
             .single()
             .unwrap();
         let mut prog = IvyParser::prog(res).expect("AST generation failed");
-
-        let mut gl = GlobalLowerer::new();
-
-        // Fake out the "standard library"
-        let mut tc = load_stdlib().unwrap();
-
-        prog.visit(&mut gl)
-            .expect("lowering globals")
-            .modifying(&mut prog);
-
-        prog.visit(&mut tc)
-            .expect("type inference")
-            .modifying(&mut prog);
-
+        passes::all_passes(&mut prog).unwrap();
         prog
     }
 

@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use clap::{CommandFactory, Parser, Subcommand};
 
 #[derive(Parser)]
@@ -29,13 +31,20 @@ pub enum ExtractTarget {
 
 impl Cli {
     pub fn read_ivy_file(&self) -> Result<String, clap::Error> {
-        std::fs::read_to_string(&self.ivy_file).map_err(|e| {
-            let mut cmd = Cli::command();
-            let path = self.ivy_file.as_os_str();
-            cmd.error(
-                clap::error::ErrorKind::InvalidValue,
-                format!("Error reading {:?}: {}", path, e),
-            )
-        })
+        read_ivy_file(&self.ivy_file)
     }
+}
+
+pub fn read_ivy_file<P>(filename: P) -> Result<String, clap::Error>
+where
+    P: AsRef<Path>,
+{
+    std::fs::read_to_string(filename.as_ref()).map_err(|e| {
+        let mut cmd = Cli::command();
+        let path = filename.as_ref().as_os_str();
+        cmd.error(
+            clap::error::ErrorKind::InvalidValue,
+            format!("Error reading {:?}: {}", path, e),
+        )
+    })
 }

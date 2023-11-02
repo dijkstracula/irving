@@ -1,7 +1,7 @@
 mod ast;
-pub mod cli;
 pub mod error;
 pub mod extraction;
+pub mod io;
 pub mod parser;
 pub mod passes;
 pub mod stdlib;

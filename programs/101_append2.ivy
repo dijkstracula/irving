@@ -1,5 +1,8 @@
 #lang ivy1.8
 
+include network
+include collections
+
 global {
     alias byte = bv[8]
     instance file : vector(byte)
