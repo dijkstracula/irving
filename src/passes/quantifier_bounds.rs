@@ -35,7 +35,7 @@ impl Polarity {
 /// by emitting the range of values that we need to check in order to validate
 /// the formula.
 ///
-/// Let's assume X is an unbounded_sequence, the only infinite sort we really
+/// Let's assume X is an nat, the only infinite sort we really
 /// care about at the moment.  Our goal is to emit a consistent expression of
 /// the form:
 ///

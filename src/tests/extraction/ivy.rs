@@ -53,10 +53,10 @@ mod tests {
         let mut e = Extractor::<String>::new();
 
         let fragment = "class pt = {
-    field x: unbounded_sequence
-    field y: unbounded_sequence
+    field x: nat
+    field y: nat
 
-    action norm(self:pt) returns(n:unbounded_sequence)
+    action norm(self:pt) returns(n:nat)
 }
 ";
         let mut ast = parse_decl(fragment).expect("Parsing failed");
@@ -68,10 +68,10 @@ mod tests {
     fn pprint_subclass() {
         let mut e = Extractor::<String>::new();
 
-        let fragment = "subclass pt of unbounded_sequence = {
-    field z: unbounded_sequence
+        let fragment = "subclass pt of nat = {
+    field z: nat
 
-    action norm(self:pt) returns(n:unbounded_sequence)
+    action norm(self:pt) returns(n:nat)
 }
 ";
         let mut ast = parse_decl(fragment).expect("Parsing failed");

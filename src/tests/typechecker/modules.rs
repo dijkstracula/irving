@@ -142,7 +142,7 @@ mod tests {
 
         let mut proc = helpers::process_from_decl(
             "process host = { 
-                instance net: tcp.net(unbounded_sequence)
+                instance net: tcp.net(nat)
             }",
         );
 
@@ -207,7 +207,7 @@ instance c : counter(bool)",
 #lang ivy1.8
 
 module a = { 
-    action foo(a: unbounded_sequence)
+    action foo(a: nat)
 
     action bar = { 
         foo(0) # After typechecking, we should have mutated foo()'s `func_sort` field.

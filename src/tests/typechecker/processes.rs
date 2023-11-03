@@ -278,7 +278,7 @@ mod tests {
     fn parameterized_obj_index() {
         let mut iso = helpers::process_from_decl(
             "process host(self:pid) = {
-                var foo: unbounded_sequence
+                var foo: nat
         }",
         );
         let mut tc = typechecker_with_bindings();
@@ -303,7 +303,7 @@ mod tests {
                 relation connected(X, Y)
             
                 after init {
-                    # ... but here, we know they are unbounded_sequences.
+                    # ... but here, we know they are nats.
                     connected(0,0) := true;
                     connected(1-1,1+2+3) := (1 = 2);
                 }
@@ -370,7 +370,7 @@ mod tests {
                 relation connected(X, Y)
             
                 after init {
-                    # ... but here, we know they are unbounded_sequences ...
+                    # ... but here, we know they are nats ...
                     connected(0,0) := true;
 
                     # ... which means they can't also be booleans here!

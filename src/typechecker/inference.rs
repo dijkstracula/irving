@@ -272,7 +272,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
     fn token(&mut self, sym: &mut expressions::Token) -> InferenceResult<expressions::Token> {
         match sym.as_str() {
             "bool" => Ok(ControlMut::Produce(IvySort::Bool)),
-            "unbounded_sequence" | "nat" | "int" => Ok(ControlMut::Produce(IvySort::Number)),
+            "nat" | "nat" | "int" => Ok(ControlMut::Produce(IvySort::Number)),
             //"this" => Ok(ControlMut::Produce(IvySort::This)),
             // TODO: and of course other builtins.
             _ => match self.bindings.lookup_sym(sym) {

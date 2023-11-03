@@ -3,10 +3,10 @@
 module vector(range) = { 
     type this
 
-    action get(a:this,x:unbounded_sequence) returns (y:range)
-    action set(a:this,x:unbounded_sequence,y:range) returns (a:this)
+    action get(a:this,x:nat) returns (y:range)
+    action set(a:this,x:nat,y:range) returns (a:this)
     action empty returns (a: this)
     action append(a: this, x: range) returns (y: this)
 
-    action end(a: this) returns (len: unbounded_sequence)
+    action end(a: this) returns (len: nat)
 } 

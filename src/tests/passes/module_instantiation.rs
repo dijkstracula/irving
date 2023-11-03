@@ -45,8 +45,8 @@ mod tests {
             "module array = { 
             type this
 
-            action get(a:this,x:unbounded_sequence) returns (y:bool)
-            action set(a:this,x:unbounded_sequence,y:bool) returns (a:this)
+            action get(a:this,x:nat) returns (y:bool)
+            action set(a:this,x:nat,y:bool) returns (a:this)
         }",
         );
 

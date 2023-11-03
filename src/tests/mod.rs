@@ -79,8 +79,8 @@ pub mod helpers {
             "module vector(range) = { 
             type this
 
-            action get(a:this,x:unbounded_sequence) returns (y:range)
-            action set(a:this,x:unbounded_sequence,y:range) returns (a:this)
+            action get(a:this,x:nat) returns (y:range)
+            action set(a:this,x:nat,y:range) returns (a:this)
             action empty returns (a: this)
             action append(a: this, x: range) returns (y: this)
         }",
@@ -93,7 +93,7 @@ pub mod helpers {
                 type endpoint = bv[32]
                 module net(msg) = {
                     module socket = {
-                        var id: unbounded_sequence
+                        var id: nat
 
                         action send(dest: endpoint, m: msg)
                         action recv(src: endpoint, m: msg)

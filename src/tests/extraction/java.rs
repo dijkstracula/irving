@@ -19,7 +19,7 @@ mod tests {
 
     #[test]
     fn extract_action_forward_ref() {
-        let fragment = "action foo(i: unbounded_sequence, b: bool)";
+        let fragment = "action foo(i: nat, b: bool)";
         let mut ast = helpers::decl_from_src(fragment);
 
         let mut tc = SortInferer::new();
@@ -35,7 +35,7 @@ mod tests {
 
     #[test]
     fn extract_action_and_decl() {
-        let fragment = "action foo(i: unbounded_sequence, b: bool) = { } ";
+        let fragment = "action foo(i: nat, b: bool) = { } ";
         let mut ast = helpers::decl_from_src(fragment);
 
         let mut tc = SortInferer::new();
@@ -53,7 +53,7 @@ mod tests {
 
     #[test]
     fn extract_after_decl() {
-        let fragment = "after foo(i: unbounded_sequence, b: bool) { count := 0 } ";
+        let fragment = "after foo(i: nat, b: bool) { count := 0 } ";
         let mut ast = helpers::decl_from_src(fragment);
 
         let mut tc = SortInferer::new();
@@ -255,7 +255,7 @@ mod tests {
     fn extract_forall() {
         let mut e = Extractor::<String>::new();
 
-        let fragment = "forall X: unbounded_sequence . X > 5 -> X > 10";
+        let fragment = "forall X: nat . X > 5 -> X > 10";
         let mut ast = helpers::fmla_from_src(fragment);
         let mut tc = SortInferer::new();
         ast.visit(&mut tc).expect("typechecking failed");
@@ -321,7 +321,7 @@ mod tests {
 
     #[test]
     fn extract_vardecl() {
-        let fragment = "var i: unbounded_sequence";
+        let fragment = "var i: nat";
         let mut ast = helpers::decl_from_src(fragment);
 
         let mut tc = SortInferer::new();

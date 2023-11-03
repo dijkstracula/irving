@@ -210,7 +210,7 @@ impl IvySort {
             IvySort::Unit => "unit".into(),
             IvySort::Top => "top".into(),
             IvySort::Bool => "boolean".into(),
-            IvySort::Number => "unbounded_sequence".into(),
+            IvySort::Number => "nat".into(),
             IvySort::BitVec(_) => "bitvec".into(),
             IvySort::Vector(_) => "vector".into(),
             IvySort::Range(_, _) => "range".into(),

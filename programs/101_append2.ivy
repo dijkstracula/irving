@@ -31,7 +31,7 @@ process host(self:pid) = {
     }
 
     specification {
-        var msg_count : unbounded_sequence
+        var msg_count : nat
 
         after init {
             msg_count := 0

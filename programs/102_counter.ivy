@@ -2,11 +2,11 @@
 
 process mutator = {
     type t
-    interpret t -> unbounded_sequence
+    interpret t -> nat
 
     export action inc
     export action dec
-    export action add(n: unbounded_sequence)
+    export action add(n: nat)
     
     var count : t
 

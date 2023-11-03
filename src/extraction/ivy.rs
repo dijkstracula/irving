@@ -787,7 +787,7 @@ where
                     self.pp.write_str(" }")?;
                 }
                 IvySort::Number => {
-                    self.pp.write_str("unbounded_sequence")?;
+                    self.pp.write_str("nat")?;
                 }
                 IvySort::Object(_proc) => {
                     self.pp.write_str("{\n")?;

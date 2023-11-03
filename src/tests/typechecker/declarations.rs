@@ -21,9 +21,9 @@ mod tests {
     #[test]
     fn class() {
         let fragment = "class pt = {
-            field x: unbounded_sequence
-            field y: unbounded_sequence
-            action norm(self: pt) returns (n: unbounded_sequence)
+            field x: nat
+            field y: nat
+            action norm(self: pt) returns (n: nat)
         }";
         let mut decl_ast = helpers::decl_from_src(fragment);
 
@@ -55,9 +55,9 @@ mod tests {
 
     #[test]
     fn subclass_invalid_inheritance() {
-        let fragment = "subclass pt of unbounded_sequence = {
-            field z: unbounded_sequence
-            action norm(self: pt) returns (n: unbounded_sequence)
+        let fragment = "subclass pt of nat = {
+            field z: nat
+            action norm(self: pt) returns (n: nat)
         }";
         let mut decl_ast = helpers::decl_from_src(fragment);
 
@@ -74,8 +74,8 @@ mod tests {
     #[test]
     fn subclass() {
         let fragment = "subclass pt3 of pt = {
-            field z: unbounded_sequence
-            action norm(self: pt) returns (n: unbounded_sequence)
+            field z: nat
+            action norm(self: pt) returns (n: nat)
         }";
         let mut decl_ast = helpers::decl_from_src(fragment);
 
@@ -482,7 +482,7 @@ mod tests {
     #[test]
     fn var_redefinition() {
         let prog = "{
-            var foo: unbounded_sequence
+            var foo: nat
             var foo: bool
         }";
         let user_data = Rc::new(ParserState::new(file!(), prog));

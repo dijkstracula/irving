@@ -1,6 +1,5 @@
 #[cfg(test)]
 mod tests {
-    use std::path::PathBuf;
     use std::rc::Rc;
 
     use crate::ast::expressions::*;

@@ -1,4 +1,4 @@
-use std::path::{self, Path, PathBuf};
+use std::path::{Path, PathBuf};
 
 use clap::{CommandFactory, Parser, Subcommand};
 

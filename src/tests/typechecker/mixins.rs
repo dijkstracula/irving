@@ -126,7 +126,7 @@ mod tests {
         let mut proc = process_from_src(
             "process p = { 
             action foo(x: bool) returns (y: bool)
-            implement foo(x: unbounded_sequence) returns (q: bool) { y := true }
+            implement foo(x: nat) returns (q: bool) { y := true }
         }",
         );
 
@@ -139,7 +139,7 @@ mod tests {
                 inner: Box::new(TypeError::ReboundVariable {
                     sym: "x".to_string(),
                     prev: "boolean".to_string(),
-                    new: "unbounded_sequence".to_string()
+                    new: "nat".to_string()
                 })
             }
         );

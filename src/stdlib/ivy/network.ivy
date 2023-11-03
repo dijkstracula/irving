@@ -4,7 +4,7 @@ module tcp = {
     alias endpoint = bv[32]
     module net(msg) = {
         module socket = {
-            var id: unbounded_sequence
+            var id: nat
 
             action send(dest: endpoint, m: msg)
             action recv(src: endpoint, m: msg)

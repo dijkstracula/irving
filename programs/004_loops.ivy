@@ -1,8 +1,8 @@
 #lang ivy1.8
 
-var sum: unbounded_sequence
-var i: unbounded_sequence
-var x: unbounded_sequence
+var sum: nat
+var i: nat
+var x: nat
 
 sum := 0;
 i := x;
