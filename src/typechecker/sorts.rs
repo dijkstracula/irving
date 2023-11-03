@@ -98,7 +98,7 @@ pub enum IvySort {
     Number,
     BitVec(u8),
     Vector(Box<IvySort>),
-    Range(i64, i64),
+    BoundedSequence(i64, i64),
     Enum(Vec<Token>),
     Action(Vec<Token>, ActionArgs, ActionRet, ActionKind),
     Map(Vec<IvySort>, Box<IvySort>),
@@ -115,7 +115,7 @@ impl Display for IvySort {
         match self {
             IvySort::BitVec(width) => write!(f, "BitVec({width})"),
             IvySort::Vector(elm) => write!(f, "vector({elm})"),
-            IvySort::Range(min, max) => write!(f, "{{{:?}..{:?}}}", min, max),
+            IvySort::BoundedSequence(min, max) => write!(f, "{{{:?}..{:?}}}", min, max),
             IvySort::Enum(discs) => write!(f, "{{ ... {} discriminants ... }}", discs.len()),
             IvySort::Action(_, args, ret, _) => {
                 write!(f, "(")?;
@@ -213,7 +213,7 @@ impl IvySort {
             IvySort::Number => "nat".into(),
             IvySort::BitVec(_) => "bitvec".into(),
             IvySort::Vector(_) => "vector".into(),
-            IvySort::Range(_, _) => "range".into(),
+            IvySort::BoundedSequence(_, _) => "range".into(),
             IvySort::Enum(_) => "enum".into(),
             IvySort::Action(_, _, _, _) => "action".into(),
             IvySort::Map(_, ret) => {
@@ -317,7 +317,7 @@ impl Visitor<IvySort, TypeError> for SortSubstituter {
     }
 
     fn range(&mut self, lo: i64, hi: i64) -> InferenceResult<IvySort> {
-        self.subst(IvySort::Range(lo, hi))
+        self.subst(IvySort::BoundedSequence(lo, hi))
     }
 
     fn enumeration(&mut self, discriminants: &mut Vec<Token>) -> InferenceResult<IvySort> {

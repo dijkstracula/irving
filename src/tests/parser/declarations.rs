@@ -320,7 +320,7 @@ mod tests {
             ast,
             Decl::Type {
                 decl: Binding {
-                    decl: Sort::Resolved(IvySort::Range { .. }),
+                    decl: Sort::Resolved(IvySort::BoundedSequence { .. }),
                     ..
                 },
                 ..

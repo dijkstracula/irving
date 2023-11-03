@@ -8,7 +8,7 @@ pub enum JavaType {
     Boolean,
     Char,
     Long,
-    Range(i64, i64),
+    BoundedSequence(i64, i64),
     Enum(Vec<Token>),
     ArrayList(Box<JavaType>),
     Map(Vec<JavaType>, Box<JavaType>),
@@ -26,7 +26,7 @@ impl JavaType {
             JavaType::Boolean => todo!(),
             JavaType::Char => todo!(),
             JavaType::Long => "ctx.randomLong()".into(),
-            JavaType::Range(min, max) => format!("ctx.randomBounded({}, {})", min, max),
+            JavaType::BoundedSequence(min, max) => format!("ctx.randomBounded({}, {})", min, max),
             JavaType::Enum(discs) => format!("ctx.randomBounded(0, {}", discs.len()),
             JavaType::ArrayList(_) => todo!(),
             JavaType::Map(_, _) => todo!(),
@@ -40,7 +40,7 @@ impl JavaType {
             JavaType::Boolean => "Boolean".into(),
             JavaType::Char => "Character".into(),
             JavaType::Long => "Long".into(),
-            JavaType::Range(_, _) => "Long".into(),
+            JavaType::BoundedSequence(_, _) => "Long".into(),
             JavaType::Enum(_) => "Integer".into(),
             JavaType::ArrayList(t) => format!("ArrayList<{}>", t.as_jref()),
             JavaType::Object(clazz, ts) => {
@@ -72,7 +72,7 @@ impl JavaType {
             JavaType::Boolean => "boolean".into(),
             JavaType::Char => "char".into(),
             JavaType::Long => "long".into(),
-            JavaType::Range(_, _) => "long".into(),
+            JavaType::BoundedSequence(_, _) => "long".into(),
             _ => self.as_jref(),
         }
     }
@@ -99,7 +99,7 @@ impl From<IvySort> for JavaType {
             IvySort::Vector(elem_type) => {
                 Self::ArrayList(Box::new(Into::<JavaType>::into(*elem_type)))
             }
-            IvySort::Range(lo, hi) => Self::Range(lo, hi),
+            IvySort::BoundedSequence(lo, hi) => Self::BoundedSequence(lo, hi),
             IvySort::Enum(discs) => Self::Enum(discs),
             IvySort::Action(_, _, _, _) => todo!(),
             IvySort::Map(keys, val) => {
@@ -141,7 +141,7 @@ impl From<&IvySort> for JavaType {
                 let jelem: JavaType = elem_type.as_ref().into();
                 Self::ArrayList(Box::new(jelem))
             }
-            IvySort::Range(lo, hi) => Self::Range(*lo, *hi),
+            IvySort::BoundedSequence(lo, hi) => Self::BoundedSequence(*lo, *hi),
             IvySort::Enum(discs) => Self::Enum(discs.clone()),
             IvySort::Action(_, _, _, _) => todo!(),
             IvySort::Map(keys, val) => {

@@ -219,7 +219,7 @@ mod tests {
         let host_sort = IvySort::Object(Object {
             args: [Binding::from(
                 "self",
-                IvySort::Range(0, 3),
+                IvySort::BoundedSequence(0, 3),
                 Span::IgnoredForTesting,
             )]
             .into(),
@@ -247,7 +247,7 @@ mod tests {
         let host_sort = IvySort::Object(Object {
             args: [Binding::from(
                 "self",
-                IvySort::Range(0, 3),
+                IvySort::BoundedSequence(0, 3),
                 Span::IgnoredForTesting,
             )]
             .into(),
@@ -309,7 +309,7 @@ mod tests {
                 "b".into(),
                 IvySort::action_sort(
                     vec!["n".into()],
-                    vec![IvySort::Range(0, 3)],
+                    vec![IvySort::BoundedSequence(0, 3)],
                     sorts::ActionRet::Named(Box::new(Binding::from(
                         "ret",
                         IvySort::Number,

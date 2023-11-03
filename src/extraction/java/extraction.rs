@@ -444,7 +444,7 @@ where
                 }
                 match asort {
                     IvySort::Number => self.write_unbounded_seq(arg)?,
-                    IvySort::Range(lo, hi) => self.write_bounded_long(arg, *lo, *hi)?,
+                    IvySort::BoundedSequence(lo, hi) => self.write_bounded_long(arg, *lo, *hi)?,
                     _ => arg.visit(self)?.modifying(arg),
                 }
             }
@@ -470,7 +470,7 @@ where
             }
             expressions::Sort::Resolved(ivysort) => match ivysort {
                 IvySort::Number => self.write_unbounded_seq(&mut ast.rhs)?,
-                IvySort::Range(lo, hi) => self.write_bounded_long(&mut ast.rhs, *lo, *hi)?,
+                IvySort::BoundedSequence(lo, hi) => self.write_bounded_long(&mut ast.rhs, *lo, *hi)?,
                 _ => ast.rhs.visit(self)?.modifying(&mut ast.rhs),
             },
         };

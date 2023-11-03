@@ -499,14 +499,14 @@ mod tests {
         let mut si = SortInferer::new();
         si.bindings.append("i".into(), IvySort::Number).unwrap();
         si.bindings
-            .append("self".into(), IvySort::Range(0, 2))
+            .append("self".into(), IvySort::BoundedSequence(0, 2))
             .unwrap();
 
         let _ = assign.visit(&mut si).unwrap().modifying(&mut assign);
 
         match &assign {
             Action::Assign { action, .. } => {
-                assert_eq!(action.lhs_sort, Sort::Resolved(IvySort::Range(0, 2)))
+                assert_eq!(action.lhs_sort, Sort::Resolved(IvySort::BoundedSequence(0, 2)))
             }
             _ => unreachable!(),
         };

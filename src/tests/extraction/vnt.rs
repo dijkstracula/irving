@@ -48,7 +48,7 @@ mod tests {
         // second sort (Arr1/Const1/Read1/Write) is for `foo`.
         //
         // TODO: this seems wrong.  The type of a Read and Write function ought
-        // to be `(Arr Domain) Range` and `(Arr Domain Range) Arr`, but Arrays
+        // to be `(Arr Domain) BoundedSequence` and `(Arr Domain BoundedSequence) Arr`, but Arrays
         // simply must be indexed according to Int, right?  So what if the
         // domain does not boil down to one?
         assert!(extracted.contains("(declare-fun Read (Arr Int) Bool"));

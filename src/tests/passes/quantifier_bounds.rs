@@ -185,7 +185,7 @@ mod tests {
         assert_eq!(
             // Irritating: Ivy ranges are _inclusive_ so the interval is closed!
             // This sort has four inhabitants: 0, 1, 2, and 3.
-            QuantBounds::bounds_for_sort(&IvySort::Range(0, 3)),
+            QuantBounds::bounds_for_sort(&IvySort::BoundedSequence(0, 3)),
             // Meanwhile, the rest of the world uses half-open intervals.
             (Some(logical_number(0)), Some(logical_number(4)))
         );

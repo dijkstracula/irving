@@ -774,7 +774,7 @@ where
                 IvySort::Bool => {
                     self.pp.write_str("bool")?;
                 }
-                IvySort::Range(min, max) => {
+                IvySort::BoundedSequence(min, max) => {
                     self.pp.write_str("{")?;
                     self.number(&Span::Todo, min)?;
                     self.pp.write_str("..")?;

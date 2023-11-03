@@ -345,11 +345,11 @@ impl BindingResolver {
             // These subtyping relationship are meant to capture part of the
             // aspect that in Ivy, numerals' types are entirely inferred from
             // context.
-            (IvySort::Number, IvySort::Range(lo, hi))
-            | (IvySort::Range(lo, hi), IvySort::Number) => {
+            (IvySort::Number, IvySort::BoundedSequence(lo, hi))
+            | (IvySort::BoundedSequence(lo, hi), IvySort::Number) => {
                 // This subtyping relationship is fine, because Ivy's range
                 // datatype saturates arithmetic operations.
-                Ok(IvySort::Range(lo.clone(), hi.clone()))
+                Ok(IvySort::BoundedSequence(lo.clone(), hi.clone()))
             }
             (IvySort::Number, IvySort::Uninterpreted)
             | (IvySort::Uninterpreted, IvySort::Number) => Ok(IvySort::Uninterpreted),

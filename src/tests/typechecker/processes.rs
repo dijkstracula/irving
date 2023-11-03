@@ -24,7 +24,7 @@ mod tests {
 
         // type pid: 0..3
         tc.bindings
-            .append("pid".into(), IvySort::Range(0, 3))
+            .append("pid".into(), IvySort::BoundedSequence(0, 3))
             .unwrap();
         // interpret byte -> bv[8]
         tc.bindings
@@ -129,7 +129,7 @@ mod tests {
         let sort = IvySort::Object(Object {
             args: [Binding::from(
                 "self",
-                IvySort::Range(0, 3),
+                IvySort::BoundedSequence(0, 3),
                 Span::IgnoredForTesting,
             )]
             .into(),
@@ -153,7 +153,7 @@ mod tests {
         let sort = IvySort::Object(Object {
             args: [Binding::from(
                 "self",
-                IvySort::Range(0, 3),
+                IvySort::BoundedSequence(0, 3),
                 Span::IgnoredForTesting,
             )]
             .into(),

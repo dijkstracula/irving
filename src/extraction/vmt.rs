@@ -544,7 +544,7 @@ where
                 crate::typechecker::sorts::IvySort::Number => self.pp.write_str("Int")?,
                 crate::typechecker::sorts::IvySort::BitVec(_) => todo!(),
                 crate::typechecker::sorts::IvySort::Vector(_) => todo!(),
-                crate::typechecker::sorts::IvySort::Range(_, _) => todo!(),
+                crate::typechecker::sorts::IvySort::BoundedSequence(_, _) => todo!(),
                 crate::typechecker::sorts::IvySort::Enum(_) => todo!(),
                 crate::typechecker::sorts::IvySort::Action(_, _, _, _) => todo!(),
                 crate::typechecker::sorts::IvySort::Map(_, _) => todo!(),

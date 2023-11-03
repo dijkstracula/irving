@@ -217,7 +217,7 @@ impl IvyParser {
         input.into_children();
         [bv_decl(width)] => Ok(Sort::Resolved(IvySort::BitVec(width))),
         [enum_decl(cstrs)] => Ok(Sort::Resolved(IvySort::Enum(cstrs))),
-        [range_decl((lo, hi))] => Ok(Sort::Resolved(IvySort::Range(lo, hi))),
+        [range_decl((lo, hi))] => Ok(Sort::Resolved(IvySort::BoundedSequence(lo, hi))),
         [PROGTOK(_)] => todo!(),
         [_THIS] => Ok(Sort::Resolved(IvySort::This)),
         )

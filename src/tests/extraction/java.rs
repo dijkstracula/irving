@@ -142,7 +142,7 @@ mod tests {
 
         let mut si = SortInferer::new();
         si.bindings
-            .append("count".into(), IvySort::Range(0, 3))
+            .append("count".into(), IvySort::BoundedSequence(0, 3))
             .unwrap();
         ast.visit(&mut si)
             .expect("typechecking failed")
@@ -160,7 +160,7 @@ mod tests {
 
         let mut si = SortInferer::new();
         si.bindings
-            .append("count".into(), IvySort::Range(0, 3))
+            .append("count".into(), IvySort::BoundedSequence(0, 3))
             .unwrap();
         ast.visit(&mut si)
             .expect("typechecking failed")
@@ -178,7 +178,7 @@ mod tests {
 
         let mut si = SortInferer::new();
         si.bindings
-            .append("count".into(), IvySort::Range(0, 3))
+            .append("count".into(), IvySort::BoundedSequence(0, 3))
             .unwrap();
         ast.visit(&mut si)
             .expect("typechecking failed")
@@ -276,7 +276,7 @@ mod tests {
         let mut ast = helpers::fmla_from_src(fragment);
         let mut si = SortInferer::new();
         si.bindings
-            .append("pid".into(), IvySort::Range(0, 2))
+            .append("pid".into(), IvySort::BoundedSequence(0, 2))
             .unwrap();
 
         ast.visit(&mut si).expect("typechecking failed");

@@ -91,7 +91,7 @@ impl QuantBounds {
     }
 
     // Produces the interval covered by the given sort, if defined on the sort.
-    // TODO: If IvySort::Range held two numbers rather than two expressions, we
+    // TODO: If IvySort::BoundedSequence held two numbers rather than two expressions, we
     // could probably have this return (Option<i64>, Option<i64>) or whatever,
     // which might simplify things.
     pub fn bounds_for_sort(sort: &IvySort) -> (Option<Fmla>, Option<Fmla>) {
@@ -103,7 +103,7 @@ impl QuantBounds {
                 }),
                 None,
             ),
-            IvySort::Range(lo, hi) => (
+            IvySort::BoundedSequence(lo, hi) => (
                 Some(Fmla::Number {
                     span: Span::Optimized,
                     val: *lo,

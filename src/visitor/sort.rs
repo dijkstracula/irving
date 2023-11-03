@@ -142,7 +142,7 @@ where
                 let t_ret = t.visit(visitor)?.modifying(t);
                 visitor.vector(t, t_ret)
             }
-            IvySort::Range(lo, hi) => visitor.range(*lo, *hi),
+            IvySort::BoundedSequence(lo, hi) => visitor.range(*lo, *hi),
             IvySort::Enum(discs) => visitor.enumeration(discs),
             IvySort::Action(fargnames, ref mut fargsorts, ref mut ret, ref mut kind) => {
                 let farg_t = match fargsorts {

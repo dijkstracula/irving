@@ -419,11 +419,11 @@ mod tests {
             .expect("visit")
             .modifying(&mut decl_ast);
 
-        assert_eq!(res, IvySort::Range(0, 100));
+        assert_eq!(res, IvySort::BoundedSequence(0, 100));
 
         assert_eq!(
             tc.bindings.lookup_sym("numbers"),
-            Some(&IvySort::Range(0, 100))
+            Some(&IvySort::BoundedSequence(0, 100))
         )
     }
 

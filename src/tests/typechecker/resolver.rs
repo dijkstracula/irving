@@ -9,7 +9,7 @@ mod tests {
         let mut r = BindingResolver::new();
 
         // type pid: 0..3
-        r.append("pid".into(), IvySort::Range(0, 3)).unwrap();
+        r.append("pid".into(), IvySort::BoundedSequence(0, 3)).unwrap();
 
         r.append(
             "net".into(),
@@ -34,7 +34,7 @@ mod tests {
             Err(ResolverError::UnboundVariable("nonsense".into()))
         );
 
-        let pid_sort = IvySort::Range(0, 3);
+        let pid_sort = IvySort::BoundedSequence(0, 3);
         assert_eq!(r.lookup_sym("pid"), Some(&pid_sort));
         assert_eq!(r.lookup_ident(&vec!("pid".to_owned())), Ok(&pid_sort));
         assert_eq!(r.lookup_ident(&vec!("pid".to_owned())), Ok(&pid_sort));
