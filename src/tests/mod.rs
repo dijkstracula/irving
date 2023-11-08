@@ -104,14 +104,16 @@ pub mod helpers {
     }
 
     pub fn typeinference_from_filename(path: &str) -> Prog {
-        let text = std::fs::read_to_string(path).unwrap();
-        let user_data = Rc::new(ParserState::new(PathBuf::from(path), text.clone()));
+        let path = PathBuf::from(path);
+        let text = std::fs::read_to_string(&path).unwrap();
+
+        let user_data = Rc::new(ParserState::new(path.clone(), text.clone()));
         let res = IvyParser::parse_with_userdata(Rule::prog, &text, user_data)
             .expect("Parsing failed")
             .single()
             .unwrap();
         let mut prog = IvyParser::prog(res).expect("AST generation failed");
-        passes::all_passes(&mut prog).unwrap();
+        passes::all_passes(path.parent().unwrap().to_path_buf(), &mut prog).unwrap();
         prog
     }
 

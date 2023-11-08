@@ -20,10 +20,11 @@ fn main_impl() -> Result<(), IrvingError> {
     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
 
     let cli = Cli::parse();
+    let filedir = cli.ivy_file.parent().expect("Ivy file parent directory").to_path_buf();
     let ivy_file = cli.read_ivy_file()?;
 
     let mut prog = irving::parser::prog_from_str(cli.ivy_file.clone(), ivy_file)?;
-    passes::all_passes(&mut prog)?;
+    passes::all_passes(filedir, &mut prog)?;
 
     match cli.cmd {
         Commands::Extract(ExtractTarget::Ivy) => {

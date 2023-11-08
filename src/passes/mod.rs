@@ -4,7 +4,7 @@ pub mod include_expander;
 pub mod module_instantiation;
 pub mod quantifier_bounds;
 
-use std::env;
+use std::{env, path::PathBuf};
 
 use crate::{
     ast::toplevels::Prog,
@@ -14,8 +14,7 @@ use crate::{
     visitor::ast::Visitable,
 };
 
-pub fn all_passes(prog: &mut Prog) -> Result<(), IrvingError> {
-    let cwd = env::current_dir()?;
+pub fn all_passes(cwd: PathBuf, prog: &mut Prog) -> Result<(), IrvingError> {
 
     log::info!(target: "pass", "lowering globals");
     let mut gl = GlobalLowerer::new();

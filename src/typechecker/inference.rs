@@ -272,7 +272,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
     fn token(&mut self, sym: &mut expressions::Token) -> InferenceResult<expressions::Token> {
         match sym.as_str() {
             "bool" => Ok(ControlMut::Produce(IvySort::Bool)),
-            "nat" | "nat" | "int" => Ok(ControlMut::Produce(IvySort::Number)),
+            "nat" | "int" => Ok(ControlMut::Produce(IvySort::Number)),
             //"this" => Ok(ControlMut::Produce(IvySort::This)),
             // TODO: and of course other builtins.
             _ => match self.bindings.lookup_sym(sym) {
@@ -1495,10 +1495,10 @@ impl Visitor<IvySort, TypeError> for SortInferer {
         if let IvySort::Module(module) = module_sort {
             if !mod_args_sorts.is_empty() {
                 // Will have to monomorphize with the module instantiation pass.
-                //println!("Uh oh: {:?} {:?}", name, module);
-                //for (i, x) in self.bindings.ctx.iter().enumerate() {
-                //    println!("ctx[{i}]: {x:?}");
-                // }
+                println!("Uh oh: {:?} {:?}", name, module);
+                for (i, x) in self.bindings.ctx.iter().enumerate() {
+                    println!("ctx[{i}]: {x:?}");
+                }
 
                 for ((_name, s1), s2) in module.args.iter().zip(mod_args_sorts.iter()) {
                     self.bindings
