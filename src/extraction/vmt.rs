@@ -395,6 +395,7 @@ where
 
     fn begin_invariant_decl(
         &mut self,
+        _name: &mut expressions::Token,
         ast: &mut logic::Fmla,
     ) -> VisitorResult<(), std::fmt::Error, declarations::Decl> {
         // We need to emit all the quantified variables if they have not yet been introduced.
@@ -424,6 +425,7 @@ where
 
     fn finish_invariant_decl(
         &mut self,
+        _name: &mut String,
         _ast: &mut logic::Fmla,
     ) -> VisitorResult<(), std::fmt::Error, declarations::Decl> {
         self.pp.write_str(") :invar-property 0))")?;

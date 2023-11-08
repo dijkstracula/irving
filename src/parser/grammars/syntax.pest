@@ -69,7 +69,7 @@ common_decl         = { COMMON ~ decl_block }
 
 type_decl         = { TYPE ~ (THIS | (PROGTOK ~ ("=" ~ builtin_type)?)) } 
 
-invariant_decl    = { INVARIANT ~ fmla }
+invariant_decl    = { INVARIANT ~ ("[" ~ PROGTOK ~ "]")? ~ fmla }
 
 // TODO: not sure exactly about these ones yet.
 header_decl       = { HEADER ~ PROGTOK }

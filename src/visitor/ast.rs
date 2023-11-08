@@ -390,10 +390,18 @@ where
         Ok(ControlMut::Produce(T::default()))
     }
 
-    fn begin_invariant_decl(&mut self, _ast: &mut Fmla) -> VisitorResult<T, E, Decl> {
+    fn begin_invariant_decl(
+        &mut self,
+        _name: &mut Token,
+        _ast: &mut Fmla,
+    ) -> VisitorResult<T, E, Decl> {
         Ok(ControlMut::Produce(T::default()))
     }
-    fn finish_invariant_decl(&mut self, _ast: &mut Fmla) -> VisitorResult<T, E, Decl> {
+    fn finish_invariant_decl(
+        &mut self,
+        _name: &mut Token,
+        _ast: &mut Fmla,
+    ) -> VisitorResult<T, E, Decl> {
         Ok(ControlMut::Produce(T::default()))
     }
 
@@ -1116,10 +1124,12 @@ where
                 let s = sort.visit(visitor)?.modifying(sort);
                 visitor.finish_interpret_decl(name, sort, n, s)
             }),
-            Decl::Invariant { decl, .. } => visitor.begin_invariant_decl(decl)?.and_then(|_| {
-                let _f = decl.visit(visitor)?.modifying(decl);
-                visitor.finish_invariant_decl(decl)
-            }),
+            Decl::Invariant { decl } => visitor
+                .begin_invariant_decl(&mut decl.name, &mut decl.decl)?
+                .and_then(|_| {
+                    let _f = decl.decl.visit(visitor)?.modifying(&mut decl.decl);
+                    visitor.finish_invariant_decl(&mut decl.name, &mut decl.decl)
+                }),
             Decl::Map {
                 decl:
                     Binding {

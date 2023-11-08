@@ -520,11 +520,16 @@ impl IvyParser {
         )
     }
 
-    pub fn invariant_decl(input: Node) -> Result<(Span, Fmla)> {
+    pub fn invariant_decl(input: Node) -> Result<Binding<Fmla>> {
         let span = Span::from_node(&input);
+        let txt = input.as_span().as_str();
+
         match_nodes!(
         input.into_children();
-        [fmla(f)] => Ok((span, f))
+        [fmla(f)] => {
+            Ok(Binding::from(txt.to_owned(), f, span))
+        },
+        [PROGTOK(name), fmla(f)] => Ok(Binding::from(name, f, span))
         )
     }
 
@@ -651,7 +656,7 @@ impl IvyParser {
         [implement_action_decl((span, decl))] => Ok(Decl::Implement{span, decl}),
         [implementation_decl((span, decl))] => Ok(Decl::Object{ decl: Binding { name: "impl".into(), decl, span }}),
         [import_decl((span, decl))]    => Ok(Decl::Import{span, decl}),
-        [invariant_decl((span, decl))] => Ok(Decl::Invariant { span, decl}),
+        [invariant_decl(decl)] => Ok(Decl::Invariant { decl }),
         [instance_decl(decl)] => Ok(Decl::Instance{decl}),
         [interpret_decl((span, decl))] => Ok(Decl::Interpret{span, decl}),
         [module_decl(decl)]   => Ok(Decl::Module{decl}),

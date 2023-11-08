@@ -364,9 +364,11 @@ where
 
     fn begin_invariant_decl(
         &mut self,
+        name: &mut Token,
         ast: &mut crate::ast::logic::Fmla,
     ) -> ExtractResult<declarations::Decl> {
-        self.pp.write_str("addConjecture(() -> {\n")?;
+        self.pp
+            .write_fmt(format_args!("addConjecture({name}() -> {{\n"))?;
 
         ast.visit(self)?.modifying(ast);
 

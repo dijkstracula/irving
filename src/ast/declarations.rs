@@ -212,7 +212,7 @@ pub enum Decl {
 
     Interpret { span: Span, decl: InterpretDecl },
 
-    Invariant { span: Span, decl: Fmla },
+    Invariant { decl: Binding<Fmla> },
 
     Map { decl: Binding<MapDecl> },
 
@@ -336,7 +336,9 @@ impl Decl {
             } => span,
             Decl::Instantiate { .. } => DEFAULT_SPAN,
             Decl::Interpret { span, .. } => span,
-            Decl::Invariant { span, .. } => span,
+            Decl::Invariant {
+                decl: Binding { span, .. },
+            } => span,
             Decl::Map {
                 decl: Binding { span, .. },
             } => span,
