@@ -34,8 +34,7 @@ mod tests {
 
     #[test]
     fn universal_quant_annotated() {
-        let _ =
-            typecheck_fmla("forall N: nat . 0 <= N").expect("Parse and typecheck");
+        let _ = typecheck_fmla("forall N: nat . 0 <= N").expect("Parse and typecheck");
         let _ =
             typecheck_fmla("forall B: bool . 0 <= B").expect_err("0 is incomparable with a Bool");
     }

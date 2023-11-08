@@ -51,3 +51,10 @@ $ pre-commit run
 $  RUST_LOG=info,sort-substituter=debug,visitor=trace \ 
   cargo run programs/200_chainrep.ivy extract ivy
 ```
+
+## Testing
+
+Ensure you've checked out submodules - The Ivy implementation of the
+[Accord](https://github.com/dijkstracula/accord-ivy/) consensus protocol is
+part of the test suite.  So, be sure to add `--recurse-submodules` to `git
+init` and `git pull`.

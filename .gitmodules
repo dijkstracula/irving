@@ -1,0 +1,4 @@
+[submodule "programs/accord-ivy"]
+	path = programs/accord-ivy
+	url = git@github.com:dijkstracula/accord-ivy.git
+	branch = main
