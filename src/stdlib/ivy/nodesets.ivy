@@ -1,0 +1,5 @@
+#lang ivy1.8
+
+module indexset(range) = {
+    type t
+}

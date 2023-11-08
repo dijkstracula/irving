@@ -1,0 +1,48 @@
+#lang ivy1.8
+
+# TODO: This is where unbounded_sequence actually lives.  Should
+# we pull it out of the grammar?
+
+module unbounded_sequence = {
+    type this
+    alias t = this
+
+    # returns the least key greater than x
+    action next(x:t) returns (y:t)
+
+    # returns the greatest key less than x
+    action prev(x:t) returns (y:t)
+}
+
+# TODO: for us, an iterable is also a range.  Same thing?
+
+module iterable = {
+    type t = {0..4}
+    var curr : t
+
+    after init {
+        curr := 0;
+    }
+
+    implementation {
+        action next(x:this) returns (y:t) = {
+            y := curr + 1; 
+        }
+        action prev(x:this) returns (y:t) = {
+            y := curr - 1;
+        }
+        action is_max(x:this) returns (r:bool) = {
+            r := (curr = 4); 
+        }
+    }
+}
+
+module sequence_iterator(range) = {
+    type t
+
+    # XXX: should be range.t
+    action create(x:iterable.t) returns (y:t)
+    action begin returns (y:t)
+    action end returns (y:t)
+}
+
