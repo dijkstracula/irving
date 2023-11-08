@@ -2,6 +2,7 @@
 mod tests {
     use std::rc::Rc;
 
+    use crate::ast::actions::AssertAction;
     use crate::ast::expressions::*;
     use crate::ast::logic;
     use crate::ast::logic::*;
@@ -10,6 +11,19 @@ mod tests {
     use crate::parser::ivy::{IvyParser, Result, Rule};
     use crate::tests::helpers;
     use pest_consume::Parser;
+
+    fn parse_assert<S>(fragment: S) -> Result<AssertAction>
+    where
+        S: Into<String>,
+    {
+        let fragment = fragment.into();
+        let user_data = Rc::new(ParserState::new(file!(), fragment.to_string()));
+        let res = IvyParser::parse_with_userdata(Rule::assert_action, &fragment, user_data)
+            .expect("Parsing failed")
+            .single()
+            .unwrap();
+        IvyParser::assert_action(res).map(|(_, act)| act)
+    }
 
     fn parse_fmla<S>(fragment: S) -> Result<Fmla>
     where
@@ -39,6 +53,11 @@ mod tests {
         let ast = parse_fmla("X").unwrap();
         let expected = helpers::inferred_logicsym("X");
         assert_eq!(ast, expected);
+    }
+
+    #[test]
+    fn parse_negated_quant() {
+        let ast = parse_assert("assert r <-> ~ exists X. member(X,s)").unwrap();
     }
 
     #[test]

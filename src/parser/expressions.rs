@@ -32,7 +32,6 @@ lazy_static::lazy_static! {
         // Postfix
         .op(Op::postfix(Rule::fnapp_args))
         .op(Op::postfix(Rule::index))
-
         .op(Op::infix(Rule::DOT, Assoc::Left));
 
 }

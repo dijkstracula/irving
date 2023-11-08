@@ -56,7 +56,7 @@ BV              = _{ "bv" | "uint" /* | "strbv" | "intbv" | "uint"*/ }
 CLASS           = _{ "class"     }
 SUBCLASS        = _{ "subclass"  }
 FIELD           = _{ "field"     }
-FUNCTION        = _{ "function"  }
+FUNCTION        = _{ "function" | "definition"  }
 RELATION        = _{ "relation"  }
 INCLUDE         = _{ "include "  }
 VAR             = _{ "individual" | "var" }
@@ -142,7 +142,7 @@ reserved = {
 
 // Double quotes in a program token?  Technically Ivy insists that they
 // completely wrap the token, but, I still remain fully goblinized
-PROGTOK   = @{ !reserved ~ (ASCII_ALPHA_LOWER ~ ("_" | "\"" | ASCII_ALPHANUMERIC)*) }
+PROGTOK   = @{ !reserved ~ (ASCII_ALPHA_LOWER ~ ("_" | ASCII_ALPHANUMERIC)*) | ("\"" ~ ("." | "_" | ASCII_ALPHANUMERIC)* ~ "\"") }
 
 // An identifier is a program variable, possibly qualified with a module
 // prefix.

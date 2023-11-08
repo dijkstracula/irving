@@ -4,7 +4,7 @@ pub mod include_expander;
 pub mod module_instantiation;
 pub mod quantifier_bounds;
 
-use std::{env, path::PathBuf};
+use std::path::PathBuf;
 
 use crate::{
     ast::toplevels::Prog,

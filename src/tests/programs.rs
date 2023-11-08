@@ -51,4 +51,14 @@ mod accord {
     fn typecheck_sorts() {
         let _ast = helpers::typeinference_from_filename("programs/accord-ivy/src/sorts.ivy");
     }
+
+    #[test]
+    fn typecheck_temporality() {
+        let _ast = helpers::typeinference_from_filename("programs/accord-ivy/src/temporality.ivy");
+    }
+
+    #[test]
+    fn typecheck_txn() {
+        let _ast = helpers::typeinference_from_filename("programs/accord-ivy/src/txn.ivy");
+    }
 }

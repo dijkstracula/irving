@@ -42,7 +42,8 @@ mod tests {
     #[test]
     fn parse_attribute_assign() {
         let fragment = "attribute foo.weight = \"0.1\"";
-        helpers::decl_from_src(fragment);
+        let ast = helpers::decl_from_src(fragment);
+        println!("{:?}", ast);
     }
 
     #[test]
