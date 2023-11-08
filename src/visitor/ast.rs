@@ -237,10 +237,22 @@ where
         Ok(ControlMut::Produce(T::default()))
     }
 
-    fn begin_attribute_decl(&mut self, _ast: &mut Expr) -> VisitorResult<T, E, Decl> {
+    fn begin_attribute_decl(
+        &mut self,
+        _span: &Span,
+        _lhs: &mut Expr,
+        _rhs: &mut Option<Expr>,
+    ) -> VisitorResult<T, E, Decl> {
         Ok(ControlMut::Produce(T::default()))
     }
-    fn finish_attribute_decl(&mut self, _ast: &mut Expr) -> VisitorResult<T, E, Decl> {
+    fn finish_attribute_decl(
+        &mut self,
+        _span: &Span,
+        _lhs: &mut Expr,
+        _rhs: &mut Option<Expr>,
+        _lhs_t: T,
+        _rhs_t: Option<T>,
+    ) -> VisitorResult<T, E, Decl> {
         Ok(ControlMut::Produce(T::default()))
     }
 
@@ -994,10 +1006,16 @@ where
                 let s = visitor.sort(decl)?.modifying(decl);
                 visitor.finish_alias_decl(name, decl, n, s)
             }),
-            Decl::Attribute { decl, .. } => visitor.begin_attribute_decl(decl)?.and_then(|_| {
-                let _d = decl.visit(visitor)?.modifying(decl);
-                visitor.finish_attribute_decl(decl)
-            }),
+            Decl::Attribute { span, lhs, rhs } => {
+                visitor.begin_attribute_decl(span, lhs, rhs)?.and_then(|_| {
+                    let l_t = lhs.visit(visitor)?.modifying(lhs);
+                    let r_t = rhs
+                        .as_mut()
+                        .map(|rhs| Ok(rhs.visit(visitor)?.modifying(rhs)))
+                        .transpose()?;
+                    visitor.finish_attribute_decl(span, lhs, rhs, l_t, r_t)
+                })
+            }
             Decl::Axiom { decl, .. } => visitor.begin_axiom_decl(decl)?.and_then(|_| {
                 let _f = decl.visit(visitor)?.modifying(decl);
                 visitor.finish_axiom_decl(decl)

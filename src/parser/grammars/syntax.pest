@@ -44,7 +44,7 @@ mod_sig = { PROGTOK ~ ( "(" ~ PROGTOK ~ ("," ~ PROGTOK)? ~ ")")? }
 include_decl      = { INCLUDE ~ PROGTOK }
 var_decl          = { VAR ~ param }
 
-attribute_decl    = { ATTRIBUTE ~ rval } // TODO: wildly overspecified: shoudl be constrained beyond just an expr.
+attribute_decl    = { ATTRIBUTE ~ rval ~ ("=" ~ rval)? } // TODO: wildly overspecified: shoudl be constrained beyond just an expr.
 
 alias_decl        = { ALIAS ~ PROGTOK ~ "=" ~ builtin_type }
 axiom_decl        = { AXIOM ~ fmla }

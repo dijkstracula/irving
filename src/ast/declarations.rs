@@ -180,55 +180,110 @@ impl<T> Binding<T> {
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(clippy::large_enum_variant)]
 pub enum Decl {
-    Action { decl: Binding<ActionDecl> },
+    Action {
+        decl: Binding<ActionDecl>,
+    },
 
-    AfterAction { span: Span, decl: ActionMixinDecl },
+    AfterAction {
+        span: Span,
+        decl: ActionMixinDecl,
+    },
 
-    Alias { decl: Binding<Sort> },
+    Alias {
+        decl: Binding<Sort>,
+    },
 
-    Attribute { span: Span, decl: Expr },
+    Attribute {
+        span: Span,
+        lhs: Expr,
+        rhs: Option<Expr>,
+    },
 
-    Axiom { span: Span, decl: Fmla },
+    Axiom {
+        span: Span,
+        decl: Fmla,
+    },
 
-    BeforeAction { span: Span, decl: ActionMixinDecl },
+    BeforeAction {
+        span: Span,
+        decl: ActionMixinDecl,
+    },
 
-    Class { decl: Binding<ClassDecl> },
+    Class {
+        decl: Binding<ClassDecl>,
+    },
 
-    Common { span: Span, decl: Vec<Decl> },
+    Common {
+        span: Span,
+        decl: Vec<Decl>,
+    },
 
-    Export { span: Span, decl: ExportDecl },
+    Export {
+        span: Span,
+        decl: ExportDecl,
+    },
 
-    Function { decl: Binding<FunctionDecl> },
+    Function {
+        decl: Binding<FunctionDecl>,
+    },
 
     Globals(Vec<Decl>),
 
-    Implement { span: Span, decl: ActionMixinDecl },
+    Implement {
+        span: Span,
+        decl: ActionMixinDecl,
+    },
 
-    Import { span: Span, decl: ImportDecl },
+    Import {
+        span: Span,
+        decl: ImportDecl,
+    },
 
-    Instance { decl: Binding<InstanceDecl> },
+    Instance {
+        decl: Binding<InstanceDecl>,
+    },
 
-    Instantiate { name: Expr, prms: Vec<Expr> },
+    Instantiate {
+        name: Expr,
+        prms: Vec<Expr>,
+    },
 
-    Interpret { span: Span, decl: InterpretDecl },
+    Interpret {
+        span: Span,
+        decl: InterpretDecl,
+    },
 
-    Invariant { decl: Binding<Fmla> },
+    Invariant {
+        decl: Binding<Fmla>,
+    },
 
-    Map { decl: Binding<MapDecl> },
+    Map {
+        decl: Binding<MapDecl>,
+    },
 
-    Module { decl: Binding<ModuleDecl> },
+    Module {
+        decl: Binding<ModuleDecl>,
+    },
 
     Noop,
 
-    Object { decl: Binding<ObjectDecl> },
+    Object {
+        decl: Binding<ObjectDecl>,
+    },
 
     Stmts(Vec<Stmt>),
 
-    Subclass { decl: Binding<ClassDecl> },
+    Subclass {
+        decl: Binding<ClassDecl>,
+    },
 
-    Var { decl: Binding<Sort> },
+    Var {
+        decl: Binding<Sort>,
+    },
 
-    Type { decl: Binding<Sort> },
+    Type {
+        decl: Binding<Sort>,
+    },
 }
 
 impl Decl {

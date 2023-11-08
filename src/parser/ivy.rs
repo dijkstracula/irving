@@ -300,11 +300,12 @@ impl IvyParser {
         )
     }
 
-    pub fn attribute_decl(input: Node) -> Result<(Span, Expr)> {
+    pub fn attribute_decl(input: Node) -> Result<(Span, Expr, Option<Expr>)> {
         let span = Span::from_node(&input);
         match_nodes!(
         input.into_children();
-        [rval(e)] => Ok((span, e))
+        [rval(lhs)] => Ok((span, lhs, None)),
+        [rval(lhs), rval(rhs)] => Ok((span, lhs, Some(rhs)))
         )
     }
 
@@ -645,7 +646,7 @@ impl IvyParser {
         [action_decl(decl)]          => Ok(Decl::Action{decl}),
         [after_decl((span, decl))]   => Ok(Decl::AfterAction{span, decl}),
         [alias_decl(decl)]           => Ok(Decl::Alias{decl}),
-        [attribute_decl((span, decl))] => Ok(Decl::Attribute{span, decl}),
+        [attribute_decl((span, lhs, rhs))] => Ok(Decl::Attribute{span, lhs, rhs}),
         [axiom_decl((span, decl))]    => Ok(Decl::Axiom{span, decl}),
         [before_decl((span, decl))]    => Ok(Decl::BeforeAction{span, decl}),
         [class_decl(decl)] => Ok(Decl::Class{decl}),

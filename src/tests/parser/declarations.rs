@@ -40,6 +40,12 @@ mod tests {
     }
 
     #[test]
+    fn parse_attribute_assign() {
+        let fragment = "attribute foo.weight = \"0.1\"";
+        helpers::decl_from_src(fragment);
+    }
+
+    #[test]
     fn parse_axiom() {
         let fragment = "axiom X:id < Y";
         helpers::decl_from_src(fragment);
