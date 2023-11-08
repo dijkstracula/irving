@@ -436,8 +436,14 @@ impl IvyParser {
         let span = Span::from_node(&input);
         match_nodes!(
         input.into_children();
+            [PROGTOK(name), lparamlist(_), ] =>
+                Err(pest_err(format!("Function {name} missing both body and range sort"), span).unwrap()),
             [PROGTOK(name), lparamlist(params), PROGTOK(ret)] =>
-                Ok(Binding::from(name, FunctionDecl {params, ret}, span))
+                Ok(Binding::from(name, FunctionDecl {params, ret: Some(ret), body: None}, span)),
+            [PROGTOK(name), lparamlist(params), fmla(body) ] =>
+                Ok(Binding::from(name, FunctionDecl {params, ret: None, body: Some(body)}, span)),
+            [PROGTOK(name), lparamlist(params), PROGTOK(ret), fmla(body) ] =>
+                Ok(Binding::from(name, FunctionDecl {params, ret: Some(ret), body: Some(body)}, span))
         )
     }
 

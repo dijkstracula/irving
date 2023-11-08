@@ -294,6 +294,7 @@ where
 
     fn begin_function_decl(
         &mut self,
+        _span: &Span,
         _name: &mut Token,
         _ast: &mut FunctionDecl,
     ) -> VisitorResult<T, E, Decl> {
@@ -301,11 +302,13 @@ where
     }
     fn finish_function_decl(
         &mut self,
+        _span: &Span,
         _name: &mut Token,
         _ast: &mut FunctionDecl,
         _name_t: T,
         _sort_t: Vec<T>,
-        _ret_t: T,
+        _ret_t: Option<T>,
+        _body_t: Option<T>,
     ) -> VisitorResult<T, E, Decl> {
         Ok(ControlMut::Produce(T::default()))
     }
@@ -1038,12 +1041,23 @@ where
             Decl::Function {
                 decl: Binding { name, decl, span },
                 ..
-            } => visitor.begin_function_decl(name, decl)?.and_then(|_| {
-                let n = visitor.token(name)?.modifying(name);
-                let p = decl.params.visit(visitor)?.modifying(&mut decl.params);
-                let r = decl.ret.visit(visitor)?.modifying(&mut decl.ret);
-                visitor.finish_function_decl(name, decl, n, p, r)
-            }),
+            } => visitor
+                .begin_function_decl(span, name, decl)?
+                .and_then(|_| {
+                    let n = visitor.token(name)?.modifying(name);
+                    let p = decl.params.visit(visitor)?.modifying(&mut decl.params);
+                    let r = decl
+                        .ret
+                        .as_mut()
+                        .map(|ret| Ok(ret.visit(visitor)?.modifying(ret)))
+                        .transpose()?;
+                    let b = decl
+                        .body
+                        .as_mut()
+                        .map(|body| Ok(body.visit(visitor)?.modifying(body)))
+                        .transpose()?;
+                    visitor.finish_function_decl(span, name, decl, n, p, r, b)
+                }),
             Decl::Globals(decl) => visitor.begin_global_decl(decl)?.and_then(|_| {
                 let _d = decl.visit(visitor)?.modifying(decl);
                 visitor.finish_global_decl(decl)

@@ -104,8 +104,32 @@ mod tests {
     }
 
     #[test]
-    fn parse_function_decl() {
+    fn parse_function_decl_incomplete() {
+        let fragment = "function foo(A: int, B: int)";
+
+        let user_data = Rc::new(ParserState::new(PathBuf::from(file!()), fragment));
+        let res = IvyParser::parse_with_userdata(Rule::decl, fragment, user_data)
+            .expect("Parsing failed")
+            .single()
+            .unwrap();
+        IvyParser::decl(res).expect_err("Needs return sort or body to infer");
+    }
+
+    #[test]
+    fn parse_function_decl_uninterp() {
         let fragment = "function foo(A: int, B: int): int";
+        helpers::decl_from_src(fragment);
+    }
+
+    #[test]
+    fn parse_function_decl_impl() {
+        let fragment = "function foo(A: int, B: int) = A + B";
+        helpers::decl_from_src(fragment);
+    }
+
+    #[test]
+    fn parse_function_decl_impl_explicit_ret() {
+        let fragment = "function foo(A: int, B: int): int = A + B";
         helpers::decl_from_src(fragment);
     }
 

@@ -1127,24 +1127,27 @@ impl Visitor<IvySort, TypeError> for SortInferer {
 
     fn begin_function_decl(
         &mut self,
+        span: &Span,
         name: &mut Token,
         _ast: &mut declarations::FunctionDecl,
     ) -> InferenceResult<declarations::Decl> {
         let v = self.bindings.new_sortvar();
         self.bindings
             .append(name.clone(), v.clone())
-            .map_err(|e| e.to_typeerror(&Span::Todo))?;
+            .map_err(|e| e.to_typeerror(span))?;
         self.bindings.push_anonymous_scope();
         Ok(ControlMut::Produce(v))
     }
 
     fn finish_function_decl(
         &mut self,
+        span: &Span,
         _name: &mut Token,
         ast: &mut declarations::FunctionDecl,
         name_sort: IvySort,
         param_sorts: Vec<IvySort>,
-        ret_sort: IvySort,
+        ret_sort: Option<IvySort>,
+        body_sort: Option<IvySort>,
     ) -> InferenceResult<declarations::Decl> {
         let param_names = ast
             .params
@@ -1152,15 +1155,31 @@ impl Visitor<IvySort, TypeError> for SortInferer {
             .map(|sym| sym.name.clone())
             .collect::<Vec<_>>();
 
-        let fnsort = IvySort::action_sort(
-            param_names,
-            param_sorts,
-            sorts::ActionRet::named("TODO", ret_sort),
-        );
+        let has_body = body_sort.is_some();
+
+        let ret_sort = match (ret_sort, body_sort) {
+            (None, None) => panic!(), // Should be caught by the grammar.
+            (None, Some(sort)) | (Some(sort), None) => sort,
+            (Some(s1), Some(s2)) => self
+                .bindings
+                .unify(&s1, &s2)
+                .map_err(|e| e.to_typeerror(span))?,
+        };
+
+        let fnsort = if has_body {
+            IvySort::action_sort(
+                param_names,
+                param_sorts,
+                sorts::ActionRet::named("anon_ret", ret_sort),
+            )
+        } else {
+            IvySort::Map(param_sorts, Box::new(ret_sort))
+        };
+
         let unified = self
             .bindings
             .unify(&name_sort, &fnsort)
-            .map_err(|e| e.to_typeerror(&Span::Todo))?;
+            .map_err(|e| e.to_typeerror(span))?;
         self.bindings.pop_anonymous_scope();
         Ok(ControlMut::Produce(unified))
     }

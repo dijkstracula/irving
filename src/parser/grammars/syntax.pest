@@ -49,7 +49,7 @@ attribute_decl    = { ATTRIBUTE ~ rval } // TODO: wildly overspecified: shoudl b
 alias_decl        = { ALIAS ~ PROGTOK ~ "=" ~ builtin_type }
 axiom_decl        = { AXIOM ~ fmla }
 
-function_decl     = { FUNCTION ~ PROGTOK ~ ("(" ~ lparamlist ~ ")") ~ ":" ~ PROGTOK }
+function_decl     = { FUNCTION ~ PROGTOK ~ ("(" ~ lparamlist ~ ")") ~ (":" ~ PROGTOK)? ~ ("=" ~ fmla)? }
 relation_decl     = { RELATION ~ PROGTOK ~ ("(" ~ lparamlist ~ ")")? }
 
 global_decl       = { GLOBAL ~ decl_block }

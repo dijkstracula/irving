@@ -59,7 +59,8 @@ pub enum ClassSlot {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FunctionDecl {
     pub params: ParamList,
-    pub ret: Token, // Am I an idiot? Where's the bee^W body
+    pub ret: Option<Token>,
+    pub body: Option<Fmla>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
