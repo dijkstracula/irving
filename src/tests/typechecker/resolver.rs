@@ -9,7 +9,8 @@ mod tests {
         let mut r = BindingResolver::new();
 
         // type pid: 0..3
-        r.append("pid".into(), IvySort::BoundedSequence(0, 3)).unwrap();
+        r.append("pid".into(), IvySort::BoundedSequence(0, 3))
+            .unwrap();
 
         r.append(
             "net".into(),

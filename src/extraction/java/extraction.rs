@@ -472,7 +472,9 @@ where
             }
             expressions::Sort::Resolved(ivysort) => match ivysort {
                 IvySort::Number => self.write_unbounded_seq(&mut ast.rhs)?,
-                IvySort::BoundedSequence(lo, hi) => self.write_bounded_long(&mut ast.rhs, *lo, *hi)?,
+                IvySort::BoundedSequence(lo, hi) => {
+                    self.write_bounded_long(&mut ast.rhs, *lo, *hi)?
+                }
                 _ => ast.rhs.visit(self)?.modifying(&mut ast.rhs),
             },
         };

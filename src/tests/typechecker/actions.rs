@@ -506,7 +506,10 @@ mod tests {
 
         match &assign {
             Action::Assign { action, .. } => {
-                assert_eq!(action.lhs_sort, Sort::Resolved(IvySort::BoundedSequence(0, 2)))
+                assert_eq!(
+                    action.lhs_sort,
+                    Sort::Resolved(IvySort::BoundedSequence(0, 2))
+                )
             }
             _ => unreachable!(),
         };

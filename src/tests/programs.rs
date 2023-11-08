@@ -42,3 +42,13 @@ mod parser {
         let _ast = helpers::typeinference_from_filename("programs/300_noninf1.ivy");
     }
 }
+
+#[cfg(test)]
+mod accord {
+    use crate::tests::helpers;
+
+    #[test]
+    fn typecheck_sorts() {
+        let _ast = helpers::typeinference_from_filename("programs/accord-ivy/src/sorts.ivy");
+    }
+}

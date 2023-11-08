@@ -15,7 +15,6 @@ use crate::{
 };
 
 pub fn all_passes(cwd: PathBuf, prog: &mut Prog) -> Result<(), IrvingError> {
-
     log::info!(target: "pass", "lowering globals");
     let mut gl = GlobalLowerer::new();
     prog.visit(&mut gl)?.modifying(prog);
