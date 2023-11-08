@@ -44,12 +44,12 @@ mod_sig = { PROGTOK ~ ( "(" ~ PROGTOK ~ ("," ~ PROGTOK)? ~ ")")? }
 include_decl      = { INCLUDE ~ PROGTOK }
 var_decl          = { VAR ~ param }
 
-attribute_decl    = { ATTRIBUTE ~ rval } // TODO: wildly overspecified: shoudl be constrained beyond just an expr.
+attribute_decl    = { ATTRIBUTE ~ rval ~ ("=" ~ rval)? } // TODO: wildly overspecified: shoudl be constrained beyond just an expr.
 
 alias_decl        = { ALIAS ~ PROGTOK ~ "=" ~ builtin_type }
 axiom_decl        = { AXIOM ~ fmla }
 
-function_decl     = { FUNCTION ~ PROGTOK ~ ("(" ~ lparamlist ~ ")") ~ ":" ~ PROGTOK }
+function_decl     = { FUNCTION ~ PROGTOK ~ ("(" ~ lparamlist ~ ")") ~ (":" ~ PROGTOK)? ~ ("=" ~ fmla)? }
 relation_decl     = { RELATION ~ PROGTOK ~ ("(" ~ lparamlist ~ ")")? }
 
 global_decl       = { GLOBAL ~ decl_block }
@@ -69,7 +69,7 @@ common_decl         = { COMMON ~ decl_block }
 
 type_decl         = { TYPE ~ (THIS | (PROGTOK ~ ("=" ~ builtin_type)?)) } 
 
-invariant_decl    = { INVARIANT ~ fmla }
+invariant_decl    = { INVARIANT ~ ("[" ~ PROGTOK ~ "]")? ~ fmla }
 
 // TODO: not sure exactly about these ones yet.
 header_decl       = { HEADER ~ PROGTOK }

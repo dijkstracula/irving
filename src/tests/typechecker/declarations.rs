@@ -149,6 +149,49 @@ mod tests {
     }
 
     #[test]
+    fn function_uninterpreted() {
+        let prog = "function is_up(X: int, Y:int): int";
+        let mut decl_ast = helpers::decl_from_src(prog);
+
+        let mut tc = SortInferer::new();
+        let res = decl_ast
+            .visit(&mut tc)
+            .expect("visit")
+            .modifying(&mut decl_ast);
+
+        let expected = IvySort::Map(
+            vec![IvySort::Number, IvySort::Number],
+            Box::new(IvySort::Number),
+        );
+
+        assert_eq!(res, expected);
+        assert_eq!(tc.bindings.lookup_sym("is_up"), Some(&expected));
+    }
+
+    #[test]
+    fn function_interpreted() {
+        let prog = "function is_up(X: int, Y:int): int = X + Y";
+        let mut decl_ast = helpers::decl_from_src(prog);
+
+        let mut tc = SortInferer::new();
+        let res = decl_ast
+            .visit(&mut tc)
+            .expect("visit")
+            .modifying(&mut decl_ast);
+
+        assert!(matches!(res, IvySort::Action(_, _, _, _)));
+    }
+
+    #[test]
+    fn function_interpreted_ret_mismatch() {
+        let prog = "function is_up(X: int, Y:int): bool = X + Y";
+        let mut decl_ast = helpers::decl_from_src(prog);
+
+        let mut tc = SortInferer::new();
+        decl_ast.visit(&mut tc).expect_err("Unification error");
+    }
+
+    #[test]
     fn require() {
         let prog = "require true";
         let mut decl_ast = helpers::decl_from_src(prog);

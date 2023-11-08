@@ -300,11 +300,12 @@ impl IvyParser {
         )
     }
 
-    pub fn attribute_decl(input: Node) -> Result<(Span, Expr)> {
+    pub fn attribute_decl(input: Node) -> Result<(Span, Expr, Option<Expr>)> {
         let span = Span::from_node(&input);
         match_nodes!(
         input.into_children();
-        [rval(e)] => Ok((span, e))
+        [rval(lhs)] => Ok((span, lhs, None)),
+        [rval(lhs), rval(rhs)] => Ok((span, lhs, Some(rhs)))
         )
     }
 
@@ -436,8 +437,14 @@ impl IvyParser {
         let span = Span::from_node(&input);
         match_nodes!(
         input.into_children();
+            [PROGTOK(name), lparamlist(_), ] =>
+                Err(pest_err(format!("Function {name} missing both body and range sort"), span).unwrap()),
             [PROGTOK(name), lparamlist(params), PROGTOK(ret)] =>
-                Ok(Binding::from(name, FunctionDecl {params, ret}, span))
+                Ok(Binding::from(name, FunctionDecl {params, ret: Some(ret), body: None}, span)),
+            [PROGTOK(name), lparamlist(params), fmla(body) ] =>
+                Ok(Binding::from(name, FunctionDecl {params, ret: None, body: Some(body)}, span)),
+            [PROGTOK(name), lparamlist(params), PROGTOK(ret), fmla(body) ] =>
+                Ok(Binding::from(name, FunctionDecl {params, ret: Some(ret), body: Some(body)}, span))
         )
     }
 
@@ -514,11 +521,16 @@ impl IvyParser {
         )
     }
 
-    pub fn invariant_decl(input: Node) -> Result<(Span, Fmla)> {
+    pub fn invariant_decl(input: Node) -> Result<Binding<Fmla>> {
         let span = Span::from_node(&input);
+        let txt = input.as_span().as_str();
+
         match_nodes!(
         input.into_children();
-        [fmla(f)] => Ok((span, f))
+        [fmla(f)] => {
+            Ok(Binding::from(txt.to_owned(), f, span))
+        },
+        [PROGTOK(name), fmla(f)] => Ok(Binding::from(name, f, span))
         )
     }
 
@@ -634,7 +646,7 @@ impl IvyParser {
         [action_decl(decl)]          => Ok(Decl::Action{decl}),
         [after_decl((span, decl))]   => Ok(Decl::AfterAction{span, decl}),
         [alias_decl(decl)]           => Ok(Decl::Alias{decl}),
-        [attribute_decl((span, decl))] => Ok(Decl::Attribute{span, decl}),
+        [attribute_decl((span, lhs, rhs))] => Ok(Decl::Attribute{span, lhs, rhs}),
         [axiom_decl((span, decl))]    => Ok(Decl::Axiom{span, decl}),
         [before_decl((span, decl))]    => Ok(Decl::BeforeAction{span, decl}),
         [class_decl(decl)] => Ok(Decl::Class{decl}),
@@ -645,7 +657,7 @@ impl IvyParser {
         [implement_action_decl((span, decl))] => Ok(Decl::Implement{span, decl}),
         [implementation_decl((span, decl))] => Ok(Decl::Object{ decl: Binding { name: "impl".into(), decl, span }}),
         [import_decl((span, decl))]    => Ok(Decl::Import{span, decl}),
-        [invariant_decl((span, decl))] => Ok(Decl::Invariant { span, decl}),
+        [invariant_decl(decl)] => Ok(Decl::Invariant { decl }),
         [instance_decl(decl)] => Ok(Decl::Instance{decl}),
         [interpret_decl((span, decl))] => Ok(Decl::Interpret{span, decl}),
         [module_decl(decl)]   => Ok(Decl::Module{decl}),

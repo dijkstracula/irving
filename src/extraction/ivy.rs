@@ -244,10 +244,19 @@ where
 
     fn begin_attribute_decl(
         &mut self,
-        _ast: &mut expressions::Expr,
+        _span: &Span,
+        lhs: &mut expressions::Expr,
+        rhs: &mut Option<expressions::Expr>,
     ) -> ExtractResult<declarations::Decl> {
         self.pp.write_str("attribute ")?;
-        Ok(ControlMut::Produce(()))
+        lhs.visit(self)?.modifying(lhs);
+
+        if let Some(rhs) = rhs {
+            self.pp.write_str(" = ")?;
+            rhs.visit(self)?.modifying(rhs);
+        }
+        self.pp.write_str("\n")?;
+        Ok(ControlMut::SkipSiblings(()))
     }
 
     fn begin_axiom_decl(&mut self, _ast: &mut logic::Fmla) -> ExtractResult<declarations::Decl> {
@@ -429,17 +438,15 @@ where
 
     fn begin_invariant_decl(
         &mut self,
-        _ast: &mut logic::Fmla,
+        name: &mut Token,
+        fmla: &mut logic::Fmla,
     ) -> ExtractResult<declarations::Decl> {
-        self.pp.write_str("invariant ")?;
-        Ok(ControlMut::Produce(()))
-    }
-    fn finish_invariant_decl(
-        &mut self,
-        _ast: &mut logic::Fmla,
-    ) -> VisitorResult<(), std::fmt::Error, declarations::Decl> {
+        self.pp.write_str("invariant [")?;
+        name.visit(self)?.modifying(name);
+        self.pp.write_str("] ")?;
+        fmla.visit(self)?.modifying(fmla);
         self.pp.write_str("\n")?;
-        Ok(ControlMut::Produce(()))
+        Ok(ControlMut::SkipSiblings(()))
     }
 
     fn begin_map_decl(

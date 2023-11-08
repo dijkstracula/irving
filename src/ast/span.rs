@@ -35,7 +35,6 @@ impl std::fmt::Debug for SourceSpan {
 
 impl<'a> Display for SourceSpan {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        println!("{:?}", self.input);
         let annot = SourceAnnotation {
             range: (self.start, self.end - 1),
             label: "here",
