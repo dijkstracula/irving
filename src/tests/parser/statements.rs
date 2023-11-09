@@ -59,7 +59,14 @@ mod tests {
     }
 
     #[test]
-    fn parse_assign_annot() {
+    fn parse_declar_assign_inferred() {
+        let fragment = "var a := b";
+        let _ast = helpers::stmt_from_src(fragment);
+        println!("{:?}", _ast);
+    }
+
+    #[test]
+    fn parse_declare_assign_annot() {
         let fragment = "var a:int := b";
         helpers::stmt_from_src(fragment);
     }

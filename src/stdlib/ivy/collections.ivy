@@ -9,4 +9,12 @@ module vector(range) = {
     action append(a: this, x: range) returns (y: this)
 
     action end(a: this) returns (len: nat)
-} 
+}
+
+module option(range) = {
+    type this
+    alias t = this
+
+    function is_empty(X: t): bool
+    function contents(X: t): range
+}
