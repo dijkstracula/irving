@@ -38,8 +38,7 @@ impl Visitor<(), TypeError> for SortSubstituter {
     ) -> VisitorResult<(), TypeError, expressions::Sort> {
         match s {
             expressions::Sort::ToBeInferred | expressions::Sort::Annotated(_) => {
-                println!("Uh oh! {:?}", s);
-                panic!();
+                panic!("Didn't fully infer sort {:?}", s);
             }
             expressions::Sort::Resolved(is) => {
                 if let IvySort::SortVar(_) = is {

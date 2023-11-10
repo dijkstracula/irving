@@ -742,14 +742,14 @@ where
 
     fn identifier(
         &mut self,
-        _span: &Span,
+        span: &Span,
         i: &mut expressions::Ident,
     ) -> ExtractResult<expressions::Ident> {
         for (i, token) in i.iter_mut().enumerate() {
             if i > 0 {
                 self.pp.write_str(".")?;
             }
-            self.token(&Span::Todo, token)?.modifying(token);
+            self.token(span, token)?.modifying(token);
         }
         Ok(ControlMut::Produce(()))
     }

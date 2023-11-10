@@ -413,6 +413,16 @@ impl Visitor<IvySort, TypeError> for SortInferer {
         }
     }
 
+    fn begin_attribute_decl(
+        &mut self,
+        _span: &Span,
+        _lhs: &mut Expr,
+        _rhs: &mut Option<Expr>,
+    ) -> crate::visitor::VisitorResult<IvySort, TypeError, declarations::Decl> {
+        // Ignore these.
+        Ok(ControlMut::SkipSiblings(IvySort::Unit))
+    }
+
     fn finish_binop(
         &mut self,
         ast: &mut expressions::BinOp,

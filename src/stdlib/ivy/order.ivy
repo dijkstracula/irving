@@ -4,14 +4,16 @@
 # we pull it out of the grammar?
 
 module unbounded_sequence = {
-    type this
-    alias t = this
+    object impl {
+
+    }
 
     # returns the least key greater than x
-    action next(x:t) returns (y:t)
+    action next(x:impl) returns (y:impl)
 
     # returns the greatest key less than x
-    action prev(x:t) returns (y:t)
+    action prev(x:impl) returns (y:impl)
+
 }
 
 # TODO: for us, an iterable is also a range.  Same thing?
