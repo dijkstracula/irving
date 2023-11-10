@@ -166,17 +166,21 @@ impl Visitor<IvySort, TypeError> for SortInferer {
         Ok(ControlMut::Produce(IvySort::Bool))
     }
 
-    fn identifier(&mut self, i: &mut expressions::Ident) -> InferenceResult<expressions::Ident> {
+    fn identifier(
+        &mut self,
+        span: &Span,
+        i: &mut expressions::Ident,
+    ) -> InferenceResult<expressions::Ident> {
         // XXX: This is a hack for built-ins like `bool` that we shouldn't have to
         // special-case in this way.
         if i.len() == 1 {
             let s = i.get_mut(0).unwrap();
-            Ok(ControlMut::Produce(s.visit(self)?.modifying(s)))
+            Ok(ControlMut::Produce(self.token(span, s)?.modifying(s)))
         } else {
             let resolved = self
                 .bindings
                 .lookup_ident(i)
-                .map_err(|e| e.to_typeerror(&Span::Todo))?;
+                .map_err(|e| e.to_typeerror(span))?;
             Ok(ControlMut::Produce(resolved.clone()))
         }
     }
@@ -195,7 +199,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
                 Ok(ControlMut::Produce(sortvar))
             }
             Sort::Annotated(id) => {
-                let resolved = id.visit(self)?.modifying(id);
+                let resolved = self.identifier(&Span::Todo, id)?.modifying(id);
                 // Note that because a parameter binds a new name, we add it
                 // to the bindings here.  We do not do the same for sort!()
                 self.bindings
@@ -226,7 +230,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
                 ControlMut::Mutation(Sort::Resolved(s.clone()), s)
             }
             Sort::Annotated(ident) => {
-                let resolved = self.identifier(ident)?.modifying(ident);
+                let resolved = self.identifier(&Span::Todo, ident)?.modifying(ident);
                 ControlMut::Mutation(Sort::Resolved(resolved.clone()), resolved)
             }
             Sort::Resolved(ivysort) => ControlMut::Produce(self.bindings.resolve(ivysort).clone()),
@@ -234,23 +238,19 @@ impl Visitor<IvySort, TypeError> for SortInferer {
         Ok(ctrl)
     }
 
-    fn symbol(
-        &mut self,
-        span: &Span,
-        p: &mut expressions::Symbol,
-    ) -> InferenceResult<expressions::Symbol> {
+    fn symbol(&mut self, p: &mut expressions::Symbol) -> InferenceResult<expressions::Symbol> {
         // XXX: why don't we call self.sort(p.decl)?
         let sort = match &mut p.decl {
             Sort::ToBeInferred => match self.bindings.lookup_sym(&p.name) {
                 None => {
                     return Err(TypeError::Spanned {
-                        span: span.clone(),
+                        span: p.span.clone(),
                         inner: Box::new(TypeError::UnboundVariable(p.name.clone())),
                     })
                 }
                 Some(s) => s.clone(),
             },
-            Sort::Annotated(ident) => self.identifier(ident)?.modifying(ident),
+            Sort::Annotated(ident) => self.identifier(&p.span, ident)?.modifying(ident),
             Sort::Resolved(ivysort) => ivysort.clone(),
         };
 
@@ -262,14 +262,18 @@ impl Visitor<IvySort, TypeError> for SortInferer {
                 Binding::from(
                     p.name.clone(),
                     Sort::Resolved(resolved.clone()),
-                    span.clone(),
+                    p.span.clone(),
                 ),
                 resolved.clone(),
             ))
         }
     }
 
-    fn token(&mut self, sym: &mut expressions::Token) -> InferenceResult<expressions::Token> {
+    fn token(
+        &mut self,
+        span: &Span,
+        sym: &mut expressions::Token,
+    ) -> InferenceResult<expressions::Token> {
         match sym.as_str() {
             "bool" => Ok(ControlMut::Produce(IvySort::Bool)),
             "nat" | "int" => Ok(ControlMut::Produce(IvySort::Number)),
@@ -277,7 +281,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
             // TODO: and of course other builtins.
             _ => match self.bindings.lookup_sym(sym) {
                 Some(sort) => Ok(ControlMut::Produce(sort.clone())),
-                None => Err(TypeError::UnboundVariable(sym.clone())),
+                None => Err(TypeError::UnboundVariable(sym.clone()).rewrap(span)),
             },
         }
     }
@@ -481,6 +485,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
 
     fn begin_field_access(
         &mut self,
+        span: &Span,
         lhs: &mut Expr,
         rhs: &mut expressions::Symbol,
     ) -> InferenceResult<Expr> {
@@ -512,7 +517,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
                 .or(cls.actions.get(&rhs.name))
                 .cloned()),
             IvySort::SortVar(id) => Ok(Some(IvySort::SortVar(*id))),
-            sort => Err(TypeError::NotARecord(sort.desc())),
+            sort => Err(TypeError::NotARecord(sort.desc()).rewrap(span)),
         }?
         // Next, if the RHS expression has a known type, ensure it doesn't contradict
         // what we figured out from the field access.
@@ -551,7 +556,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
                 rhs.decl = Sort::Resolved(sort.clone());
                 Ok(ControlMut::SkipSiblings(sort))
             }
-            None => Err(TypeError::MissingRecordField(rhs.name.clone())),
+            None => Err(TypeError::MissingRecordField(rhs.name.clone()).rewrap(span)),
         }
     }
 
@@ -806,6 +811,11 @@ impl Visitor<IvySort, TypeError> for SortInferer {
                 is_common = s.is_none();
                 Ok(s.cloned())
             }
+            IvySort::Class(cls) => Ok(cls
+                .fields
+                .get(&rhs.name)
+                .or(cls.actions.get(&rhs.name))
+                .cloned()),
             IvySort::SortVar(id) => Ok(Some(IvySort::SortVar(*id))),
             sort => Err(TypeError::NotARecord(sort.desc())),
         }?
@@ -1431,7 +1441,13 @@ impl Visitor<IvySort, TypeError> for SortInferer {
             .append(name.clone(), v.clone())
             .map_err(|e| e.to_typeerror(span))?;
 
-        self.bindings.push_named_scope(name.clone());
+        // XXX: Actual Ivy has the notion of object attributes which, somehow,
+        // have special scoping rules (ivy_logic.WithSymbols and WithSorts seems
+        // to scope the environment in certain cases but it isn't exactly obvious
+        // to me
+        if name != "spec" && name != "impl" {
+            self.bindings.push_named_scope(name.clone());
+        }
 
         self.bindings
             .append("init".into(), Module::init_action_sort())
@@ -1481,14 +1497,16 @@ impl Visitor<IvySort, TypeError> for SortInferer {
         // Don't create a new scope if we're at the special top-level declaration.
         // This is needed for the typechecker visiting multiple Progs and expecting
         // earlier declarations to be in scope.
-        if name != "top" {
+        if name != "spec" && name != "impl" && name != "top" {
             self.bindings.pop_named_scope();
         }
+
         Ok(ControlMut::Produce(unified))
     }
 
     fn begin_include_decl(&mut self, _ast: &mut Token) -> InferenceResult<Token> {
-        // XXX: We could imagine whitelisting the files that we can include here, but, eh.
+        // XXX: The include expander should remove all IncludeDecls by this
+        // point.  Should we assert that this is true?
         Ok(ControlMut::SkipSiblings(IvySort::Unit))
     }
 
@@ -1589,7 +1607,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
     ) -> InferenceResult<declarations::Decl> {
         let v = match sort {
             Sort::ToBeInferred => self.bindings.new_sortvar(),
-            Sort::Annotated(ident) => ident.visit(self)?.modifying(ident),
+            Sort::Annotated(id) => self.identifier(span, id)?.modifying(id),
             Sort::Resolved(ivysort) => ivysort.clone(),
         };
 

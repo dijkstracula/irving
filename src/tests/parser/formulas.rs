@@ -57,7 +57,7 @@ mod tests {
 
     #[test]
     fn parse_negated_quant() {
-        let ast = parse_assert("assert r <-> ~ exists X. member(X,s)").unwrap();
+        let _ast = parse_assert("assert r <-> ~ exists X. member(X,s)").unwrap();
     }
 
     #[test]

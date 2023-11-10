@@ -153,12 +153,6 @@ pub enum Expr {
         expr: IndexExpr,
     },
 
-    // TODO: Deprecate - the logic parser should handle these.
-    LogicSymbol {
-        span: Span,
-        sym: Symbol,
-    },
-
     Number {
         span: Span,
         val: i64,
@@ -186,7 +180,6 @@ impl Expr {
             Expr::Boolean { span, .. } => span,
             Expr::FieldAccess { span, .. } => span,
             Expr::Index { span, .. } => span,
-            Expr::LogicSymbol { span, .. } => span,
             Expr::Number { span, .. } => span,
             Expr::UnaryOp { span, .. } => span,
             Expr::ProgramSymbol { span, .. } => span,
@@ -217,7 +210,6 @@ impl Expr {
                 expr: IndexExpr { lhs, .. },
                 ..
             } => lhs.depth(),
-            Expr::LogicSymbol { .. } => 1,
             Expr::Number { .. } => 1,
             Expr::UnaryOp { expr, .. } => expr.depth(),
             Expr::ProgramSymbol { .. } => 1,
@@ -248,7 +240,6 @@ impl Expr {
                 expr: IndexExpr { lhs, .. },
                 ..
             } => lhs.n_nodes(),
-            Expr::LogicSymbol { .. } => 1,
             Expr::Number { .. } => 1,
             Expr::UnaryOp { expr, .. } => expr.n_nodes(),
             Expr::ProgramSymbol { .. } => 1,

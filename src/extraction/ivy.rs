@@ -205,11 +205,11 @@ where
 
     fn begin_after_decl(
         &mut self,
-        _span: &Span,
+        span: &Span,
         ast: &mut declarations::ActionMixinDecl,
     ) -> ExtractResult<declarations::Decl> {
         self.pp.write_str("after ")?;
-        self.identifier(&mut ast.name)?;
+        self.identifier(span, &mut ast.name)?;
 
         if let Some(params) = &mut ast.params {
             if !params.is_empty() {
@@ -269,7 +269,7 @@ where
         ast: &mut declarations::ActionMixinDecl,
     ) -> ExtractResult<declarations::Decl> {
         self.pp.write_str("before ")?;
-        self.identifier(&mut ast.name)?;
+        self.identifier(&Span::Todo, &mut ast.name)?;
 
         if let Some(params) = &mut ast.params {
             if !params.is_empty() {
@@ -364,9 +364,10 @@ where
         ast: &mut declarations::InstanceDecl,
     ) -> ExtractResult<declarations::Decl> {
         self.pp.write_str("instance ")?;
-        name.visit(self)?.modifying(name);
+        self.token(&Span::Todo, name)?;
         self.pp.write_str(" = ")?;
-        ast.sort.visit(self)?.modifying(&mut ast.sort);
+        self.identifier(&Span::Todo, &mut ast.sort)?
+            .modifying(&mut ast.sort);
         if !ast.args.is_empty() {
             self.pp.write_str("(")?;
             ast.args.visit(self)?.modifying(&mut ast.args);
@@ -380,7 +381,7 @@ where
         ast: &mut declarations::ActionMixinDecl,
     ) -> ExtractResult<declarations::Decl> {
         self.pp.write_str("implement ")?;
-        self.identifier(&mut ast.name)?;
+        self.identifier(&Span::Todo, &mut ast.name)?;
 
         if let Some(params) = &mut ast.params {
             self.pp.write_str("(")?;
@@ -442,7 +443,7 @@ where
         fmla: &mut logic::Fmla,
     ) -> ExtractResult<declarations::Decl> {
         self.pp.write_str("invariant [")?;
-        name.visit(self)?.modifying(name);
+        self.token(&Span::Todo, name)?;
         self.pp.write_str("] ")?;
         fmla.visit(self)?.modifying(fmla);
         self.pp.write_str("\n")?;
@@ -463,7 +464,7 @@ where
 
     fn begin_module_decl(
         &mut self,
-        _span: &Span,
+        span: &Span,
         name: &mut Token,
         module: &mut declarations::ModuleDecl,
     ) -> ExtractResult<declarations::Decl> {
@@ -471,7 +472,8 @@ where
 
         if !module.sortsyms.is_empty() {
             self.pp.write_str("(")?;
-            module.sortsyms.visit(self)?;
+            self.identifier(span, &mut module.sortsyms)?
+                .modifying(&mut module.sortsyms);
             self.pp.write_str(")")?;
         }
         self.pp.write_str(" {\n")?;
@@ -623,7 +625,7 @@ where
     ) -> VisitorResult<(), std::fmt::Error, logic::Fmla> {
         lhs.visit(self)?;
         self.pp.write_str(".")?;
-        self.symbol(lhs.span(), rhs)?.modifying(rhs);
+        self.symbol(rhs)?.modifying(rhs);
         Ok(ControlMut::SkipSiblings(()))
     }
 
@@ -682,12 +684,13 @@ where
 
     fn begin_field_access(
         &mut self,
+        _span: &Span,
         lhs: &mut expressions::Expr,
         rhs: &mut expressions::Symbol,
     ) -> ExtractResult<expressions::Expr> {
         lhs.visit(self)?;
         self.pp.write_str(".")?;
-        self.symbol(lhs.span(), rhs)?.modifying(rhs);
+        self.symbol(rhs)?.modifying(rhs);
         Ok(ControlMut::SkipSiblings(()))
     }
 
@@ -722,12 +725,8 @@ where
 
     // Terminals
 
-    fn symbol(
-        &mut self,
-        _span: &Span,
-        p: &mut expressions::Symbol,
-    ) -> ExtractResult<expressions::Symbol> {
-        p.name.visit(self)?;
+    fn symbol(&mut self, p: &mut expressions::Symbol) -> ExtractResult<expressions::Symbol> {
+        self.token(&p.span, &mut p.name)?;
 
         Ok(ControlMut::SkipSiblings(()))
     }
@@ -741,8 +740,17 @@ where
         Ok(ControlMut::Produce(()))
     }
 
-    fn identifier(&mut self, i: &mut expressions::Ident) -> ExtractResult<expressions::Ident> {
-        self.write_separated(i, ".")?;
+    fn identifier(
+        &mut self,
+        _span: &Span,
+        i: &mut expressions::Ident,
+    ) -> ExtractResult<expressions::Ident> {
+        for (i, token) in i.iter_mut().enumerate() {
+            if i > 0 {
+                self.pp.write_str(".")?;
+            }
+            self.token(&Span::Todo, token)?.modifying(token);
+        }
         Ok(ControlMut::Produce(()))
     }
 
@@ -752,7 +760,7 @@ where
     }
 
     fn param(&mut self, p: &mut expressions::Symbol) -> ExtractResult<expressions::Symbol> {
-        p.name.visit(self)?;
+        self.token(&Span::Todo, &mut p.name)?;
 
         match &mut p.decl {
             expressions::Sort::ToBeInferred | expressions::Sort::Resolved(IvySort::SortVar(_)) => {
@@ -771,7 +779,7 @@ where
         match s {
             Sort::ToBeInferred => todo!(),
             Sort::Annotated(ident) => {
-                self.identifier(ident)?;
+                self.identifier(&Span::Todo, ident)?;
             }
             Sort::Resolved(ivysort) => match ivysort {
                 // These are inferred, usually, I suppose.
@@ -819,7 +827,11 @@ where
         Ok(ControlMut::Produce(()))
     }
 
-    fn token(&mut self, s: &mut expressions::Token) -> ExtractResult<expressions::Token> {
+    fn token(
+        &mut self,
+        _span: &Span,
+        s: &mut expressions::Token,
+    ) -> ExtractResult<expressions::Token> {
         self.pp.write_str(s)?;
         Ok(ControlMut::Produce(()))
     }

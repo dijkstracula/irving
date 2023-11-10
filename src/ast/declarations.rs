@@ -155,8 +155,6 @@ impl ObjectDecl {
     }
 }
 
-// Transformed AST nodes
-
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Binding<T> {
     pub name: String,

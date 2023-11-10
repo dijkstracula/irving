@@ -1,6 +1,7 @@
 use crate::{
     ast::{
         declarations::{self, Binding},
+        expressions::Ident,
         logic,
         span::Span,
     },
@@ -59,6 +60,16 @@ where
                 self.pp.write_str(sep)?;
             }
             u.visit(self)?;
+        }
+        Ok(ControlMut::Produce(()))
+    }
+
+    pub fn write_ident(&mut self, us: &mut Ident, sep: &str) -> ExtractResult<Vec<()>> {
+        for (i, token) in us.iter_mut().enumerate() {
+            if i > 0 {
+                self.pp.write_str(sep)?;
+            }
+            self.token(&Span::Todo, token)?.modifying(token);
         }
         Ok(ControlMut::Produce(()))
     }
@@ -217,7 +228,7 @@ where
 
     fn begin_after_decl(
         &mut self,
-        _span: &Span,
+        span: &Span,
         ast: &mut declarations::ActionMixinDecl,
     ) -> ExtractResult<declarations::Decl> {
         // We have a special case for `after init`: since this is being emitted
@@ -231,7 +242,8 @@ where
         }
 
         // Otherwise, emit the callback to the action instance variable.
-        ast.name.visit(self)?.modifying(&mut ast.name);
+        self.identifier(span, &mut ast.name)?
+            .modifying(&mut ast.name);
         self.pp.write_str(".onAfter((")?;
 
         if let Some(params) = &mut ast.params {
@@ -260,7 +272,8 @@ where
         &mut self,
         ast: &mut declarations::ActionMixinDecl,
     ) -> ExtractResult<declarations::Decl> {
-        ast.name.visit(self)?.modifying(&mut ast.name);
+        self.identifier(&Span::Todo, &mut ast.name)?
+            .modifying(&mut ast.name);
         self.pp.write_str(".addBefore((")?;
 
         if let Some(params) = &mut ast.params {
@@ -291,7 +304,8 @@ where
         &mut self,
         ast: &mut declarations::ActionMixinDecl,
     ) -> ExtractResult<declarations::Decl> {
-        ast.name.visit(self)?.modifying(&mut ast.name);
+        self.identifier(&Span::Todo, &mut ast.name)?
+            .modifying(&mut ast.name);
         self.pp.write_str(".on(")?;
 
         self.write_lambda(ast.params.as_mut().unwrap(), &mut ast.ret, &mut ast.body)?;
@@ -317,7 +331,7 @@ where
             if i > 0 {
                 self.pp.write_str(" + \", \" + ")?;
             }
-            param.name.visit(self)?.modifying(&mut param.name);
+            self.token(&Span::Todo, &mut param.name)?;
         }
         self.pp.write_str(");")?;
 
@@ -338,14 +352,15 @@ where
         ast: &mut declarations::InstanceDecl,
     ) -> ExtractResult<declarations::Decl> {
         self.pp.write_fmt(format_args!("class {} extends ", name))?;
-        ast.sort.visit(self)?.modifying(&mut ast.sort);
+        self.identifier(&Span::Todo, &mut ast.sort)?
+            .modifying(&mut ast.sort);
         if !ast.args.is_empty() {
             self.pp.write_str("<")?;
 
             // maybe slightly confusing: because we parameterise modules on their sorts,
             // the `id` field contains the identifier for sort, not the `sort` field.
             let mut sorts = ast.args.iter().map(|a| a.name.clone()).collect::<Vec<_>>();
-            self.write_separated(&mut sorts, ", ")?;
+            self.write_ident(&mut sorts, ", ")?;
             self.pp.write_str(">")?;
         }
 
@@ -383,7 +398,7 @@ where
     ) -> ExtractResult<statements::Stmt> {
         self.pp
             .write_fmt(format_args!("{} ", Self::jtype_from_sort(sort).as_jval()))?;
-        name.visit(self)?.modifying(name);
+        self.token(&Span::Todo, name)?.modifying(name);
         Ok(ControlMut::SkipSiblings(()))
     }
 
@@ -410,13 +425,13 @@ where
 
     fn begin_vardecl(
         &mut self,
-        _span: &Span,
+        span: &Span,
         name: &mut Token,
         sort: &mut expressions::Sort,
     ) -> ExtractResult<declarations::Decl> {
         self.pp
             .write_fmt(format_args!("{} ", Self::jtype_from_sort(sort).as_jval()))?;
-        name.visit(self)?.modifying(name);
+        self.token(span, name)?.modifying(name);
         Ok(ControlMut::SkipSiblings(()))
     }
 
@@ -539,6 +554,7 @@ where
 
     fn begin_field_access(
         &mut self,
+        _span: &Span,
         lhs: &mut expressions::Expr,
         rhs: &mut expressions::Symbol,
     ) -> ExtractResult<expressions::Expr> {
@@ -862,8 +878,12 @@ where
         Ok(ControlMut::Produce(()))
     }
 
-    fn identifier(&mut self, i: &mut expressions::Ident) -> ExtractResult<expressions::Ident> {
-        self.write_separated(i, ".")?;
+    fn identifier(
+        &mut self,
+        _span: &Span,
+        i: &mut expressions::Ident,
+    ) -> ExtractResult<expressions::Ident> {
+        self.write_ident(i, ".")?;
         Ok(ControlMut::Produce(()))
     }
 
@@ -883,7 +903,7 @@ where
         match s {
             expressions::Sort::ToBeInferred => (),
             expressions::Sort::Annotated(ident) => {
-                ident.visit(self)?.modifying(ident);
+                self.identifier(&Span::Todo, ident)?.modifying(ident);
             }
             expressions::Sort::Resolved(ivysort) => {
                 let j: JavaType = ivysort.clone().into(); // XXX: poor choices lead to this clone.a
@@ -895,14 +915,17 @@ where
 
     fn symbol(
         &mut self,
-        _span: &Span,
         p: &mut expressions::Symbol,
     ) -> VisitorResult<(), std::fmt::Error, expressions::Symbol> {
-        self.token(&mut p.name)?.modifying(&mut p.name);
+        self.token(&p.span, &mut p.name)?.modifying(&mut p.name);
         Ok(ControlMut::Produce(()))
     }
 
-    fn token(&mut self, s: &mut expressions::Token) -> ExtractResult<expressions::Token> {
+    fn token(
+        &mut self,
+        _span: &Span,
+        s: &mut expressions::Token,
+    ) -> ExtractResult<expressions::Token> {
         let alias = self.type_aliases.get_mut(s);
         match alias {
             None => self.pp.write_str(s)?,

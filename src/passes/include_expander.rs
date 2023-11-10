@@ -1,4 +1,5 @@
 use std::{
+    collections::BTreeSet,
     io::ErrorKind,
     path::{Path, PathBuf},
 };
@@ -6,7 +7,10 @@ use std::{
 use crate::{
     ast::{expressions, toplevels::Prog},
     error::IrvingError,
-    visitor::{ast::Visitor, ControlMut, VisitorResult},
+    visitor::{
+        ast::{Visitable, Visitor},
+        ControlMut, VisitorResult,
+    },
 };
 
 const STDLIB_IMPORT_DIR: &'static str = "src/stdlib/ivy";
@@ -15,6 +19,7 @@ const STDLIB_IMPORT_DIR: &'static str = "src/stdlib/ivy";
 pub struct IncludeExpander {
     cwd: PathBuf,
     done: Vec<Prog>,
+    seen: BTreeSet<PathBuf>,
 }
 
 impl IncludeExpander {
@@ -25,10 +30,14 @@ impl IncludeExpander {
         Self {
             cwd: cwd.as_ref().to_owned(),
             done: vec![],
+            seen: BTreeSet::new(),
         }
     }
 
-    fn handle_include(&mut self, file: &mut expressions::Token) -> Result<Prog, IrvingError> {
+    fn handle_include(
+        &mut self,
+        file: &mut expressions::Token,
+    ) -> Result<Option<Prog>, IrvingError> {
         let file = file.to_owned() + ".ivy";
         let stdlib_path = PathBuf::from(STDLIB_IMPORT_DIR).join(&file);
         let cwd_path = PathBuf::from(&self.cwd).join(&file);
@@ -42,15 +51,22 @@ impl IncludeExpander {
         }?;
 
         log::info!(target: "include_expander", "Including {}", path.display());
-        Ok(crate::parser::prog_from_str(path, text)?)
+        if self.seen.contains(&path) {
+            Ok(None)
+        } else {
+            self.seen.insert(path.clone());
+            Ok(Some(crate::parser::prog_from_str(path, text)?))
+        }
     }
 }
 
 impl Visitor<(), IrvingError> for IncludeExpander {
     fn begin_prog(&mut self, prog: &mut Prog) -> VisitorResult<(), IrvingError, Prog> {
         for inc in prog.includes.iter_mut() {
-            let included = self.handle_include(&mut inc.name)?;
-            self.done.push(included);
+            if let Some(mut included) = self.handle_include(&mut inc.name)? {
+                included.visit(self)?.modifying(&mut included);
+                self.done.push(included);
+            }
         }
         Ok(ControlMut::Produce(()))
     }

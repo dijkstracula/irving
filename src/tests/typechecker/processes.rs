@@ -20,6 +20,7 @@ mod tests {
     use pest_consume::Parser;
 
     fn typechecker_with_bindings() -> SortInferer {
+        // TODO: seems like we should just pull in the actual stdlib.
         let mut tc = SortInferer::new();
 
         // type pid: 0..3
@@ -223,7 +224,7 @@ mod tests {
                 var foo: bool;
             
                 after init {
-                host(true).foo := true;
+                    host(true).foo := true;
                 }
             }",
         );
@@ -293,6 +294,24 @@ mod tests {
         let mut host_zero = helpers::rval_from_src("host(0)");
         let host_zero_sort = host_zero.visit(&mut tc).unwrap().modifying(&mut host_zero);
         assert!(matches!(host_zero_sort, IvySort::Object(_)));
+    }
+
+    #[test]
+    fn process_with_ghost_state_assign_lhs() {
+        let mut iso = helpers::process_from_decl(
+            "process p = {
+                specification {
+                    var ghost: bool
+                }
+
+                after init {
+                    # Ghost state should be writable by the implementation.
+                    ghost := false;
+                }
+            }",
+        );
+        let mut tc = typechecker_with_bindings();
+        let _res = iso.visit(&mut tc).unwrap().modifying(&mut iso);
     }
 
     #[test]

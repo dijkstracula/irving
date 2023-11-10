@@ -4,7 +4,9 @@ use crate::{
     ast::{
         actions,
         declarations::{self, MapDecl},
-        expressions, logic, span, statements,
+        expressions, logic,
+        span::{self, Span},
+        statements,
     },
     typechecker::sorts::IvySort,
     visitor::{ast::Visitable, *},
@@ -182,7 +184,7 @@ where
 
     fn begin_action_decl(
         &mut self,
-        _span: &span::Span,
+        span: &span::Span,
         name: &mut expressions::Token,
         ast: &mut declarations::ActionDecl,
     ) -> VisitorResult<(), std::fmt::Error, declarations::Decl> {
@@ -191,13 +193,13 @@ where
         }
 
         self.pp.write_str("(declare-fun ")?;
-        name.visit(self)?.modifying(name);
+        self.token(span, name)?.modifying(name);
         self.pp.write_str("() Bool)\n")?;
 
         self.pp.write_str("(define-fun .")?;
-        name.visit(self)?.modifying(name);
+        self.token(span, name)?.modifying(name);
         self.pp.write_str("() Bool (! ")?;
-        name.visit(self)?.modifying(name);
+        self.token(span, name)?.modifying(name);
         self.pp.write_str(": action 0)")?;
         self.pp.write_str(")\n\n")?;
 
@@ -348,7 +350,8 @@ where
             if i > 0 {
                 self.pp.write_str(" ")?;
             }
-            var.name.visit(self)?.modifying(&mut var.name);
+            self.token(&Span::Todo, &mut var.name)?
+                .modifying(&mut var.name);
         }
         self.pp.write_str(") ")?;
         ast.fmla.visit(self)?.modifying(&mut ast.fmla);
@@ -571,7 +574,6 @@ where
 
     fn symbol(
         &mut self,
-        _span: &span::Span,
         p: &mut expressions::Symbol,
     ) -> VisitorResult<(), std::fmt::Error, expressions::Symbol> {
         self.pp.write_str(&p.name)?;
@@ -605,6 +607,7 @@ where
 
     fn token(
         &mut self,
+        _span: &Span,
         token: &mut expressions::Token,
     ) -> VisitorResult<(), std::fmt::Error, expressions::Token> {
         self.pp.write_str(token)?;

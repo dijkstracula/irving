@@ -294,7 +294,10 @@ mod tests {
 
         let mut getop = helpers::rval_from_src(prog);
         let res = getop.visit(&mut tc).unwrap_err();
-        assert_eq!(res, TypeError::NotARecord(IvySort::Number.desc()));
+        assert_eq!(
+            res,
+            TypeError::NotARecord(IvySort::Number.desc()).rewrap(&Span::IgnoredForTesting)
+        );
     }
 
     #[test]

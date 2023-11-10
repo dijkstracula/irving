@@ -342,7 +342,15 @@ impl BindingResolver {
                 Ok(IvySort::Action(lhsargnames.clone(), args, ret, kind))
             }
 
-            // These subtyping relationship are meant to capture part of the
+            // These subtyping relationships are meant to hack around the lack
+            // of `interpret t -> nat` in unbounded_sequence.
+            (IvySort::Number, m @ IvySort::Module(Module { name, .. }))
+            | (m @ IvySort::Module(Module { name, .. }), IvySort::Number) => {
+                log::warn!("Unsound hack: unify module {name} with number");
+                Ok(m.clone())
+            }
+
+            // These subtyping relationships are meant to capture part of the
             // aspect that in Ivy, numerals' types are entirely inferred from
             // context.
             (IvySort::Number, IvySort::BoundedSequence(lo, hi))

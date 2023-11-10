@@ -74,14 +74,17 @@ impl TypeError {
 
     pub fn rewrap(self, span: &Span) -> Self {
         match self {
-            TypeError::Spanned {
-                span: Span::Todo,
-                inner,
-            } => TypeError::Spanned {
-                span: span.clone(),
-                inner,
+            TypeError::Spanned { span, inner } => match span {
+                Span::Todo => TypeError::Spanned {
+                    span: span.clone(),
+                    inner,
+                },
+                _ => TypeError::Spanned { span, inner },
             },
-            e => e,
+            e => TypeError::Spanned {
+                span: span.clone(),
+                inner: Box::new(e),
+            },
         }
     }
 }

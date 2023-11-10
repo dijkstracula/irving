@@ -219,7 +219,7 @@ mod tests {
         let res = decl_ast.visit(&mut tc).expect_err("visit");
         assert_eq!(
             res,
-            ResolverError::UnboundVariable("net".into()).to_typeerror(&Span::Todo)
+            ResolverError::UnboundVariable("net".into()).to_typeerror(&Span::IgnoredForTesting)
         );
 
         // If `net` is in the context, it needs to be a module.
@@ -229,7 +229,7 @@ mod tests {
         let res = decl_ast.visit(&mut tc).expect_err("visit");
         assert_eq!(
             res,
-            ResolverError::NotARecord(IvySort::Bool).to_typeerror(&Span::Todo)
+            ResolverError::NotARecord(IvySort::Bool).to_typeerror(&Span::IgnoredForTesting)
         );
 
         tc.bindings.pop_anonymous_scope();
@@ -250,7 +250,7 @@ mod tests {
         let res = decl_ast.visit(&mut tc).expect_err("visit");
         assert_eq!(
             res,
-            ResolverError::UnboundVariable("sock".into()).to_typeerror(&Span::Todo)
+            ResolverError::UnboundVariable("sock".into()).to_typeerror(&Span::IgnoredForTesting)
         );
         tc.bindings.pop_anonymous_scope();
 
@@ -271,7 +271,7 @@ mod tests {
         assert_eq!(
             res,
             TypeError::Spanned {
-                span: Span::Todo,
+                span: Span::IgnoredForTesting,
                 inner: Box::new(TypeError::NotInstanceable(IvySort::Number.desc()))
             }
         );
