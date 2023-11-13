@@ -635,9 +635,14 @@ impl IvyParser {
     }
 
     pub fn var_decl(input: Node) -> Result<Binding<Sort>> {
+        let span = input.as_pair().as_span(); // Irritating!
         match_nodes!(
         input.into_children();
-        [param(Symbol { name, decl, span })] => Ok(Binding::from(name, decl, span)))
+        [param(Symbol { name, decl, span })] => Ok(Binding::from(name, decl, span)),
+        [param(_), rval(_)] =>
+            Err(Error::new_from_span(ErrorVariant::<Rule>::CustomError { message:
+                    "Cannot assign within variable declaration (declare var and then assign as a distinct action)".into() }, span))
+        )
     }
 
     pub fn decl(input: Node) -> Result<Decl> {
@@ -706,8 +711,9 @@ impl IvyParser {
         match_nodes!(
         input.into_children();
         [var_decl(sym), rval(rhs)] => {
+            let lhs_sort = sym.decl.clone();
             Ok((span, AssignAction{
-                lhs: Expr::ProgramSymbol{span: sym.span.clone(), sym}, lhs_sort: Sort::ToBeInferred, rhs}))
+                lhs: Expr::ProgramSymbol{sym}, lhs_sort, rhs}))
         },
         [lval(lhs), rval(rhs)] => match lhs {
             Expr::App{..} | Expr::FieldAccess{..} | Expr::Index{..} | Expr::ProgramSymbol{..} | Expr::This(_) => Ok((span, AssignAction{lhs, lhs_sort: Sort::ToBeInferred, rhs})),
@@ -731,8 +737,8 @@ impl IvyParser {
         match_nodes!(
         input.into_children();
         [rval(call)] => match call {
-            Expr::ProgramSymbol { span, sym } => Ok((span.clone(), AppExpr {
-                func: Box::new(Expr::ProgramSymbol { span, sym }),
+            Expr::ProgramSymbol { sym } => Ok((sym.span.clone(), AppExpr {
+                func: Box::new(Expr::ProgramSymbol { sym }),
                 func_sort: Sort::ToBeInferred,
                 args: vec!()
             })),

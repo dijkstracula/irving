@@ -42,7 +42,7 @@ decl_block = { "{" ~ (decl ~ ";"?)* ~ "}" }
 mod_sig = { PROGTOK ~ ( "(" ~ PROGTOK ~ ("," ~ PROGTOK)? ~ ")")? }
 
 include_decl      = { INCLUDE ~ PROGTOK }
-var_decl          = { VAR ~ param }
+var_decl          = { VAR ~ param ~ (":=" ~ rval)? }
 
 attribute_decl    = { ATTRIBUTE ~ rval ~ ("=" ~ rval)? } // TODO: wildly overspecified: shoudl be constrained beyond just an expr.
 
@@ -129,7 +129,7 @@ implement_action_decl    = { IMPLEMENT ~ mixin_sig ~ decl_ret? ~ stmt_block }
 // name needs to be a qualified identifier and not just a symbol PROGTOK.
 mixin_sig =  { ident ~ ("(" ~ paramlist ~ ")")? }
 
-assign_action = { (var_decl | lval) ~ ":=" ~ rval} //TODO
+assign_action = { lval ~ ":=" ~ rval}
 assign_logical_action = { fmla  ~ ":=" ~ log_term}
 assert_action = { ASSERT ~ fmla}
 assume_action = { ASSUME ~ fmla}

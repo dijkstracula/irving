@@ -852,7 +852,7 @@ where
                 let expr_t = expr.visit(visitor)?.modifying(expr);
                 visitor.finish_unary_op(op, expr, expr_t)
             }),
-            Expr::ProgramSymbol { span, sym } => {
+            Expr::ProgramSymbol { sym } => {
                 Ok(ControlMut::Produce(visitor.symbol(sym)?.modifying(sym)))
             }
             Expr::This(_) => visitor.this(),

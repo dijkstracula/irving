@@ -43,7 +43,6 @@ pub fn parse_rval(input: Rc<ParserState>, pairs: Pairs<Rule>) -> Result<Expr> {
             match primary.as_rule() {
                 Rule::THIS => Ok(Expr::This(span)),
                 Rule::PROGTOK => Ok(Expr::ProgramSymbol {
-                    span: span.clone(),
                     sym: Symbol::from(primary.as_str(), Sort::ToBeInferred, span),
                 }),
                 Rule::boollit => {
@@ -119,8 +118,8 @@ pub fn parse_rval(input: Rc<ParserState>, pairs: Pairs<Rule>) -> Result<Expr> {
             };
 
             if verb == Verb::Dot {
-                let (rhs_span, field) = match rhs? {
-                    Expr::ProgramSymbol { span, sym } => (span, sym),
+                let field = match rhs? {
+                    Expr::ProgramSymbol { sym } => sym,
                     x => {
                         return Err(Error::new_from_span(
                             ErrorVariant::CustomError {
@@ -132,7 +131,7 @@ pub fn parse_rval(input: Rc<ParserState>, pairs: Pairs<Rule>) -> Result<Expr> {
                 };
                 let span = Span::merge(
                     &Span::from_pest(Rc::clone(&input), &op.as_span()),
-                    &rhs_span,
+                    &field.span,
                 );
                 Ok(Expr::FieldAccess {
                     span,

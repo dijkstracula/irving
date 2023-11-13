@@ -165,7 +165,6 @@ pub enum Expr {
     },
 
     ProgramSymbol {
-        span: Span,
         sym: Symbol,
     },
 
@@ -182,7 +181,7 @@ impl Expr {
             Expr::Index { span, .. } => span,
             Expr::Number { span, .. } => span,
             Expr::UnaryOp { span, .. } => span,
-            Expr::ProgramSymbol { span, .. } => span,
+            Expr::ProgramSymbol { sym } => &sym.span,
             Expr::This(span) => span,
         }
     }

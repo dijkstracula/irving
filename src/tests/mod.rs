@@ -185,8 +185,6 @@ pub mod helpers {
         S: Into<String>,
     {
         expressions::Expr::ProgramSymbol {
-            span: Span::IgnoredForTesting,
-
             sym: expressions::Symbol {
                 name: s.into(),
                 decl: expressions::Sort::ToBeInferred,

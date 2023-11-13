@@ -472,8 +472,8 @@ mod tests {
 
     #[test]
     fn vardecl_inferred() {
-        let prog = "var i";
-        let mut decl_ast = helpers::decl_from_src(prog);
+        let decl = "var i";
+        let mut decl_ast = helpers::decl_from_src(decl);
 
         let mut tc = SortInferer::new();
         let res = decl_ast

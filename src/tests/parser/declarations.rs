@@ -305,6 +305,14 @@ mod tests {
     }
 
     #[test]
+    fn vardecl_declare_and_assign() {
+        let decl = "var i := 42";
+        let user_data = Rc::new(ParserState::new(PathBuf::from(file!()), decl));
+        IvyParser::parse_with_userdata(Rule::action, decl, user_data)
+            .expect_err("Parsing should fail");
+    }
+
+    #[test]
     fn parse_type_decl() {
         let fragment = "type int";
         helpers::decl_from_src(fragment);
