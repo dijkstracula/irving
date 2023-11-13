@@ -134,6 +134,22 @@ mod tests {
     }
 
     #[test]
+    fn module_multiple_instantiations() {
+        let mut prog = helpers::prog_from_decls(
+            "
+        #lang ivy1.8
+        module m(t) = { }          # Internally, `t` will be a SortVar at this point.
+
+        instance mint : m(int)     # We need to ensure that we can unify that sortvar...
+        instance mbool : m(bool)   # ...with different sorts at different instantiations.
+        ",
+        );
+
+        let mut tc = SortInferer::new();
+        prog.visit(&mut tc).unwrap().modifying(&mut prog);
+    }
+
+    #[test]
     fn multimod_instantiation() {
         // Our dependent module.
         let mut tcp = helpers::tcp_moduledecl();

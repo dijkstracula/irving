@@ -1,7 +1,11 @@
 use std::{collections::HashMap, vec};
 
 use crate::{
-    ast::{expressions::*, span::Span},
+    ast::{
+        declarations::{self, Binding},
+        expressions::*,
+        span::Span,
+    },
     typechecker::sorts::{ActionArgs, Module, Object},
 };
 
@@ -117,6 +121,96 @@ impl BindingResolver {
             .filter_map(|scope| scope.decl_name.clone())
             .collect::<Ident>()
     }
+
+    //
+
+    /// Creates a new Sort with fresh SortVars.
+    pub fn fresh_sortvars(&mut self, sort: &IvySort) -> IvySort {
+        match sort {
+            IvySort::Vector(sort) => IvySort::Vector(Box::new(self.fresh_sortvars(sort))),
+            IvySort::Action(argnames, argsorts, ret, kind) => {
+                let argnames = argnames.clone();
+                let argsorts = match argsorts {
+                    ActionArgs::Unknown => ActionArgs::Unknown,
+                    ActionArgs::List(sorts) => {
+                        ActionArgs::List(sorts.iter().map(|s| self.fresh_sortvars(s)).collect())
+                    }
+                };
+                let ret = match ret {
+                    ActionRet::Unknown => ActionRet::Unknown,
+                    ActionRet::Unit => ActionRet::Unit,
+                    ActionRet::Named(binding) => {
+                        ActionRet::Named(Box::new(declarations::Binding::from(
+                            &binding.name,
+                            self.fresh_sortvars(&binding.decl),
+                            binding.span.clone(),
+                        )))
+                    }
+                };
+                let kind = kind.clone();
+                IvySort::Action(argnames, argsorts, ret, kind)
+            }
+            IvySort::Map(domain, range) => {
+                let domain = domain.iter().map(|s| self.fresh_sortvars(s)).collect();
+                let range = Box::new(self.fresh_sortvars(range.as_ref()));
+                IvySort::Map(domain, range)
+            }
+            IvySort::Class(clz) => {
+                let name = clz.name.clone();
+                let parent = clz
+                    .parent
+                    .as_ref()
+                    .map(|s| Box::new(self.fresh_sortvars(s.as_ref())));
+                let actions = clz
+                    .actions
+                    .iter()
+                    .map(|(k, v)| (k.clone(), self.fresh_sortvars(v)))
+                    .collect();
+                let fields = clz
+                    .fields
+                    .iter()
+                    .map(|(k, v)| (k.clone(), self.fresh_sortvars(v)))
+                    .collect();
+                IvySort::Class(Class {
+                    name,
+                    parent,
+                    actions,
+                    fields,
+                })
+            }
+            IvySort::Module(module) => {
+                let name = module.name.clone();
+                let args = module
+                    .args
+                    .iter()
+                    .map(|(k, v)| (k.clone(), self.fresh_sortvars(v)))
+                    .collect();
+                let fields = module
+                    .fields
+                    .iter()
+                    .map(|(k, v)| (k.clone(), self.fresh_sortvars(v)))
+                    .collect();
+                IvySort::Module(Module { name, args, fields })
+            }
+            IvySort::Object(obj) => {
+                let args = obj
+                    .args
+                    .iter()
+                    .map(|b| Binding::from(&b.name, self.fresh_sortvars(&b.decl), b.span.clone()))
+                    .collect();
+                let fields = obj
+                    .fields
+                    .iter()
+                    .map(|(k, v)| (k.clone(), self.fresh_sortvars(v)))
+                    .collect();
+                IvySort::Object(Object { args, fields })
+            }
+            IvySort::SortVar(_) => self.new_sortvar(),
+            s => s.clone(),
+        }
+    }
+
+    //
 
     pub fn lookup_sym(&self, sym: &str) -> Option<&IvySort> {
         self.scopes
@@ -471,7 +565,7 @@ impl BindingResolver {
 pub enum ResolverError {
     ActionKindMismatch(ActionKind, ActionKind),
     LenMismatch(usize, usize),
-    MissingField(String),
+    //MissingField(String),
     NotARecord(IvySort),
     ReboundVariable {
         sym: Token,
@@ -494,7 +588,7 @@ impl ResolverError {
                     expected: lhs,
                     actual: rhs,
                 },
-                ResolverError::MissingField(field) => TypeError::MissingRecordField(field),
+                //ResolverError::MissingField(field) => TypeError::MissingRecordField(field),
                 ResolverError::NotARecord(sort) => TypeError::NotARecord(sort.desc()),
                 ResolverError::ReboundVariable { sym, prev, new } => TypeError::ReboundVariable {
                     sym,

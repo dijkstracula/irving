@@ -37,7 +37,11 @@ impl Visitor<(), TypeError> for SortSubstituter {
         s: &mut expressions::Sort,
     ) -> VisitorResult<(), TypeError, expressions::Sort> {
         match s {
-            expressions::Sort::ToBeInferred | expressions::Sort::Annotated(_) => {
+            expressions::Sort::ToBeInferred => {
+                log::warn!("Assuming ToBeInferred is a nat");
+                Ok(ControlMut::Produce(()))
+            }
+            expressions::Sort::Annotated(_) => {
                 panic!("Didn't fully infer sort {:?}", s);
             }
             expressions::Sort::Resolved(is) => {

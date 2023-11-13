@@ -4,15 +4,14 @@
 # we pull it out of the grammar?
 
 module unbounded_sequence = {
-    object impl {
-
-    }
+    type t
+    alias t = this
 
     # returns the least key greater than x
-    action next(x:impl) returns (y:impl)
+    action next(x:this) returns (y:this)
 
     # returns the greatest key less than x
-    action prev(x:impl) returns (y:impl)
+    action prev(x:this) returns (y:this)
 
 }
 

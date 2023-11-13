@@ -72,7 +72,7 @@ impl TypeError {
         Self::UnificationError(format!("{}", lhs), format!("{}", rhs))
     }
 
-    pub fn rewrap(self, span: &Span) -> Self {
+    pub fn wrap(self, span: &Span) -> Self {
         match self {
             TypeError::Spanned { span, inner } => match span {
                 Span::Todo => TypeError::Spanned {

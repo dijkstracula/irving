@@ -8,7 +8,10 @@ module vector(range) = {
     action empty returns (a: this)
     action append(a: this, x: range) returns (y: this)
 
-    action end(a: this) returns (len: nat)
+    # This is sequence_iterator
+    action begin(a: this) returns (y:nat)
+    action value(a: this, idx: nat) returns (y:range)
+    action end(a: this) returns (y:nat)
 }
 
 module option(range) = {

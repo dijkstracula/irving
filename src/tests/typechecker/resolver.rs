@@ -83,4 +83,26 @@ mod tests {
             vec!("a".to_string(), "x".to_string(), "y".to_string())
         );
     }
+
+    #[test]
+    fn fresh_sortvars() {
+        // Base case: we can create distinct sortvars.
+        let mut r = BindingResolver::new();
+        let si = r.new_sortvar();
+        let si2 = r.fresh_sortvars(&si);
+        assert_ne!(si, si2);
+
+        let si = IvySort::Module(Module {
+            name: "array".into(),
+            args: vec![("domain".into(), si), ("range".into(), si2)],
+            fields: [
+                ("this".into(), IvySort::This),
+                ("t".into(), IvySort::This),
+                ("init".into(), Module::init_action_sort()),
+            ]
+            .into(),
+        });
+        let si2 = r.fresh_sortvars(&si);
+        assert_ne!(si, si2);
+    }
 }

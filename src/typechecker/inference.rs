@@ -281,7 +281,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
             // TODO: and of course other builtins.
             _ => match self.bindings.lookup_sym(sym) {
                 Some(sort) => Ok(ControlMut::Produce(sort.clone())),
-                None => Err(TypeError::UnboundVariable(sym.clone()).rewrap(span)),
+                None => Err(TypeError::UnboundVariable(sym.clone()).wrap(span)),
             },
         }
     }
@@ -527,7 +527,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
                 .or(cls.actions.get(&rhs.name))
                 .cloned()),
             IvySort::SortVar(id) => Ok(Some(IvySort::SortVar(*id))),
-            sort => Err(TypeError::NotARecord(sort.desc()).rewrap(span)),
+            sort => Err(TypeError::NotARecord(sort.desc()).wrap(span)),
         }?
         // Next, if the RHS expression has a known type, ensure it doesn't contradict
         // what we figured out from the field access.
@@ -566,7 +566,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
                 rhs.decl = Sort::Resolved(sort.clone());
                 Ok(ControlMut::SkipSiblings(sort))
             }
-            None => Err(TypeError::MissingRecordField(rhs.name.clone()).rewrap(span)),
+            None => Err(TypeError::MissingRecordField(rhs.name.clone()).wrap(span)),
         }
     }
 
@@ -663,7 +663,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
             } => {
                 for arg in args {
                     if let logic::Fmla::LogicSymbol { sym, .. } = arg {
-                        let s = self.param(sym).map_err(|e| e.rewrap(span))?.modifying(sym);
+                        let s = self.param(sym).map_err(|e| e.wrap(span))?.modifying(sym);
                         self.bindings
                             .append(sym.name.clone(), s)
                             .map_err(|e| e.to_typeerror(span))?;
@@ -796,6 +796,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
 
     fn begin_logical_field_access(
         &mut self,
+        span: &Span,
         lhs: &mut logic::Fmla,
         rhs: &mut Symbol,
     ) -> InferenceResult<logic::Fmla> {
@@ -867,7 +868,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
                 rhs.decl = Sort::Resolved(sort.clone());
                 Ok(ControlMut::SkipSiblings(sort))
             }
-            None => Err(TypeError::MissingRecordField(rhs.name.clone())),
+            None => Err(TypeError::MissingRecordField(rhs.name.clone()).wrap(span)),
         }
     }
 
@@ -1522,48 +1523,56 @@ impl Visitor<IvySort, TypeError> for SortInferer {
 
     fn begin_instance_decl(
         &mut self,
+        span: &Span,
         name: &mut Token,
         _ast: &mut declarations::InstanceDecl,
     ) -> InferenceResult<declarations::Decl> {
         let v = self.bindings.new_sortvar();
         self.bindings
             .append(name.clone(), v)
-            .map_err(|e| e.to_typeerror(&Span::Todo))?;
+            .map_err(|e| e.to_typeerror(span))?;
         Ok(ControlMut::Produce(IvySort::Unit))
     }
     fn finish_instance_decl(
         &mut self,
+        span: &Span,
         name: &mut Token,
         _ast: &mut declarations::InstanceDecl,
         decl_sort: IvySort,
         module_sort: IvySort,
         mod_args_sorts: Vec<IvySort>,
     ) -> InferenceResult<declarations::Decl> {
+        // We need fresh SortVars to unify this particular instance against!
+        let module_sort = self.bindings.fresh_sortvars(&module_sort);
+
         if let IvySort::Module(module) = module_sort {
             if !mod_args_sorts.is_empty() {
                 // Will have to monomorphize with the module instantiation pass.
-                println!("Uh oh: {:?} {:?}", name, module);
-                for (i, x) in self.bindings.ctx.iter().enumerate() {
-                    println!("ctx[{i}]: {x:?}");
-                }
+                //println!("Uh oh: {:?} {:?}", name, module);
+                //for (i, x) in self.bindings.ctx.iter().enumerate() {
+                //    println!("ctx[{i}]: {x:?}");
+                // }
 
                 for ((_name, s1), s2) in module.args.iter().zip(mod_args_sorts.iter()) {
                     self.bindings
                         .unify(s1, s2)
-                        .map_err(|e| e.to_typeerror(&Span::Todo))?;
+                        .map_err(|e| e.to_typeerror(span))?;
                 }
 
                 let monomorphized = module_instantiation::instantiate(module, mod_args_sorts)?;
                 let unified = self
                     .bindings
                     .unify(&decl_sort, &monomorphized)
-                    .map_err(|e| e.to_typeerror(&Span::Todo))?;
-                //println!("Yay? {name} {:?}", unified);
+                    .map_err(|e| e.to_typeerror(span))?;
 
                 if let IvySort::Module(Module { .. }) = unified {
-                    return Ok(ControlMut::Produce(unified));
+                    Ok(ControlMut::Produce(unified))
+                } else {
+                    Err(TypeError::Spanned {
+                        span: span.clone(),
+                        inner: Box::new(TypeError::NotInstanceable(unified.desc())),
+                    })
                 }
-                unreachable!()
             } else {
                 let modsort = IvySort::Module(Module {
                     name: name.clone(),
@@ -1573,14 +1582,14 @@ impl Visitor<IvySort, TypeError> for SortInferer {
                 let unified = self
                     .bindings
                     .unify(&decl_sort, &modsort)
-                    .map_err(|e| e.to_typeerror(&Span::Todo))?;
+                    .map_err(|e| e.to_typeerror(span))?;
                 Ok(ControlMut::Produce(unified))
             }
         } else {
-            return Err(TypeError::Spanned {
-                span: Span::Todo,
+            Err(TypeError::Spanned {
+                span: span.clone(),
                 inner: Box::new(TypeError::NotInstanceable(module_sort.desc())),
-            });
+            })
         }
     }
 

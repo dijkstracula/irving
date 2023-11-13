@@ -296,7 +296,7 @@ mod tests {
         let res = getop.visit(&mut tc).unwrap_err();
         assert_eq!(
             res,
-            TypeError::NotARecord(IvySort::Number.desc()).rewrap(&Span::IgnoredForTesting)
+            TypeError::NotARecord(IvySort::Number.desc()).wrap(&Span::IgnoredForTesting)
         );
     }
 

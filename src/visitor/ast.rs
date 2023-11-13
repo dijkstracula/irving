@@ -368,6 +368,7 @@ where
 
     fn begin_instance_decl(
         &mut self,
+        _span: &Span,
         _name: &mut Token,
         _ast: &mut InstanceDecl,
     ) -> VisitorResult<T, E, Decl> {
@@ -375,6 +376,7 @@ where
     }
     fn finish_instance_decl(
         &mut self,
+        _span: &Span,
         _name: &mut Token,
         _ast: &mut InstanceDecl,
         _n: T,
@@ -568,8 +570,9 @@ where
 
     fn begin_logical_field_access(
         &mut self,
+        _span: &Span,
         _lhs: &mut Fmla,
-        rhs: &mut Symbol,
+        _rhs: &mut Symbol,
     ) -> VisitorResult<T, E, Fmla> {
         Ok(ControlMut::Produce(T::default()))
     }
@@ -899,7 +902,7 @@ where
                         ref mut field,
                     },
             } => visitor
-                .begin_logical_field_access(record, field)?
+                .begin_logical_field_access(span, record, field)?
                 .and_then(|_| {
                     let r = record.visit(visitor)?.modifying(record);
                     let f = visitor.symbol(field)?.modifying(field);
@@ -1129,18 +1132,20 @@ where
                         ref span,
                     },
                 ..
-            } => visitor.begin_instance_decl(name, decl)?.and_then(|_| {
-                let n = visitor.token(span, name)?.modifying(name);
-                let s = visitor
-                    .identifier(span, &mut decl.sort)?
-                    .modifying(&mut decl.sort);
-                let a = decl
-                    .args
-                    .iter_mut()
-                    .map(|p| Ok(visitor.token(span, &mut p.name)?.modifying(&mut p.name)))
-                    .collect::<Result<Vec<_>, _>>()?;
-                visitor.finish_instance_decl(name, decl, n, s, a)
-            }),
+            } => visitor
+                .begin_instance_decl(span, name, decl)?
+                .and_then(|_| {
+                    let n = visitor.token(span, name)?.modifying(name);
+                    let s = visitor
+                        .identifier(span, &mut decl.sort)?
+                        .modifying(&mut decl.sort);
+                    let a = decl
+                        .args
+                        .iter_mut()
+                        .map(|p| Ok(visitor.token(span, &mut p.name)?.modifying(&mut p.name)))
+                        .collect::<Result<Vec<_>, _>>()?;
+                    visitor.finish_instance_decl(span, name, decl, n, s, a)
+                }),
             Decl::Instantiate { name, prms } => todo!(),
             Decl::Interpret {
                 decl:

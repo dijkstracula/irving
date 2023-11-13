@@ -360,13 +360,14 @@ where
 
     fn begin_instance_decl(
         &mut self,
+        span: &Span,
         name: &mut Token,
         ast: &mut declarations::InstanceDecl,
     ) -> ExtractResult<declarations::Decl> {
         self.pp.write_str("instance ")?;
-        self.token(&Span::Todo, name)?;
+        self.token(span, name)?;
         self.pp.write_str(" = ")?;
-        self.identifier(&Span::Todo, &mut ast.sort)?
+        self.identifier(span, &mut ast.sort)?
             .modifying(&mut ast.sort);
         if !ast.args.is_empty() {
             self.pp.write_str("(")?;
@@ -620,6 +621,7 @@ where
 
     fn begin_logical_field_access(
         &mut self,
+        _span: &Span,
         lhs: &mut logic::Fmla,
         rhs: &mut Symbol,
     ) -> VisitorResult<(), std::fmt::Error, logic::Fmla> {
