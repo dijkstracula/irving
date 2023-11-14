@@ -175,6 +175,16 @@ impl<T> Binding<T> {
     }
 }
 
+#[cfg(test)]
+impl Binding<Sort> {
+    pub fn inferred<S>(name: S) -> Self
+    where
+        S: Into<String>,
+    {
+        Self::from(name, Sort::ToBeInferred, Span::IgnoredForTesting)
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(clippy::large_enum_variant)]
 pub enum Decl {
