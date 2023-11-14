@@ -513,9 +513,13 @@ impl Visitor<IvySort, TypeError> for SortInferer {
         // First begin by confirming that the LHS is something we can get a field out of.
         // If it is, get the field's type.
         let rhs_sort = match &lhs_sort {
-            IvySort::Module(module) => {
-                Ok::<Option<IvySort>, TypeError>(module.fields.get(&rhs.name).cloned())
+            IvySort::Number => {
+                // Possibly we can lift a Number into an unbounded_sequence here
+                // instead of dealing with `interpret t -> nat`.  Until then, though,
+                // this remains a type error.
+                Err(TypeError::NotARecord(lhs_sort.desc()).wrap(span))
             }
+            IvySort::Module(module) => Ok(module.fields.get(&rhs.name).cloned()),
             IvySort::Object(proc) => {
                 let s = proc.fields.get(&rhs.name);
                 is_common = s.is_none();

@@ -1,4 +1,7 @@
-use std::{collections::HashMap, vec};
+use std::{
+    collections::{BTreeMap, HashMap},
+    vec,
+};
 
 use crate::{
     ast::{
@@ -125,16 +128,25 @@ impl BindingResolver {
     //
 
     /// Creates a new Sort with fresh SortVars.
-    pub fn fresh_sortvars(&mut self, sort: &IvySort) -> IvySort {
+    fn fresh_sortvars_iter(
+        &mut self,
+        svar_map: &mut BTreeMap<usize, usize>,
+        sort: &IvySort,
+    ) -> IvySort {
         match sort {
-            IvySort::Vector(sort) => IvySort::Vector(Box::new(self.fresh_sortvars(sort))),
+            IvySort::Vector(sort) => {
+                IvySort::Vector(Box::new(self.fresh_sortvars_iter(svar_map, sort)))
+            }
             IvySort::Action(argnames, argsorts, ret, kind) => {
                 let argnames = argnames.clone();
                 let argsorts = match argsorts {
                     ActionArgs::Unknown => ActionArgs::Unknown,
-                    ActionArgs::List(sorts) => {
-                        ActionArgs::List(sorts.iter().map(|s| self.fresh_sortvars(s)).collect())
-                    }
+                    ActionArgs::List(sorts) => ActionArgs::List(
+                        sorts
+                            .iter()
+                            .map(|s| self.fresh_sortvars_iter(svar_map, s))
+                            .collect(),
+                    ),
                 };
                 let ret = match ret {
                     ActionRet::Unknown => ActionRet::Unknown,
@@ -142,7 +154,7 @@ impl BindingResolver {
                     ActionRet::Named(binding) => {
                         ActionRet::Named(Box::new(declarations::Binding::from(
                             &binding.name,
-                            self.fresh_sortvars(&binding.decl),
+                            self.fresh_sortvars_iter(svar_map, &binding.decl),
                             binding.span.clone(),
                         )))
                     }
@@ -151,8 +163,11 @@ impl BindingResolver {
                 IvySort::Action(argnames, argsorts, ret, kind)
             }
             IvySort::Map(domain, range) => {
-                let domain = domain.iter().map(|s| self.fresh_sortvars(s)).collect();
-                let range = Box::new(self.fresh_sortvars(range.as_ref()));
+                let domain = domain
+                    .iter()
+                    .map(|s| self.fresh_sortvars_iter(svar_map, s))
+                    .collect();
+                let range = Box::new(self.fresh_sortvars_iter(svar_map, range.as_ref()));
                 IvySort::Map(domain, range)
             }
             IvySort::Class(clz) => {
@@ -160,16 +175,16 @@ impl BindingResolver {
                 let parent = clz
                     .parent
                     .as_ref()
-                    .map(|s| Box::new(self.fresh_sortvars(s.as_ref())));
+                    .map(|s| Box::new(self.fresh_sortvars_iter(svar_map, s.as_ref())));
                 let actions = clz
                     .actions
                     .iter()
-                    .map(|(k, v)| (k.clone(), self.fresh_sortvars(v)))
+                    .map(|(k, v)| (k.clone(), self.fresh_sortvars_iter(svar_map, v)))
                     .collect();
                 let fields = clz
                     .fields
                     .iter()
-                    .map(|(k, v)| (k.clone(), self.fresh_sortvars(v)))
+                    .map(|(k, v)| (k.clone(), self.fresh_sortvars_iter(svar_map, v)))
                     .collect();
                 IvySort::Class(Class {
                     name,
@@ -183,12 +198,12 @@ impl BindingResolver {
                 let args = module
                     .args
                     .iter()
-                    .map(|(k, v)| (k.clone(), self.fresh_sortvars(v)))
+                    .map(|(k, v)| (k.clone(), self.fresh_sortvars_iter(svar_map, v)))
                     .collect();
                 let fields = module
                     .fields
                     .iter()
-                    .map(|(k, v)| (k.clone(), self.fresh_sortvars(v)))
+                    .map(|(k, v)| (k.clone(), self.fresh_sortvars_iter(svar_map, v)))
                     .collect();
                 IvySort::Module(Module { name, args, fields })
             }
@@ -196,18 +211,41 @@ impl BindingResolver {
                 let args = obj
                     .args
                     .iter()
-                    .map(|b| Binding::from(&b.name, self.fresh_sortvars(&b.decl), b.span.clone()))
+                    .map(|b| {
+                        Binding::from(
+                            &b.name,
+                            self.fresh_sortvars_iter(svar_map, &b.decl),
+                            b.span.clone(),
+                        )
+                    })
                     .collect();
                 let fields = obj
                     .fields
                     .iter()
-                    .map(|(k, v)| (k.clone(), self.fresh_sortvars(v)))
+                    .map(|(k, v)| (k.clone(), self.fresh_sortvars_iter(svar_map, v)))
                     .collect();
                 IvySort::Object(Object { args, fields })
             }
-            IvySort::SortVar(_) => self.new_sortvar(),
+            IvySort::SortVar(id) => match svar_map.get(id) {
+                None => {
+                    let new = self.new_sortvar();
+                    let new_id = match &new {
+                        IvySort::SortVar(id) => *id,
+                        _ => unreachable!(),
+                    };
+
+                    svar_map.insert(*id, new_id);
+                    new
+                }
+                Some(id) => IvySort::SortVar(*id),
+            },
             s => s.clone(),
         }
+    }
+
+    pub fn fresh_sortvars(&mut self, sort: &IvySort) -> IvySort {
+        let mut svar_map = BTreeMap::new();
+        self.fresh_sortvars_iter(&mut svar_map, sort)
     }
 
     //

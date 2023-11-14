@@ -1,8 +1,15 @@
 #[cfg(test)]
 mod tests {
-    use crate::typechecker::{
-        sorts::{IvySort, Module},
-        unifier::{BindingResolver, ResolverError},
+    use crate::{
+        ast::{declarations::Binding, span::Span},
+        typechecker::{
+            sorts::{
+                ActionArgs, ActionKind,
+                ActionRet::{self, Named},
+                IvySort, Module,
+            },
+            unifier::{BindingResolver, ResolverError},
+        },
     };
 
     fn resolver_with_bindings() -> BindingResolver {
@@ -86,12 +93,14 @@ mod tests {
 
     #[test]
     fn fresh_sortvars() {
-        // Base case: we can create distinct sortvars.
         let mut r = BindingResolver::new();
+
+        // Primitive case: we can create distinct sortvars.
         let si = r.new_sortvar();
         let si2 = r.fresh_sortvars(&si);
         assert_ne!(si, si2);
 
+        // Compound case: we can recurse into complicated sorts
         let si = IvySort::Module(Module {
             name: "array".into(),
             args: vec![("domain".into(), si), ("range".into(), si2)],
@@ -104,5 +113,83 @@ mod tests {
         });
         let si2 = r.fresh_sortvars(&si);
         assert_ne!(si, si2);
+    }
+
+    #[test]
+    fn fresh_sortvar_consistent_mapping() {
+        let mut r = BindingResolver::new();
+        let t = r.new_sortvar();
+        assert_eq!(t, IvySort::SortVar(0));
+
+        // Note that we have a consistent use of SortVar(0) here.
+        let si = IvySort::Module(Module {
+            name: "box".into(),
+            args: vec![("range".into(), t.clone())],
+            fields: [
+                ("this".into(), IvySort::This),
+                ("t".into(), IvySort::This),
+                ("init".into(), Module::init_action_sort()),
+                (
+                    "get".into(),
+                    IvySort::Action(
+                        vec![],
+                        ActionArgs::List(vec![]),
+                        Named(Box::new(Binding::from(
+                            "ret",
+                            t.clone(),
+                            Span::IgnoredForTesting,
+                        ))),
+                        ActionKind::Exported,
+                    ),
+                ),
+                (
+                    "put".into(),
+                    IvySort::Action(
+                        vec!["val".to_owned()],
+                        ActionArgs::List(vec![t.clone()]),
+                        ActionRet::Unit,
+                        ActionKind::Exported,
+                    ),
+                ),
+            ]
+            .into(),
+        });
+        let si2 = r.fresh_sortvars(&si);
+        let t = IvySort::SortVar(1);
+        assert_eq!(
+            si2,
+            IvySort::Module(Module {
+                name: "box".into(),
+                args: vec![("range".into(), t.clone())],
+                fields: [
+                    ("this".into(), IvySort::This),
+                    ("t".into(), IvySort::This),
+                    ("init".into(), Module::init_action_sort()),
+                    (
+                        "get".into(),
+                        IvySort::Action(
+                            vec![],
+                            ActionArgs::List(vec!()),
+                            Named(Box::new(Binding::from(
+                                "ret",
+                                t.clone(),
+                                Span::IgnoredForTesting
+                            ))),
+                            ActionKind::Exported
+                        )
+                    ),
+                    (
+                        "put".into(),
+                        IvySort::Action(
+                            vec!("val".to_owned()),
+                            ActionArgs::List(vec!(t.clone())),
+                            ActionRet::Unit,
+                            ActionKind::Exported
+                        )
+                    )
+                ]
+                .into(),
+            })
+        );
     }
 }
