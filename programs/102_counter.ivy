@@ -24,7 +24,7 @@ process mutator = {
 
     implement add {
         if n > 0 {
-            inc();
+            inc;
             add(n-1);
         }
     }

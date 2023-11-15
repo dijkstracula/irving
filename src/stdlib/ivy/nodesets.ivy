@@ -1,5 +1,9 @@
 #lang ivy1.8
 
 module indexset(range) = {
-    type t
+    type this
+    alias t = this
+
+    action emptyset returns (z: t)
+    action add(s: t, x: range) returns (z: t)
 }

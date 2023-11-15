@@ -11,6 +11,7 @@ mod tests {
             statements::Stmt,
         },
         parser::ivy::{IvyParser, ParserState, Rule},
+        tests::helpers,
         typechecker::{
             inference::SortInferer,
             sorts::{self, IvySort},
@@ -230,14 +231,6 @@ mod tests {
             action_sort,
             IvySort::action_sort(vec![], vec![], sorts::ActionRet::named("y", IvySort::Bool))
         );
-
-        // Applying the action should produce a bool.
-        let mut action_app = expr_from_src("m.doit()");
-        let res = action_app
-            .visit(&mut tc)
-            .unwrap()
-            .modifying(&mut action_app);
-        assert_eq!(res, IvySort::Bool);
     }
 
     #[test]
@@ -265,13 +258,6 @@ mod tests {
                 vec![IvySort::Bool],
                 sorts::ActionRet::named("y", IvySort::Bool)
             )
-        );
-
-        let mut action_app = expr_from_src("m.doit()");
-        let err = action_app.visit(&mut tc).unwrap_err();
-        assert_eq!(
-            err,
-            ResolverError::LenMismatch(1, 0).to_typeerror(&Span::IgnoredForTesting)
         );
 
         let mut action_app = expr_from_src("m.doit(42)");
@@ -322,13 +308,6 @@ mod tests {
             )
         );
 
-        let mut action_app = expr_from_src("m.doit()");
-        let res = action_app
-            .visit(&mut tc)
-            .unwrap()
-            .modifying(&mut action_app);
-        assert_eq!(res, IvySort::Bool);
-
         let mut action_app = expr_from_src("m.doit(m)");
         let err = action_app.visit(&mut tc).unwrap_err();
         assert_eq!(
@@ -347,6 +326,11 @@ mod tests {
             # A nullary action.  I should be able to invoke this action
             # either as `m.doit()` or `m.doit`!
             action doit returns (y: bool)
+
+            after init {
+                var b: bool;
+                b := doit;
+            }
         }",
         );
 
@@ -362,23 +346,6 @@ mod tests {
             action_sort,
             IvySort::action_sort(vec![], vec![], sorts::ActionRet::named("y", IvySort::Bool))
         );
-
-        let mut action_app = expr_from_src("m.doit()");
-        let res = action_app
-            .visit(&mut tc)
-            .unwrap()
-            .modifying(&mut action_app);
-        assert_eq!(res, IvySort::Bool);
-
-        /*
-        TODO: https://github.com/dijkstracula/irving/issues/36
-        let mut action_app = expr_from_src("m.doit");
-        let res = action_app
-            .visit(&mut tc)
-            .unwrap()
-            .modifying(&mut action_app);
-        assert_eq!(res, IvySort::Bool);
-        */
     }
 
     #[test]
@@ -513,5 +480,47 @@ mod tests {
             }
             _ => unreachable!(),
         };
+    }
+
+    #[test]
+    fn action_nullary_application() {
+        let mut iso = isolate_from_src(
+            "process foo = {
+            action bar returns (n: nat)
+
+            action baz(x: bool) = {
+                var n: nat;
+                n := bar;
+            }
+        } ",
+        );
+
+        let mut tc = SortInferer::new();
+        let _ = iso.visit(&mut tc).unwrap().modifying(&mut iso);
+    }
+
+    #[test]
+    fn action_nullary_application_opaque_ret_sort() {
+        let mut iso = helpers::prog_from_decls(
+            "#lang ivy1.8
+
+            module m = {
+                type this
+                alias t = this
+                action grok(t: this) returns (z: this)
+            }
+
+            process foo = {
+                action bar returns (n: nat)
+
+                action baz(x: bool) = {
+                    var n: m;
+                    n := n.grok; # m is not m.this, but m should unify with m.this
+                }
+            }",
+        );
+
+        let mut tc = SortInferer::new();
+        let _ = iso.visit(&mut tc).unwrap().modifying(&mut iso);
     }
 }

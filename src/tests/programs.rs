@@ -48,6 +48,12 @@ mod accord {
     use crate::tests::helpers;
 
     #[test]
+    fn typecheck_abstract_protocol() {
+        let _ast =
+            helpers::typeinference_from_filename("programs/accord-ivy/src/abstract_protocol.ivy");
+    }
+
+    #[test]
     fn typecheck_messages() {
         let _ast = helpers::typeinference_from_filename("programs/accord-ivy/src/messages.ivy");
     }

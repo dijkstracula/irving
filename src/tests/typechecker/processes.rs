@@ -255,7 +255,7 @@ mod tests {
                 var contents: file
 
                 after init {
-                    contents := file.empty();
+                    contents := file.empty;
                 }
 
                 implement append {

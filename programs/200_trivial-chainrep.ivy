@@ -25,7 +25,7 @@ process host(self:pid) = {
     var contents : file
 
     after init {
-        contents := file.empty();
+        contents := file.empty;
     }
    
     # Implement the client 'append' request

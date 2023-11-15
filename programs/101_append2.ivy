@@ -22,7 +22,7 @@ process host(self:pid) = {
     }
 
     after init {
-        contents := file.empty();
+        contents := file.empty;
     }
 
     implement sock.recv(src: tcp.endpoint, val:byte) {

@@ -20,7 +20,7 @@ primary         = _{ THIS | PROGTOK | number | boollit | "(" ~ rval ~ ")" }
 lval            = { rval }
 
 fnapp_arg  = { rval }
-fnapp_args = { "(" ~ (fnapp_arg ~ ("," ~ fnapp_arg)* )? ~ ")" }
+fnapp_args = { "(" ~ (fnapp_arg ~ ("," ~ fnapp_arg)* ) ~ ")" }
 
 //TODO: only one dimension of indexing, right?
 index      = { "[" ~ rval ~ "]" }

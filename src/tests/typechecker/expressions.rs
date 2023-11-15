@@ -134,18 +134,13 @@ mod tests {
 
     #[test]
     fn test_call_resolved() {
-        let prog = "f()";
+        let prog = "f";
         let mut callop = helpers::rval_from_src(prog);
-        assert!(matches!(
-            callop,
-            expressions::Expr::App {
-                expr: expressions::AppExpr {
-                    func_sort: Sort::ToBeInferred,
-                    ..
-                },
-                ..
-            }
-        ));
+
+        // Prior to typechecking, we only know that `f` is some program symbol.
+        // We don't yet know that it's an action, and evaluating it should be
+        // the same thing as applying it with no arguments!
+        assert!(matches!(callop, expressions::Expr::ProgramSymbol { .. }));
 
         let mut tc = SortInferer::new();
         tc.bindings
@@ -175,19 +170,19 @@ mod tests {
 
     #[test]
     fn test_call_unresolved() {
-        let prog = "f()";
+        let prog = "f";
         let mut callop = helpers::rval_from_src(prog);
 
         let mut tc = SortInferer::new();
         let var = tc.bindings.new_sortvar();
         tc.bindings.append("f".into(), var).unwrap();
         let res = callop.visit(&mut tc).expect("visit").modifying(&mut callop);
-        assert_eq!(res, IvySort::SortVar(1));
+        assert!(matches!(res, IvySort::SortVar(_)));
     }
 
     #[test]
     fn test_call_invalid() {
-        let prog = "f()";
+        let prog = "f(42)";
         let mut callop = helpers::rval_from_src(prog);
 
         let mut tc = SortInferer::new();
@@ -202,7 +197,7 @@ mod tests {
                     &IvySort::Number,
                     &IvySort::Action(
                         vec!(),
-                        ActionArgs::List(vec!()),
+                        ActionArgs::List(vec!(IvySort::Number)),
                         sorts::ActionRet::Unknown,
                         sorts::ActionKind::Unknown
                     )

@@ -126,6 +126,7 @@ impl SortInferer {
 
     fn insert_action_into_scope(
         &mut self,
+        span: &Span,
         ast: &mut declarations::ActionMixinDecl,
     ) -> Result<(), TypeError> {
         let mut curr_path = self.bindings.named_scope_path();
@@ -135,14 +136,14 @@ impl SortInferer {
         let original_decl = self
             .bindings
             .lookup_ident(&ast.name)
-            .map_err(|e| e.to_typeerror(&Span::Todo))?
+            .map_err(|e| e.to_typeerror(span))?
             .clone();
         match original_decl {
             IvySort::Action(argnames, ActionArgs::List(argsorts), ret, _kind) => {
                 for (name, sort) in argnames.iter().take(argsorts.len()).zip(argsorts.iter()) {
                     self.bindings
                         .append(name.clone(), sort.clone())
-                        .map_err(|e| e.to_typeerror(&Span::Todo))?;
+                        .map_err(|e| e.to_typeerror(span))?;
                 }
                 match ret {
                     ActionRet::Unknown => todo!(),
@@ -236,6 +237,27 @@ impl Visitor<IvySort, TypeError> for SortInferer {
             Sort::Resolved(ivysort) => ControlMut::Produce(self.bindings.resolve(ivysort).clone()),
         };
         Ok(ctrl)
+    }
+
+    fn program_symbol(&mut self, sym: &mut Symbol) -> InferenceResult<Expr> {
+        let sym_sort = self.symbol(sym)?.modifying(sym); 
+
+        // If the program symbol is a nullary action, this expression is
+        // actually a call!  
+        if let IvySort::Action(args,_, ActionRet::Named(ret), _) = &sym_sort {
+            if args.len() == 0 {
+                let callexpr = Expr::App { 
+                    span: sym.span.clone(), 
+                    expr: expressions::AppExpr { 
+                        func: Box::new(Expr::ProgramSymbol { sym: sym.clone() }), 
+                        func_sort: Sort::Resolved(sym_sort.clone()), 
+                        args: vec!() 
+                    }
+                };
+                return Ok(ControlMut::Mutation(callexpr, ret.decl.clone()));
+            }
+        }
+        Ok(ControlMut::Produce(sym_sort))
     }
 
     fn symbol(&mut self, p: &mut expressions::Symbol) -> InferenceResult<expressions::Symbol> {
@@ -963,12 +985,12 @@ impl Visitor<IvySort, TypeError> for SortInferer {
 
     fn begin_after_decl(
         &mut self,
-        _span: &Span,
+        span: &Span,
         ast: &mut declarations::ActionMixinDecl,
     ) -> InferenceResult<declarations::Decl> {
         self.bindings.push_anonymous_scope();
 
-        self.insert_action_into_scope(ast)?;
+        self.insert_action_into_scope(span, ast)?;
 
         Ok(ControlMut::Produce(IvySort::Unit))
     }
@@ -1030,7 +1052,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
     ) -> InferenceResult<declarations::Decl> {
         self.bindings.push_anonymous_scope();
 
-        self.insert_action_into_scope(ast)?;
+        self.insert_action_into_scope(&Span::Todo, ast)?;
 
         Ok(ControlMut::Produce(IvySort::Unit))
     }
@@ -1215,7 +1237,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
     ) -> InferenceResult<declarations::Decl> {
         self.bindings.push_anonymous_scope();
 
-        self.insert_action_into_scope(ast)?;
+        self.insert_action_into_scope(&Span::Todo, ast)?;
 
         Ok(ControlMut::Produce(IvySort::Unit))
     }

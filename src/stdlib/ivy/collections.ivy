@@ -21,3 +21,7 @@ module option(range) = {
     function is_empty(X: t): bool
     function contents(X: t): range
 }
+
+module ordered_set(range) = {
+    type this
+}

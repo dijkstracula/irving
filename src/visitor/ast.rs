@@ -696,6 +696,32 @@ where
         Ok(ControlMut::Produce(T::default()))
     }
 
+    fn logic_symbol(&mut self, sym: &mut Symbol) -> VisitorResult<T, E, Fmla> {
+        // TODO: I wonder how much of this I could automate away if I had a
+        // From<Symbol> for Expr?
+        Ok(match self.symbol(sym)? {
+            ControlMut::Produce(t) => ControlMut::Produce(t),
+            ControlMut::SkipSiblings(t) => ControlMut::SkipSiblings(t),
+            ControlMut::Mutation(sym, t) => ControlMut::Mutation(
+                Fmla::LogicSymbol {
+                    span: sym.span.clone(),
+                    sym,
+                },
+                t,
+            ),
+        })
+    }
+
+    fn program_symbol(&mut self, sym: &mut Symbol) -> VisitorResult<T, E, Expr> {
+        // TODO: I wonder how much of this I could automate away if I had a
+        // From<Symbol> for Expr?
+        Ok(match self.symbol(sym)? {
+            ControlMut::Produce(t) => ControlMut::Produce(t),
+            ControlMut::SkipSiblings(t) => ControlMut::SkipSiblings(t),
+            ControlMut::Mutation(sym, t) => ControlMut::Mutation(Expr::ProgramSymbol { sym }, t),
+        })
+    }
+
     fn symbol(&mut self, p: &mut Symbol) -> VisitorResult<T, E, Symbol> {
         self.token(&p.span, &mut p.name)?.modifying(&mut p.name);
         self.sort(&mut p.decl)?.modifying(&mut p.decl);
@@ -852,9 +878,7 @@ where
                 let expr_t = expr.visit(visitor)?.modifying(expr);
                 visitor.finish_unary_op(op, expr, expr_t)
             }),
-            Expr::ProgramSymbol { sym } => {
-                Ok(ControlMut::Produce(visitor.symbol(sym)?.modifying(sym)))
-            }
+            Expr::ProgramSymbol { sym } => visitor.program_symbol(sym),
             Expr::This(_) => visitor.this(),
         }?
         .modifying(self);
@@ -911,12 +935,10 @@ where
             Fmla::Number { span, val } => Ok(ControlMut::Produce(
                 visitor.number(span, val)?.modifying(val),
             )),
-            Fmla::LogicSymbol { span, sym } => {
-                Ok(ControlMut::Produce(visitor.symbol(sym)?.modifying(sym)))
-            }
+            Fmla::LogicSymbol { span, sym } => visitor.logic_symbol(sym),
             Fmla::ProgramSymbol { span, sym } => {
                 Ok(ControlMut::Produce(visitor.symbol(sym)?.modifying(sym)))
-            }
+            } // XXX: need to call visitor.program_symbol
             Fmla::UnaryOp { span, op, fmla } => {
                 visitor.begin_logical_unary_op(op, fmla)?.and_then(|_| {
                     visitor.verb(op)?.modifying(op);

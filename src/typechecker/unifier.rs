@@ -556,6 +556,16 @@ impl BindingResolver {
                 Ok(IvySort::Map(unified_domain, maprange.clone()))
             }
 
+            // This subtyping relations says that a nullary action is interchangable
+            // with applying it.  (My least favourite programming language "feature"!!!!)
+            (IvySort::Action(args, _, ActionRet::Named(is), _), sort)
+            | (sort, IvySort::Action(args, _, ActionRet::Named(is), _))
+                if args.len() == 0 =>
+            {
+                let unified = self.unify(&is.as_ref().decl, sort)?;
+                Ok(unified)
+            }
+
             // This subtyping relation says that two classes that share a common ancestor
             // should type to that ancestor.
             (

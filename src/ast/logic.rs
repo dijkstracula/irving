@@ -139,6 +139,31 @@ impl Fmla {
     }
 }
 
+impl From<&Box<expressions::Expr>> for Box<Fmla> {
+    fn from(value: &Box<expressions::Expr>) -> Self {
+        Box::new(value.as_ref().into())
+    }
+}
+
+impl From<&expressions::Expr> for Fmla {
+    fn from(value: &expressions::Expr) -> Self {
+        match value {
+            expressions::Expr::App { span, expr } => Fmla::App { span: span.clone(), app: expr.into() },
+            expressions::Expr::BinOp { span, expr } => Fmla::BinOp {
+                span: span.clone(),
+                binop: expr.into()
+            },
+            expressions::Expr::Boolean { span, val } => Fmla::Boolean { span: span.clone(), val: *val },
+            expressions::Expr::FieldAccess { span, expr } => Fmla::FieldAccess { span: span.clone(), fmla: expr.into() },
+            expressions::Expr::Index { span: _, expr: _ } => todo!(),
+            expressions::Expr::Number { span, val } => Fmla::Number { span: span.clone(), val: *val },
+            expressions::Expr::UnaryOp { span, op, expr } => Fmla::UnaryOp { span: span.clone(), op: *op, fmla: expr.into() },
+            expressions::Expr::ProgramSymbol { sym } => Fmla::ProgramSymbol { span: sym.span.clone(), sym: sym.clone() },
+            expressions::Expr::This(_) => todo!(),
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Exists {
     pub vars: ParamList,
@@ -158,14 +183,42 @@ pub struct LogicBinOp {
     pub rhs: Box<Fmla>,
 }
 
+impl From<&expressions::BinOp> for LogicBinOp {
+    fn from(value: &expressions::BinOp) -> Self {
+        LogicBinOp { 
+            lhs: Box::new(value.lhs.as_ref().into()), 
+            op: value.op, 
+            rhs: Box::new(value.rhs.as_ref().into()) 
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LogicApp {
     pub func: Box<Fmla>,
     pub args: Vec<Fmla>,
 }
 
+impl From<&expressions::AppExpr> for LogicApp {
+    fn from(value: &expressions::AppExpr) -> Self {
+        LogicApp { 
+            func: (&value.func).into(), 
+            args: value.args.iter().map(|expr| expr.into()).collect::<>(),
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FieldAccess {
     pub record: Box<Fmla>,
     pub field: Symbol,
+}
+
+impl From<&expressions::FieldAccess> for FieldAccess {
+    fn from(value: &expressions::FieldAccess) -> Self {
+        FieldAccess { 
+            record: (&value.record).into(), 
+            field: value.field.clone()
+        }
+    }
 }
