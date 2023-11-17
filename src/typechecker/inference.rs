@@ -240,19 +240,19 @@ impl Visitor<IvySort, TypeError> for SortInferer {
     }
 
     fn program_symbol(&mut self, sym: &mut Symbol) -> InferenceResult<Expr> {
-        let sym_sort = self.symbol(sym)?.modifying(sym); 
+        let sym_sort = self.symbol(sym)?.modifying(sym);
 
         // If the program symbol is a nullary action, this expression is
-        // actually a call!  
-        if let IvySort::Action(args,_, ActionRet::Named(ret), _) = &sym_sort {
+        // actually a call!
+        if let IvySort::Action(args, _, ActionRet::Named(ret), _) = &sym_sort {
             if args.len() == 0 {
-                let callexpr = Expr::App { 
-                    span: sym.span.clone(), 
-                    expr: expressions::AppExpr { 
-                        func: Box::new(Expr::ProgramSymbol { sym: sym.clone() }), 
-                        func_sort: Sort::Resolved(sym_sort.clone()), 
-                        args: vec!() 
-                    }
+                let callexpr = Expr::App {
+                    span: sym.span.clone(),
+                    expr: expressions::AppExpr {
+                        func: Box::new(Expr::ProgramSymbol { sym: sym.clone() }),
+                        func_sort: Sort::Resolved(sym_sort.clone()),
+                        args: vec![],
+                    },
                 };
                 return Ok(ControlMut::Mutation(callexpr, ret.decl.clone()));
             }
@@ -587,6 +587,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
             _ => Ok(s),
         })
         .transpose()?;
+        println!("NBT: {:?}", lhs_sort);
         match rhs_sort {
             Some(sort) => {
                 rhs.decl = Sort::Resolved(sort.clone());
@@ -594,6 +595,10 @@ impl Visitor<IvySort, TypeError> for SortInferer {
             }
             None => Err(TypeError::MissingRecordField(rhs.name.clone()).wrap(span)),
         }
+    }
+
+    fn begin_index(&mut self, _ast: &mut expressions::IndexExpr) -> InferenceResult<Expr> {
+        panic!("We don't use this");
     }
 
     fn finish_unary_op(

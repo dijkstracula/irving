@@ -569,18 +569,36 @@ impl BindingResolver {
             // This subtyping relation says that two classes that share a common ancestor
             // should type to that ancestor.
             (
-                c1 @ IvySort::Class(Class { parent: p1, .. }),
-                c2 @ IvySort::Class(Class { parent: p2, .. }),
-            ) if p1.is_some() || p2.is_some() => {
-                // XXX: obviously extend this to find the common ancestor.
-                if c1 == c2 {
+                c1 @ IvySort::Class(Class {
+                    name: c1_name,
+                    parent: p1,
+                    ..
+                }),
+                c2 @ IvySort::Class(Class {
+                    name: c2_name,
+                    parent: p2,
+                    ..
+                }),
+            ) => {
+                // TODO: the thing I really need to do is recurse into all the fields' and actions'
+                // sorts, probably in resolve()?
+                if c1_name == c2_name {
+                    // XXX: This is not strictly sound; we need to do better
+                    // than just key on the class name.
                     return Ok(c1.clone());
                 }
-                match (p1, p2) {
-                    (None, Some(x)) if x.as_ref() == c1 => Ok(c1.clone()),
-                    (Some(x), None) if x.as_ref() == c2 => Ok(c2.clone()),
-                    _ => todo!(),
+                if p1.is_some() || p2.is_some() {
+                    // XXX: obviously extend this to find the common ancestor.
+                    if c1 == c2 {
+                        return Ok(c1.clone());
+                    }
+                    match (p1, p2) {
+                        (None, Some(x)) if x.as_ref() == c1 => return Ok(c1.clone()),
+                        (Some(x), None) if x.as_ref() == c2 => return Ok(c2.clone()),
+                        _ => todo!(),
+                    }
                 }
+                Err(ResolverError::UnificationError(c1.clone(), c2.clone()))
             }
 
             // This subtyping relationship says that `this` shoudl only

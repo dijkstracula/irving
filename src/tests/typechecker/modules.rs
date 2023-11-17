@@ -171,6 +171,28 @@ mod tests {
     }
 
     #[test]
+    fn instantiation_with_impl_spec_blocks() {
+        let mut proc = helpers::prog_from_decls(
+            "
+#lang ivy1.8
+module counter = {
+    implementation {
+        individual val : nat
+        after init { val := 0 }
+    }
+}
+
+instance c : counter
+var v : nat
+v := c.val # Even though it's wrapped in an implementation block, val should be at counter's scope.
+",
+        );
+
+        let mut tc = SortInferer::new();
+        let _ast = proc.visit(&mut tc).unwrap().modifying(&mut proc);
+    }
+
+    #[test]
     fn instantiation_with_overloaded_numerals() {
         // From http://microsoft.github.io/ivy/language.html :
         //

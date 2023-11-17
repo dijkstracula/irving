@@ -45,5 +45,6 @@ module sequence_iterator(range) = {
     action create(x:iterable.t) returns (y:t)
     action begin returns (y:t)
     action end returns (y:t)
+    action value returns (y: range)
 }
 

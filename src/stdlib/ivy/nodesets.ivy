@@ -6,4 +6,11 @@ module indexset(range) = {
 
     action emptyset returns (z: t)
     action add(s: t, x: range) returns (z: t)
+
+    action member(v: range, nset: this) returns (z: bool)
+
+    action majority(s: this, other: this) returns (y: bool)
+    action unanimity(s: this, other: this) returns (y: bool)
+
+    action fullset returns (s: this)
 }

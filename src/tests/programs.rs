@@ -72,4 +72,9 @@ mod accord {
     fn typecheck_txn() {
         let _ast = helpers::typeinference_from_filename("programs/accord-ivy/src/txn.ivy");
     }
+
+    #[test]
+    fn typecheck_protocol() {
+        let _ast = helpers::typeinference_from_filename("programs/accord-ivy/src/protocol.ivy");
+    }
 }

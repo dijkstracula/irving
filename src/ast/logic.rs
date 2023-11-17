@@ -148,17 +148,36 @@ impl From<&Box<expressions::Expr>> for Box<Fmla> {
 impl From<&expressions::Expr> for Fmla {
     fn from(value: &expressions::Expr) -> Self {
         match value {
-            expressions::Expr::App { span, expr } => Fmla::App { span: span.clone(), app: expr.into() },
+            expressions::Expr::App { span, expr } => Fmla::App {
+                span: span.clone(),
+                app: expr.into(),
+            },
             expressions::Expr::BinOp { span, expr } => Fmla::BinOp {
                 span: span.clone(),
-                binop: expr.into()
+                binop: expr.into(),
             },
-            expressions::Expr::Boolean { span, val } => Fmla::Boolean { span: span.clone(), val: *val },
-            expressions::Expr::FieldAccess { span, expr } => Fmla::FieldAccess { span: span.clone(), fmla: expr.into() },
+            expressions::Expr::Boolean { span, val } => Fmla::Boolean {
+                span: span.clone(),
+                val: *val,
+            },
+            expressions::Expr::FieldAccess { span, expr } => Fmla::FieldAccess {
+                span: span.clone(),
+                fmla: expr.into(),
+            },
             expressions::Expr::Index { span: _, expr: _ } => todo!(),
-            expressions::Expr::Number { span, val } => Fmla::Number { span: span.clone(), val: *val },
-            expressions::Expr::UnaryOp { span, op, expr } => Fmla::UnaryOp { span: span.clone(), op: *op, fmla: expr.into() },
-            expressions::Expr::ProgramSymbol { sym } => Fmla::ProgramSymbol { span: sym.span.clone(), sym: sym.clone() },
+            expressions::Expr::Number { span, val } => Fmla::Number {
+                span: span.clone(),
+                val: *val,
+            },
+            expressions::Expr::UnaryOp { span, op, expr } => Fmla::UnaryOp {
+                span: span.clone(),
+                op: *op,
+                fmla: expr.into(),
+            },
+            expressions::Expr::ProgramSymbol { sym } => Fmla::ProgramSymbol {
+                span: sym.span.clone(),
+                sym: sym.clone(),
+            },
             expressions::Expr::This(_) => todo!(),
         }
     }
@@ -185,10 +204,10 @@ pub struct LogicBinOp {
 
 impl From<&expressions::BinOp> for LogicBinOp {
     fn from(value: &expressions::BinOp) -> Self {
-        LogicBinOp { 
-            lhs: Box::new(value.lhs.as_ref().into()), 
-            op: value.op, 
-            rhs: Box::new(value.rhs.as_ref().into()) 
+        LogicBinOp {
+            lhs: Box::new(value.lhs.as_ref().into()),
+            op: value.op,
+            rhs: Box::new(value.rhs.as_ref().into()),
         }
     }
 }
@@ -201,9 +220,9 @@ pub struct LogicApp {
 
 impl From<&expressions::AppExpr> for LogicApp {
     fn from(value: &expressions::AppExpr) -> Self {
-        LogicApp { 
-            func: (&value.func).into(), 
-            args: value.args.iter().map(|expr| expr.into()).collect::<>(),
+        LogicApp {
+            func: (&value.func).into(),
+            args: value.args.iter().map(|expr| expr.into()).collect(),
         }
     }
 }
@@ -216,9 +235,9 @@ pub struct FieldAccess {
 
 impl From<&expressions::FieldAccess> for FieldAccess {
     fn from(value: &expressions::FieldAccess) -> Self {
-        FieldAccess { 
-            record: (&value.record).into(), 
-            field: value.field.clone()
+        FieldAccess {
+            record: (&value.record).into(),
+            field: value.field.clone(),
         }
     }
 }

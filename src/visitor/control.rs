@@ -48,7 +48,7 @@ where
             ControlMut::Produce(t) => t,
             ControlMut::SkipSiblings(t) => t,
             ControlMut::Mutation(repl, t) => {
-                log::trace!(target: "visitor", "Mutation: {:?} -> {:?}", target, repl);
+                //log::trace!(target: "visitor", "Mutation: {:#?}", repl);
                 *target = repl;
                 t
             }
