@@ -226,6 +226,7 @@ impl BindingResolver {
                     .collect();
                 IvySort::Object(Object { args, fields })
             }
+            // XXX: https://github.com/dijkstracula/irving/issues/69
             IvySort::Generic(id, name) => match svar_map.get(id) {
                 None => {
                     let new = self.new_generic(name);

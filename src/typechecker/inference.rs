@@ -8,7 +8,7 @@ use super::{
 use crate::{
     ast::{
         actions::{self, Action},
-        declarations::{self, ActionMixinDecl, Binding},
+        declarations::{self, ActionMixinDecl, Binding, InstanceDecl},
         expressions::{self, Expr, Sort, Symbol, Token},
         logic,
         span::Span,
@@ -1570,7 +1570,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
         &mut self,
         span: &Span,
         name: &mut Token,
-        _ast: &mut declarations::InstanceDecl,
+        ast: &mut declarations::InstanceDecl,
         decl_sort: IvySort,
         module_sort: IvySort,
         mod_args_sorts: Vec<IvySort>,
@@ -1586,11 +1586,13 @@ impl Visitor<IvySort, TypeError> for SortInferer {
                 //    println!("ctx[{i}]: {x:?}");
                 // }
 
-                for (Binding { decl: s1, .. }, s2) in module.args.iter().zip(mod_args_sorts.iter()) {
-                    self.bindings
+                let resolved_tvars = module.args.iter().zip(mod_args_sorts.iter()).map(|(Binding { name, decl: s1, span }, s2)| {
+                    let decl = self.bindings
                         .unify(s1, s2)
                         .map_err(|e| e.to_typeerror(span))?;
+                    Ok(Binding { name: name.clone(), decl: Sort::Resolved(decl), span: span.clone() })
                 }
+                ).collect::<Result<Vec<_>, _>>()?;
 
                 let monomorphized = module_instantiation::instantiate(module, mod_args_sorts)?;
                 let unified = self
@@ -1599,7 +1601,9 @@ impl Visitor<IvySort, TypeError> for SortInferer {
                     .map_err(|e| e.to_typeerror(span))?;
 
                 if let IvySort::Module(Module { .. }) = unified {
-                    Ok(ControlMut::Produce(unified))
+                    println!("NBT: {:?}", resolved_tvars);
+                    // XXX: mutate with the inferred type for the typearg
+                    Ok(ControlMut::Mutation(declarations::Decl::Instance { decl: Binding { name: name.clone(), decl: InstanceDecl { sort: ast.sort.clone(), args: resolved_tvars }, span: span.clone() } }, unified))
                 } else {
                     Err(TypeError::Spanned {
                         span: span.clone(),

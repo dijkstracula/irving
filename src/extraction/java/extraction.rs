@@ -30,6 +30,11 @@ use crate::visitor::*;
 
 use super::types::JavaType;
 
+//
+const IVY_MODULE_PREFIX: &'static str = "IvyMod_";
+
+//
+
 pub struct Extractor<W>
 where
     W: Write,
@@ -352,20 +357,25 @@ where
         name: &mut Token,
         ast: &mut declarations::InstanceDecl,
     ) -> ExtractResult<declarations::Decl> {
-        self.pp.write_fmt(format_args!("class {} extends ", name))?;
-        self.identifier(span, &mut ast.sort)?
-            .modifying(&mut ast.sort);
+        self.pp.write_fmt(format_args!("class {IVY_MODULE_PREFIX}{name} extends {IVY_MODULE_PREFIX}"))?;
+        // TODO: in cases where the identifier is qualified (eg. more than one token), are we going to
+        // insert the prefix in the right place?  Somehow I don't think so.
+        self.identifier(span, &mut ast.sort)?.modifying(&mut ast.sort); 
+
         if !ast.args.is_empty() {
             self.pp.write_str("<")?;
 
-            // maybe slightly confusing: because we parameterise modules on their sorts,
-            // the `id` field contains the identifier for sort, not the `sort` field.
-            let mut sorts = ast.args.iter().map(|a| a.name.clone()).collect::<Vec<_>>();
-            self.write_ident(&mut sorts, ", ")?;
+            let mut sorts = ast.args.iter().map(|a| a.decl.clone()).collect::<Vec<_>>();
+            for (i, sort) in sorts.iter_mut().enumerate() {
+                if i > 0 {
+                    self.pp.write_str(",")?;
+                }
+                self.sort(sort)?.modifying(sort);
+            }
             self.pp.write_str(">")?;
         }
 
-        self.pp.write_str(" {\n}")?;
+        self.pp.write_str(" { }")?;
 
         Ok(ControlMut::SkipSiblings(()))
     }
@@ -585,7 +595,7 @@ where
         }
 
         // TODO...
-        self.pp.write_fmt(format_args!("class IvyMod_{name}"))?;
+        self.pp.write_fmt(format_args!("class {IVY_MODULE_PREFIX}{name}"))?;
         if ast.sortsyms.len() > 0 {
             self.pp.write_str("<")?;
             // Note: in the binding, name is the type variable name, and the decl is the

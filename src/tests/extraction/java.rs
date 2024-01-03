@@ -282,9 +282,28 @@ mod tests {
         ast.visit(&mut e).expect("extraction failed");
         println!("{}", e.pp.out);
 
-        assert!(e.pp.out.contains("class IvyMod_pair<t> ")); // module name mangling
+        assert!(e.pp.out.contains("class IvyMod_pair<t> ")); // TODO: module name mangling
         assert!(e.pp.out.contains("t x;"));
         assert!(e.pp.out.contains("t y;"));
+    }
+
+    #[test]
+    fn extract_module_instantation() {
+        let mut tc = SortInferer::new();
+        let mut module = helpers::module_from_src(
+            "module pair(t) = { 
+                var x: t
+                var y: t
+        }");
+        let mut instantiation = helpers::decl_from_src("instance nat_pair : pair(nat)");
+
+        module.visit(&mut tc).expect("typechecking failed (module)");
+        instantiation.visit(&mut tc).expect("typechecking failed (instantiation)");
+
+        let mut e = Extractor::<String>::new();
+        instantiation.visit(&mut e).expect("extraction failed");
+        println!("{}", e.pp.out);
+        assert!(e.pp.out.contains("class IvyMod_nat_pair extends IvyMod_pair<Long> ")); // TODO: module name mangling
     }
 
     // Logic

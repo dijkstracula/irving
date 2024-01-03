@@ -167,7 +167,6 @@ mod tests {
             "{:?}",
             tc.bindings.lookup_ident(&vec!["host".into(), "net".into()])
         );
-        println!("{:?}", tc.bindings.resolve(&IvySort::SortVar(2)));
     }
 
     #[test]
