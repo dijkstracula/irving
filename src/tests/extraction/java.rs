@@ -263,7 +263,7 @@ mod tests {
         ast.visit(&mut e).expect("extraction failed");
 
         println!("{}", e.pp.out);
-        assert!(e.pp.out.contains("class IvyMod_nat_pair ")); // module name mangling
+        assert!(e.pp.out.contains("class IvyMod_nat_pair "));
         assert!(e.pp.out.contains("long x;"));
         assert!(e.pp.out.contains("long y;"));
     }
@@ -302,8 +302,27 @@ mod tests {
 
         let mut e = Extractor::<String>::new();
         instantiation.visit(&mut e).expect("extraction failed");
+        assert!(e.pp.out.contains("class IvyMod_nat_pair extends IvyMod_pair<Long> "));
+    }
+
+    #[test]
+    fn extract_process_trivial() {
+        let mut tc = SortInferer::new();
+        tc.bindings
+            .append("pid".into(), IvySort::BoundedSequence(0, 3))
+            .unwrap();
+
+        let mut proc = helpers::process_from_decl("process host(self:pid) = { }");
+        proc.visit(&mut tc).expect("typechecking");
+
+        let mut e = Extractor::<String>::new();
+        proc.visit(&mut e).expect("extraction");
+
         println!("{}", e.pp.out);
-        assert!(e.pp.out.contains("class IvyMod_nat_pair extends IvyMod_pair<Long> ")); // TODO: module name mangling
+
+        assert!(e.pp.out.contains("class IvyObj_host extends Protocol "));
+        assert!(e.pp.out.contains("private long self;"));
+        assert!(e.pp.out.contains("public IvyObj_host(long self) "));
     }
 
     // Logic

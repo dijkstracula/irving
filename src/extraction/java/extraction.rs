@@ -628,7 +628,7 @@ where
         name: &mut Token,
         ast: &mut declarations::ObjectDecl,
     ) -> ExtractResult<declarations::Decl> {
-        self.pp.write_fmt(format_args!("class IvyObj_{name}"))?;
+        self.pp.write_fmt(format_args!("class IvyObj_{name} extends Protocol"))?;
         self.pp.write_str(" {\n")?;
 
         // Declare all action instance variables.
@@ -638,9 +638,9 @@ where
         }
         self.pp.write_str("\n")?;
 
-        for param in ast.params() {
+        for Binding { name, decl, .. } in ast.params() {
             self.pp.write_str("private ")?;
-            self.param(param)?;
+            self.pp.write_fmt(format_args!("{} {name}", Self::jtype_from_sort(decl).as_jval()))?;
             self.pp.write_str(";\n")?;
         }
         self.pp.write_str("\n")?;
@@ -654,7 +654,12 @@ where
 
         // Constructor
         self.pp.write_fmt(format_args!("public IvyObj_{name}("))?;
-        self.write_paramlist(&mut ast.params, ", ")?;
+        for (i, Binding { name, decl, .. }) in ast.params.iter_mut().enumerate() {
+            if i > 0 {
+                self.pp.write_str(", ")?;
+            }
+            self.pp.write_fmt(format_args!("{} {name}", Self::jtype_from_sort(decl).as_jval()))?;
+        }
         self.pp.write_fmt(format_args!(") {{\n"))?;
 
         for param in &ast.params {
