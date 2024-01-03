@@ -1375,11 +1375,12 @@ impl Visitor<IvySort, TypeError> for SortInferer {
 
         // Note: we have to pull the sort arguments into scope explicitly
         // unlike action decls since the argument list AST isn't a Vec<Param>.
-        for sortarg in &ast.sortsyms {
-            let s = self.bindings.new_sortvar();
-            self.bindings
-                .append(sortarg.clone(), s)
-                .map_err(|e| e.to_typeerror(span))?;
+        for Binding { name, .. } in &ast.sortsyms {
+            // XXX: sortsyms being a binding will be vestigal soon: eventually
+            // it should just be a vec of IvySort::ModuleArg?
+            let s = self.bindings.new_generic(name);
+            self.bindings.append(name.clone(), s)
+            .map_err(|e| e.to_typeerror(span))?;
         }
 
         // TODO: possibly this could be its own pass.
@@ -1395,14 +1396,15 @@ impl Visitor<IvySort, TypeError> for SortInferer {
         name: &mut Token,
         ast: &mut declarations::ModuleDecl,
         mod_sort: IvySort,
-        param_sorts: Vec<IvySort>,
+        param_sorts: Vec<Binding<IvySort>>,
         field_sorts: Vec<IvySort>,
     ) -> InferenceResult<declarations::Decl> {
-        let args = ast
-            .sortsyms
-            .iter()
-            .zip(param_sorts.iter())
-            .map(|(name, sort)| (name.clone(), self.bindings.resolve(sort).clone()))
+        let args = param_sorts
+            .into_iter()
+            .map(|Binding { name, decl, span }| {
+                let decl = self.bindings.resolve(&decl).clone();
+                Binding { name, decl, span }
+            })
             .collect::<Vec<_>>();
 
         // A module's fields are all the declarations that bind a name.
@@ -1584,7 +1586,7 @@ impl Visitor<IvySort, TypeError> for SortInferer {
                 //    println!("ctx[{i}]: {x:?}");
                 // }
 
-                for ((_name, s1), s2) in module.args.iter().zip(mod_args_sorts.iter()) {
+                for (Binding { decl: s1, .. }, s2) in module.args.iter().zip(mod_args_sorts.iter()) {
                     self.bindings
                         .unify(s1, s2)
                         .map_err(|e| e.to_typeerror(span))?;

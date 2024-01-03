@@ -576,7 +576,7 @@ where
         &mut self,
         _span: &Span,
         name: &mut Token,
-        _ast: &mut declarations::ModuleDecl,
+        ast: &mut declarations::ModuleDecl,
     ) -> VisitorResult<(), std::fmt::Error, declarations::Decl> {
         // XXX: stupid hack: if this is a collection that has a Melina implementation,
         // don't emit it.  I hate this.
@@ -586,7 +586,28 @@ where
 
         // TODO...
         self.pp.write_fmt(format_args!("class IvyMod_{name}"))?;
+        if ast.sortsyms.len() > 0 {
+            self.pp.write_str("<")?;
+            // Note: in the binding, name is the type variable name, and the decl is the
+            // internal sort used for type unification, which we're not interested in here.
+            for (i, Binding { name, span, .. }) in ast.sortsyms.iter_mut().enumerate() {
+                if i > 0 {
+                    self.pp.write_str(",")?;
+                }
+                // TODO: should we mangle the typevar?
+                self.token(span, name)?;
+            }
+            self.pp.write_str(">")?;
+        }
+
         self.pp.write_str(" {\n")?;
+        for (i, decl) in ast.body.iter_mut().enumerate() {
+            if i > 0 {
+                self.pp.write_str("\n")?;
+            }
+            decl.visit(self)?.modifying(decl);
+            self.pp.write_str(";")?;
+        }
         self.pp.write_str("\n}\n")?;
         return Ok(ControlMut::SkipSiblings(()));
     }

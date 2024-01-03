@@ -473,8 +473,12 @@ where
 
         if !module.sortsyms.is_empty() {
             self.pp.write_str("(")?;
-            self.identifier(span, &mut module.sortsyms)?
-                .modifying(&mut module.sortsyms);
+            for (i, binding) in module.sortsyms.iter_mut().enumerate() {
+                if i > 0 {
+                    self.pp.write_str(",")?;
+                }
+                self.token(span, &mut binding.name)?.modifying(&mut binding.name);
+            }
             self.pp.write_str(")")?;
         }
         self.pp.write_str(" {\n")?;

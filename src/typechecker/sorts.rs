@@ -32,7 +32,7 @@ pub struct Object {
 #[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]
 pub struct Module {
     pub name: Token,
-    pub args: Vec<(Token, IvySort)>, // Each of these will be SortVars
+    pub args: Vec<Binding<IvySort>>, // Each of these will be SortVars
     pub fields: BTreeMap<String, IvySort>,
 }
 
@@ -105,6 +105,11 @@ pub enum IvySort {
     Class(Class),
     Module(Module),
     Object(Object),
+
+    // A Generic is an unresolved module argument, given some name, that will be
+    // instantiated later on with a concrete value.  (If the implementation of
+    // the module constrains the type variable, it'll be some other sort.)
+    Generic(usize, String),
 
     // A SortVar contains the index of its referrent into the typing context.
     SortVar(usize),
@@ -225,7 +230,9 @@ impl IvySort {
             }
             IvySort::Class(cls) => cls.name.clone(),
             IvySort::Module(_) => "module".into(),
+            IvySort::Generic(_, typevar) => typevar.to_owned(),
             IvySort::Object(_) => "object".into(),
+
             IvySort::SortVar(_) => "sortvar".into(),
         }
     }
@@ -342,7 +349,7 @@ impl Visitor<IvySort, TypeError> for SortSubstituter {
     fn module(
         &mut self,
         m: &mut Module,
-        args_t: Vec<(String, IvySort)>,
+        args_t: Vec<Binding<IvySort>>,
         fields_t: BTreeMap<String, IvySort>,
     ) -> InferenceResult<IvySort> {
         self.subst(IvySort::Module(Module {
@@ -350,6 +357,10 @@ impl Visitor<IvySort, TypeError> for SortSubstituter {
             args: args_t,
             fields: fields_t,
         }))
+    }
+
+    fn generic(&mut self, id: &mut usize, name: &mut str) -> InferenceResult<IvySort> {
+        self.subst(IvySort::Generic(*id, name.to_owned()))
     }
 
     fn object(

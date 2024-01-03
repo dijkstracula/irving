@@ -251,10 +251,14 @@ impl IvyParser {
     }
 
     pub fn mod_sig(input: Node) -> Result<ModSig> {
+        let span = Span::from_node(&input);
         match_nodes!(
         input.into_children();
         [PROGTOK(name), PROGTOK(sortsyms)..] => {
-            Ok(ModSig{name, sortsyms: sortsyms.collect()})
+            let sortsyms = sortsyms.into_iter()
+                .map(|sym| Binding::from(sym, Sort::ToBeInferred, span.clone()))
+                .collect();
+            Ok(ModSig{name, sortsyms})
         })
     }
 
@@ -552,8 +556,9 @@ impl IvyParser {
 
         match_nodes!(
         input.into_children();
-        [mod_sig(ModSig{name, sortsyms}), decl_block(body)] => Ok(
-            Binding::from(name, ModuleDecl{sortsyms, body}, span)))
+        [mod_sig(ModSig{name, sortsyms}), decl_block(body)] => {
+            Ok(Binding::from(name, ModuleDecl{sortsyms, body}, span))
+        })
     }
 
     pub fn object_decl(input: Node) -> Result<Binding<ObjectDecl>> {

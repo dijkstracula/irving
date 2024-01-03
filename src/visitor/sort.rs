@@ -1,8 +1,8 @@
 use std::{collections::BTreeMap, error::Error};
 
 use crate::{
-    ast::expressions::{self, Token},
-    typechecker::sorts::{ActionArgs, ActionKind, ActionRet, IvySort, Module, Object},
+    ast::{expressions::{self, Token}, declarations::Binding},
+    typechecker::sorts::{ActionArgs, ActionKind, ActionRet, IvySort, Module, Object, self},
 };
 
 use super::{ControlMut, VisitorResult};
@@ -101,11 +101,16 @@ where
     fn module(
         &mut self,
         _mod: &mut Module,
-        _args_t: Vec<(String, T)>,
+        _args_t: Vec<Binding<T>>,
         _fields_t: BTreeMap<String, T>,
     ) -> VisitorResult<T, E, IvySort> {
         Ok(ControlMut::Produce(T::default()))
     }
+
+    fn generic(&mut self, _id: &mut usize, _name: &mut str) -> VisitorResult<T, E, IvySort> {
+        Ok(ControlMut::Produce(T::default()))
+    }
+
 
     fn object(
         &mut self,
@@ -155,12 +160,12 @@ where
                     ),
                 };
                 let ret_t = match ret {
-                    crate::typechecker::sorts::ActionRet::Unknown => todo!(),
-                    crate::typechecker::sorts::ActionRet::Unit => {
+                    sorts::ActionRet::Unknown => todo!(),
+                    sorts::ActionRet::Unit => {
                         let mut s = IvySort::Unit;
                         s.visit(visitor)?.modifying(&mut s)
                     }
-                    crate::typechecker::sorts::ActionRet::Named(binding) => {
+                    sorts::ActionRet::Named(binding) => {
                         binding.decl.visit(visitor)?.modifying(&mut binding.decl)
                     }
                 };
@@ -198,7 +203,7 @@ where
                 let args_t = module
                     .args
                     .iter_mut()
-                    .map(|(name, s)| Ok((name.clone(), s.visit(visitor)?.modifying(s))))
+                    .map(|Binding { name, decl, span }| Ok(Binding::from(name.clone(), decl.visit(visitor)?.modifying(decl), span.clone())))
                     .collect::<Result<Vec<_>, _>>()?;
                 let fields_t = module
                     .fields
@@ -207,6 +212,7 @@ where
                     .collect::<Result<BTreeMap<_, _>, _>>()?;
                 visitor.module(module, args_t, fields_t)
             }
+            IvySort::Generic(id, name) => visitor.generic(id, name),
             IvySort::Object(_) => todo!(),
             IvySort::SortVar(id) => visitor.sortvar(id),
         }?

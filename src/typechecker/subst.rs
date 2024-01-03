@@ -1,5 +1,5 @@
 use crate::{
-    ast::{actions, expressions, statements},
+    ast::{actions, expressions::Sort, statements},
     typechecker::sorts::IvySort,
     visitor::{
         ast::{Visitable, Visitor},
@@ -34,26 +34,30 @@ impl Visitor<(), TypeError> for SortSubstituter {
 
     fn sort(
         &mut self,
-        s: &mut expressions::Sort,
-    ) -> VisitorResult<(), TypeError, expressions::Sort> {
+        s: &mut Sort,
+    ) -> VisitorResult<(), TypeError, Sort> {
         match s {
-            expressions::Sort::ToBeInferred => {
-                log::warn!("Assuming ToBeInferred is a nat");
-                Ok(ControlMut::Produce(()))
+            Sort::ToBeInferred => {
+                panic!("Didn't infer sort!");
             }
-            expressions::Sort::Annotated(_) => {
-                panic!("Didn't fully infer sort {:?}", s);
+            Sort::Annotated(name) => {
+                let name = name.join(".");
+                panic!("Didn't resolve sort {:?}", name);
             }
-            expressions::Sort::Resolved(is) => {
-                if let IvySort::SortVar(_) = is {
-                    let resolved = self.bindings.resolve(is);
-                    if is != resolved {
-                        log::debug!(target: "sort-substituter", "{is:?} -> {resolved:?}");
-                        return Ok(ControlMut::Mutation(
-                            expressions::Sort::Resolved(resolved.clone()),
-                            (),
-                        ));
+            Sort::Resolved(is) => {
+                match is {
+                    IvySort::Generic(_, _) |
+                    IvySort::SortVar(_) => {
+                        let resolved = self.bindings.resolve(is);
+                        if is != resolved {
+                            log::debug!(target: "sort-substituter", "{is:?} -> {resolved:?}");
+                            return Ok(ControlMut::Mutation(
+                                Sort::Resolved(resolved.clone()),
+                                (),
+                            ));
+                        }
                     }
+                    _ => ()
                 }
                 Ok(ControlMut::Produce(()))
             }

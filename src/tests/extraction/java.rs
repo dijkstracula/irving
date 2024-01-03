@@ -262,6 +262,7 @@ mod tests {
         let mut e = Extractor::<String>::new();
         ast.visit(&mut e).expect("extraction failed");
 
+        println!("{}", e.pp.out);
         assert!(e.pp.out.contains("class IvyMod_nat_pair ")); // module name mangling
         assert!(e.pp.out.contains("long x;"));
         assert!(e.pp.out.contains("long y;"));
@@ -279,8 +280,9 @@ mod tests {
 
         let mut e = Extractor::<String>::new();
         ast.visit(&mut e).expect("extraction failed");
+        println!("{}", e.pp.out);
 
-        assert!(e.pp.out.contains("class IvyMod_pair ")); // module name mangling
+        assert!(e.pp.out.contains("class IvyMod_pair<t> ")); // module name mangling
         assert!(e.pp.out.contains("t x;"));
         assert!(e.pp.out.contains("t y;"));
     }

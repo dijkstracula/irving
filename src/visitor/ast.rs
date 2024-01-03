@@ -452,7 +452,7 @@ where
         _name: &mut Token,
         _ast: &mut ModuleDecl,
         _n: T,
-        _p: Vec<T>,
+        _p: Vec<Binding<T>>,
         _b: Vec<T>,
     ) -> VisitorResult<T, E, Decl> {
         Ok(ControlMut::Produce(T::default()))
@@ -1213,7 +1213,7 @@ where
                 let p = decl
                     .sortsyms
                     .iter_mut()
-                    .map(|p| Ok(visitor.token(span, p)?.modifying(p)))
+                    .map(|Binding { name, decl, span }| Ok(Binding::from(name.clone(), visitor.token(span, name)?.modifying(name), span.clone())))
                     .collect::<Result<Vec<_>, _>>()?;
                 let b = decl.body.visit(visitor)?.modifying(&mut decl.body);
                 visitor.finish_module_decl(name, decl, n, p, b)

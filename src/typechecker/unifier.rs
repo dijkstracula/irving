@@ -198,7 +198,7 @@ impl BindingResolver {
                 let args = module
                     .args
                     .iter()
-                    .map(|(k, v)| (k.clone(), self.fresh_sortvars_iter(svar_map, v)))
+                    .map(|Binding { name, decl, span }| Binding::from(name, self.fresh_sortvars_iter(svar_map, decl), span.clone()))
                     .collect();
                 let fields = module
                     .fields
@@ -226,6 +226,19 @@ impl BindingResolver {
                     .collect();
                 IvySort::Object(Object { args, fields })
             }
+            IvySort::Generic(id, name) => match svar_map.get(id) {
+                None => {
+                    let new = self.new_generic(name);
+                    let new_id = match &new {
+                        IvySort::Generic(id, _) => *id,
+                        _ => unreachable!(),
+                    };
+
+                    svar_map.insert(*id, new_id);
+                    new
+                }
+                Some(id) => IvySort::Generic(*id, name.clone()),
+            },
             IvySort::SortVar(id) => match svar_map.get(id) {
                 None => {
                     let new = self.new_sortvar();
@@ -337,22 +350,29 @@ impl BindingResolver {
     // Unification
 
     pub fn resolve<'a>(&'a self, sort: &'a IvySort) -> &'a IvySort {
-        if let IvySort::SortVar(original_id) = sort {
-            let mut curr_id = *original_id;
-            let mut next_sort = &self.ctx[curr_id];
+        match sort {
+            IvySort::Generic(original_id, _) | IvySort::SortVar(original_id) => {
+                let mut curr_id = *original_id;
+                let mut next_sort = &self.ctx[curr_id];
 
-            while let IvySort::SortVar(new_id) = next_sort {
-                //eprintln!("resolve: {:?}", self.ctx);
-                if new_id == &curr_id {
-                    //TODO: occurs check?
-                    break;
+                loop {
+                    match next_sort {
+                        IvySort::Generic(new_id, _) | 
+                        IvySort::SortVar(new_id) => {
+                            //eprintln!("resolve: {:?}", self.ctx);
+                            if new_id == &curr_id {
+                                //TODO: occurs check?
+                                break;
+                            }
+                            curr_id = *new_id;
+                            next_sort = &self.ctx[curr_id];
+                        }
+                        _ => break
+                    }
                 }
-                curr_id = *new_id;
-                next_sort = &self.ctx[curr_id];
-            }
-            next_sort
-        } else {
-            sort
+                next_sort
+            } 
+            sort => sort
         }
     }
 
@@ -436,7 +456,12 @@ impl BindingResolver {
         let rhs = self.resolve(rhs).clone();
         log::debug!(target: "sort-inference", "unify({lhs:?},{rhs:?})");
         match (&lhs, &rhs) {
-            (IvySort::SortVar(i), IvySort::SortVar(j)) => {
+            // SortVars and Generics unify with anything; two sortvars, to break
+            // symmetry, resolve to the lower index into the typing context.
+            (IvySort::SortVar(i), IvySort::SortVar(j)) | 
+            (IvySort::SortVar(i), IvySort::Generic(j, _)) |
+            (IvySort::Generic(i, _), IvySort::SortVar(j)) |
+            (IvySort::Generic(i, _), IvySort::Generic(j, _)) => {
                 if i < j {
                     self.ctx[*j] = lhs.clone();
                     Ok(lhs)
@@ -447,11 +472,11 @@ impl BindingResolver {
                     Ok(lhs)
                 }
             }
-            (IvySort::SortVar(i), _) => {
+            (IvySort::SortVar(i), _) | (IvySort::Generic(i, _), _) => {
                 self.ctx[*i] = rhs.clone();
                 Ok(rhs)
             }
-            (_, IvySort::SortVar(j)) => {
+            (_, IvySort::SortVar(j)) | (_, IvySort::Generic(j, _)) => {
                 self.ctx[*j] = lhs.clone();
                 Ok(lhs)
             }
@@ -622,6 +647,12 @@ impl BindingResolver {
 
     pub fn new_sortvar(&mut self) -> IvySort {
         let s = IvySort::SortVar(self.ctx.len());
+        self.ctx.push(s.clone());
+        s
+    }
+
+    pub fn new_generic<S>(&mut self, name: S) -> IvySort where S: Into<String> {
+        let s = IvySort::Generic(self.ctx.len(), name.into());
         self.ctx.push(s.clone());
         s
     }

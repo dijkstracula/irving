@@ -14,9 +14,9 @@ pub fn instantiate(mut m: Module, args: Vec<IvySort>) -> Result<IvySort, TypeErr
     let curried = m.args.drain(0..args.len());
     let substs = curried
         .zip(args.into_iter())
-        .map(|((_name, s1), s2)| {
+        .map(|(binding, s2)| {
             //let unified = ctx.unify(&s1, &s2)?;
-            (s1, s2)
+            (binding.decl, s2)
         })
         .collect::<BTreeMap<_, _>>();
 

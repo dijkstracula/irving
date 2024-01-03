@@ -189,7 +189,7 @@ mod tests {
                 decl: Binding::from(
                     "net",
                     ModuleDecl {
-                        sortsyms: vec!("pid".into()),
+                        sortsyms: vec!(Binding::inferred("pid")),
                         body: vec!()
                     },
                     Span::IgnoredForTesting

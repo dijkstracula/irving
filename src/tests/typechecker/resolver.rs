@@ -103,7 +103,9 @@ mod tests {
         // Compound case: we can recurse into complicated sorts
         let si = IvySort::Module(Module {
             name: "array".into(),
-            args: vec![("domain".into(), si), ("range".into(), si2)],
+            args: vec![
+                Binding::from("domain", si, Span::IgnoredForTesting), 
+                Binding::from("range", si2, Span::IgnoredForTesting)],
             fields: [
                 ("this".into(), IvySort::This),
                 ("t".into(), IvySort::This),
@@ -116,6 +118,22 @@ mod tests {
     }
 
     #[test]
+    fn sortvar_unification() {
+        let mut r = BindingResolver::new();
+        let t = r.new_sortvar();
+        assert!(r.unify(&t, &IvySort::Number).is_ok());
+        assert!(r.unify(&t, &IvySort::Bool).is_err());
+    }
+
+    #[test]
+    fn generic_unification() {
+        let mut r = BindingResolver::new();
+        let t = r.new_generic("t");
+        assert!(r.unify(&t, &IvySort::Number).is_ok());
+        assert!(r.unify(&t, &IvySort::Bool).is_err());
+    }
+
+    #[test]
     fn fresh_sortvar_consistent_mapping() {
         let mut r = BindingResolver::new();
         let t = r.new_sortvar();
@@ -124,7 +142,7 @@ mod tests {
         // Note that we have a consistent use of SortVar(0) here.
         let si = IvySort::Module(Module {
             name: "box".into(),
-            args: vec![("range".into(), t.clone())],
+            args: vec![Binding::from("range", t.clone(), Span::IgnoredForTesting)],
             fields: [
                 ("this".into(), IvySort::This),
                 ("t".into(), IvySort::This),
@@ -160,7 +178,7 @@ mod tests {
             si2,
             IvySort::Module(Module {
                 name: "box".into(),
-                args: vec![("range".into(), t.clone())],
+                args: vec![Binding::from("range", t.clone(), Span::IgnoredForTesting)],
                 fields: [
                     ("this".into(), IvySort::This),
                     ("t".into(), IvySort::This),

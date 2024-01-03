@@ -13,6 +13,7 @@ pub enum JavaType {
     ArrayList(Box<JavaType>),
     Map(Vec<JavaType>, Box<JavaType>),
     Object(String, Vec<JavaType>),
+    Generic(String),
     Void,
 }
 
@@ -21,6 +22,7 @@ impl JavaType {
         Self::Object(typ, vec![])
     }
 
+    // TODO: this should really be an Option<String>, since not all types have a corresponding generator.
     pub fn melina_generator(&self) -> String {
         match self {
             JavaType::Boolean => todo!(),
@@ -31,6 +33,7 @@ impl JavaType {
             JavaType::ArrayList(_) => todo!(),
             JavaType::Map(_, _) => todo!(),
             JavaType::Object(name, _) => name.clone(),
+            JavaType::Generic(_name) => todo!(),
             JavaType::Void => todo!(),
         }
     }
@@ -63,6 +66,7 @@ impl JavaType {
                 let val = val.as_jref();
                 format!("HashMap<{},{}>", keys, val)
             }
+            JavaType::Generic(typevar) => typevar.to_owned(),
             JavaType::Void => "Void".into(),
         }
     }
@@ -107,10 +111,11 @@ impl From<IvySort> for JavaType {
                 let val: JavaType = val.as_ref().into();
                 Self::Map(keys, Box::new(val))
             }
+            IvySort::Generic(_, typevar) => Self::Generic(typevar),
             IvySort::Class(cls) => Self::Object(cls.name, vec![]),
             IvySort::Module(Module { name, args, .. }) => {
                 let args: Vec<JavaType> =
-                    args.into_iter().map(|(_, sort)| sort.into()).collect::<_>();
+                    args.into_iter().map(|binding| binding.decl.into()).collect::<_>();
                 Self::Object(name, args)
             }
             IvySort::Object(_) => todo!(),
@@ -151,9 +156,10 @@ impl From<&IvySort> for JavaType {
             }
             IvySort::Class(_) => todo!(),
             IvySort::Module(Module { name, args, .. }) => {
-                let args: Vec<JavaType> = args.iter().map(|(_, sort)| sort.into()).collect::<_>();
+                let args: Vec<JavaType> = args.into_iter().map(|binding| binding.decl.clone().into()).collect::<_>();
                 Self::Object(name.clone(), args)
             }
+            IvySort::Generic(_, typevar) => Self::Generic(typevar.to_owned()),
             IvySort::Object(_) => todo!(),
             IvySort::SortVar(_) => todo!(),
         }

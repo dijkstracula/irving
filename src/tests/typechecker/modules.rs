@@ -5,7 +5,7 @@ mod tests {
             actions::Action,
             declarations::{ActionDecl, Binding, Decl, ModuleDecl},
             expressions::Sort,
-            statements::Stmt,
+            statements::Stmt, span::Span,
         },
         tests::helpers,
         typechecker::{
@@ -63,8 +63,8 @@ mod tests {
         let sort = IvySort::Module(Module {
             name: "array".into(),
             args: vec![
-                ("domain".into(), IvySort::SortVar(1)),
-                ("range".into(), IvySort::SortVar(2)),
+                Binding::from("domain", IvySort::Generic(1, "domain".into()), Span::IgnoredForTesting),
+                Binding::from("range", IvySort::Generic(2, "range".into()), Span::IgnoredForTesting),
             ],
             fields: [
                 ("this".into(), IvySort::This),
@@ -97,8 +97,8 @@ mod tests {
         let sort = IvySort::Module(Module {
             name: "array".into(),
             args: vec![
-                ("domain".into(), IvySort::SortVar(1)),
-                ("range".into(), IvySort::SortVar(2)),
+                Binding::from("domain", IvySort::Generic(1, "domain".into()), Span::IgnoredForTesting),
+                Binding::from("range", IvySort::Generic(2, "range".into()), Span::IgnoredForTesting),
             ],
             fields: [
                 ("this".into(), IvySort::This),
@@ -106,15 +106,15 @@ mod tests {
                     "get".into(),
                     IvySort::action_sort(
                         vec!["a".into(), "x".into()],
-                        vec![IvySort::This, IvySort::SortVar(1)],
-                        sorts::ActionRet::named("y", IvySort::SortVar(2)),
+                        vec![IvySort::This, IvySort::Generic(1, "domain".into())],
+                        sorts::ActionRet::named("y", IvySort::Generic(2, "range".into())),
                     ),
                 ),
                 (
                     "set".into(),
                     IvySort::action_sort(
                         vec!["a".into(), "x".into(), "y".into()],
-                        vec![IvySort::This, IvySort::SortVar(1), IvySort::SortVar(2)],
+                        vec![IvySort::This, IvySort::Generic(1, "domain".into()), IvySort::Generic(2, "range".into())],
                         sorts::ActionRet::named("a", IvySort::This),
                     ),
                 ),
@@ -138,9 +138,9 @@ mod tests {
         let mut prog = helpers::prog_from_decls(
             "
         #lang ivy1.8
-        module m(t) = { }          # Internally, `t` will be a SortVar at this point.
+        module m(t) = { }          # Internally, `t` will be an IvySort::Generic at this point.
 
-        instance mint : m(int)     # We need to ensure that we can unify that sortvar...
+        instance mint : m(int)     # We need to ensure that we can unify that meta-sort...
         instance mbool : m(bool)   # ...with different sorts at different instantiations.
         ",
         );

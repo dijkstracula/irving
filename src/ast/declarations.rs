@@ -18,7 +18,7 @@ pub type DeclRet = Option<Symbol>;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ModSig {
     pub name: Token,
-    pub sortsyms: Vec<Token>,
+    pub sortsyms: ParamList,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -101,7 +101,7 @@ pub struct MapDecl {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ModuleDecl {
-    pub sortsyms: Vec<Token>,
+    pub sortsyms: ParamList,
     pub body: Vec<Decl>,
 }
 

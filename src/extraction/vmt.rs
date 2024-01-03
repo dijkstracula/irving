@@ -4,7 +4,7 @@ use crate::{
     ast::{
         actions,
         declarations::{self, MapDecl},
-        expressions, logic,
+        expressions::{self, Sort}, logic,
         span::{self, Span},
         statements,
     },
@@ -28,7 +28,7 @@ where
     /// scopes, we remember
     pub emitted_relations_by_name: BTreeMap<expressions::Token, usize>,
     pub emitted_relations_by_decl: BTreeMap<MapDecl, usize>,
-    pub emitted_symbols: BTreeMap<expressions::Token, BTreeMap<expressions::Sort, usize>>,
+    pub emitted_symbols: BTreeMap<expressions::Token, BTreeMap<Sort, usize>>,
     pub num_properties: usize,
 }
 
@@ -109,7 +109,7 @@ where
     pub fn emit_unique_symbol(
         &mut self,
         name: &mut expressions::Token,
-        sort: &mut expressions::Sort,
+        sort: &mut Sort,
     ) -> Result<usize, std::fmt::Error> {
         if !self.emitted_symbols.contains_key(name) {
             self.emitted_symbols.insert(name.clone(), BTreeMap::new());
@@ -274,7 +274,7 @@ where
                 expressions::Expr::App {
                     expr:
                         expressions::AppExpr {
-                            func_sort: expressions::Sort::Resolved(IvySort::Map(_, _)),
+                            func_sort: Sort::Resolved(IvySort::Map(_, _)),
                             ..
                         },
                     ..
@@ -507,7 +507,7 @@ where
         &mut self,
         _span: &span::Span,
         _name: &mut expressions::Token,
-        _ast: &mut expressions::Sort,
+        _ast: &mut Sort,
     ) -> VisitorResult<(), std::fmt::Error, declarations::Decl> {
         Ok(ControlMut::SkipSiblings(()))
     }
@@ -516,7 +516,7 @@ where
         &mut self,
         _span: &span::Span,
         name: &mut expressions::Token,
-        sort: &mut expressions::Sort,
+        sort: &mut Sort,
     ) -> VisitorResult<(), std::fmt::Error, declarations::Decl> {
         let _ = self.emit_unique_symbol(name, sort)?;
         //self.pp.write_str(&Self::lvar(name, &id))?;
@@ -535,28 +535,29 @@ where
     }
     fn sort(
         &mut self,
-        s: &mut expressions::Sort,
-    ) -> VisitorResult<(), std::fmt::Error, expressions::Sort> {
+        s: &mut Sort,
+    ) -> VisitorResult<(), std::fmt::Error, Sort> {
         match s {
-            expressions::Sort::ToBeInferred => self.pp.write_str("Int")?,
-            expressions::Sort::Annotated(_ident) => todo!(),
-            expressions::Sort::Resolved(is) => match is {
-                crate::typechecker::sorts::IvySort::Uninterpreted => self.pp.write_str("Int")?,
-                crate::typechecker::sorts::IvySort::This => todo!(),
-                crate::typechecker::sorts::IvySort::Unit => todo!(),
-                crate::typechecker::sorts::IvySort::Top => todo!(),
-                crate::typechecker::sorts::IvySort::Bool => self.pp.write_str("Bool")?,
-                crate::typechecker::sorts::IvySort::Number => self.pp.write_str("Int")?,
-                crate::typechecker::sorts::IvySort::BitVec(_) => todo!(),
-                crate::typechecker::sorts::IvySort::Vector(_) => todo!(),
-                crate::typechecker::sorts::IvySort::BoundedSequence(_, _) => todo!(),
-                crate::typechecker::sorts::IvySort::Enum(_) => todo!(),
-                crate::typechecker::sorts::IvySort::Action(_, _, _, _) => todo!(),
-                crate::typechecker::sorts::IvySort::Map(_, _) => todo!(),
-                crate::typechecker::sorts::IvySort::Class(_) => todo!(),
-                crate::typechecker::sorts::IvySort::Module(_) => todo!(),
-                crate::typechecker::sorts::IvySort::Object(_) => todo!(),
-                crate::typechecker::sorts::IvySort::SortVar(_) => self.pp.write_str("Int")?,
+            Sort::ToBeInferred => self.pp.write_str("Int")?,
+            Sort::Annotated(_ident) => todo!(),
+            Sort::Resolved(is) => match is {
+                IvySort::Uninterpreted => self.pp.write_str("Int")?,
+                IvySort::This => todo!(),
+                IvySort::Unit => todo!(),
+                IvySort::Top => todo!(),
+                IvySort::Bool => self.pp.write_str("Bool")?,
+                IvySort::Number => self.pp.write_str("Int")?,
+                IvySort::BitVec(_) => todo!(),
+                IvySort::Vector(_) => todo!(),
+                IvySort::BoundedSequence(_, _) => todo!(),
+                IvySort::Enum(_) => todo!(),
+                IvySort::Action(_, _, _, _) => todo!(),
+                IvySort::Map(_, _) => todo!(),
+                IvySort::Class(_) => todo!(),
+                IvySort::Module(_) => todo!(),
+                IvySort::Generic(_, typevar) => self.pp.write_str(typevar)?,
+                IvySort::Object(_) => todo!(),
+                IvySort::SortVar(_) => self.pp.write_str("Int")?,
             },
         }
         Ok(ControlMut::Produce(()))
